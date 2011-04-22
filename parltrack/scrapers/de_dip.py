@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 from offenesparlament.core import connect_db, get_data_dir
 import logging
 import re, string, os
@@ -6,7 +6,7 @@ import urllib2, urllib
 import cookielib
 from datetime import datetime
 from hashlib import sha1
-from threading import Lock 
+from threading import Lock
 from time import sleep
 from lxml import etree
 from hashlib import sha1
@@ -17,7 +17,7 @@ from StringIO import StringIO
 
 MAKE_SESSION_URL = "http://dipbt.bundestag.de/dip21.web/bt"
 BASE_URL = "http://dipbt.bundestag.de/dip21.web/searchProcedures/simple_search.do?method=Suchen&offset=%s&anzahl=100"
-DETAIL_VP_URL = "http://dipbt.bundestag.de/dip21.web/searchProcedures/simple_search_detail_vp.do?vorgangId=%s"    
+DETAIL_VP_URL = "http://dipbt.bundestag.de/dip21.web/searchProcedures/simple_search_detail_vp.do?vorgangId=%s"
 
 FACTION_MAPS = {
         u"BÜNDNIS 90/DIE GRÜNEN": u"B90/Die Grünen",
@@ -66,7 +66,7 @@ DIP_GREMIUM_TO_KEY = {
     }
 
 
-DIP_ABLAUF_STATES_FINISHED = { 
+DIP_ABLAUF_STATES_FINISHED = {
     u'Beantwortet': True,
     u'Abgeschlossen': True,
     u'Abgelehnt': True,
@@ -125,13 +125,13 @@ def inline_xml_from_page(page):
 
 def get_dip_with_cookie(url, method='GET', data={}):
     class _Request(urllib2.Request):
-        def get_method(self): 
+        def get_method(self):
             return method
-    
+
     lock.acquire()
     try:
         def _req(url, jar, data={}):
-            _data = urllib.urlencode(data) 
+            _data = urllib.urlencode(data)
             req = _Request(url, _data)
             jar.add_cookie_header(req)
             fp = urllib2.urlopen(req)
@@ -152,7 +152,7 @@ def _get_document(db, publisher, typ, id, **kwargs):
     q = {"publisher": publisher, "typ": typ, "key": id}
     data = {'publisher': publisher}
     for k, v in kwargs.items():
-        if v: 
+        if v:
             data[k] = v
     db.document.update(q, {"$set": data}, upsert=True)
     if data.get('link'):
@@ -178,7 +178,7 @@ def document_by_url(db, url, **kwargs):
                  "brd": ("BR", "drs"),
                  "brp": ("BR", "plpr")
                 }.get(base[0])
-    if publisher == 'BR' and typ == 'plpr': 
+    if publisher == 'BR' and typ == 'plpr':
         id = base[1]
     elif publisher == 'BR' and typ == 'drs':
         id = "/".join(base[-1].split("-"))
@@ -201,8 +201,8 @@ def document_by_name(db, name, **kwargs):
         name, remainder = END_ID.split(name, 1)
     typ, id = name.strip().split(" ")
     publisher, typ = {
-            "BT-Plenarprotokoll": ("BT", "plpr"), 
-            "BT-Drucksache": ("BT", "drs"), 
+            "BT-Plenarprotokoll": ("BT", "plpr"),
+            "BT-Drucksache": ("BT", "drs"),
             "BR-Plenarprotokoll": ("BR", "plpr"),
             "BR-Drucksache": ("BR", "drs")
             }.get(typ)
@@ -260,19 +260,19 @@ def activity_person_merge(db, akteur):
     if akteur.get('vorname') == 'Eva' and akteur.get('zuname') == 'Klamt':
         akteur['vorname'] = 'Ewa'
     if akteur.get('vorname') == 'Daniela' and akteur.get('zuname') == 'Raab':
-        # data mining and marriage: not a good fit. 
+        # data mining and marriage: not a good fit.
         akteur['zuname'] = 'Ludwig'
     candidates = list(db.akteur.find(
-        {"vorname": akteur.get('vorname'), 
+        {"vorname": akteur.get('vorname'),
          "zuname": akteur.get('zuname')}))
     if len(candidates) == 0:
         #print _namesub(akteur.get('vorname'))
         candidates = list(db.akteur.find(
-            {"vorname": {"$regex": akteur.get('vorname') + ".*"}, 
+            {"vorname": {"$regex": akteur.get('vorname') + ".*"},
              "zuname": akteur.get('zuname')}))
     if akteur.get('funktion') == 'MdB' or len(candidates) == 1:
         if len(candidates) == 0:
-            def _namesub(name): 
+            def _namesub(name):
                 s = '.*'
                 for c in name:
                     if c in string.letters:
@@ -281,11 +281,11 @@ def activity_person_merge(db, akteur):
                         s += '.'
                 return s + '.*'
             candidates = list(db.akteur.find(
-                {"vorname": {"$regex": _namesub(akteur.get('vorname'))}, 
+                {"vorname": {"$regex": _namesub(akteur.get('vorname'))},
                  "zuname": {"$regex": _namesub(akteur.get('zuname'))}}))
         if len(candidates) == 0:
             candidates = list(db.akteur.find({"$or": [
-                {"vorname": akteur.get('vorname')}, 
+                {"vorname": akteur.get('vorname')},
                 {"zuname": akteur.get('zuname')}]}))
         if len(candidates) == 1:
             a = candidates[0]
@@ -300,7 +300,7 @@ def activity_person_merge(db, akteur):
         pprint(candidates)
         return None
     a = akteur.copy()
-    if 'seite' in a: 
+    if 'seite' in a:
         del a['seite']
     if 'aktivitaet' in a:
         del a['aktivitaet']
@@ -310,7 +310,7 @@ def activity_person_merge(db, akteur):
 
 def test_activiy_person_merge(db):
     aktivitaeten = db.aktivitaet.find()
-    for aktivitaet in aktivitaeten: 
+    for aktivitaet in aktivitaeten:
         for akteur in aktivitaet.get('akteure', []):
             activity_person_merge(db, akteur)
 
@@ -320,16 +320,16 @@ def scrape_activities(db, db_id, id, periode):
     urlfp = get_dip_with_cookie(DETAIL_VP_URL % id)
     xml = inline_xml_from_page(urlfp.read())
     urlfp.close()
-    if xml is None: 
+    if xml is None:
         return {}
     activities = []
     for position in xml.findall(".//VORGANGSPOSITION"):
         pos = {
             'ablauf': db_id,
-            'ablauf_key': id, 
+            'ablauf_key': id,
             'wahlperiode': periode,
             'zuordnung': position.findtext("ZUORDNUNG"),
-            'urheber': position.findtext("URHEBER"), 
+            'urheber': position.findtext("URHEBER"),
             'fundstelle': position.findtext("FUNDSTELLE"),
             'fundstelle_link':  position.findtext("FUNDSTELLE_LINK"),
         }
@@ -369,7 +369,7 @@ def scrape_activities(db, db_id, id, periode):
             c['fraktion'] = FACTION_MAPS.get(c['fraktion'], c['fraktion'])
             c['id'] = activity_person_merge(db, c)
             #if c['function'] != "MdB":
-            pos['akteure'] = pos.get('akteure', []) + [c] 
+            pos['akteure'] = pos.get('akteure', []) + [c]
         for delegation in position.findall("ZUWEISUNG"):
             z = {
                 'zuweisungen': delegation.findtext("AUSSCHUSS_KLARTEXT"),
@@ -382,7 +382,7 @@ def scrape_activities(db, db_id, id, periode):
                 z['key'] = key
                 gremium = db.gremium.find_one({"key": key})
                 z['id'] = gremium.get('_id')
-            pos['zuweisungen'] = pos.get('zuweisungen', []) + [z] 
+            pos['zuweisungen'] = pos.get('zuweisungen', []) + [z]
         for decision in position.findall("BESCHLUSS"):
             #print etree.tostring(decision)
             d = {
@@ -413,7 +413,7 @@ def scrape_procedure(db, url):
     urlfp = get_dip_with_cookie(url)
     xml = inline_xml_from_page(urlfp.read())
     urlfp.close()
-    if xml is None: 
+    if xml is None:
         logging.warn("Could not find embedded XML in Ablauf: %s", id)
         return {}
     procedure = xml #.find("VORGANG")
