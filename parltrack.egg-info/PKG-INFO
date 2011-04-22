@@ -1,0 +1,11 @@
+Metadata-Version: 1.0
+Name: parltrack
+Version: 0.1dev
+Summary: A parliamentary tracking software package
+Home-page: UNKNOWN
+Author: Stefan Marsirske, Friedrich Lindenberg
+Author-email: UNKNOWN
+License: AGPLv3
+Description: Track procedures and stages in parliamentary work
+Keywords: parliament tracking legislation legislative mongodb flask
+Platform: UNKNOWN
