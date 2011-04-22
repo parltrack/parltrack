@@ -485,6 +485,20 @@ def load_dip(db):
             url = urljoin(BASE_URL, result.get('href'))
             scrape_procedure(db, url)
 
+def actor_names(db):
+    for actor in db.actor.find():
+        if actor.get('name'):
+            continue
+        name = ''
+        if actor.get('title'):
+            name += actor.get('title') + ' '
+        if actor.get('firstname'):
+            name += actor.get('firstname') + ' '
+        if actor.get('lastname'):
+            name += actor.get('lastname')
+        if actor.get('consituency'):
+            name += actor.get('firstname') + ' '
+
 
 if __name__ == '__main__':
     db = connect_db()
