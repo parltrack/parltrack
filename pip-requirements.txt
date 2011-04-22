@@ -1,0 +1,13 @@
+Flask>=0.6.1
+Flask-Cache>=0.3.2
+Jinja2>=2.5.5
+Werkzeug>=0.6.2
+colander>=0.9.1
+ipython>=0.10.1
+iso8601>=0.1.4
+lxml>=2.3
+pymongo>=1.9
+python-dateutil>=1.2
+solrpy>=0.9.4
+Flask-Mail>=0.6.1
+
