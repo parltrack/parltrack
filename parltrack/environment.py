@@ -3,7 +3,7 @@ from pymongo import Connection
 from solr import SolrConnection
 from flask import Flask, g
 from flaskext.mail import Mail
-from offenesparlament import default_settings
+from parltrack import default_settings
 
 app = Flask(__name__)
 app.config.from_object(default_settings)

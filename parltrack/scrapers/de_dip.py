@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from offenesparlament.core import connect_db, get_data_dir
+from parltrack.environment import connect_db, get_data_dir
 import logging
 import re, string, os
 import urllib2, urllib
@@ -252,25 +252,25 @@ def fetch_document(link):
         logging.exception(e)
 
 
-def activity_person_merge(db, akteur):
-    akteur = akteur.copy()
 
-    if akteur.get('vorname') == 'Wolfgang' and akteur.get('zuname') == 'Neskovic':
-        akteur['zuname'] = u'Nešković'
-    if akteur.get('vorname') == 'Eva' and akteur.get('zuname') == 'Klamt':
-        akteur['vorname'] = 'Ewa'
-    if akteur.get('vorname') == 'Daniela' and akteur.get('zuname') == 'Raab':
+def activity_person_merge(db, actor):
+    actor = actor.copy()
+    if actor.get('firstname') == 'Wolfgang' and actor.get('lastname') == 'Neskovic':
+        actor['lastname'] = u'Nešković'
+    if actor.get('firstname') == 'Eva' and actor.get('lastname') == 'Klamt':
+        actor['firstname'] = 'Ewa'
+    if actor.get('firstname') == 'Daniela' and actor.get('lastname') == 'Raab':
         # data mining and marriage: not a good fit.
-        akteur['zuname'] = 'Ludwig'
-    candidates = list(db.akteur.find(
-        {"vorname": akteur.get('vorname'),
-         "zuname": akteur.get('zuname')}))
+        actor['lastname'] = 'Ludwig'
+    candidates = list(db.actor.find(
+        {"firstname": actor.get('firstname'),
+         "lastname": actor.get('lastname')}))
     if len(candidates) == 0:
-        #print _namesub(akteur.get('vorname'))
-        candidates = list(db.akteur.find(
-            {"vorname": {"$regex": akteur.get('vorname') + ".*"},
-             "zuname": akteur.get('zuname')}))
-    if akteur.get('funktion') == 'MdB' or len(candidates) == 1:
+        #print _namesub(actor.get('firstname'))
+        candidates = list(db.actor.find(
+            {"firstname": {"$regex": actor.get('firstname') + ".*"},
+             "lastname": actor.get('lastname')}))
+    if actor.get('funktion') == 'MdB' or len(candidates) == 1:
         if len(candidates) == 0:
             def _namesub(name):
                 s = '.*'
@@ -280,33 +280,33 @@ def activity_person_merge(db, akteur):
                     else:
                         s += '.'
                 return s + '.*'
-            candidates = list(db.akteur.find(
-                {"vorname": {"$regex": _namesub(akteur.get('vorname'))},
-                 "zuname": {"$regex": _namesub(akteur.get('zuname'))}}))
+            candidates = list(db.actor.find(
+                {"firstname": {"$regex": _namesub(actor.get('firstname'))},
+                 "lastname": {"$regex": _namesub(actor.get('lastname'))}}))
         if len(candidates) == 0:
-            candidates = list(db.akteur.find({"$or": [
-                {"vorname": akteur.get('vorname')},
-                {"zuname": akteur.get('zuname')}]}))
+            candidates = list(db.actor.find({"$or": [
+                {"firstname": actor.get('firstname')},
+                {"lastname": actor.get('lastname')}]}))
         if len(candidates) == 1:
             a = candidates[0]
-            db.akteur.update({'_id': a.get('_id')},
-                {"$set": {"funktion": akteur.get("funktion"),
-                          "ressort": akteur.get("ressort"),
-                          "ortszusatz": akteur.get("ortszusatz"),
-                          "state": akteur.get("state")}})
+            db.actor.update({'_id': a.get('_id')},
+                {"$set": {"funktion": actor.get("funktion"),
+                          "ressort": actor.get("ressort"),
+                          "ortszusatz": actor.get("ortszusatz"),
+                          "state": actor.get("state")}})
             return a.get('_id')
-        pprint(akteur)
+        pprint(actor)
         print "HAS", len(candidates), "CANDIDATES"
         pprint(candidates)
         return None
-    a = akteur.copy()
+    a = actor.copy()
     if 'seite' in a:
         del a['seite']
     if 'aktivitaet' in a:
         del a['aktivitaet']
     a['key'] = sha1(repr(a).encode("ascii", "ignore")).hexdigest()[:10]
-    db.akteur.update({"key": a['key']}, a, upsert=True)
-    return db.akteur.find_one({"key": a['key']}).get('_id')
+    db.actor.update({"key": a['key']}, a, upsert=True)
+    return db.actor.find_one({"key": a['key']}).get('_id')
 
 def test_activiy_person_merge(db):
     aktivitaeten = db.aktivitaet.find()
@@ -316,92 +316,86 @@ def test_activiy_person_merge(db):
 
 
 
-def scrape_activities(db, db_id, id, periode):
+def scrape_stages(db, db_id, id, session):
     urlfp = get_dip_with_cookie(DETAIL_VP_URL % id)
     xml = inline_xml_from_page(urlfp.read())
     urlfp.close()
     if xml is None:
         return {}
-    activities = []
+    stages = []
     for position in xml.findall(".//VORGANGSPOSITION"):
         pos = {
-            'ablauf': db_id,
-            'ablauf_key': id,
-            'wahlperiode': periode,
-            'zuordnung': position.findtext("ZUORDNUNG"),
-            'urheber': position.findtext("URHEBER"),
-            'fundstelle': position.findtext("FUNDSTELLE"),
-            'fundstelle_link':  position.findtext("FUNDSTELLE_LINK"),
+            'procedure': db_id,
+            'session': session,
+            'body': position.findtext("ZUORDNUNG"),
+            'creator': position.findtext("URHEBER"),
+            'source': position.findtext("FUNDSTELLE"),
+            'source_link':  position.findtext("FUNDSTELLE_LINK"),
         }
-        dt, rest = pos.get('fundstelle').split("-", 1)
+        dt, rest = pos.get('source').split("-", 1)
         pos['date'] = datetime.strptime(dt.strip(), "%d.%m.%Y")
-        key = sha1(pos.get('fundstelle').encode("ascii", "ignore") \
-                + pos.get('urheber').encode("ascii", "ignore")).hexdigest()[:10]
+        key = sha1(pos.get('source').encode("ascii", "ignore") \
+                + pos.get('creator').encode("ascii", "ignore")).hexdigest()[:10]
         pos['key'] = key
-        typ = pos.get('urheber', '')
+        typ = pos.get('creator', '')
         if ',' in typ:
             typ, quelle = typ.split(',', 1)
-            pos['quelle'] = re.sub("^.*Urheber.*:", "", quelle).strip()
+            pos['source_name'] = re.sub("^.*Urheber.*:", "", quelle).strip()
         else:
-            pos['quelle'] = None
+            pos['source_name'] = None
         pos['typ'] = typ.strip()
         try:
-            pos['dokument'] = dokument_by_url(db, pos.get('fundstelle_link'))
-            assert pos['dokument'] is not None
+            pos['document'] = document_by_url(db, pos.get('source_link'))
+            assert pos['document'] is not None
         except:
             try:
-                pos['dokument'] = dokument_by_name(db, pos.get('fundstelle'))
+                pos['document'] = document_by_name(db, pos.get('source'))
             except Exception, e:
                 logging.exception(e)
 
         for creator in position.findall("PERSOENLICHER_URHEBER"):
             c = {
-                'vorname': creator.findtext("VORNAME"),
-                'zuname': creator.findtext("NACHNAME"),
-                'funktion': creator.findtext("FUNKTION"),
-                'ortszusatz': creator.findtext('WAHLKREISZUSATZ'),
-                'fraktion': creator.findtext("FRAKTION"),
-                'ressort': creator.findtext("RESSORT"),
+                'firstname': creator.findtext("VORNAME"),
+                'lastname': creator.findtext("NACHNAME"),
+                'function': creator.findtext("FUNKTION"),
+                'constituency': creator.findtext('WAHLKREISZUSATZ'),
+                'group': creator.findtext("FRstageION"),
+                'department': creator.findtext("RESSORT"),
                 'state': creator.findtext("BUNDESLAND"),
-                'aktivitaet': creator.findtext("AKTIVITAETSART"),
-                'seite': creator.findtext("SEITE"),
+                'activity': creator.findtext("stageIVITAETSART"),
+                'page': creator.findtext("SEITE"),
             }
-            c['fraktion'] = FACTION_MAPS.get(c['fraktion'], c['fraktion'])
+            c['group'] = FACTION_MAPS.get(c['group'], c['group'])
             c['id'] = activity_person_merge(db, c)
             #if c['function'] != "MdB":
-            pos['akteure'] = pos.get('akteure', []) + [c]
+            pos['participants'] = pos.get('participants', []) + [c]
         for delegation in position.findall("ZUWEISUNG"):
             z = {
-                'zuweisungen': delegation.findtext("AUSSCHUSS_KLARTEXT"),
-                'leading': delegation.find("FEDERFUEHRUNG") is not None,
+                'committee': delegation.findtext("AUSSCHUSS_KLARTEXT"),
+                'responsible': delegation.find("FEDERFUEHRUNG") is not None,
             }
-            key = DIP_GREMIUM_TO_KEY.get(z['zuweisungen'])
+            key = DIP_GREMIUM_TO_KEY.get(z['committee'])
             if key is None:
-                print "TODO: Ausschuss %s" % z['zuweisungen'].encode('utf-8')
+                print "TODO: Ausschuss %s" % z['committee'].encode('utf-8')
             else:
                 z['key'] = key
-                gremium = db.gremium.find_one({"key": key})
-                z['id'] = gremium.get('_id')
-            pos['zuweisungen'] = pos.get('zuweisungen', []) + [z]
+                committee = db.committee.find_one({"key": key})
+                z['id'] = committee.get('_id')
+            pos['committees'] = pos.get('committees', []) + [z]
         for decision in position.findall("BESCHLUSS"):
-            #print etree.tostring(decision)
             d = {
                 'page': decision.findtext("BESCHLUSSSEITE"),
-                'dokument': decision.findtext("BEZUGSDOKUMENT"),
+                'document': decision.findtext("BEZUGSDOKUMENT"),
                 'result': decision.findtext("BESCHLUSSTENOR")
             }
-            #print "T", decision.findtext("BESCHLUSSTENOR").encode('utf-8')
-            pos['beschluesse'] = pos.get('beschluesse', []) + [d]
+            pos['decisions'] = pos.get('decisions', []) + [d]
         if len(pos.get('decisions', [])) > 1:
             logging.warn("More than one decision on activity: %s: %s", id, len(pos.get('decisions')))
-        #print etree.tostring(position)
-        #print "-" * 80
-        #print key
-        q = {"ablauf": db_id, "key": key}
-        db.aktivitaet.update(q, {"$set": pos}, upsert=True)
-        akt = db.aktivitaet.find_one(q)
-        activities.append(akt)
-    return activities
+        q = {"procedure": db_id, "key": key}
+        db.stage.update(q, {"$set": pos}, upsert=True)
+        stage = db.stage.find_one(q)
+        stages.append(stage)
+    return stages
 
 
 def scrape_procedure(db, url):
@@ -432,7 +426,7 @@ def scrape_procedure(db, url):
         'signature': procedure.findtext("SIGNATUR"),
         'gesta_id': procedure.findtext("GESTA_ORDNUNGSNUMMER"),
         'eu_reference': procedure.findtext("EU_DOK_NR"),
-        'descrption': procedure.findtext("ABSTRAKT"),
+        'description': procedure.findtext("ABSTRAKT"),
         'legal_basis': procedure.findtext("ZUSTIMMUNGSBEDUERFTIGKEIT"),
         'tags': [t.text for t in procedure.findall("SCHLAGWORT")],
         'subjects': [procedure.findtext("SACHGEBIET")]
@@ -451,7 +445,7 @@ def scrape_procedure(db, url):
             'text': document.findtext("DRS_TYP"),
             'link': document.findtext("DRS_LINK")
         }
-        c['id'] = dokument_by_id(db, c['publisher'], c['type'], c['key'],
+        c['id'] = document_by_id(db, c['publisher'], c['type'], c['key'],
                 link=c['link'])
         proc['references'] = proc.get('references', []) + [c]
     for reading in procedure.findall("PLENUM"):
@@ -463,7 +457,7 @@ def scrape_procedure(db, url):
             'pages': reading.findtext("PLPR_SEITEN"),
             'link': reading.findtext("PLPR_LINK")
         }
-        c['id'] = dokument_by_id(db, c['publisher'], c['type'], c['key'],
+        c['id'] = document_by_id(db, c['publisher'], c['type'], c['key'],
                 link=c['link'])
         proc['references'] = proc.get('references', []) + [c]
     proc['documents'] = [r.get('id') for r in proc.get('references', []) if
@@ -472,7 +466,7 @@ def scrape_procedure(db, url):
     db.procedure.update(q, {"$set": proc}, upsert=True)
     db_id = db.procedure.find_one(q).get('_id')
     print "-> ", id
-    for stage in scrape_stages(db, db_id, id, periode):
+    for stage in scrape_stages(db, db_id, id, session):
         if stage is not None:
             db.procedure.update(q, {"$addToSet": {"stages": stage.get('_id')}})
             db.procedure.update(q, {"$addToSet": {"documents": stage.get('documents')}})
