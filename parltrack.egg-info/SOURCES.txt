@@ -1,9 +1,0 @@
-setup.cfg
-setup.py
-parltrack/__init__.py
-parltrack.egg-info/PKG-INFO
-parltrack.egg-info/SOURCES.txt
-parltrack.egg-info/dependency_links.txt
-parltrack.egg-info/entry_points.txt
-parltrack.egg-info/not-zip-safe
-parltrack.egg-info/top_level.txt
