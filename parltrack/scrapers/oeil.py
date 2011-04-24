@@ -272,18 +272,12 @@ def OtherAgents(table,res):
 
 def summaries(table):
     tmp=toObj(table,summaryFields)
-    res={}
-    order=[]
-    for summary in tmp:
-        if not 'Title' in summary:
-            raise ValueError, 'no title' % summary
-        key=summary['Title']
-        if key in res:
-            raise ValueError, 'duplicate summary' % key
-        order.append(key)
-        del(summary['Title'])
-        res[key]=summary
-    return (res, order)
+    for item in tmp:
+        if 'url' in item:
+            tree=fetch(item['url'])
+            text=[tostring(x) for x in tree.xpath('//table[@class="box_content_txt"]//td/*')]
+            item['text']=text
+    return tmp
 
 stageFields=( ('title', toText),
               ('stage document',urlFromJS),
@@ -346,8 +340,7 @@ def scrape(url):
         elif section.text == 'Links to other sources procedure':
             res['procedure']['links']=links(table)
         elif section.text == 'List of summaries':
-            #res['List of summaries'],res['__summaries_order']=summaries(table)
-            pass
+            res['docs']=summaries(table)
         else:
             logger.warning('[*] unparsed: '+ section.text)
     save(res)
