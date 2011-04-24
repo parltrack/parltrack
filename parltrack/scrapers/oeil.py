@@ -22,14 +22,14 @@ from lxml.html.soupparser import parse
 from lxml.etree import tostring
 from cStringIO import StringIO
 from urlparse import urljoin
-from multiprocessing import Pool, Process, Queue,  log_to_stderr
-from multiprocessing.sharedctypes import Value
-from ctypes import c_bool
-from Queue import Empty
 from itertools import izip_longest
 from ctypes import c_int
-import urllib2, urllib, cookielib, tidy, datetime, sys, json, pymongo, traceback
+import urllib2, urllib, cookielib
+import datetime, sys, json, pymongo, traceback
 from logging import DEBUG
+import logging
+
+logger = logging.getLogger(__name__)
 
 def save(data):
     pprint.pprint(data)
@@ -78,17 +78,15 @@ def diff(e1,e2):
 def fetch(url):
     # url to etree
     f=urllib2.urlopen(url)
-    raw=f.read()
-    f.close()
-    raw=tidy.parseString(raw,
-            **{'output_xhtml' : 1,
-               'output-encoding': 'utf8',
-               'add_xml_decl' : 1,
-               'indent' : 0,
-               'tidy_mark' : 0,
-               'doctype' : "strict",
-               'wrap' : 0})
-    return parse(StringIO(str(raw)))
+    #raw=tidy.parseString(raw,
+    #        **{'output_xhtml' : 1,
+    #           'output-encoding': 'utf8',
+    #           'add_xml_decl' : 1,
+    #           'indent' : 0,
+    #           'tidy_mark' : 0,
+    #           'doctype' : "strict",
+    #           'wrap' : 0})
+    return parse(f)
 
 def toDate(node):
     text=node.xpath("string()").replace(u"\u00A0",' ').strip()
@@ -401,8 +399,6 @@ opener.addheaders = [('User-agent', 'weurstchen/0.5')]
 conn = pymongo.Connection()
 db=conn.parltrack
 procedures=db.procedures
-logger = log_to_stderr()
-logger.setLevel(DEBUG)
 stats=[0,0]
 
 if __name__ == "__main__":

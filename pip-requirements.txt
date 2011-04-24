@@ -10,4 +10,4 @@ pymongo>=1.9
 python-dateutil>=1.2
 solrpy>=0.9.4
 Flask-Mail>=0.6.1
-
+BeautifulSoup>=3.2.0
