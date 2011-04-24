@@ -328,22 +328,22 @@ def scrape_stages(db, db_id, id, session):
             'procedure': db_id,
             'session': session,
             'body': position.findtext("ZUORDNUNG"),
-            'creator': position.findtext("URHEBER"),
+            'title': position.findtext("URHEBER"),
             'source': position.findtext("FUNDSTELLE"),
             'source_link':  position.findtext("FUNDSTELLE_LINK"),
         }
         dt, rest = pos.get('source').split("-", 1)
         pos['date'] = datetime.strptime(dt.strip(), "%d.%m.%Y")
         key = sha1(pos.get('source').encode("ascii", "ignore") \
-                + pos.get('creator').encode("ascii", "ignore")).hexdigest()[:10]
+                + pos.get('title').encode("ascii", "ignore")).hexdigest()[:10]
         pos['key'] = key
-        typ = pos.get('creator', '')
+        typ = pos.get('title', '')
         if ',' in typ:
             typ, quelle = typ.split(',', 1)
             pos['source_name'] = re.sub("^.*Urheber.*:", "", quelle).strip()
         else:
             pos['source_name'] = None
-        pos['typ'] = typ.strip()
+        pos['type'] = typ.strip()
         try:
             pos['document'] = document_by_url(db, pos.get('source_link'))
             assert pos['document'] is not None
