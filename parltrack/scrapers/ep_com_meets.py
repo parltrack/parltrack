@@ -15,33 +15,33 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with parltrack.  If not, see <http://www.gnu.org/licenses/>.
 
-# (C) 2009-2011 by Stefan Marsiske, <stefan.marsiske@gmail.com>
+# (C) 2011 by Stefan Marsiske, <stefan.marsiske@gmail.com>
 
 from lxml import etree
 from lxml.html.soupparser import parse
 from lxml.etree import tostring
 from cStringIO import StringIO
 from urlparse import urljoin
-from itertools import izip_longest
 from tempfile import mkstemp
 from time import mktime, strptime
 from datetime import datetime
-import urllib2, sys, pymongo, subprocess, sys, re, os, json
+import urllib2, sys, subprocess, re, os, json
+from parltrack.environment import connect_db
 
 datere=re.compile(r'^[0-9]{1,2} \w+ [0-9]{4}, [0-9]{2}\.[0-9]{2}( . [0-9]{2}\.[0-9]{2})?')
-block_start=re.compile(r'^[0-9]*\. {,10}(.*)')
+block_start=re.compile(r'^([0-9]+)\. {,10}(.*)')
 fields=[(re.compile(r'^ {,10}Rapporteur: {3,}(.*)'),"Rapporteur"),
-        (re.compile(r'^ {,10}Rapporteur for the (.*)'),"Rapporteur (opinion)"),
+        (re.compile(r'^ {,10}Rapporteur for the (.*)'),"Shadow Rapporteur"),
         (re.compile(r'^ {,10}Responsible: {3,}(.*)'),'Responsible'),
         (re.compile(r'^ {,10}Opinions: {3,}(.*)'),"Opinions"),
         ]
 misc_block=re.compile(r'^ {,10}\xef\x82\xb7 {3,}(.*)')
-opinon_junk=re.compile(r'^ {,10}opinion:(?: {3,}(.*))?')
+opinon_junk=re.compile(r'^ {,10}opinion: {3,}(.*)')
 comref_re=re.compile(r' {3,}(COM\([0-9]{4}\)[0-9]{4})')
 
 def fetch(url):
     # url to etree
-    print >> sys.stderr, url
+    #print >> sys.stderr, url
     f=urllib2.urlopen(url)
     raw=parse(f)
     f.close()
@@ -61,14 +61,14 @@ def scrape(comid, url):
     inblock=False
     res=[]
     state=None
-    issue={'committee': comid}
+    issue=None
     ax=['','']
     meeting_date=None
     for (i,line) in enumerate(lines):
         if not len(line): continue
         # start a new meeting agenda
         m=datere.match(line)
-        if m:
+        if m and not inblock:
             meeting_date=datetime.fromtimestamp(mktime(strptime(m.group(0),"%d %B %Y, %H.%M")))
             continue
         # start of a new agenda item
@@ -81,8 +81,8 @@ def scrape(comid, url):
                 if meeting_date:
                     issue['meeting_date']=meeting_date
                 res.append(issue)
-            issue={'committee': comid}
-            ax=['title', m.group(1)]
+            issue={'committee': comid,'seq no': m.group(1), 'src': url}
+            ax=['title', m.group(2)]
             continue
         # ignore all lines not in agenda items
         if not line[0]==' ':
@@ -111,7 +111,7 @@ def scrape(comid, url):
         if inblock and len(line.strip()):
             if ax[0]=='Rapporteur (opinion)':
                 m=opinon_junk.match(line)
-                if m:
+                if m or line=='opinion:':
                     ax[1]="%s\n%s" % (ax[1],m.group(1))
             elif ax[0]=='title':
                 m=comref_re.search(line)
@@ -119,13 +119,13 @@ def scrape(comid, url):
                     issue['comref']=m.group(1)
             ax[1]="%s\n%s" % (ax[1],line)
 
-    #print '\n'.join(["%s %s %s" % (i['tabling deadline'].isoformat(),
-    #                                comid.strip(),
-    #                                i.get('comref',i['title'].split('\n')[-2].strip()),
-    #                                )
-    #                  for i in res
-    #                  if 'tabling deadline' in i])
-    #sys.stdout.flush()
+    print >>sys.stderr, '\n'.join(["%s %s %s" % (i['tabling deadline'].isoformat(),
+                                    comid.strip(),
+                                    i.get('comref',i['title'].split('\n')[-2].strip()),
+                                    )
+                      for i in res
+                      if 'tabling deadline' in i])
+    sys.stderr.flush()
     return res
 
 def dateJSONhandler(obj):
@@ -134,7 +134,7 @@ def dateJSONhandler(obj):
     else:
         raise TypeError, 'Object of type %s with value of %s is not JSON serializable' % (type(Obj), repr(Obj))
 
-def crawl():
+def crawl(db):
     result=[]
     tree=fetch("http://www.europarl.europa.eu/activities/committees/committeesList.do?language=EN")
     select=tree.xpath('//a[@class="commdocmeeting"]')
@@ -151,20 +151,22 @@ def crawl():
         if not pdflink:
             pdflink=mtree.xpath("//td[contains(translate(text(),'abcdefghijklmnopqrstuvwxyz','ABCDEFGHIJKLMNOPQRSTUVWXYZ'),'AGENDA') or contains(translate(text(),'abcdefghijklmnopqrstuvwxyz','ABCDEFGHIJKLMNOPQRSTUVWXYZ'),'PROGRAMME')]/..//a[text() = 'en']")
         if pdflink:
+            url=pdflink[0].get('href')
             try:
-                result.append(scrape(comid,pdflink[0].get('href')))
+                data=scrape(comid,url)
             except:
-                print pdflink[0].get('href')
+                print url
                 raise
+            for item in data:
+                q={'src': url, 'seq no': item['seq no']}
+                db.ep_com_meets.update(q, {"$set": item}, upsert=True)
+            result.append(data)
         else:
             print >> sys.stderr, '[!] Warning: no agenda/programme found', comid, murl
     # TODO save to mongo
     print json.dumps(result,default=dateJSONhandler)
 
-# connect to  mongo
-conn = pymongo.Connection()
-db=conn.oeil
-docs=db.docs
-
 if __name__ == "__main__":
-    crawl()
+    db = connect_db()
+    crawl(db)
+    # find some tabling dates: db.ep_com_meets.find({'tabling deadline' : { $exists : true }}).sort({'tabling deadline': -1})
