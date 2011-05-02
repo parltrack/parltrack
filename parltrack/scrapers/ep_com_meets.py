@@ -28,7 +28,7 @@ from time import mktime, strptime
 from datetime import datetime
 import urllib2, sys, pymongo, subprocess, sys, re, os, json
 
-datere=re.compile(r'[0-9]{1,2} \w+ [0-9]{4}, [0-9]{2}\.[0-9]{2}( . [0-9]{2}\.[0-9]{2})?')
+datere=re.compile(r'^[0-9]{1,2} \w+ [0-9]{4}, [0-9]{2}\.[0-9]{2}( . [0-9]{2}\.[0-9]{2})?')
 block_start=re.compile(r'^[0-9]*\. {,10}(.*)')
 fields=[(re.compile(r'^ {,10}Rapporteur: {3,}(.*)'),"Rapporteur"),
         (re.compile(r'^ {,10}Rapporteur for the (.*)'),"Rapporteur (opinion)"),
@@ -36,11 +36,12 @@ fields=[(re.compile(r'^ {,10}Rapporteur: {3,}(.*)'),"Rapporteur"),
         (re.compile(r'^ {,10}Opinions: {3,}(.*)'),"Opinions"),
         ]
 misc_block=re.compile(r'^ {,10}\xef\x82\xb7 {3,}(.*)')
-opinon_junk=re.compile(r'^ {,10}opinion: {3,}(.*)')
+opinon_junk=re.compile(r'^ {,10}opinion:(?: {3,}(.*))?')
 comref_re=re.compile(r' {3,}(COM\([0-9]{4}\)[0-9]{4})')
 
 def fetch(url):
     # url to etree
+    print >> sys.stderr, url
     f=urllib2.urlopen(url)
     raw=parse(f)
     f.close()
@@ -69,14 +70,17 @@ def scrape(comid, url):
         m=datere.match(line)
         if m:
             meeting_date=datetime.fromtimestamp(mktime(strptime(m.group(0),"%d %B %Y, %H.%M")))
+            continue
         # start of a new agenda item
         m=block_start.match(line)
         if m:
             inblock=True
-            issue[ax[0]]=ax[1]
-            if meeting_date:
-                issue['meeting_date']=meeting_date
-            res.append(issue)
+            if ax[0]:
+                issue[ax[0]]=ax[1]
+            if issue:
+                if meeting_date:
+                    issue['meeting_date']=meeting_date
+                res.append(issue)
             issue={'committee': comid}
             ax=['title', m.group(1)]
             continue
@@ -102,6 +106,7 @@ def scrape(comid, url):
             issue['Misc'].append(m.group(1))
             if m.group(1).startswith('Deadline for tabling amendments:'):
                 issue['tabling deadline']=datetime.fromtimestamp(mktime(strptime(m.group(1).split(':')[1],"%d %B %Y, %H.%M")))
+            continue
 
         if inblock and len(line.strip()):
             if ax[0]=='Rapporteur (opinion)':
@@ -114,14 +119,14 @@ def scrape(comid, url):
                     issue['comref']=m.group(1)
             ax[1]="%s\n%s" % (ax[1],line)
 
-    print '\n'.join(["%s %s %s" % (i['tabling deadline'].isoformat(),
-                                    comid.strip(),
-                                    i.get('comref',i['title'].split('\n')[-2].strip()),
-                                    )
-                      for i in res
-                      if 'tabling deadline' in i])
-    sys.stdout.flush()
-    return(res[1:])
+    #print '\n'.join(["%s %s %s" % (i['tabling deadline'].isoformat(),
+    #                                comid.strip(),
+    #                                i.get('comref',i['title'].split('\n')[-2].strip()),
+    #                                )
+    #                  for i in res
+    #                  if 'tabling deadline' in i])
+    #sys.stdout.flush()
+    return res
 
 def dateJSONhandler(obj):
     if hasattr(obj, 'isoformat'):
@@ -134,7 +139,7 @@ def crawl():
     tree=fetch("http://www.europarl.europa.eu/activities/committees/committeesList.do?language=EN")
     select=tree.xpath('//a[@class="commdocmeeting"]')
     for committee_url in select:
-        comid=committee_url.xpath('../../td/a')[0].text
+        comid=committee_url.xpath('../../td/a')[0].text.strip()
         cmurl='http://www.europarl.europa.eu'+committee_url.get('href')
         commeets=fetch(cmurl)
         cmtree=commeets.xpath('//td/a')
@@ -152,7 +157,8 @@ def crawl():
                 print pdflink[0].get('href')
                 raise
         else:
-            print '[!] ERROR: no agenda/programme found', comid, murl
+            print >> sys.stderr, '[!] Warning: no agenda/programme found', comid, murl
+    # TODO save to mongo
     print json.dumps(result,default=dateJSONhandler)
 
 # connect to  mongo
