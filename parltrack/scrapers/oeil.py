@@ -23,11 +23,9 @@ from lxml.etree import tostring
 from cStringIO import StringIO
 from urlparse import urljoin
 from itertools import izip_longest
-from ctypes import c_int
-import urllib2, urllib, cookielib
-import datetime, sys, json, pymongo, traceback
-from logging import DEBUG
-import logging
+import urllib2, urllib, cookielib, datetime, sys, json, pymongo, traceback, logging
+from parltrack.environment import connect_db
+from operator import itemgetter
 
 logger = logging.getLogger(__name__)
 
@@ -192,8 +190,44 @@ def links(table):
             logger.info('bad link %s %s %s %s' % (tostring(items), key, value, url))
     return res
 
+def prevagents(table):
+    prevlink=table.xpath('//a[text() = "Previous"]')
+    if not prevlink:
+        return []
+    t=fetch(urljoin(base,(prevlink[0].get('href').split("'",2)[1]))).xpath("//table[@class='box_content_txt']")[0]
+    res=[]
+    for row in t.xpath('tr')[1:]:
+        items=row.xpath('td')
+        value=convertRow(items,agentFields)
+        if value:
+            res.append(value)
+    return res
+
+def prevcls(table):
+    prevlink=table.xpath('//a[text() = "Previous Councils"]')
+    if not prevlink:
+        return []
+    t=fetch(urljoin(base,(prevlink[0].get('href').split("'",2)[1]))).xpath("//table[@class='box_content_txt']")[0]
+    res=[]
+    for row in t.xpath('tr')[1:]:
+        fields=row.xpath('td')
+        agent={'institution': "Council of the Union",
+              'department': toText(fields[1]),}
+        tmp=urlFromJS(fields[0])
+        if tmp: agent['council_doc']=tmp
+        tmp=toText(fields[2]).split(' ')
+        if len(tmp)==2:
+            agent['meeting_id']=tmp[1]
+        tmp=toText(fields[3]).split(' ')
+        if len(tmp)==2:
+            value=[int(x) for x in tmp[1].strip().split('/')]
+            agent['meeting_date']=datetime.date(value[2], value[1], value[0])
+        res.append(agent)
+    return res
+
 def agents(table):
     tmp=toObj(table,agentFields)
+    tmp.extend(prevagents(table))
     res=[]
     for row in tmp:
         commitee=row['commitee']
@@ -208,51 +242,53 @@ def agents(table):
                 comrole=True
             else:
                 comrole=False
-        if 'Rapporteur' in row:
+        if 'rapporteur' in row:
             # convert Rapporteurs to an own dict
-            if not (type(row.get('Appointed'))==type(row.get('Rapporteur'))==type(row.get('Political Group'))==list):
+            if not (type(row.get('appointed'))==type(row.get('rapporteur'))==type(row.get('political_group'))==list):
                 agent={}
-                agent['commitee']=row['Commitee']
+                agent['commitee']=row['commitee']
                 agent['responsible']=comrole
-                agent['name']=row.get('Rapporteur')
+                agent['name']=row.get('rapporteur')
                 agent['function']='MEP'
-                agent['appointed']=row.get('Appointed')
-                agent['group']=row.get('Political Group')
+                agent['date']=row.get('appointed')
+                agent['group']=row.get('political_group')
                 res.append(agent)
             else:
-                res.append([{'commitee': row['Commitee'],
+                res.append([{'commitee': row['commitee'],
                             'responsible': comrole,
                             'name': p[0],
                             'function': 'MEP',
-                            'appointed': p[1],
+                            'date': p[1],
                             'group': p[2]}
-                           for p in zip(row['Rapporteur'],
-                                        row['Appointed'],
-                                        row['Political Group'])])
+                           for p in zip(row['rapporteur'],
+                                        row['appointed'],
+                                        row['political Group'])])
         # make the whole commitee a dict as well
-    OtherAgents(table,res)
+    res.extend(OtherAgents(table))
+    res.extend(prevcls(table))
     return res
 
-def OtherAgents(table,res):
+def OtherAgents(table):
+    res=[]
     table=table.xpath('following-sibling::*')
-    if not len(table): return
+    if not len(table): return res
     table=table[0]
-    if(not toText(table)=='European Commission and Council of the Union'): return
+    if(not toText(table)=='European Commission and Council of the Union'): return []
     table=table.xpath('following-sibling::*')[0]
     for row in table.xpath('tr'):
         fields=row.xpath('td')
         if(len(fields)==3 and toText(fields[0]).startswith('European Commission DG')):
-            agent={'institution': toText(fields[0]),
+            agent={'institution': toText(fields[0]).split('\n')[0].strip(),
                    'department': toText(fields[1])}
             tmp=toText(fields[2]).split(' ')
             if len(tmp)==3:
                 value=[int(x) for x in tmp[2].strip().split('/')]
-                agent['submission_date']=datetime.date(value[2], value[1], value[0])
+                agent['date']=datetime.date(value[2], value[1], value[0])
             else:
                 print 'other agents, non-date:', tmp
             res.append(agent)
         elif(len(fields)==5 and toText(fields[0]).startswith('Council of the Union')):
-            agent={'institution': toText(fields[0]),
+            agent={'institution': toText(fields[0]).split('\n')[0].strip(),
                   'department': toText(fields[2]),}
             tmp=urlFromJS(fields[1])
             if tmp: agent['council_doc']=tmp
@@ -262,11 +298,12 @@ def OtherAgents(table,res):
             tmp=toText(fields[4]).split(' ')
             if len(tmp)==2:
                 value=[int(x) for x in tmp[1].strip().split('/')]
-                agent['meeting_date']=datetime.date(value[2], value[1], value[0])
+                agent['date']=datetime.date(value[2], value[1], value[0])
             res.append(agent)
         else:
             raise ValueError
             logger.error('unparsed row: %s %s' % (len(fields), toText(row)))
+    return res
 
 def summaries(table):
     tmp=toObj(table,summaryFields)
@@ -277,7 +314,7 @@ def summaries(table):
             item['text']=text
     return tmp
 
-stageFields=( ('title', toText),
+stageFields=( ('type', toText),
               ('stage document',urlFromJS),
               ('body',toText),
               ('source reference',toText),
@@ -396,9 +433,8 @@ base = 'http://www.europarl.europa.eu/oeil/file.jsp'
 opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
 opener.addheaders = [('User-agent', 'weurstchen/0.5')]
 # connect to  mongo
-conn = pymongo.Connection()
-db=conn.parltrack
-procedures=db.procedures
+db = connect_db()
+procedures=db.ep_proc
 stats=[0,0]
 
 if __name__ == "__main__":
