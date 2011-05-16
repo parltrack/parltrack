@@ -105,7 +105,7 @@ def scrape(comid, url):
             issue['Misc']=issue.get('Misc',[])
             issue['Misc'].append(m.group(1))
             if m.group(1).startswith('Deadline for tabling amendments:'):
-                issue['tabling deadline']=datetime.fromtimestamp(mktime(strptime(m.group(1).split(':')[1],"%d %B %Y, %H.%M")))
+                issue['tabling deadline']=datetime.fromtimestamp(mktime(strptime(m.group(1).split(':')[1].strip(),"%d %B %Y, %H.%M")))
             continue
 
         if inblock and len(line.strip()):
