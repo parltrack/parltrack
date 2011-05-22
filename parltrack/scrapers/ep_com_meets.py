@@ -163,7 +163,6 @@ def crawl(db):
             result.append(data)
         else:
             print >> sys.stderr, '[!] Warning: no agenda/programme found', comid, murl
-    # TODO save to mongo
     print json.dumps(result,default=dateJSONhandler)
 
 if __name__ == "__main__":
