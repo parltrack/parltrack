@@ -35,7 +35,7 @@ def fetchVotes(d):
     fd.write(f.read())
     fd.close()
     f.close()
-    res=subprocess.Popen(['wvHtml', tmp[1], '-'],
+    res=subprocess.Popen(['/usr/bin/wvHtml', tmp[1], '-'],
                      stdout=subprocess.PIPE).communicate()[0]
     os.unlink(tmp[1])
     return parse(StringIO(res))
