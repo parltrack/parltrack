@@ -25,6 +25,19 @@ from parltrack.environment import connect_db
 
 BASE_URL = 'http://www.europarl.europa.eu'
 db = connect_db()
+group_map={ "Confederal Group of the European United Left - Nordic Green Left": 'GUE/NGL',
+            "European Conservatives and Reformists": 'ECR',
+            "Europe of freedom and democracy Group": 'EFD',
+            "Group of the Alliance of Liberals and Democrats for Europe": 'ALDE',
+            "Group of the European People's Party (Christian Democrats)": 'PPE',
+            "Group of the Greens/European Free Alliance": "Verts/ALE",
+            "Group of the Progressive Alliance of Socialists and Democrats in the European Parliament": "S&D",
+            "Non-attached Members": "NI", }
+
+proxy_handler = urllib2.ProxyHandler({'http': 'http://localhost:8123/'})
+opener = urllib2.build_opener(proxy_handler)
+opener.addheaders = [('User-agent', 'parltrack/0.7')]
+urllib2.install_opener(opener)
 
 def fetch(url):
     # url to etree
@@ -65,18 +78,36 @@ def getAddress(txts):
 def unws(txt):
     return ' '.join(strip(txt).split())
 
-def details(url):
+def details(url,name):
     root = fetch(url)
     data = { 'Committees': {},
              'URL': url }
-    tmp=root.xpath("//td[@class='mepname']/text()")[0].split()
-    data['Name'] = { 'name': ' '.join(tmp),
-                     'family_name': tmp[-1],
-                     'surname': ' '.join(tmp[:-1]),
-                     'slug': ''.join(tmp)}
+    sur=name.split(', ')[1]
+    family=name.split(', ')[0]
+    tmp=family.split()
+    title=None
+    if tmp[0] in ['Sir', 'Lady', 'Baroness', 'Baron', 'Lord', 'Earl', 'Duke']:
+        title=tmp[0]
+        family=' '.join(tmp[1:])
+    data['Name'] = { 'full': name,
+                     'sur': sur,
+                     'family': family,
+                     'familylc': family.lower(),
+                     'aliases': ["%s %s" % (family, sur),
+                                 "%s %s" % (sur, family),
+                                 family],
+                     'slug': ''.join(("%s %s" % (family, sur)).split()),
+                     'slug1': ''.join(("%s %s" % (family, sur)).split()).lower()}
+    if title:
+        data['Name']['title']=title
+        data['Name']['aliases'].extend(["%s %s %s" % (title ,family, sur),
+                                        "%s %s %s" % (title, sur, family),
+                                        "%s %s" % (title, family), ])
     data['UserID'] = int(url.split('=')[-1])
+    group=unws(''.join(root.xpath("//td[@style='width: 94%;']/span[@class='titlemep']/text()")))
     data['Party'] = { 'role':  unws(''.join(root.xpath("//td[@style='width: 94%;']/span[@class='titlemep2']/text()"))),
-                      'group': unws(''.join(root.xpath("//td[@style='width: 94%;']/span[@class='titlemep']/text()")))}
+                      'group': group,
+                      'groupid': group_map[group]}
     data['Photo'] = '' if not len(root.xpath("//img[@class='photoframe']")) else BASE_URL + root.xpath("//img[@class='photoframe']")[0].attrib['src']
     tmp = map(unws, root.xpath("//td[@class='mep_CVtext']/text()"))
     data['National Party'] = tmp[0]
@@ -129,6 +160,7 @@ if __name__ == "__main__":
         root = fetch("%s%s%s%s" % (BASE_URL,
                                    '/members/expert/alphaOrder.do?letter=',
                                    letter,
-                                   '&language=EN')
+                                   '&language=EN'))
         for data in  root.xpath("//td[@class='box_content_mep']/table/tr/td[2]"):
-            details(BASE_URL+data.xpath("a")[0].attrib['href'])
+            print data.xpath('a/text()')[0]
+            details(BASE_URL+data.xpath("a")[0].attrib['href'],data.xpath('a/text()')[0])
