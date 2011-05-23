@@ -140,10 +140,7 @@ def details(url,name):
             for cc in c.xpath("../../tr[@class='mep_CVtext']/td[2]"):
                 data['Roles'][key].append({'name': cc.text.strip()})
         elif key=='Parliamentary activities':
-            key='Activities'
-            data[key] = []
-            for cc in c.xpath("../../tr[@class='mep_CVtext']/td[2]"):
-                data[key].append({'name': cc.text.strip(), 'url': BASE_URL+cc.xpath('a')[0].attrib['href']})
+            continue # all urls can be recreated from the UserID
         else:
             if key not in ['Curriculum vitae']:
                 print >>sys.stderr, '[!] unknown field', key
