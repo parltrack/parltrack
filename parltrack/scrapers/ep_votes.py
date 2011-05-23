@@ -24,6 +24,9 @@ from lxml.etree import tostring
 from tempfile import mkdtemp, mkstemp
 import urllib2, json, sys, subprocess, os
 from cStringIO import StringIO
+from parltrack.environment import connect_db
+
+db = connect_db()
 
 def fetchVotes(d):
     url="%s%s%s" % ("http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+PV+",
@@ -64,7 +67,21 @@ def getVotes(f):
                 vote['issue_type']=tmp[1]
             elif len(tmp)==3:
                 # sometimes a rapporteur, sometimes some kind of title
-                vote['title']=tmp[1]
+                rapporteurs=True
+                rtmp=[]
+                for mep in tmp[1].split(' and '):
+                    mtmp=mep.split()
+                    slug="%s%s" % (''.join(mtmp[:-1]), mtmp[-1].upper())
+                    mep=db.ep_meps.find_one({"Name.slug": slug})
+                    if not mep:
+                        rapporteurs=False
+                        break
+                    # TODO remove str conversion if writing to db!!!!!!!!!!!!!
+                    rtmp.append(str(mep['_id']))
+                if not rapporteurs:
+                    vote['title']=tmp[1]
+                else:
+                    vote['rapporteurs']=rtmp
                 vote['issue_type']=tmp[2]
         # get timestamp
         vote['ts']=issue.xpath('following::td')[0].xpath('string()').strip()
@@ -75,12 +92,31 @@ def getVotes(f):
             for cur in decision.xpath('../following-sibling::*'):
                 group=cur.xpath('.//b/text()')
                 if group:
-                    group=group[0].strip()
+                    next=group[0].getparent().xpath('following-sibling::*/text()')
+                    if next and next[0]==group[1]:
+                        group=''.join(group[:2]).strip()
+                    else:
+                        group=group[0].strip()
                     voters=[x.strip() for x in cur.xpath('.//b/following-sibling::text()')[0].split(', ') if x.strip()]
                     if voters:
                         # strip of ":    " after the group name
                         voters[0]=voters[0][1:].strip()
-                        vote[k][group]=voters
+                        vtmp=[]
+                        for name in voters:
+                            mep=None
+                            for query in [{'Name.familylc': name.lower(),"Party.groupid": group},
+                                          {'Name.slug1': ''.join(name.split()).lower(),"Party.groupid": group},
+                                          {'Name.familylc': name.lower()}, # TODO Remove this, when we have historical data on MEPs activites/affiliations
+                                          ]:
+                                mep=db.ep_meps.find_one(query)
+                                if mep:
+                                    # TODO remove str conversion if writing to db!!!!!!!!!!!!!!!!!!
+                                    vtmp.append(str(mep))
+                                    break
+                            if not mep:
+                                print >>sys.stderr, '[?] warning unknown MEP', name.encode('utf8'), group.encode('utf8')
+                                vtmp.append(name)
+                        vote[k][group]=vtmp
                 if cur.xpath('.//table'):
                     break
         # get the correctional votes
@@ -96,4 +132,9 @@ def getVotes(f):
     return res
 
 if __name__ == "__main__":
+    import platform
+    if platform.machine() in ['i386', 'i686']:
+        import psyco
+        psyco.full()
+    #getVotes(sys.argv[1])
     print json.dumps(getVotes(sys.argv[1]))
