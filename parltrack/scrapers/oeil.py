@@ -211,7 +211,18 @@ def dictext(d,k,v):
 
 def fetch(url):
     # url to etree
-    f=urllib2.urlopen(url)
+    try:
+        f=urllib2.urlopen(url)
+    except urllib2.URLError:
+        try:
+            # 1st retry
+            f=urllib2.urlopen(url)
+        except urllib2.URLError:
+            try:
+                # 2nd retry
+                f=urllib2.urlopen(url)
+            except urllib2.URLError:
+                raise
     return parse(f)
 
 def toDate(node):
