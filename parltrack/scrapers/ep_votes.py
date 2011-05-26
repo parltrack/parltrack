@@ -22,11 +22,16 @@
 from lxml.html.soupparser import parse
 from lxml.etree import tostring
 from tempfile import mkdtemp, mkstemp
-import urllib2, json, sys, subprocess, os
+import urllib2, json, sys, subprocess, os, re
 from cStringIO import StringIO
 from parltrack.environment import connect_db
+from datetime import datetime
+from ep_meps import group_map
+from bson.objectid import ObjectId
 
 db = connect_db()
+db.ep_meps.ensure_index([('Name.aliases', 1)])
+db.ep_meps.ensure_index([('Name.familylc', 1)])
 
 def fetchVotes(d):
     url="%s%s%s" % ("http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+PV+",
@@ -43,6 +48,14 @@ def fetchVotes(d):
     os.unlink(tmp[1])
     return parse(StringIO(res))
 
+def dateJSONhandler(obj):
+    if hasattr(obj, 'isoformat'):
+        return obj.isoformat()
+    elif type(obj)==ObjectId:
+        return str(obj)
+    else:
+        raise TypeError, 'Object of type %s with value of %s is not JSON serializable' % (type(obj), repr(obj))
+
 def getVotes(f):
     tree=fetchVotes(f)
 
@@ -54,37 +67,53 @@ def getVotes(f):
         # get rapporteur, report id and report type
         tmp=issue.xpath('string()').strip()
         vote={}
+        # get timestamp
+        vote['ts']= datetime.strptime(issue.xpath('following::td')[0].xpath('string()').strip().replace('.000',''),
+                          "%d/%m/%Y %H:%M:%S")
         if tmp.startswith('Report: '):
             (tmp,issue_type)=tmp.split(' - ')
             tmp=tmp.split(' ')
-            vote['rapporteur']=' '.join(tmp[:-1])
+            mep=' '.join(tmp[:-1])[8:]
+            vote['rapporteur']=mep
+            mep=db.ep_meps.find_one({"Name.aliases": mep.lower(),
+                                     "Constituencies.start" : {'$lt': vote['ts']},
+                                     "Constituencies.end" : {'$gt': vote['ts']}})
+            if not mep and u'ß' in vote['rapporteur']:
+                mep=db.ep_meps.find_one({"Name.aliases": vote['rapporteur'].replac(u'ß','ss').lower(),
+                                         "Constituencies.start" : {'$lt': vote['ts']},
+                                         "Constituencies.end" : {'$gt': vote['ts']}})
+            if mep:
+                vote['rapporteur']=mep['_id']
             vote['report']=tmp[-1]
+            report=db.dossiers.find_one({"activities.documents.title": tmp[-1]})
+            if report:
+                vote['report']=report['_id']
             vote['issue_type']=issue_type
         else:
             tmp=tmp.split(' - ')
             vote['report']=tmp[0]
+            report=db.dossiers.find_one({"activities.documents.title": tmp[0]})
+            if report:
+                vote['report']=report['_id']
             if len(tmp)==2:
                 vote['issue_type']=tmp[1]
             elif len(tmp)==3:
                 # sometimes a rapporteur, sometimes some kind of title
                 rapporteurs=True
                 rtmp=[]
-                for mep in tmp[1].split(' and '):
-                    mtmp=mep.split()
-                    slug="%s%s" % (''.join(mtmp[:-1]), mtmp[-1].upper())
-                    mep=db.ep_meps.find_one({"Name.slug": slug})
+                for name in tmp[1].split(' and '):
+                    mep=db.ep_meps.find_one({"Name.aliases": name.lower()})
+                    if not mep and u'ß' in name:
+                        mep=db.ep_meps.find_one({"Name.aliases": name.replac(u'ß','ss').lower()})
                     if not mep:
                         rapporteurs=False
                         break
-                    # TODO remove str conversion if writing to db!!!!!!!!!!!!!
-                    rtmp.append(str(mep['_id']))
+                    rtmp.append(mep['_id'])
                 if not rapporteurs:
                     vote['title']=tmp[1]
                 else:
                     vote['rapporteurs']=rtmp
                 vote['issue_type']=tmp[2]
-        # get timestamp
-        vote['ts']=issue.xpath('following::td')[0].xpath('string()').strip()
         # get the +/-/0 votes
         for decision in issue.xpath('ancestor::table')[0].xpath("following::table")[0:3]:
             total,k=[x.strip() for x in decision.xpath('.//text()') if x.strip()]
@@ -97,21 +126,52 @@ def getVotes(f):
                         group=''.join(group[:2]).strip()
                     else:
                         group=group[0].strip()
-                    voters=[x.strip() for x in cur.xpath('.//b/following-sibling::text()')[0].split(', ') if x.strip()]
+                    voters=[x.strip() for x in cur.xpath('.//b/following-sibling::text()')[0].split(',') if x.strip()]
                     if voters:
                         # strip of ":    " after the group name
-                        voters[0]=voters[0][1:].strip()
+                        if voters[0][0]==':': voters[0]=voters[0][1:].strip()
                         vtmp=[]
                         for name in voters:
                             mep=None
-                            for query in [{'Name.familylc': name.lower(),"Party.groupid": group},
-                                          {'Name.slug1': ''.join(name.split()).lower(),"Party.groupid": group},
-                                          {'Name.familylc': name.lower()}, # TODO Remove this, when we have historical data on MEPs activites/affiliations
-                                          ]:
+                            queries=[({'Name.familylc': name.lower(),
+                                       "Groups.groupid": group,
+                                       "Groups.start" : {'$lt': vote['ts']},
+                                       "Groups.end" : {'$gt': vote['ts']} },1),
+                                     ({'Name.aliases': ''.join(name.split()).lower(),
+                                       "Groups.groupid": group,
+                                       "Groups.start" : {'$lt': vote['ts']},
+                                       "Groups.end" : {'$gt': vote['ts']}},2),
+                                     ({'Name.familylc': re.compile(name,re.I),
+                                       "Groups.groupid": group,
+                                       "Groups.start" : {'$lt': vote['ts']},
+                                       "Groups.end" : {'$gt': vote['ts']}},2),
+                                     # TODO Remove this, when we have historical data on MEPs activites/affiliations
+                                     ({'Name.familylc': name.lower()},3),
+                                     ({'Name.aliases': re.compile(name,re.I)},4),
+                                     ]
+                            if u'ß' in name:
+                                queries.extend([({'Name.familylc': name.replace(u'ß','ss').lower(),
+                                       "Groups.groupid": group,
+                                       "Groups.start" : {'$lt': vote['ts']},
+                                       "Groups.end" : {'$gt': vote['ts']} },1),
+                                     ({'Name.aliases': ''.join(name.split()).replace(u'ß','ss').lower(),
+                                       "Groups.groupid": group,
+                                       "Groups.start" : {'$lt': vote['ts']},
+                                       "Groups.end" : {'$gt': vote['ts']}},2),
+                                     ({'Name.familylc': re.compile(name.replace(u'ß','ss'),re.I),
+                                       "Groups.groupid": group,
+                                       "Groups.start" : {'$lt': vote['ts']},
+                                       "Groups.end" : {'$gt': vote['ts']}},2),
+                                     # TODO Remove this, when we have historical data on MEPs activites/affiliations
+                                     ({'Name.familylc': name.replace(u'ß','ss').lower()},3),
+                                     ({'Name.aliases': re.compile(name.replace(u'ß','ss'),re.I)},4)])
+                            for query,q in queries:
                                 mep=db.ep_meps.find_one(query)
                                 if mep:
                                     # TODO remove str conversion if writing to db!!!!!!!!!!!!!!!!!!
-                                    vtmp.append(str(mep))
+                                    #vtmp.append(mep['_id'])
+                                    vtmp.append({'id': mep['_id'], 'q': q, 'orig': name})
+                                    if q>2: print >>sys.stderr, '[!]', q, name.encode('utf8'), group
                                     break
                             if not mep:
                                 print >>sys.stderr, '[?] warning unknown MEP', name.encode('utf8'), group.encode('utf8')
@@ -124,10 +184,35 @@ def getVotes(f):
         has_corr=' '.join([x for x in cor.xpath('tr')[0].xpath('.//text()') if x.strip()]).find(u"ПОПРАВКИ В ПОДАДЕНИТЕ ГЛАСОВЕ И НАМЕРЕНИЯ ЗА ГЛАСУВАНЕ")!=-1
         if has_corr:
             for row in cor.xpath('tr')[1:]:
-                k,voters=[x.xpath('string()').strip() for x in row.xpath('td')]
-                voters=[x.strip() for x in voters.split(', ') if x.strip()]
+                k,voters=[x.xpath('string()').strip() for x in row.xpath('td') if x.xpath('string()').find(u"ПОПРАВКИ В ПОДАДЕНИТЕ ГЛАСОВЕ И НАМЕРЕНИЯ ЗА ГЛАСУВАНЕ")==-1]
+                if k not in ['0','+','-']: continue
+                voters=[x.strip() for x in voters.split(',') if x.strip()]
                 if voters:
-                    vote[k]['correctional']=voters
+                    vote[k]['correctional']=[]
+                    for name in voters:
+                        mep=None
+                        queries=[({'Name.familylc': name.lower(),
+                                   "Constituencies.start" : {'$lt': vote['ts']},
+                                   "Constituencies.end" : {'$gt': vote['ts']} }, 1),
+                                 ({'Name.aliases': ' '.join(name.split()).lower(),
+                                   "Constituencies.start" : {'$lt': vote['ts']},
+                                   "Constituencies.end" : {'$gt': vote['ts']} },2),
+                                 ]
+                        if u'ß' in name:
+                            queries.extend([({'Name.familylc': name.replace(u'ß','ss').lower(),
+                                   "Constituencies.start" : {'$lt': vote['ts']},
+                                   "Constituencies.end" : {'$gt': vote['ts']} }, 1),
+                                 ({'Name.aliases': ' '.join(name.split()).replace(u'ß','ss').lower(),
+                                   "Constituencies.start" : {'$lt': vote['ts']},
+                                   "Constituencies.end" : {'$gt': vote['ts']} },2)])
+                        for query,q in queries:
+                            mep=db.ep_meps.find_one(query)
+                            if mep:
+                                vote[k]['correctional'].append({'id': mep['_id'], 'q': q, 'orig': name})
+                                break
+                        if not mep:
+                            print >>sys.stderr, '[?] warning unknown MEP', name.encode('utf8')
+                            vote[k]['correctional'].append(name)
         res.append(vote)
     return res
 
@@ -137,4 +222,4 @@ if __name__ == "__main__":
         import psyco
         psyco.full()
     #getVotes(sys.argv[1])
-    print json.dumps(getVotes(sys.argv[1]))
+    print json.dumps(getVotes(sys.argv[1]),indent=1, default=dateJSONhandler)
