@@ -56,7 +56,7 @@ def dateJSONhandler(obj):
     else:
         raise TypeError, 'Object of type %s with value of %s is not JSON serializable' % (type(obj), repr(obj))
 
-def getVotes(f):
+def scrape(f):
     tree=fetchVotes(f)
 
     res=[]
@@ -221,5 +221,5 @@ if __name__ == "__main__":
     if platform.machine() in ['i386', 'i686']:
         import psyco
         psyco.full()
-    #getVotes(sys.argv[1])
-    print json.dumps(getVotes(sys.argv[1]),indent=1, default=dateJSONhandler)
+    #scrape(sys.argv[1])
+    print json.dumps(scrape(sys.argv[1]),indent=1, default=dateJSONhandler)
