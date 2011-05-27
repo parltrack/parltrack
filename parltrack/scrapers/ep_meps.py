@@ -190,7 +190,7 @@ def parseRoles(c, data):
         print >>sys.stderr, '[!] unrecognized data', key, item
     return data
 
-def details(userid, name):
+def scrape(userid, name):
     data = { 'Constituencies': [],
              'Name' : mangleName(name),
              'UserID': userid }
@@ -335,5 +335,5 @@ if __name__ == "__main__":
                 userid=dict([x.split('=') for x in data.xpath("a")[0].attrib['href'].split('?')[1].split('&')])['id']
                 if not userid in seen:
                     print >>sys.stderr,data.xpath('a/text()')[0].encode('utf8')
-                    details(userid,data.xpath('a/text()')[0])
+                    scrape(userid,data.xpath('a/text()')[0])
                     seen.append(userid)
