@@ -512,7 +512,7 @@ def scrape(url):
         print >> sys.stderr, ('[!] ERROR no title in: %s\nSkipping' % k)
         return
     res={'meta': {'source': url,
-                  'id': int(url.split('id=')[1])
+                  'id': int(url.split('id=')[1]),
                   'country': 'eu',
                   'timestamp': datetime.datetime.utcnow() } }
     for section in sections:
