@@ -32,6 +32,7 @@ from bson.objectid import ObjectId
 db = connect_db()
 db.ep_meps.ensure_index([('Name.aliases', 1)])
 db.ep_meps.ensure_index([('Name.familylc', 1)])
+db.ep_meps.ensure_index([('Name.aliases', 1)])
 
 def fetchVotes(d):
     url="%s%s%s" % ("http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+PV+",
