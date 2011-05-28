@@ -130,11 +130,11 @@ def scrape(comid, url):
                 m=comref_re.search(line)
                 if m:
                     issue['comref']=m.group(1)
-                    dossier=db.dossiers.find_one({'activities.documents.title': m.group(1)})
+                    dossier=db.dossiers.find_one({'procedure.reference': "COM/%s/%s" % (m.group(1)[4:8], m.group(1)[9:13])})
                     if dossier:
                         issue['comref']=dossier['_id']
                     else:
-                        dossier=db.dossiers.find_one({'procedure.reference': "COM/%s/%s" % (m.group(1)[4:8], m.group(1)[9:13])})
+                        dossier=db.dossiers.find_one({'activities.documents.title': m.group(1)})
                         if dossier:
                             issue['comref']=dossier['_id']
             ax[1]="%s\n%s" % (ax[1],line)
