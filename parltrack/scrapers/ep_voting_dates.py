@@ -68,9 +68,4 @@ if __name__ == '__main__':
     if year >= 2004 and year < 2009:
         url = url+'&LEG_ID=6'
     # !! important part: getDates(fetch(url)) -> returns: array of datetime objects !!
-    print '[!] YEAR %d' % year
-    print '_'*60
-    print '\n'.join(map(str, getDates(fetch(url))))
-
-
-
+    print '\n'.join([x.strftime("%Y%m%d") for x in getDates(fetch(url))])
