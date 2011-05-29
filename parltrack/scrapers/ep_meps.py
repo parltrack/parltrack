@@ -22,6 +22,7 @@ from datetime import datetime
 from string import strip, uppercase
 from lxml.html.soupparser import parse
 from parltrack.environment import connect_db
+import unicodedata
 
 BASE_URL = 'http://www.europarl.europa.eu'
 db = connect_db()
@@ -121,38 +122,50 @@ def mangleName(name):
         sur=name.split(', ')[1]
     except:
         sur=''
-    tmp=family.split()
     title=None
-    if tmp[0] in ['Sir', 'Lady', 'Baroness', 'Baron', 'Lord', 'Earl', 'Duke']:
-        title=tmp[0]
-        family=' '.join(tmp[1:])
+    for t in Titles:
+        if family.startswith(t):
+            family=family[len(t)+1:]
+            title=t
+            break
     res= { 'full': name,
-             'sur': sur,
-             'family': family,
-             'familylc': family.lower(),
-             'aliases': ["%s %s" % (family, sur),
-                         ("%s %s" % (family, sur)).lower(),
-                         "%s %s" % (sur, family),
-                         ("%s %s" % (sur, family)).lower(),
-                         ''.join(("%s%s" % (family, sur)).split()),
-                         ''.join(("%s%s" % (sur, family)).split()),
-                         ''.join(("%s%s" % (family, sur)).split()).lower(),
-                         ''.join(("%s%s" % (sur, family)).split()).lower(),
-                         family.lower(),
-                         family],}
+           'sur': sur,
+           'family': family,
+           'familylc': family.lower(),
+           'aliases': [family,
+                       family.lower(),
+                       "%s %s" % (sur, family),
+                       "%s %s" % (family, sur),
+                       ("%s %s" % (family, sur)).lower(),
+                       ("%s %s" % (sur, family)).lower(),
+                       ''.join(("%s%s" % (sur, family)).split()),
+                       ''.join(("%s%s" % (family, sur)).split()),
+                       ''.join(("%s%s" % (family, sur)).split()).lower(),
+                       ''.join(("%s%s" % (sur, family)).split()).lower(),
+                      ],}
     if title:
         res['title']=title
-        res['aliases'].extend(["%s %s %s" % (title ,family, sur),
-                               "%s %s %s" % (title, sur, family),
-                               ("%s %s %s" % (title, sur, family)).lower(),
-                               "%s %s %s" % (title, family, sur),
-                               ("%s %s %s" % (title, family, sur)).lower(),
-                               "%s %s" % (title, family),
-                               ''.join(("%s%s%s" % (title, family, sur)).split()),
-                               ''.join(("%s%s%s" % (title, sur, family)).split()),
-                               ''.join(("%s%s%s" % (title, family, sur)).split()).lower(),
-                               ''.join(("%s%s%s" % (title, sur, family)).split()).lower(),
+        res['aliases'].extend([("%s %s" % (title, family)).strip(),
+                               ("%s %s %s" % (title ,family, sur)).strip(),
+                               ("%s %s %s" % (title, sur, family)).strip(),
+                               ("%s %s %s" % (title, family, sur)).strip(),
+                               ("%s %s %s" % (title, sur, family)).lower().strip(),
+                               ("%s %s %s" % (title, family, sur)).lower().strip(),
+                               (''.join(("%s%s%s" % (title, family, sur)).split())).strip(),
+                               (''.join(("%s%s%s" % (title, sur, family)).split())).strip(),
+                               (''.join(("%s%s%s" % (sur, title, family)).split())).strip(),
+                               (''.join(("%s%s%s" % (sur, family, title)).split())).strip(),
+                               ''.join(("%s%s%s" % (family, sur, title)).split()).lower().strip(),
+                               ''.join(("%s%s%s" % (family, title, sur)).split()).lower().strip(),
+                               ''.join(("%s%s%s" % (title, family, sur)).split()).lower().strip(),
+                               ''.join(("%s%s%s" % (title, sur, family)).split()).lower().strip(),
                                ])
+    if  u'ß' in unicode(name):
+        res['aliases'].extend([x.replace(u'ß','ss') for x in res['aliases']])
+    if unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore')!=name:
+        res['aliases'].extend([unicodedata.normalize('NFKD', x).encode('ascii','ignore') for x in res['aliases']])
+    if "'" in name:
+        res['aliases'].extend([x.replace("'","") for x in res['aliases']])
     if family in meps_aliases:
            res['aliases'].extend(meps_aliases[family])
     return res
@@ -183,8 +196,8 @@ def parseRoles(c, data):
                 if item['Organization'] in group_map:
                     item['groupid']=group_map[item['Organization']]
                 # TODO find out exact date of when the 2001 term started
-                elif item['start']>datetime.strptime("30092001","%d%m%Y"):
-                    print >>sys.stderr, '[!] unrecognized group', key, item
+                #elif item['start']>datetime.strptime("30092001","%d%m%Y"):
+                #    print >>sys.stderr, '[!] unrecognized group', key, item
                 data['Groups'].append(item)
                 continue
         print >>sys.stderr, '[!] unrecognized data', key, item
@@ -284,6 +297,7 @@ GROUPS=[
    'Confederal Group of the European United Left/Nordic Green Left',
    'Confederal Group of the European United Left - Nordic Green Left',
    'Christian-Democratic Group',
+   "Christian-Democratic Group (Group of the European People's Party)",
    "Group of the European People's Party ",
    'Group for a Europe of Democracies and Diversities',
    'Group for the European United Left',
@@ -297,6 +311,8 @@ GROUPS=[
    'Group of the Greens/European Free Alliance',
    'Group of the Party of European Socialists',
    'Group of the Progressive Alliance of Socialists and Democrats in the European Parliament',
+   'European Democratic Union Group'
+   'Group of European Progressive Democrats',
    "Group of the European People's Party (Christian Democrats) and European Democrats",
    "Group of the European People's Party (Christian Democrats)",
    'Group Union for Europe',
@@ -322,12 +338,24 @@ meps_aliases={
     u'SCOTTÀ': ["SCOTTA'", "scotta'"],
     u"in 't VELD": ["in't VELD", "in't veld", "IN'T VELD"],
     u'MORKŪNAITĖ-MIKULĖNIENĖ': [u"MORKŪNAITĖ Radvilė",u"morkūnaitė radvilė",u"radvilė morkūnaitė ",u"Radvilė MORKŪNAITĖ ", u"MORKŪNAITĖ", u"morkūnaitė"],
+    u'MUSTIN-MAYER': ['Barthet-Mayer Christine', 'barthet-mayer christine', 'barthet-mayerchristine'],
     }
+
+Titles=['Sir',
+       'Lady',
+       'Baroness',
+       'Baron',
+       'Lord',
+       'Earl',
+       'Duke',
+       'The Earl of',
+       'The Lord',
+       'Professor Sir']
 
 if __name__ == "__main__":
     seen=[]
     for letter in uppercase:
-        for term in [5, 6, 7]:
+        for term in [3, 4, 5, 6, 7]:
             root = fetch("http://www.europarl.europa.eu/members/archive/term%d.do?letter=%s&language=EN" % (
                 term,
                 letter))
