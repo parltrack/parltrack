@@ -38,6 +38,7 @@ def fetchVotes(d):
     url="%s%s%s" % ("http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+PV+",
                     d,
                     "+RES-RCV+DOC+WORD+V0//EN&language=EN")
+    print >>sys.stderr, url
     f=urllib2.urlopen(url)
     tmp=mkstemp()
     fd=os.fdopen(tmp[0],'w')
@@ -57,6 +58,23 @@ def dateJSONhandler(obj):
     else:
         raise TypeError, 'Object of type %s with value of %s is not JSON serializable' % (type(obj), repr(obj))
 
+mepCache={}
+def getMep(name,date):
+    if name in mepCache:
+        return mepCache['name']
+
+    mep=db.ep_meps.find_one({"Name.aliases": name.lower(),
+                             "Constituencies.start" : {'$lt': date},
+                             "Constituencies.end" : {'$gt': date}})
+    if not mep and u'ß' in name:
+        mep=db.ep_meps.find_one({"Name.aliases": name.replac(u'ß','ss').lower(),
+                                 "Constituencies.start" : {'$lt': date},
+                                 "Constituencies.end" : {'$gt': date}})
+    if mep:
+        mepCache['name']=mep
+        return mep
+
+reportre=re.compile(r'(Report: .*) ?- ?(.*)$')
 def scrape(f):
     tree=fetchVotes(f)
 
@@ -72,19 +90,25 @@ def scrape(f):
         vote['ts']= datetime.strptime(issue.xpath('following::td')[0].xpath('string()').strip().replace('.000',''),
                           "%d/%m/%Y %H:%M:%S")
         if tmp.startswith('Report: '):
-            (tmp,issue_type)=tmp.split(' - ')
+            try:
+                (tmp,issue_type)=tmp.split(' - ')
+            except:
+                m=reportre.match(tmp)
+                if m:
+                    tmp=m.group(1)
+                    issue_type=m.group(2)
+                else:
+                    raise
             tmp=tmp.split(' ')
             mep=' '.join(tmp[:-1])[8:]
             vote['rapporteur']=mep
-            mep=db.ep_meps.find_one({"Name.aliases": mep.lower(),
-                                     "Constituencies.start" : {'$lt': vote['ts']},
-                                     "Constituencies.end" : {'$gt': vote['ts']}})
-            if not mep and u'ß' in vote['rapporteur']:
-                mep=db.ep_meps.find_one({"Name.aliases": vote['rapporteur'].replac(u'ß','ss').lower(),
-                                         "Constituencies.start" : {'$lt': vote['ts']},
-                                         "Constituencies.end" : {'$gt': vote['ts']}})
+            mep=getMep(mep,vote['ts'])
             if mep:
-                vote['rapporteur']=mep['_id']
+                vote['rapporteurId']=mep['_id']
+
+            # remove the occasional parens enclosure from documents
+            if tmp[-1] and tmp[-1][0]=='(' and tmp[-1][-1]==')':
+                tmp[-1]=tmp[-1][1:-1]
             vote['report']=tmp[-1]
             report=db.dossiers.find_one({"activities.documents.title": tmp[-1]})
             if report:
@@ -103,9 +127,7 @@ def scrape(f):
                 rapporteurs=True
                 rtmp=[]
                 for name in tmp[1].split(' and '):
-                    mep=db.ep_meps.find_one({"Name.aliases": name.lower()})
-                    if not mep and u'ß' in name:
-                        mep=db.ep_meps.find_one({"Name.aliases": name.replac(u'ß','ss').lower()})
+                    mep=getMep(name,vote['ts'])
                     if not mep:
                         rapporteurs=False
                         break
@@ -115,10 +137,20 @@ def scrape(f):
                 else:
                     vote['rapporteurs']=rtmp
                 vote['issue_type']=tmp[2]
-        print >>sys.stderr, vote['report']
+        if type(vote['report'])==unicode:
+            print >>sys.stderr, vote['report'].encode('utf8')
+        else:
+            print >>sys.stderr, vote['report']
         # get the +/-/0 votes
         for decision in issue.xpath('ancestor::table')[0].xpath("following::table")[0:3]:
-            total,k=[x.strip() for x in decision.xpath('.//text()') if x.strip()]
+            tmp=[x.strip() for x in decision.xpath('.//text()') if x.strip()]
+            total,k=tmp[0],''.join(tmp[1:])
+            if u'Υπέρ' in [x.strip() for x in k.split('-')]:
+                k="+"
+            if u'Κατά' in [x.strip() for x in k.split('-')]:
+                k="-"
+            if u'Απoχές' in [x.strip() for x in k.split('-')]:
+                k="0"
             vote[k]={'total': total}
             for cur in decision.xpath('../following-sibling::*'):
                 group=cur.xpath('.//b/text()')
@@ -128,6 +160,8 @@ def scrape(f):
                         group=''.join(group[:2]).strip()
                     else:
                         group=group[0].strip()
+                    if group==u'Протокол':
+                        break
                     voters=[x.strip() for x in cur.xpath('.//b/following-sibling::text()')[0].split(',') if x.strip()]
                     if not voters: continue
                     # strip of ":    " after the group name
@@ -178,8 +212,15 @@ def scrape(f):
                 if cur.xpath('.//table'):
                     break
         # get the correctional votes
-        cor=issue.xpath('ancestor::table')[0].xpath("following::table")[3]
-        has_corr=' '.join([x for x in cor.xpath('tr')[0].xpath('.//text()') if x.strip()]).find(u"ПОПРАВКИ В ПОДАДЕНИТЕ ГЛАСОВЕ И НАМЕРЕНИЯ ЗА ГЛАСУВАНЕ")!=-1
+        try:
+            cor=issue.xpath('ancestor::table')[0].xpath("following::table")[3]
+        except IndexError:
+            res.append(vote)
+            continue
+        try:
+            has_corr=' '.join([x for x in cor.xpath('tr')[0].xpath('.//text()') if x.strip()]).find(u"ПОПРАВКИ В ПОДАДЕНИТЕ ГЛАСОВЕ И НАМЕРЕНИЯ ЗА ГЛАСУВАНЕ")!=-1
+        except IndexError:
+            has_corr=None
         if not has_corr:
             res.append(vote)
             continue
