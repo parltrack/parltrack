@@ -25,6 +25,7 @@ from itertools import izip_longest
 import urllib2, urllib, cookielib, datetime, sys, json, logging, re
 from parltrack.environment import connect_db
 from operator import itemgetter
+import unicodedata
 
 # and some global objects
 base = 'http://www.europarl.europa.eu/oeil/file.jsp'
@@ -34,6 +35,17 @@ opener.addheaders = [('User-agent', 'weurstchen/0.5')]
 db = connect_db()
 stats=[0,0]
 commitee_actorre=re.compile(r'^EP:.*(by|of) the committee responsible')
+
+def getMEPRef(name):
+    mep=db.ep_meps.find_one({'Name.aliases': ''.join(name.split()).lower()},['_id'])
+    if not mep and u'ß' in name:
+        mep=db.ep_meps.find_one({'Name.aliases': ''.join(name.replace(u'ß','ss').split()).lower()},['_id'])
+    if not mep and unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore')!=name:
+        mep=db.ep_meps.find_one({'Name.aliases': ''.join(unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore').split()).lower()},['_id'])
+    if mep:
+        return mep
+    else:
+        print >>sys.stderr, 'lookup oops', actor['name'].encode('utf8'), item['meta']['source']
 
 def makeActivities(data):
     #print >> sys.stderr, data
@@ -409,6 +421,7 @@ def agents(table):
                 agent['commitee']=commitee
                 agent['responsible']=comrole
                 agent['name']=row.get('rapporteur')
+                agent['mepref']=getMEPRef(row.get('rapporteur'))
                 agent['function']='MEP'
                 agent['body']='EP'
                 agent['date']=row.get('appointed')
@@ -418,6 +431,7 @@ def agents(table):
                 res.extend([{'commitee': commitee,
                              'responsible': comrole,
                              'name': p[0],
+                             'mepref'=getMEPRef(p[0])
                              'function': 'MEP',
                              'body': 'EP',
                              'date': p[1],
