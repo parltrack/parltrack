@@ -1,0 +1,24 @@
+# clone/fork this reopository: https://github.com/pudo/parltrack/
+
+ git clone git@github.com:pudo/parltrack.git
+ cd parltrack
+
+# install non-pythonic dependencies dependencies
+
+ apt-get install wv poppler-utils mongodb-server mongodb-clients
+
+# create a virtual environment
+
+ virtualenv --no-site-packages env
+
+# activate the environment
+
+source env/bin/activate
+
+# install python requirements
+
+ pip -E env install -r pip-requirements.txt
+
+# setup parltrack pkg
+
+ sudo python setup.py develop
