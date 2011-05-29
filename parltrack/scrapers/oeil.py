@@ -431,7 +431,7 @@ def agents(table):
                 res.extend([{'commitee': commitee,
                              'responsible': comrole,
                              'name': p[0],
-                             'mepref'=getMEPRef(p[0])
+                             'mepref': getMEPRef(p[0]),
                              'function': 'MEP',
                              'body': 'EP',
                              'date': p[1],
