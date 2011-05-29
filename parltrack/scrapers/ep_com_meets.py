@@ -144,7 +144,7 @@ def scrape(comid, url):
                                     i.get('comref',i['title'].split('\n')[-2].strip()),
                                     )
                       for i in res
-                      if 'tabling deadline' in i]) or "no deadlines"
+                      if 'tabling deadline' in i]).encode('utf8') or "no deadlines"
     sys.stderr.flush()
     return res
 
@@ -311,4 +311,5 @@ def scrapOp(text):
 if __name__ == "__main__":
     db = connect_db()
     crawl(db)
+    #print json.dumps(scrape('LIBE','http://www.europarl.europa.eu/meetdocs/2009_2014/documents/libe/oj/867/867690/867690en.pdf'),indent=1,default=dateJSONhandler)
     # find some tabling dates: db.ep_com_meets.find({'tabling deadline' : { $exists : true }}).sort({'tabling deadline': -1})
