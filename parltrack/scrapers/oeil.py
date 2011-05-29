@@ -37,6 +37,7 @@ stats=[0,0]
 commitee_actorre=re.compile(r'^EP:.*(by|of) the committee responsible')
 
 def getMEPRef(name):
+    if not name: return
     mep=db.ep_meps.find_one({'Name.aliases': ''.join(name.split()).lower()},['_id'])
     if not mep and u'ß' in name:
         mep=db.ep_meps.find_one({'Name.aliases': ''.join(name.replace(u'ß','ss').split()).lower()},['_id'])
