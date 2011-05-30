@@ -23,16 +23,21 @@ from cStringIO import StringIO
 from urlparse import urljoin
 from itertools import izip_longest
 import urllib2, urllib, cookielib, datetime, sys, json, logging, re
-from parltrack.environment import connect_db
 from operator import itemgetter
 import unicodedata
+try:
+    from parltrack.environment import connect_db
+    db = connect_db()
+except:
+    import pymongo
+    db=pymongo.Connection().parltrack
+from bson.objectid import ObjectId
 
 # and some global objects
 base = 'http://www.europarl.europa.eu/oeil/file.jsp'
 opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
 opener.addheaders = [('User-agent', 'weurstchen/0.5')]
 # connect to  mongo
-db = connect_db()
 stats=[0,0]
 commitee_actorre=re.compile(r'^EP:.*(by|of) the committee responsible')
 
@@ -44,7 +49,7 @@ def getMEPRef(name):
     if not mep and unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore')!=name:
         mep=db.ep_meps.find_one({'Name.aliases': ''.join(unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore').split()).lower()},['_id'])
     if mep:
-        return mep
+        return mep['_id']
     else:
         print >>sys.stderr, 'lookup oops', actor['name'].encode('utf8'), item['meta']['source']
 
@@ -184,7 +189,7 @@ def save(data):
             sys.stdout.flush()
             stats[1]+=1
             data['_id']=res['_id']
-            print >> sys.stderr, (d)
+            #print >> sys.stderr, (d)
         data['changes']=res.get('changes',{})
         data['changes'][now]=d
         db.dossiers.save(data)
@@ -305,8 +310,10 @@ def toObj(table,fields,offset=2):
 def dateJSONhandler(obj):
     if hasattr(obj, 'isoformat'):
         return obj.isoformat()
+    elif type(obj)==ObjectId:
+        return str(obj)
     else:
-        raise TypeError, 'Object of type %s with value of %s is not JSON serializable' % (type(Obj), repr(Obj))
+        raise TypeError, 'Object of type %s with value of %s is not JSON serializable' % (type(obj), repr(obj))
 
 def identification(table):
     res={}

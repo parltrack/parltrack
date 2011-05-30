@@ -177,7 +177,7 @@ def parseRoles(c, data):
     for cc in c.xpath("../../tr[@class='mep_CVtext']/td[2]"):
         name=' '.join(cc.xpath('string()').split())
         item=splitDatedInfo(name,'Organization')
-        item['Role']=key
+        item['role']=key
         if len(cc.xpath('a')):
             item['url']=BASE_URL+cc.xpath('a')[0].attrib['href']
         found=False
@@ -251,8 +251,8 @@ group_map={ "Confederal Group of the European United Left - Nordic Green Left": 
             'Group for a Europe of Democracies and Diversities': 'EDD',
             'Group of the European Liberal Democrat and Reform Party': 'ELDR',
             'Group of the European Liberal, Democrat and Reform Party': 'ELDR',
-            'Group indépendence/Démocratie': ['ID','INDDEM'],
-            'Independence/Democracy Group': ['ID', 'INDDEM'],
+            'Group indépendence/Démocratie': ['ID','INDDEM', 'IND/DEM'],
+            'Independence/Democracy Group': ['ID', 'INDDEM', 'IND/DEM'],
             'Identity, Tradition and Sovereignty Group': 'ITS',
             'Non-attached Members': ['NA','NI'],
             'Non-attached': ['NA','NI'],
@@ -268,6 +268,12 @@ group_map={ "Confederal Group of the European United Left - Nordic Green Left": 
             'Group of the Greens / European Free Alliance': 'Verts/ALE',
             'Greens/EFA': 'Verts/ALE',
             }
+groupids=[]
+for item in group_map.values():
+    if type(item)==list:
+        groupids.extend(item)
+    else:
+        groupids.append(item)
 
 orgmaps=[('Committee o', 'Committees'),
         ('Temporary committee ', 'Committees'),
@@ -339,6 +345,9 @@ meps_aliases={
     u"in 't VELD": ["in't VELD", "in't veld", "IN'T VELD"],
     u'MORKŪNAITĖ-MIKULĖNIENĖ': [u"MORKŪNAITĖ Radvilė",u"morkūnaitė radvilė",u"radvilė morkūnaitė ",u"Radvilė MORKŪNAITĖ ", u"MORKŪNAITĖ", u"morkūnaitė"],
     u'MUSTIN-MAYER': ['Barthet-Mayer Christine', 'barthet-mayer christine', 'barthet-mayerchristine'],
+    u'YÁÑEZ-BARNUEVO GARCÍA': [ u'Yañez-Barnuevo García', u'yañez-barnuevogarcía'],
+    u"ZAPPALA'": [ u'Zappalà', u'zappalà'],
+    u'OBIOLS': [u'Obiols i Germà', u'obiols i germà' ],
     }
 
 Titles=['Sir',
