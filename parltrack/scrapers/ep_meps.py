@@ -268,6 +268,12 @@ group_map={ "Confederal Group of the European United Left - Nordic Green Left": 
             'Group of the Greens / European Free Alliance': 'Verts/ALE',
             'Greens/EFA': 'Verts/ALE',
             }
+groupids=[]
+for item in group_map.values():
+    if type(item)==list:
+        groupids.extend(item)
+    else:
+        groupids.append(item)
 
 orgmaps=[('Committee o', 'Committees'),
         ('Temporary committee ', 'Committees'),

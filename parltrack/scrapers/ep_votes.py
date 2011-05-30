@@ -26,7 +26,7 @@ import urllib2, json, sys, subprocess, os, re
 from cStringIO import StringIO
 from parltrack.environment import connect_db
 from datetime import datetime
-from ep_meps import group_map
+from ep_meps import group_map, groupids as Groupids
 from bson.objectid import ObjectId
 
 db = connect_db()
@@ -154,14 +154,12 @@ def scrape(f):
             vote[k]={'total': total}
             for cur in decision.xpath('../following-sibling::*'):
                 group=cur.xpath('.//b/text()')
-                if group:
+                if group and ''.join([x.strip() for x in group]) in Groupids:
                     next=group[0].getparent().xpath('following-sibling::*/text()')
                     if next and next[0]==group[1]:
                         group=''.join(group[:2]).strip()
                     else:
                         group=group[0].strip()
-                    if group==u'Протокол':
-                        break
                     voters=[x.strip() for x in cur.xpath('.//b/following-sibling::text()')[0].split(',') if x.strip()]
                     if not voters: continue
                     # strip of ":    " after the group name
@@ -265,5 +263,5 @@ if __name__ == "__main__":
     if platform.machine() in ['i386', 'i686']:
         import psyco
         psyco.full()
-    #scrape(sys.argv[1])
-    print json.dumps(scrape(sys.argv[1]),indent=1, default=dateJSONhandler)
+    scrape(sys.argv[1])
+    #print json.dumps(scrape(sys.argv[1]),indent=1, default=dateJSONhandler)
