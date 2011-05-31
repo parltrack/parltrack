@@ -22,7 +22,7 @@
 from lxml.html.soupparser import parse
 from lxml.etree import tostring
 from tempfile import mkdtemp, mkstemp
-import urllib2, json, sys, subprocess, os, re
+import urllib2, json, sys, subprocess, os, re, unicodedata
 from cStringIO import StringIO
 from parltrack.environment import connect_db
 from datetime import datetime
@@ -59,20 +59,87 @@ def dateJSONhandler(obj):
         raise TypeError, 'Object of type %s with value of %s is not JSON serializable' % (type(obj), repr(obj))
 
 mepCache={}
-def getMep(name,date):
+def getMep(text,date):
+    name=''.join(unicodedata.normalize('NFKD', unicode(text.strip())).encode('ascii','ignore').split()).lower()
     if name in mepCache:
         return mepCache['name']
 
-    mep=db.ep_meps.find_one({"Name.aliases": name.lower(),
+    if not name: return
+    # TODO add date constraints based on groups.start/end
+    mep=db.ep_meps.find_one({'Name.aliases': name,
                              "Constituencies.start" : {'$lt': date},
-                             "Constituencies.end" : {'$gt': date}})
-    if not mep and u'ß' in name:
-        mep=db.ep_meps.find_one({"Name.aliases": name.replac(u'ß','ss').lower(),
-                                 "Constituencies.start" : {'$lt': date},
-                                 "Constituencies.end" : {'$gt': date}})
-    if mep:
-        mepCache['name']=mep
-        return mep
+                             "Constituencies.end" : {'$gt': date}},['_id'])
+    if not mep and u'ß' in text:
+        name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(u'ß','ss').strip())).encode('ascii','ignore').split()).lower()
+        mep=db.ep_meps.find_one({'Name.aliases': name,
+                             "Constituencies.start" : {'$lt': date},
+                             "Constituencies.end" : {'$gt': date}},['_id'])
+    if not mep:
+        print >>sys.stderr, '[$] lookup oops:', text.encode('utf8')
+        mepCache['name']=None
+    else:
+        mepCache['name']=mep['_id']
+        return mep['_id']
+
+def splitMeps(text, res, date):
+    for q in text.split('/'):
+        mep=getMep(q,date)
+        if mep:
+            res['rapporteur'].append((q,mep))
+
+def scanMeps(text, res, date):
+    tmp=text.split(':')
+    if len(tmp)==2:
+        return splitMeps(tmp[1], res, date)
+    elif len(tmp)==1:
+        return splitMeps(text, res, date)
+    else:
+        print >>sys.stderr, 'huh', line
+
+docre=re.compile(u'(.*)((?:[AB]|RC)[67]\s*-\s*[0-9]{3,4}\/[0-9]{4})(.*)')
+tailre=re.compile(r'^(?:\s*-\s*)?(.*)\s*-\s*([^-]*$)')
+junkdashre=re.compile(r'^[ -]*(.*)[ -]*$')
+rapportre=re.compile(r'(.*)(?:recommendation|rapport|report):?\s?(.*)',re.I)
+def votemeta(line, date):
+    print >>sys.stderr, line.encode('utf8')
+    res={'rapporteur': []}
+    m=docre.search(line)
+    if m:
+        line=''.join([m.group(1),m.group(3)])
+        doc=m.group(2).replace(' ', '')
+        res['report']=doc
+        report=db.dossiers.find_one({"activities.documents.title": doc},['_id'])
+        if report:
+            res['dossierid']=report['_id']
+    m=tailre.match(line)
+    if m:
+        res['issue_type']=m.group(2).strip()
+        line=m.group(1).strip()
+    if line.startswith('RC'):
+        res['RC']=True
+        line=line[2:].strip()
+    m=junkdashre.match(line)
+    if m:
+        line=m.group(1)
+    tmp=line.split(' - ')
+    if len(tmp)>1:
+        if len(tmp)>2:
+            print >>sys.stderr, "many ' - '",line
+        line=tmp[0]
+        res['issue_type']="%s %s" % (' - '.join(tmp[1:]),res.get('issue_type',''))
+    line=line.strip()
+    if not line:
+        return res
+    if line.endswith('()'):
+        line=line[:-2].strip()
+    m=rapportre.search(line)
+    if m:
+        # handle mep
+        if m.group(2):
+            scanMeps(m.group(2),res, date)
+        else:
+            scanMeps(m.group(1),res, date)
+    return res
 
 reportre=re.compile(r'(Report: .*) ?- ?(.*)$')
 def scrape(f):
@@ -89,58 +156,8 @@ def scrape(f):
         # get timestamp
         vote['ts']= datetime.strptime(issue.xpath('following::td')[0].xpath('string()').strip().replace('.000',''),
                           "%d/%m/%Y %H:%M:%S")
-        if tmp.startswith('Report: '):
-            try:
-                (tmp,issue_type)=tmp.split(' - ')
-            except:
-                m=reportre.match(tmp)
-                if m:
-                    tmp=m.group(1)
-                    issue_type=m.group(2)
-                else:
-                    raise
-            tmp=tmp.split(' ')
-            mep=' '.join(tmp[:-1])[8:]
-            vote['rapporteur']=mep
-            mep=getMep(mep,vote['ts'])
-            if mep:
-                vote['rapporteurId']=mep['_id']
-
-            # remove the occasional parens enclosure from documents
-            if tmp[-1] and tmp[-1][0]=='(' and tmp[-1][-1]==')':
-                tmp[-1]=tmp[-1][1:-1]
-            vote['report']=tmp[-1]
-            report=db.dossiers.find_one({"activities.documents.title": tmp[-1]})
-            if report:
-                vote['report']=report['_id']
-            vote['issue_type']=issue_type
-        else:
-            tmp=tmp.split(' - ')
-            vote['report']=tmp[0]
-            report=db.dossiers.find_one({"activities.documents.title": tmp[0]})
-            if report:
-                vote['report']=report['_id']
-            if len(tmp)==2:
-                vote['issue_type']=tmp[1]
-            elif len(tmp)==3:
-                # sometimes a rapporteur, sometimes some kind of title
-                rapporteurs=True
-                rtmp=[]
-                for name in tmp[1].split(' and '):
-                    mep=getMep(name,vote['ts'])
-                    if not mep:
-                        rapporteurs=False
-                        break
-                    rtmp.append(mep['_id'])
-                if not rapporteurs:
-                    vote['title']=tmp[1]
-                else:
-                    vote['rapporteurs']=rtmp
-                vote['issue_type']=tmp[2]
-        if type(vote['report'])==unicode:
-            print >>sys.stderr, vote['report'].encode('utf8')
-        else:
-            print >>sys.stderr, vote['report']
+        vote['title']=tmp
+        vote.update(votemeta(tmp, vote['ts']))
         # get the +/-/0 votes
         for decision in issue.xpath('ancestor::table')[0].xpath("following::table")[0:3]:
             tmp=[x.strip() for x in decision.xpath('.//text()') if x.strip()]
@@ -201,10 +218,10 @@ def scrape(f):
                             mep=db.ep_meps.find_one(query)
                             if mep:
                                 vtmp.append({'id': mep['_id'], 'orig': name})
-                                if q>2: print >>sys.stderr, '[!]', q, name.encode('utf8'), group
+                                if q>2: print >>sys.stderr, '[!] weak mep', q, vote['ts'], group, name.encode('utf8')
                                 break
                         if not mep:
-                            print >>sys.stderr, '[?] warning unknown MEP', name.encode('utf8'), group.encode('utf8')
+                            print >>sys.stderr, '[?] warning unknown MEP',vote['ts'] , group.encode('utf8'), name.encode('utf8')
                             vtmp.append(name)
                     vote[k][group]=vtmp
                 if cur.xpath('.//table'):
@@ -213,6 +230,8 @@ def scrape(f):
         try:
             cor=issue.xpath('ancestor::table')[0].xpath("following::table")[3]
         except IndexError:
+            q={'title': vote['title']}
+            db.ep_votes.update(q, {"$set": vote}, upsert=True)
             res.append(vote)
             continue
         try:
@@ -220,6 +239,8 @@ def scrape(f):
         except IndexError:
             has_corr=None
         if not has_corr:
+            q={'title': vote['title']}
+            db.ep_votes.update(q, {"$set": vote}, upsert=True)
             res.append(vote)
             continue
         for row in cor.xpath('tr')[1:]:
@@ -251,9 +272,9 @@ def scrape(f):
                         vote[k]['correctional'].append({'id': mep['_id'], 'q': q, 'orig': name})
                         break
                 if not mep:
-                    print >>sys.stderr, '[?] warning unknown MEP', name.encode('utf8')
+                    print >>sys.stderr, '[?] warning unknown MEP', vote['ts'], name.encode('utf8')
                     vote[k]['correctional'].append(name)
-        q={'report': vote['report']}
+        q={'title': vote['title']}
         db.ep_votes.update(q, {"$set": vote}, upsert=True)
         res.append(vote)
     return res
