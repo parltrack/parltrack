@@ -134,6 +134,7 @@ def mangleName(name):
            'familylc': family.lower(),
            'aliases': [family,
                        family.lower(),
+                       ''.join(family.split()).lower(),
                        "%s %s" % (sur, family),
                        "%s %s" % (family, sur),
                        ("%s %s" % (family, sur)).lower(),
@@ -166,8 +167,8 @@ def mangleName(name):
         res['aliases'].extend([unicodedata.normalize('NFKD', x).encode('ascii','ignore') for x in res['aliases']])
     if "'" in name:
         res['aliases'].extend([x.replace("'","") for x in res['aliases']])
-    if family in meps_aliases:
-           res['aliases'].extend(meps_aliases[family])
+    if name in meps_aliases:
+           res['aliases'].extend(meps_aliases[name])
     return res
 
 def parseRoles(c, data):
@@ -340,14 +341,29 @@ GROUPS=[
    'Union for Europe of the Nations Group', ]
 
 meps_aliases={
-    u'GRÈZE': ['GREZE', 'greze', 'Catherine Greze', 'catherine greze'],
-    u'SCOTTÀ': ["SCOTTA'", "scotta'"],
-    u"in 't VELD": ["in't VELD", "in't veld", "IN'T VELD"],
-    u'MORKŪNAITĖ-MIKULĖNIENĖ': [u"MORKŪNAITĖ Radvilė",u"morkūnaitė radvilė",u"radvilė morkūnaitė ",u"Radvilė MORKŪNAITĖ ", u"MORKŪNAITĖ", u"morkūnaitė"],
-    u'MUSTIN-MAYER': ['Barthet-Mayer Christine', 'barthet-mayer christine', 'barthet-mayerchristine'],
-    u'YÁÑEZ-BARNUEVO GARCÍA': [ u'Yañez-Barnuevo García', u'yañez-barnuevogarcía'],
-    u"ZAPPALA'": [ u'Zappalà', u'zappalà'],
-    u'OBIOLS': [u'Obiols i Germà', u'obiols i germà' ],
+    u"GRÈZE, Catherine": ['GREZE', 'greze', 'Catherine Greze', 'catherine greze'],
+    u"SCOTTÀ, Giancarlo": ["SCOTTA'", "scotta'"],
+    u"in 't VELD, Sophia": ["in't VELD", "in't veld", "IN'T VELD", "in'tveld"],
+    u"MORKŪNAITĖ-MIKULĖNIENĖ, Radvilė": [u"MORKŪNAITĖ Radvilė",u"morkūnaitė radvilė",u"radvilė morkūnaitė ",u"Radvilė MORKŪNAITĖ ", u"MORKŪNAITĖ", u"morkūnaitė"],
+    u"MUSTIN-MAYER, Christine": ['Barthet-Mayer Christine', 'barthet-mayer christine', 'barthet-mayerchristine'],
+    u"YÁÑEZ-BARNUEVO GARCÍA, Luis": [ u'Yañez-Barnuevo García', u'yañez-barnuevogarcía'],
+    u"ZAPPALA', Stefano": [ u'Zappalà', u'zappalà'],
+    u"OBIOLS, Raimon": [u'Obiols i Germà', u'obiols i germà', u'ObiolsiGermà', u'obiolsigermà' ],
+    u"CHATZIMARKAKIS, Jorgo": [u'Chatzimartakis', u'chatzimartakis'],
+    u"XENOGIANNAKOPOULOU, Marilisa": [u'Xenagiannakopoulou', u'xenagiannakopoulou'],
+    u"GRÄSSLE, Ingeborg": [u'Graessle', u'graessle'],
+    u"VIRRANKOSKI, Kyösti": [u'Virrankoski-Itälä', u'virrankoski-itälä'],
+    u"SARYUSZ-WOLSKI, Jacek": [u'Saryus-Wolski', u'saryus-wolski'],
+    u"PITTELLA, Gianni": [u'Pitella', u'pitella'],
+    u"EHLER, Christian": [u'Ehlert', u'ehlert'],
+    u"COELHO, Carlos": [u'Coehlo', u'coehlo'],
+    u"Ó NEACHTAIN, Seán": [u"O'Neachtain", u"o'neachtain"],
+    u"GALEOTE, Gerardo": [u'Galeote Quecedo', u'galeote quecedo',u'GaleoteQuecedo', u'galeotequecedo'],
+    u'MARTIN, Hans-Peter': [u'Martin H.P.',u'martin h.p.'],
+    u'MARTIN, David': [u'D. Martin', u'd. martin', u'D.Martin', u'd.martin'],
+    u'DÍAZ DE MERA GARCÍA CONSUEGRA, Agustín': [u'Díaz de Mera', u'díaz de mera'],
+    u'MEYER, Willy': [u'Meyer Pleite', u'meyer pleite', u'MeyerPleite', u'meyerpleite'],
+    u'ROBSAHM, Maria': [u'Carlshamre', u'carlshamre'],
     }
 
 Titles=['Sir',
