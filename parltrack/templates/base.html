@@ -1,0 +1,36 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta http-equiv="content-language" content="en" />
+    <meta name="description" content="" />
+    <meta name="keywords" content="" />
+    <title>[!] ParlTrack {% block title %}{% endblock %}</title>
+    {% block scripts %}
+    {% endblock %}
+    {% block styles %}
+    {% endblock %}
+</head>
+<body>
+   <div id="header">
+        <h1>ParlTrack</h1>
+      {% block header %}
+      {% endblock %}
+  </div>
+  <div id="left">
+      {% block left %}
+      {% endblock %}
+  </div>
+  <div id="content">
+      {% block content %}
+      {% endblock %}
+  </div>
+  <div id="right">
+      {% block right %}
+      {% endblock %}
+  </div>
+  <div id="footer">
+{% block footer %} {% endblock %}
+  </div>
+</body>
+</html>
