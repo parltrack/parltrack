@@ -162,11 +162,12 @@ def scrape(f):
         for decision in issue.xpath('ancestor::table')[0].xpath("following::table")[0:3]:
             tmp=[x.strip() for x in decision.xpath('.//text()') if x.strip()]
             total,k=tmp[0],''.join(tmp[1:])
-            if u'Υπέρ' in [x.strip() for x in k.split('-')]:
+            vtype=''.join([x.strip() for x in k.split('-')])
+            if u'Υπέρ' in vtype or u'ΥΠΕΡ' in vtype:
                 k="+"
-            if u'Κατά' in [x.strip() for x in k.split('-')]:
+            if u'Κατά' in vtype or u'ΚΑΤΑ' in vtype:
                 k="-"
-            if u'Απoχές' in [x.strip() for x in k.split('-')]:
+            if u'Απoχές' in vtype or u'ΑΠOΧΕΣ' in vtype:
                 k="0"
             vote[k]={'total': total}
             for cur in decision.xpath('../following-sibling::*'):
@@ -184,21 +185,27 @@ def scrape(f):
                     vtmp=[]
                     for name in voters:
                         mep=None
-                        queries=[({'Name.familylc': name.lower(),
-                                   "Groups.groupid": group,
-                                   "Groups.start" : {'$lt': vote['ts']},
-                                   "Groups.end" : {'$gt': vote['ts']} },1),
-                                 ({'Name.aliases': ''.join(name.split()).lower(),
-                                   "Groups.groupid": group,
-                                   "Groups.start" : {'$lt': vote['ts']},
-                                   "Groups.end" : {'$gt': vote['ts']}},2),
-                                 ({'Name.familylc': re.compile(name,re.I),
-                                   "Groups.groupid": group,
-                                   "Groups.start" : {'$lt': vote['ts']},
-                                   "Groups.end" : {'$gt': vote['ts']}},2),
-                                 ({'Name.familylc': name.lower()},3),
-                                 ({'Name.aliases': re.compile(name,re.I)},4),
-                                 ]
+                        try:
+                            queries=[({'Name.familylc': name.lower(),
+                                       "Groups.groupid": group,
+                                       "Groups.start" : {'$lt': vote['ts']},
+                                       "Groups.end" : {'$gt': vote['ts']} },1),
+                                     ({'Name.aliases': ''.join(name.split()).lower(),
+                                       "Groups.groupid": group,
+                                       "Groups.start" : {'$lt': vote['ts']},
+                                       "Groups.end" : {'$gt': vote['ts']}},2),
+                                     ({'Name.familylc': name.lower()},3),
+                                     ({'Name.aliases': re.compile(name,re.I)},4),
+                                     ]
+                        except:
+                            if name==u'+-Montalto':
+                                queries.extend(
+                                    ({'Name.familylc': re.compile(re.escape('montalto'),re.I),
+                                      "Groups.groupid": group,
+                                      "Groups.start" : {'$lt': vote['ts']},
+                                      "Groups.end" : {'$gt': vote['ts']}},2),)
+                            else:
+                                raise
                         if u'ß' in name:
                             queries.extend([({'Name.familylc': name.replace(u'ß','ss').lower(),
                                    "Groups.groupid": group,
@@ -243,8 +250,25 @@ def scrape(f):
             db.ep_votes.update(q, {"$set": vote}, upsert=True)
             res.append(vote)
             continue
+        skip=False
         for row in cor.xpath('tr')[1:]:
-            k,voters=[x.xpath('string()').strip() for x in row.xpath('td') if x.xpath('string()').find(u"ПОПРАВКИ В ПОДАДЕНИТЕ ГЛАСОВЕ И НАМЕРЕНИЯ ЗА ГЛАСУВАНЕ")==-1]
+            if skip:
+                skip=False
+                continue
+            try:
+                k,voters=[x.xpath('string()').strip() for x in row.xpath('td') if x.xpath('string()').find(u"ПОПРАВКИ В ПОДАДЕНИТЕ ГЛАСОВЕ И НАМЕРЕНИЯ ЗА ГЛАСУВАНЕ")==-1]
+            except ValueError:
+                # votes between 2006 and 2007 have another correction table format with separate tr-s
+                vtype=''.join([x.xpath('string()').strip() for x in row.xpath('td') if x.xpath('string()').find(u"ПОПРАВКИ В ПОДАДЕНИТЕ ГЛАСОВЕ И НАМЕРЕНИЯ ЗА ГЛАСУВАНЕ")==-1])
+                if u'Υπέρ' in vtype or u'ΥΠΕΡ' in vtype:
+                    k="+"
+                if u'Κατά' in vtype or u'ΚΑΤΑ' in vtype:
+                    k="-"
+                if u'Απoχές' in vtype or u'ΑΠOΧΕΣ' in vtype:
+                    k="0"
+                voters=row.xpath('following-sibling::tr')[0].xpath('string()').strip()
+                skip=True
+
             if k not in ['0','+','-']: continue
             voters=[x.strip() for x in voters.split(',') if x.strip()]
             if not voters:
