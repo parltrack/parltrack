@@ -91,8 +91,8 @@ def parseMember(userid):
         return {'active': False}
     group=unws(''.join(root.xpath("//td[@style='width: 94%;']/span[@class='titlemep']/text()")))
     data['Groups'] = [{ 'role':  unws(''.join(root.xpath("//td[@style='width: 94%;']/span[@class='titlemep2']/text()"))),
-                      'group': group,
-                      'groupid': group_map[group]}]
+                        'group': group,
+                        'groupid': group_map[group]}]
     data['Photo'] = '' if not len(root.xpath("//img[@class='photoframe']")) else BASE_URL + root.xpath("//img[@class='photoframe']")[0].attrib['src']
     tmp = map(unws, root.xpath("//td[@class='mep_CVtext']/text()"))
     (d,p)=tmp[-1].split(',',1)
@@ -107,7 +107,15 @@ def parseMember(userid):
                           }
     for c in root.xpath("//td[@class='mepcountry']"):
         key=unws(c.text)
-        if key in ['Member', 'Substitute', 'Chair', 'Vice-Chair', 'Co-President', 'President', 'Vice-President', 'Parliamentary activities']:
+        if (key in ['Member',
+                    'Substitute',
+                     'Chair',
+                     'Vice-Chair',
+                     'Co-President',
+                     'President',
+                     'Vice-President',
+                     'Parliamentary activities'] or
+            key.startswith('Parliamentary activities in plenary')):
             continue # all urls can be recreated from the UserID
         if key not in ['Curriculum vitae']:
             print >>sys.stderr, '[!] unknown field', key
@@ -173,7 +181,7 @@ def mangleName(name):
 
 def parseRoles(c, data):
     key=unws(c.text)
-    if key=='Parliamentary activities':
+    if key.startswith('Parliamentary activities'):
         return data # all urls can be recreated from the UserID
     for cc in c.xpath("../../tr[@class='mep_CVtext']/td[2]"):
         name=' '.join(cc.xpath('string()').split())
@@ -212,7 +220,8 @@ def scrape(userid, name):
     data.update(parseMember(userid))
 
     # process also historical data
-    root=fetch("http://www.europarl.europa.eu/members/public/inOut/viewOutgoing.do?language=EN&id=%s" % data['UserID'])
+    #root=fetch("http://www.europarl.europa.eu/members/public/inOut/viewOutgoing.do?language=EN&id=%s" % data['UserID'])
+    root=fetch("http://www.europarl.europa.eu/members/archive/alphaOrder/view.do?language=EN&id=%s" % data['UserID'])
     # process info of Constituencies
     for line in root.xpath("//table[@class='titlemep']/tr"):
         tmp=[' '.join(x.split()).strip() for x in line.xpath('td/text()') if ' '.join(x.split()).strip()]
@@ -255,8 +264,8 @@ group_map={ "Confederal Group of the European United Left - Nordic Green Left": 
             'Group indépendence/Démocratie': ['ID','INDDEM', 'IND/DEM'],
             'Independence/Democracy Group': ['ID', 'INDDEM', 'IND/DEM'],
             'Identity, Tradition and Sovereignty Group': 'ITS',
-            'Non-attached Members': ['NA','NI'],
-            'Non-attached': ['NA','NI'],
+            'Non-attached Members': ['NA','NI', 'IND/DEM'],
+            'Non-attached': ['NA','NI', 'IND/DEM'],
             "Group of the European People's Party (Christian Democrats) and European Democrats": 'PPE-DE',
             "Group of the European People's Party (Christian Democrats)": 'PPE',
             "Group of the European People's Party (Christian-Democratic Group)": "PPE",
@@ -318,7 +327,7 @@ GROUPS=[
    'Group of the Greens/European Free Alliance',
    'Group of the Party of European Socialists',
    'Group of the Progressive Alliance of Socialists and Democrats in the European Parliament',
-   'European Democratic Union Group'
+   'European Democratic Union Group',
    'Group of European Progressive Democrats',
    "Group of the European People's Party (Christian Democrats) and European Democrats",
    "Group of the European People's Party (Christian Democrats)",
@@ -381,6 +390,11 @@ meps_aliases={
     u'JØRGENSEN, Dan': [u'Dan Jшrgensen', u'danjшrgensen', u'dan jшrgensen'],
     u'HÄFNER, Gerald': [u'Haefner', u'haefner', u'Gerald Haefner', u'geraldhaefner'],
     u'EVANS, Robert': [u'Evans Robert J.E.', u'evansrobertj.e.'],
+    u'LAMBSDORFF, Alexander Graf': [u'Lambsdorff Graf', u'lambsdorffgraf'],
+    u'STARKEVIČIŪTĖ, Margarita': [u'Starkeviciūtė', u'starkeviciute'],
+    u'KUŠĶIS, Aldis': [u'Kuškis', u'kuskis'],
+    u'ŠŤASTNÝ, Peter': [u'Štastný', u'stastny'],
+    u'FLAŠÍKOVÁ BEŇOVÁ, Monika': [u'Beňová', u'benova'],
     }
 
 Titles=['Sir',
