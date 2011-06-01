@@ -3,6 +3,7 @@ from pymongo import Connection
 from flaskext.mail import Mail
 from flask import Flask, render_template
 from parltrack import default_settings
+from datetime import datetime
 
 
 app = Flask(__name__)
@@ -22,6 +23,9 @@ def get_data_dir():
         os.makedirs(data_dir)
     return data_dir
 
+@app.context_processor
+def inject_date():
+    return dict(now_date=datetime.now())
 
 @app.route('/')
 def index():
