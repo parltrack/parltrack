@@ -20,7 +20,7 @@
 import sys, json
 from datetime import datetime
 try:
-    from parltrack.environment import connect_db
+    from parltrack.webapp import connect_db
     db = connect_db()
 except:
     import pymongo

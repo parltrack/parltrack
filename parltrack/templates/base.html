@@ -6,31 +6,35 @@
     <meta name="description" content="" />
     <meta name="keywords" content="" />
     <title>[!] ParlTrack {% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/style.css" type="text/css" />
     {% block scripts %}
     {% endblock %}
     {% block styles %}
     {% endblock %}
 </head>
 <body>
+ <div id="wrapper">
+   <div id="menu">
+    <ul class="dropdown dropdown-horizontal">
+     <li><a href="/">Home</a></li>
+     <li><a href="/ranking/mep/16/09/2004">Rankings</a></li>
+     <li><a href="/stats">Statistics</a></li>
+    </ul>
+   {% block menu %}
+   {% endblock %}
+   </div>
    <div id="header">
         <h1>ParlTrack</h1>
       {% block header %}
-      {% endblock %}
-  </div>
-  <div id="left">
-      {% block left %}
       {% endblock %}
   </div>
   <div id="content">
       {% block content %}
       {% endblock %}
   </div>
-  <div id="right">
-      {% block right %}
-      {% endblock %}
-  </div>
   <div id="footer">
 {% block footer %} {% endblock %}
   </div>
+ </div>
 </body>
 </html>

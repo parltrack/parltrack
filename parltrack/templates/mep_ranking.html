@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>MEP Ranking - {{ d }}</h2>
+{% for ranking in rankings %}
+<p>{{ ranking.0 }} {{ ranking.2.Name.full }}</p>
+{% endfor %}
+{% endblock %}
+
