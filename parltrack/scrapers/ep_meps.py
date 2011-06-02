@@ -37,7 +37,13 @@ def fetch(url):
     try:
         f=urllib2.urlopen(url)
     except urllib2.HTTPError:
-        return ''
+        try:
+            f=urllib2.urlopen(url)
+        except urllib2.HTTPError:
+            try:
+                f=urllib2.urlopen(url)
+            except urllib2.HTTPError:
+                return ''
     return parse(f)
 
 def dateJSONhandler(obj):
@@ -386,15 +392,15 @@ meps_aliases={
     u'WOJCIECHOWSKI, Bernard': [u'Wojciechowski Bernard Piotr', u'wojciechowskibernardpiotr'],
     u'GARCÍA-MARGALLO Y MARFIL, José Manuel': [u'García-MarGállo y Marfil', u'garcía-margálloymarfil'],
     u'ROGALSKI, Bogusław': [u'RoGálski', u'rogalski'],
-    u'ROMEVA i RUEDA, Raül': [u'Romeva Rueda', u'romevarueda', u'Raьl Romeva i Rueda', u'ralromevairueda'],
+    u'ROMEVA i RUEDA, Raül': [u'Romeva Rueda', u'romevarueda', u'Raьl Romeva i Rueda', u'raьlromevairueda'],
     u'JØRGENSEN, Dan': [u'Dan Jшrgensen', u'danjшrgensen', u'dan jшrgensen'],
     u'HÄFNER, Gerald': [u'Haefner', u'haefner', u'Gerald Haefner', u'geraldhaefner'],
     u'EVANS, Robert': [u'Evans Robert J.E.', u'evansrobertj.e.'],
     u'LAMBSDORFF, Alexander Graf': [u'Lambsdorff Graf', u'lambsdorffgraf'],
-    u'STARKEVIČIŪTĖ, Margarita': [u'Starkeviciūtė', u'starkeviciute'],
-    u'KUŠĶIS, Aldis': [u'Kuškis', u'kuskis'],
-    u'ŠŤASTNÝ, Peter': [u'Štastný', u'stastny'],
-    u'FLAŠÍKOVÁ BEŇOVÁ, Monika': [u'Beňová', u'benova'],
+    u'STARKEVIČIŪTĖ, Margarita': [u'Starkeviciūtė', u'starkeviciūtė'],
+    u'KUŠĶIS, Aldis': [u'Kuškis', u'kuškis'],
+    u'ŠŤASTNÝ, Peter': [u'Štastný', u'štastný'],
+    u'FLAŠÍKOVÁ BEŇOVÁ, Monika': [u'Beňová', u'beňová'],
     }
 
 Titles=['Sir',
