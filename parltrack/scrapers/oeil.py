@@ -231,11 +231,17 @@ def fetch(url):
     # url to etree
     try:
         f=urllib2.urlopen(url)
-    except urllib2.URLError:
+    except urllib2.URLError, e:
+        if e.code>=400:
+            print >>sys.stderr, "[!] %d %s" % (e.code, url)
+            raise
         try:
             # 1st retry
             f=urllib2.urlopen(url)
         except urllib2.URLError:
+            if e.code>=400:
+                print >>sys.stderr, "[!] %d %s" % (e.code, url)
+                raise
             try:
                 # 2nd retry
                 f=urllib2.urlopen(url)
@@ -339,7 +345,12 @@ def forecasts(table):
         if key: fc['title']=key
         url=urlFromJS(items[1])
         if url:
-            tree=fetch(url)
+            try:
+                tree=fetch(url)
+            except urllib2.URLError, e:
+                if e.code>=400:
+                    print >>sys.stderr, "[!] %d %s" % (e.code, url)
+                    continue
             text=[tostring(x) for x in tree.xpath('//table[@class="box_content_txt"]//td/*')]
             fc['doc']={'text':text, 'url':url }
         date=toDate(items[0])
@@ -365,7 +376,12 @@ def prevagents(table):
     prevlink=table.xpath('//a[text() = "Previous"]')
     if not prevlink:
         return []
-    t=fetch(urljoin(base,(prevlink[0].get('href').split("'",2)[1]))).xpath("//table[@class='box_content_txt']")[0]
+    try:
+        t=fetch(urljoin(base,(prevlink[0].get('href').split("'",2)[1]))).xpath("//table[@class='box_content_txt']")[0]
+    except urllib2.URLError, e:
+        if e.code>=400:
+            print >>sys.stderr, "[!] %d %s" % (e.code, url)
+            return []
     res=[]
     for row in t.xpath('tr')[1:]:
         items=row.xpath('td')
@@ -387,7 +403,12 @@ def prevcls(table):
     prevlink=table.xpath('//a[text() = "Previous Councils"]')
     if not prevlink:
         return []
-    t=fetch(urljoin(base,(prevlink[0].get('href').split("'",2)[1]))).xpath("//table[@class='box_content_txt']")[0]
+    try:
+        t=fetch(urljoin(base,(prevlink[0].get('href').split("'",2)[1]))).xpath("//table[@class='box_content_txt']")[0]
+    except urllib2.URLError, e:
+        if e.code>=400:
+            print >>sys.stderr, "[!] %d %s" % (e.code, url)
+            return []
     res=[]
     for row in t.xpath('tr'):
         fields=row.xpath('td')
@@ -496,7 +517,12 @@ def summaries(table):
     tmp=toObj(table,summaryFields,0)
     for item in tmp:
         if 'url' in item:
-            tree=fetch(item['url'])
+            try:
+                tree=fetch(item['url'])
+            except urllib2.URLError, e:
+                if e.code>=400:
+                    print >>sys.stderr, "[!] %d %s" % (e.code, url)
+                    continue
             text=[tostring(x) for x in tree.xpath('//table[@class="box_content_txt"]//td/*')]
             item['text']=text
     return tmp
@@ -523,11 +549,22 @@ summaryFields=( ('URL', urlFromJS),
               )
 
 def scrape(url):
-    tree=fetch(url)
+    try:
+        tree=fetch(url)
+    except urllib2.URLError, e:
+        if e.code>=400:
+            print >>sys.stderr, "[!] %d %s" % (e.code, url)
+            return
+
     sections=tree.xpath('//h2')
     if not len(sections):
         # retry once
-        tree=fetch(url)
+        try:
+            tree=fetch(url)
+        except urllib2.URLError, e:
+            if e.code>=400:
+                print >>sys.stderr, "[!] %d %s" % (e.code, url)
+                return []
         sections=tree.xpath('//h2')
     if not len(sections):
         # even retry failed :(
@@ -571,7 +608,12 @@ def scrape(url):
     save(res)
 
 def getStages():
-    tree=fetch('http://www.europarl.europa.eu/oeil/search_procstage_stage.jsp')
+    try:
+        tree=fetch('http://www.europarl.europa.eu/oeil/search_procstage_stage.jsp')
+    except urllib2.URLError, e:
+        if e.code>=400:
+            print >>sys.stderr, "[!] %d %s" % (e.code, url)
+            return []
     select=tree.xpath('//select[@name="stageId"]')[0]
     return [(opt.get('value'), toText(opt))
             for opt
