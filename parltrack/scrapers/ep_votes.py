@@ -194,6 +194,10 @@ def scrape(f):
                                        "Groups.groupid": group,
                                        "Groups.start" : {'$lt': vote['ts']},
                                        "Groups.end" : {'$gt': vote['ts']}},2),
+                                     ({'Name.familylc': re.compile(name,re.I),
+                                       "Groups.groupid": group,
+                                       "Groups.start" : {'$lt': vote['ts']},
+                                       "Groups.end" : {'$gt': vote['ts']}},2),
                                      ({'Name.familylc': name.lower()},3),
                                      ({'Name.aliases': re.compile(name,re.I)},4),
                                      ]
@@ -266,7 +270,10 @@ def scrape(f):
                     k="-"
                 if u'Απoχές' in vtype or u'ΑΠOΧΕΣ' in vtype:
                     k="0"
-                voters=row.xpath('following-sibling::tr')[0].xpath('string()').strip()
+                try:
+                    voters=row.xpath('following-sibling::tr')[0].xpath('string()').strip()
+                except IndexError:
+                    voters=""
                 skip=True
 
             if k not in ['0','+','-']: continue
