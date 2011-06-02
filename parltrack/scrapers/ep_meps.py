@@ -370,7 +370,7 @@ meps_aliases={
     u"VIRRANKOSKI, Kyösti": [u'Virrankoski-Itälä', u'virrankoski-itälä'],
     u"SARYUSZ-WOLSKI, Jacek": [u'Saryus-Wolski', u'saryus-wolski'],
     u"PITTELLA, Gianni": [u'Pitella', u'pitella'],
-    u"EHLER, Christian": [u'Ehlert', u'ehlert'],
+    u"EHLER, Christian": [u'Ehlert', u'ehlert', u'Jan Christian Ehler', u'janchristianehler'],
     u"COELHO, Carlos": [u'Coehlo', u'coehlo'],
     u"Ó NEACHTAIN, Seán": [u"O'Neachtain", u"o'neachtain"],
     u"GALEOTE, Gerardo": [u'Galeote Quecedo', u'galeote quecedo',u'GaleoteQuecedo', u'galeotequecedo'],
@@ -401,6 +401,8 @@ meps_aliases={
     u'KUŠĶIS, Aldis': [u'Kuškis', u'kuškis'],
     u'ŠŤASTNÝ, Peter': [u'Štastný', u'štastný'],
     u'FLAŠÍKOVÁ BEŇOVÁ, Monika': [u'Beňová', u'beňová'],
+    u'ŢÎRLE, Radu': [u'Tîrle', u'tîrle'],
+    u'HYUSMENOVA, Filiz Hakaeva': [u'Husmenova', u'husmenova'],
     }
 
 Titles=['Sir',
