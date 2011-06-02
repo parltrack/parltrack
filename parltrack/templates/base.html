@@ -6,9 +6,21 @@
     <meta name="description" content="" />
     <meta name="keywords" content="" />
     <title>[!] ParlTrack {% block title %}{% endblock %}</title>
-    <link rel="stylesheet" href="/static/css/style.css" type="text/css" />
+    <script type="text/javascript" src="/static/js/jquery.js"> </script>
+    <script type="text/javascript">
+     $(document).ready(function() {
+       $('#ranking_date').click(function() {
+        if($(this).attr('value') == 'DD/MM/YYYY') $(this).attr('value', '');
+       });
+       $('#ranking_form').submit(function() {
+        window.location = '/ranking/mep/'+$('#ranking_date').attr('value');
+        return false;
+       });
+     });
+    </script>
     {% block scripts %}
     {% endblock %}
+    <link rel="stylesheet" href="/static/css/style.css" type="text/css" />
     {% block styles %}
     {% endblock %}
 </head>
@@ -17,7 +29,14 @@
    <div id="menu">
     <ul class="dropdown dropdown-horizontal">
      <li><a href="/">Home</a></li>
-     <li><a href="/ranking/mep/16/09/2004">Rankings</a></li>
+     <li><a href="/ranking/mep/{{ now_date.strftime('%d/%m/%Y') }}">Rankings</a>
+      <div>
+       <p>Click for today's ranking</p>
+       <form method="get" action="/ranking/mep/" id="ranking_form">
+        <p>Custom date:<input type="text" value="DD/MM/YYYY" name="ranking_date" id="ranking_date"/></p>
+       </form>
+      </div>
+     </li>
      <li><a href="/stats">Statistics</a></li>
     </ul>
    {% block menu %}

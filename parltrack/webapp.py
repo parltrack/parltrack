@@ -1,8 +1,29 @@
+#!/usr/bin/env python
+
+# -*- coding: utf-8 -*-
+#    This file is part of parltrack.
+
+#    parltrack is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Affero General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+
+#    parltrack is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Affero General Public License for more details.
+
+#    You should have received a copy of the GNU Affero General Public License
+#    along with parltrack.  If not, see <http://www.gnu.org/licenses/>.
+
+# (C) 2011 by Adam Tauber, <asciimoo@gmail.com>
+
 import os
 from pymongo import Connection
 from flaskext.mail import Mail
 from flask import Flask, render_template
 from parltrack import default_settings
+from datetime import datetime
 
 
 app = Flask(__name__)
@@ -22,6 +43,9 @@ def get_data_dir():
         os.makedirs(data_dir)
     return data_dir
 
+@app.context_processor
+def inject_date():
+    return dict(now_date=datetime.now())
 
 @app.route('/')
 def index():
