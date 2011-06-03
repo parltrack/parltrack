@@ -35,3 +35,4 @@ dt { display: inline-block; width: 80px; }
 #search_input { width: 200px; }
 
 .votes thead td { width: 5em; }
+.has_summary, .more { cursor: pointer; }
