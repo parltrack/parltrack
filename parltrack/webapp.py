@@ -68,5 +68,9 @@ def view_mep(d_id):
     from parltrack.views.views import mep
     return render_template('mep.html', mep=mep(d_id), d=d_id, today=datetime.now())
 
+@app.template_filter()
+def asdate(value):
+    return value.strftime('%Y/%m/%d')
+
 if __name__ == '__main__':
     app.run(debug=True)
