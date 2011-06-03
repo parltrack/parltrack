@@ -16,6 +16,7 @@
     </script>
 {% endblock %}
 {% block content %}
+<img src="http://www.europarl.europa.eu/mepphoto/{{mep.UserID}}.jpg" class="mepshot">
 <h2>{{ mep.Name.full }}</h2>
 <ul>
 {%for c in mep.Constituencies|sort(attribute='start',reverse=True) %}
@@ -23,20 +24,23 @@
     <li>
     {{c.country}}
     {{c.party}}
-    {{c.start}}
+    {{c.start|asdate}} - ...
     </li>
   {% endif %}
 {% endfor %}
 </ul>
-<div class="more" >Show earlier Constituencies...</div>
-<ul class="hidden">
+{% if mep.active %}
+  <div class="more" >Show earlier Constituencies...</div>
+  <ul class="hidden">
+{%else%}
+  <ul>
+{%endif%}
 {%for c in mep.Constituencies|sort(attribute='start',reverse=True) %}
   {% if c.end<today%}
     <li>
     {{c.country}}
     {{c.party}}
-    {{c.start}}
-    {{c.end}}
+    {{c.start|asdate}} - {{c.end|asdate}}
     </li>
   {% endif %}
 {% endfor %}
@@ -44,18 +48,22 @@
 <h3>Groups</h3>
 <ul>
 {%for c in mep.Groups|sort(attribute='start',reverse=True) %}
-   <li>
   {% if c.end>today%}
-  {{c.groupid}}
-  {{c.role}}
-  {%if c.group%}{{c.group}}{%else%}{{c.Organization}}{%endif%}
-  {{c.start}}
+    <li>
+    {{c.groupid}}
+    {{c.role}}
+    {%if c.group%}{{c.group}}{%else%}{{c.Organization}}{%endif%}
+    {{c.start|asdate}} - ...
+    </li>
   {% endif %}
-  </li>
 {% endfor %}
 </ul>
+{% if mep.active %}
 <div class="more">Show earlier groups...</div>
 <ul class="hidden">
+{%else%}
+  <ul>
+{%endif%}
 {%for c in mep.Groups|sort(attribute='start',reverse=True) %}
   {% if c.end<=today%}
    <li>
@@ -63,8 +71,7 @@
     {{c.groupid}}
     {{c.role}}
     {%if c.group%}{{c.group}}{%else%}{{c.Organization}}{%endif%}
-    {{c.start}}
-    {{c.end}}
+    {{c.start|asdate}} - {{c.end|asdate}}
   </li>
   {% endif %}
 {% endfor %}
@@ -76,23 +83,73 @@
    <li>
     {{c.role}} of
     {{c.Organization}}
-    {{c.start}}
+    {{c.start|asdate}} - ...
   </li>
   {%endif%}
 {% endfor %}
 </ul>
+{% if mep.active %}
 <div class="more">Show earlier commitees...</div>
 <ul class="hidden">
+{%else%}
+  <ul>
+{%endif%}
 {%for c in mep.Committees|sort(attribute='start',reverse=True) %}
   {% if c.end<=today%}
     <li>
     {{c.role}} of
     {{c.Organization}}
-    {{c.start}}
-    {{c.end}}
+    {{c.start|asdate}} - {{c.end|asdate}}
   </li>
   {% endif %}
 {% endfor %}
 </ul>
+{% if 'Addresses' in mep %}
+<h3>Contact</h3>
+{% if mep.Homepage or mep.Mail%}
+<h4>Online</h4>
+<ul>
+{% if mep.Homepage%}
+  <li><dl><dt>Homepage</dt><dd><a href="{{mep.Homepage}}">{{mep.Homepage}}</a></dd></dl></li>
+{%endif%}
+{% if mep.Mail%}
+  <li><dl><dt>Mail</dt><dd>{{mep.Mail}}</dd></dl></li>
+{%endif%}
+</ul>
+{%endif%}
+<h4>Brussels</h4>
+<ul>
+   <li><dl><dt>Phone</dt><dd>{{mep.Addresses.Brussels.Phone}}</dd></dl></li>
+   <li><dl><dt>Fax</dt><dd>{{mep.Addresses.Brussels.Fax}}</dd></dl></li>
+   <li><dl><dt>Office</dt><dd>{{mep.Addresses.Brussels.Address.Building}} {{mep.Addresses.Brussels.Address.Office}}</dd></dl></li>
+   <li><dl><dt class='more'>Address</dt><dd class='hidden'>
+      <ul>
+        <li><dl><dt>City</dt><dd>{{mep.Addresses.Brussels.Address.City}}</dd></dl></li>
+        <li><dl><dt>Zip</dt><dd>{{mep.Addresses.Brussels.Address.Zip}}</dd></dl></li>
+        <li><dl><dt>Street</dt><dd>{{mep.Addresses.Brussels.Address.Street}}</dd></dl></li>
+      </ul>
+   </dd></dl></li>
+</ul>
+<h4>Strasbourg</h4>
+<ul>
+   <li><dl><dt>Phone</dt><dd>{{mep.Addresses.Strasbourg.Phone}}</dd></dl></li>
+   <li><dl><dt>Fax</dt><dd>{{mep.Addresses.Strasbourg.Fax}}</dd></dl></li>
+   <li><dl><dt>Office</dt><dd>{{mep.Addresses.Strasbourg.Address.Building}} {{mep.Addresses.Strasbourg.Address.Office}}</dd></dl></li>
+   <li><dl><dt class='more'>Address</dt><dd class='hidden'>
+   <ul>
+      <li><dl><dt>City</dt><dd>{{mep.Addresses.Strasbourg.Address.City}}</dd></dl></li>
+      <li><dl><dt>Zip</dt><dd>{{mep.Addresses.Strasbourg.Address.Zip1}} - {{mep.Addresses.Strasbourg.Address.Zip2}}</dd></dl></li>
+      <li><dl><dt>Street</dt><dd>{{mep.Addresses.Strasbourg.Address.Street}}</dd></dl></li>
+   </ul>
+</ul>
+<h4>Postal</h4>
+<ul>
+  {%for a in mep.Addresses.Postal%}
+  <li>{{a}}</li>
+  {%endfor%}
+  </ul>
+</ul>
+{%endif%}
+
 {{mep}}
 {% endblock %}
