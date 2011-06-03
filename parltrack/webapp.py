@@ -21,9 +21,11 @@
 import os
 from pymongo import Connection
 from flaskext.mail import Mail
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from parltrack import default_settings
 from datetime import datetime
+import json
+import re
 
 
 app = Flask(__name__)
@@ -51,6 +53,25 @@ def inject_date():
 def index():
     db = connect_db()
     return render_template('index.html', dossiers_num=db.dossiers.find().count(), votes_num=db.ep_votes.find().count(), meps_num=db.ep_meps.find().count())
+
+@app.route('/search')
+def search():
+    db = connect_db()
+    if not request.args.get('q'):
+        return ''
+    q = request.args.get('q')
+    ret = []
+    if request.args.get('s_meps'):
+        for res in db.ep_meps.find({'Name.full': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}):
+            ret.append('mep: '+res['Name']['full'])
+    if request.args.get('s_dossiers'):
+        for res in db.dossiers.find({'procedure.reference': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}):
+            ret.append('dossier: '+res['procedure']['reference'])
+    '''
+    if request.headers.get('X-Requested-With'):
+        return json.dumps(ret)
+    '''
+    return render_template('search_results.html', query=q, results=ret)
 
 @app.route('/meps/<path:date>')
 def ranking(date):

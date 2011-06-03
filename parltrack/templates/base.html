@@ -7,8 +7,30 @@
     <meta name="keywords" content="" />
     <title>[!] ParlTrack {% block title %}{% endblock %}</title>
     <script type="text/javascript" src="/static/js/jquery.js"> </script>
+    <!-- <script type="text/javascript" src="/static/js/jquery-ui.js"> </script> -->
     <script type="text/javascript">
      $(document).ready(function() {
+       $('#search_input').click(function() {
+        if($(this).attr('value') == '//search') $(this).attr('value', '');
+       });
+       /*
+       $('#search_input').autocomplete({
+        source: function(req, add){
+        $.get("search?"+$('#search > form').serialize(), [], function(data) {
+         var suggestions = [];
+          $.each(eval('('+data+')'), function(i, val){
+           suggestions.push(val);
+          });
+          add(suggestions);
+         });
+        } ,
+        select: function(e, ui) {
+            if(ui.item.value.substring(0, 3) == 'mep') {
+             window.location = '/mep/'+escape(ui.item.value.substring(5))
+            }
+          }
+       });
+       */
        $('#ranking_date').click(function() {
         if($(this).attr('value') == 'DD/MM/YYYY') $(this).attr('value', '');
        });
@@ -21,6 +43,7 @@
     {% block scripts %}
     {% endblock %}
     <link rel="stylesheet" href="/static/css/style.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="/static/css/jquery-ui.css">
     {% block styles %}
     {% endblock %}
 </head>
@@ -36,6 +59,9 @@
         <p>Custom date:<input type="text" value="DD/MM/YYYY" name="ranking_date" id="ranking_date"/></p>
        </form>
       </div>
+     </li>
+     <li><a href="/search">Search</a>
+     <div id="search"><form action="/search" method="GET">MEPs:<input type="checkbox" checked="checked" name="s_meps"/> Dossiers:<input type="checkbox" checked="checked" name="s_dossiers"/><br /><input type="text" value="//search" id="search_input" name="q"/></form></div>
      </li>
      <li><a href="/stats">Statistics</a></li>
     </ul>
