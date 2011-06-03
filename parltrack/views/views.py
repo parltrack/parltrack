@@ -127,7 +127,12 @@ def dossier(id):
             del vote[dec]
             groups.extend([x for x in vote[new].keys() if x!='total'])
         vote['groups']=sorted(set(groups))
+        for dec in ['For','Against','Abstain']:
+            for g in groups:
+                if g not in vote[dec]:
+                    vote[dec][g]=[]
     dossier['votes']=votes
+    dossier['comeets']=list(db.ep_com_meets.find({'comref': dossier['_id']}))
     return dossier
 
 def getMep(text):

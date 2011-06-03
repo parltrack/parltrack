@@ -126,7 +126,7 @@
        <tr>
          <td>For</td>
          <td>{{vote.For.total}}</td>
-         {% for k,v in vote.For.items() %}
+         {% for k,v in vote.For.items()|sort %}
             {% if k not in ['correctional', 'total']%}
             <td>{{v|length}}</td>
             {%endif%}
@@ -138,7 +138,7 @@
        <tr>
          <td>Against</td>
          <td>{{vote.Against.total}}</td>
-         {% for k,v in vote.Against.items() %}
+         {% for k,v in vote.Against.items()|sort %}
             {% if k not in ['correctional', 'total']%}
             <td>{{v|length}}</td>
             {%endif%}
@@ -150,7 +150,7 @@
        <tr>
          <td>Abstain</td>
          <td>{{vote.Abstain.total}}</td>
-         {% for k,v in vote.Abstain.items() %}
+         {% for k,v in vote.Abstain.items()|sort %}
             {% if k not in ['correctional', 'total']%}
             <td>{{v|length}}</td>
             {%endif%}
