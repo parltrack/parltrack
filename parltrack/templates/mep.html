@@ -150,6 +150,34 @@
   </ul>
 </ul>
 {%endif%}
+<h3>Delegations</h3>
+<ul>
+{%for c in mep.Delegations|sort(attribute='start',reverse=True) %}
+   {% if c.end>today%}
+   <li>
+    {{c.role}} of
+    {{c.Organization}}
+    {{c.start|asdate}} - ...
+  </li>
+  {%endif%}
+{% endfor %}
+</ul>
+{% if mep.active %}
+<div class="more">Show earlier delegations...</div>
+<ul class="hidden">
+{%else%}
+  <ul>
+{%endif%}
+{%for c in mep.Delegations|sort(attribute='start',reverse=True) %}
+  {% if c.end<=today%}
+    <li>
+    {{c.role}} of
+    {{c.Organization}}
+    {{c.start|asdate}} - {{c.end|asdate}}
+  </li>
+  {% endif %}
+{% endfor %}
+</ul>
 
 {{mep}}
 {% endblock %}
