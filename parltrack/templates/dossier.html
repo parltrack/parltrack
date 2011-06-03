@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block scripts %}
+<script type="text/javascript">
+     $(document).ready(function() {
+       $('#ranking_date').click(function() {
+        if($(this).attr('value') == 'DD/MM/YYYY') $(this).attr('value', '');
+       });
+       $('#ranking_form').submit(function() {
+        window.location = '/meps/'+$('#ranking_date').attr('value');
+        return false;
+       });
+       $('.has_summary').click(function() {
+        $(this).next().toggleClass('hidden');
+       });
+     });
+    </script>
+{% endblock %}
+{% block content %}
+<h2>{{ dossier.procedure.reference }}</h2>
+<p>{{dossier.procedure.title}}</p>
+<p><strong>{{dossier.procedure.stage_reached}}</strong></p>
+<ul>{%for sub in dossier.procedure.subjects%}<li>{{sub}}</li>{%endfor%}</ul>
+<ul>{%for agent in dossier.procedure.agents%}
+   <li>
+     {%if agent.responsible%}
+        <strong>{{agent.commitee}}</strong>
+        {%if dossier.procedure.dossier_of_the_committee %}<a href="/doc/{{dossier.procedure.dossier_of_the_committee}}">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
+     {%else%}
+        {{agent.commitee}}
+     {%endif%}
+     {%if agent.name%}{{agent.name}}{%endif%}
+     {%if agent.group%}{{agent.group}}{%endif%}
+   </li>
+  {%endfor%}
+</ul>
+<h3>Activites</h3>
+<ul>{%for act in dossier.activities%}
+   <li>
+     {%if act.date%}{{act.date}}{%endif%}
+     {%if act.title%}{{act.title}}{%endif%}
+     {%if act.type%}{{act.type}}{%endif%}
+     <ul>
+     {%for agent in act.actors%}
+        {%if agent.function == "MEP" %}
+           <li>
+             {%if agent.responsible%}
+                <strong>{{agent.commitee}}</strong>
+                {%if dossier.procedure.dossier_of_the_committee %}<a href="/doc/{{dossier.procedure.dossier_of_the_committee}}">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
+             {%else%}
+                {{agent.commitee}}
+             {%endif%}
+             {%if agent.name%}<a href="/mep/{{agent.name}}">{{agent.name}}</a>{%endif%}
+             {%if agent.group%}{{agent.group}}{%endif%}
+           </li>
+        {%endif%}
+        {%if agent.body == "CSL" %}
+           <li>
+           </li>
+        {%endif%}
+     {%endfor%}
+     </ul>
+     <div>
+     {%for doc in act.documents%}
+        {%if doc.url %}
+          {%if doc.summary%}
+             <a class="has_summary">{{doc.title}}</a>
+             <div class="hidden" id="{{doc.title}}-summary">
+               {%for line in doc.summary %}
+               {{line|safe}}
+               {%endfor%}
+             </div>
+          {%else%}
+             {{doc.title}}
+          {%endif%}
+        <a href="{{doc.url}}">[↓]</a>
+        {%endif%}
+     {%endfor%}
+     </div>
+   </li>
+  {%endfor%}
+</ul>
+<h3>Documents</h3>
+  <ul>
+  {%for doc in dossier.docs%}
+    {%if doc.url %}
+      <li>
+      {%if doc.summary%}
+         <a class="has_summary">{{doc.title}}</a>
+         {{doc.type}}
+         <div class="hidden" id="{{doc.title}}-summary">
+           {%for line in doc.summary %}
+           {{line|safe}}
+           {%endfor%}
+         </div>
+      {%else%}
+         {{doc.title}} {{doc.type}}
+      {%endif%}
+      <a href="{{doc.url}}">[↓]</a>
+      </li>
+    {%endif%}
+  {%endfor%}
+  </ul>
+
+{{dossier}}
+{% endblock %}

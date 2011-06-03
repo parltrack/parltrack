@@ -17,7 +17,7 @@
 
 # (C) 2011 by Stefan Marsiske, <stefan.marsiske@gmail.com>
 
-import sys, json
+import sys, json, unicodedata
 from datetime import datetime
 try:
     from parltrack.webapp import connect_db
@@ -64,6 +64,7 @@ com_positions={"Chair": 4,
 staff_positions={"President": 7,
                  "Chair": 6,
                  "Vice-President": 6,
+                 "Quaestor": 5,
                  "Member": 4,
                  }
 def mepRanking(date):
@@ -72,7 +73,6 @@ def mepRanking(date):
            "Constituencies.end" : {'$gt': date},
            }
     meps=db.ep_meps.find(query)
-    print meps.count()
     rankedMeps=[]
     for mep in meps:
         score=0
@@ -81,6 +81,8 @@ def mepRanking(date):
         for i, group in enumerate(mep['Groups']):
             if group['start']<date and group['end']>date:
                 score=group_positions[group['role']]
+                if type(group['groupid'])==list:
+                    group['groupid']=group['groupid'][0]
                 ranks.append((group_positions[group['role']],group['role'],group['groupid']))
                 break
             else:
@@ -110,21 +112,45 @@ def dossier(id):
     for query in dossier_idqueries:
         dossier=db.dossiers.find_one(query)
         if dossier:
-            print dossier_idqueries.index(query)
             break
     if not dossier:
         return 404
     del dossier['changes']
-    #print dossier
     # find related votes
-    vote=db.ep_votes.find({'report': dossier['_id']})
-    print vote.count(), list(vote)
+    votes=list(db.ep_votes.find({'dossierid': dossier['_id']}))
+    dossier['votes']=votes
+    return dossier
+
+def getMep(text):
+    name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(',','').strip())).encode('ascii','ignore').split()).lower()
+
+    if not name: return
+    # TODO add date constraints based on groups.start/end
+    mep=db.ep_meps.find_one({'Name.aliases': name})
+    if not mep and u'ß' in text:
+        name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(u'ß','ss').strip())).encode('ascii','ignore').split()).lower()
+        mep=db.ep_meps.find_one({'Name.aliases': name})
+    if not mep:
+        print >>sys.stderr, '[$] lookup oops:', text.encode('utf8')
+    else:
+        return mep
+
+def mep(id):
+    mep=getMep(id)
+    if not mep:
+        return 404
+    #print mep
+    # find related votes
+    #votes=list(db.ep_votes.find({'mepid': dossier['_id']}))
+    #ep['votes']=votes
+    return mep
 
 if __name__ == "__main__":
-    #dossier('COD/2007/0247')
+    dossier('COD/2007/0247')
     date='24/11/2010'
-    groups=['PPE','S&D','ALDE','Verts/ALE','GUE/NGL','NI','EFD','ECR']
-    groupstrengths=[mepsInGroups(x,date) for x in groups]
-    print groupstrengths, sum(groupstrengths)
-    data=mepRanking(date)
-    print json.dumps(data, default=dateJSONhandler, indent=1, ensure_ascii=False).encode('utf-8')
+    #date='02/06/2011'
+    #groups=['PPE','S&D','ALDE','Verts/ALE','GUE/NGL','NI','EFD','ECR']
+    #groupstrengths=[mepsInGroups(x,date) for x in groups]
+    #print groupstrengths, sum(groupstrengths)
+    #data=mepRanking(date)
+    #print json.dumps(data, default=dateJSONhandler, indent=1, ensure_ascii=False).encode('utf-8')

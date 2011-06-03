@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block scripts %}
+<script type="text/javascript">
+     $(document).ready(function() {
+       $('#ranking_date').click(function() {
+        if($(this).attr('value') == 'DD/MM/YYYY') $(this).attr('value', '');
+       });
+       $('#ranking_form').submit(function() {
+        window.location = '/meps/'+$('#ranking_date').attr('value');
+        return false;
+       });
+       $('.has_summary').click(function() {
+        $(this).next().toggleClass('hidden');
+       });
+     });
+    </script>
+{% endblock %}
+{% block content %}
+<h2>{{ mep.Name.full }}</h2>
+<ul>
+{%for c in mep.Constituencies|sort(attribute='start',reverse=True) %}
+   <li>
+  {% if c.end>today%}
+  {{c.country}}
+  {{c.party}}
+  {{c.start}}
+  {{c.end}}
+  {% else %}
+  {{c.country}}
+  <strike>
+  {{c.party}}
+  </strike>
+  {{c.start}}
+  {{c.end}}
+  {% endif %}
+  </li>
+{% endfor %}
+</ul>
+<h3>Groups</h3>
+<ul>
+{%for c in mep.Groups|sort(attribute='start',reverse=True) %}
+   <li>
+  {% if c.end>today%}
+  {{c.groupid}}
+  {{c.role}}
+  {%if c.group%}{{c.group}}{%else%}{{c.Organization}}{%endif%}
+  {{c.start}}
+  {{c.end}}
+  {% else %}
+  {{c.country}}
+  {{c.groupid}}
+  <strike>
+  {{c.role}}
+  </strike>
+  {%if c.group%}{{c.group}}{%else%}{{c.Organization}}{%endif%}
+  {{c.start}}
+  {{c.end}}
+  {% endif %}
+  </li>
+{% endfor %}
+</ul>
+<h3>Committees</h3>
+<ul>
+{%for c in mep.Committees|sort(attribute='start',reverse=True) %}
+   <li>
+  {% if c.end>today%}
+  {{c.role}} of
+  {{c.Organization}}
+  {{c.start}}
+  {{c.end}}
+  {% else %}
+  <strike>
+  {{c.role}} of
+  </strike>
+  {{c.Organization}}
+  {{c.start}}
+  {{c.end}}
+  {% endif %}
+  </li>
+{% endfor %}
+</ul>
+{{mep}}
+{% endblock %}

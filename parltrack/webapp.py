@@ -52,15 +52,21 @@ def index():
     db = connect_db()
     return render_template('index.html', dossiers_num=db.dossiers.find().count(), votes_num=db.ep_votes.find().count(), meps_num=db.ep_meps.find().count())
 
-@app.route('/ranking/mep/<path:date>')
+@app.route('/meps/<path:date>')
 def ranking(date):
     from parltrack.views.views import mepRanking
-    return render_template('mep_ranking.html', rankings=mepRanking(date), d=date)
+    rankings=mepRanking(date)
+    return render_template('mep_ranking.html', rankings=rankings, d=date)
 
 @app.route('/dossier/<path:d_id>')
 def view_dossier(d_id):
     from parltrack.views.views import dossier
-    return dossier(d_id)
+    return render_template('dossier.html', dossier=dossier(d_id), d=d_id)
+
+@app.route('/mep/<string:d_id>')
+def view_mep(d_id):
+    from parltrack.views.views import mep
+    return render_template('mep.html', mep=mep(d_id), d=d_id, today=datetime.now())
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
