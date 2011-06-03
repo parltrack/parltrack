@@ -177,13 +177,13 @@ def save(data):
     if d:
         now=datetime.datetime.utcnow().replace(microsecond=0).isoformat()
         if not res:
-            print ('adding %s - %s' % (data['procedure']['reference'],data['procedure']['title'])).encode('utf8')
+            print ('\tadding %s - %s' % (data['procedure']['reference'],data['procedure']['title'])).encode('utf8')
             data['meta']['created']=data['meta']['timestamp']
             del data['meta']['timestamp']
             sys.stdout.flush()
             stats[0]+=1
         else:
-            print ('updating  %s - %s' % (data['procedure']['reference'],data['procedure']['title'])).encode('utf8')
+            print ('\tupdating  %s - %s' % (data['procedure']['reference'],data['procedure']['title'])).encode('utf8')
             data['meta']['updated']=data['meta']['timestamp']
             del data['meta']['timestamp']
             sys.stdout.flush()
@@ -269,7 +269,7 @@ def toDate(node):
 
 def toText(node):
     if node is None: return ''
-    text=node.xpath("string()").replace(u"\u00A0",' ').strip()
+    text=''.join([x.strip() for x in node.xpath(".//text()") if x.strip()]).replace(u"\u00A0",' ').strip()
 
     links=node.xpath('a')
     if not links: return text
@@ -327,6 +327,7 @@ def identification(table):
         items=row.xpath('td')
         key=items[0].xpath("string()").replace(u"\u00A0",' ').strip()
         if key=='Subject(s)':
+            key='subjects'
             value=[x.replace(u'\u00a0',' ').strip() for x in items[1].xpath('text()')]
         else:
             value=items[1].xpath("string()").replace(u"\u00A0",' ').strip()
@@ -341,7 +342,7 @@ def forecasts(table):
     for row in table.xpath('tr'):
         items=row.xpath('td')
         fc={'type': 'Forecast', 'body': 'EP'}
-        key=items[2].xpath("string()").replace(u"\u00A0",' ').strip()
+        key=''.join([x.strip() for x in items[2].xpath(".//text()") if x.strip()]).replace(u"\u00A0",' ').strip()
         if key: fc['title']=key
         url=urlFromJS(items[1])
         if url:
