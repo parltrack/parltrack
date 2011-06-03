@@ -107,8 +107,13 @@ def notification_add_detail(g_id, item, value):
     #if group.restricted:
     #    return 'restricted group'
     if item == 'pending_emails':
-        # TODO validation and mail sending
+        # TODO validation, mail sending
+        addr = db.notifications.find_one({'pending_emails.address': value})
+        if addr:
+            # or just return with OK?! -> more privacy but harder debug
+            return 'Already subscribed'
         i = {'address': value, 'token': sha1(''.join([chr(randint(32, 122)) for x in range(12)])).hexdigest(), 'date': datetime.now()}
+
     else:
         i = db.dossiers.find_one({'procedure.reference': value})
         if not i:
