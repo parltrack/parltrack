@@ -62,15 +62,19 @@ def search():
     q = request.args.get('q')
     ret = []
     if request.args.get('s_meps'):
-        for res in db.ep_meps.find({'Name.full': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}):
-            ret.append('mep: '+res['Name']['full'])
+        ret.extend(db.ep_meps.find({'Name.full': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
     if request.args.get('s_dossiers'):
-        for res in db.dossiers.find({'procedure.reference': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}):
-            ret.append('dossier: '+res['procedure']['reference'])
+        print q
+        ret.extend(db.dossiers.find({'procedure.reference': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
     '''
     if request.headers.get('X-Requested-With'):
         return json.dumps(ret)
     '''
+    if len(ret)==1:
+        if 'procedure' in ret[0]:
+            return view_dossier(ret[0]['procedure']['reference'])
+        if 'Name' in ret[0]:
+            return view_mep(ret[0]['Name']['full'])
     return render_template('search_results.html', query=q, results=ret)
 
 @app.route('/meps/<path:date>')

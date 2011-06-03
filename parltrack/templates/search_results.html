@@ -3,7 +3,13 @@
 <h2>Search results for `{{ query }}`</h2>
 <ul>
 {% for result in results %}
-<li>{{ result }}</li>
+<li>
+  {% if 'procedure' in result %}
+     <dl><dt><a href="/dossier/{{result.procedure.reference}}">{{ result.procedure.reference }}</a></dt><dd>{{ result.procedure.title }}</dd></dl>
+  {% elif 'Name' in result %}
+     <a href="/mep/{{result.Name.full}}">{{ result.Name.full }}</a>
+  {% endif %}
+</li>
 {% endfor %}
 </ul>
 {% endblock %}
