@@ -76,6 +76,38 @@
   {% endif %}
 {% endfor %}
 </ul>
+
+{% if 'Staff' in mep %}
+<h3>EP staff</h3>
+<ul>
+{%for c in mep.Staff|sort(attribute='start',reverse=True) %}
+   {% if c.end>today%}
+   <li>
+    {{c.role}} of
+    {{c.Organization}}
+    {{c.start|asdate}} - ...
+  </li>
+  {%endif%}
+{% endfor %}
+</ul>
+{% if mep.active %}
+<div class="more">Show earlier staff positions...</div>
+<ul class="hidden">
+{%else%}
+  <ul>
+{%endif%}
+{%for c in mep.Staff|sort(attribute='start',reverse=True) %}
+  {% if c.end<=today%}
+    <li>
+    {{c.role}} of
+    {{c.Organization}}
+    {{c.start|asdate}} - {{c.end|asdate}}
+  </li>
+  {% endif %}
+{% endfor %}
+</ul>
+{% endif %}
+
 <h3>Committees</h3>
 <ul>
 {%for c in mep.Committees|sort(attribute='start',reverse=True) %}
