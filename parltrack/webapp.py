@@ -19,13 +19,14 @@
 # (C) 2011 by Adam Tauber, <asciimoo@gmail.com>
 
 import os
+import re
 from pymongo import Connection
 from flaskext.mail import Mail
 from flask import Flask, render_template, request
 from parltrack import default_settings
 from datetime import datetime
-import json
-import re
+from random import randint
+from hashlib import sha1
 
 
 app = Flask(__name__)
@@ -54,6 +55,10 @@ def index():
     db = connect_db()
     return render_template('index.html', dossiers_num=db.dossiers.find().count(), votes_num=db.ep_votes.find().count(), meps_num=db.ep_meps.find().count())
 
+#-[+++++++++++++++++++++++++++++++++++++++++++++++|
+#               Search
+#-[+++++++++++++++++++++++++++++++++++++++++++++++|
+
 @app.route('/search')
 def search():
     db = connect_db()
@@ -73,21 +78,68 @@ def search():
     '''
     return render_template('search_results.html', query=q, results=ret)
 
+
+#-[+++++++++++++++++++++++++++++++++++++++++++++++|
+#               Notifications
+#-[+++++++++++++++++++++++++++++++++++++++++++++++|
+
+@app.route('/notifications/<string:g_id>')
+def notification_view_or_create(g_id):
+    db = connect_db()
+    # TODO g_id validation
+    group = db.notifications.find_one({'id': g_id})
+    if not group:
+        group = {'id': g_id, 'active_emails': [], 'dossiers': [], 'pending_emails': [], 'restricted': False}
+        db.notifications.save(group)
+    return render_template('view_notif_group.html', group=group)
+
+@app.route('/notifications/<string:g_id>/add/<any(dossiers, pending_emails):item>/<path:value>')
+def notification_add_detail(g_id, item, value):
+    db = connect_db()
+    group = db.notifications.find_one({'id': g_id})
+    if not group:
+        return 'unknown group '+g_id
+    # TODO handle restricted groups
+    #if group.restricted:
+    #    return 'restricted group'
+    if item == 'pending_emails':
+        # TODO validation and mail sending
+        i = {'address': value, 'token': sha1(''.join([chr(randint(32, 122)) for x in range(12)])).hexdigest(), 'date': datetime.now()}
+    else:
+        i = db.dossiers.find_one({'procedure.reference': value})
+        if not i:
+            return 'unknown dossier - '+value
+        i = i['procedure']['reference']
+
+    group[item].append(i)
+    db.notifications.save(group)
+    return 'OK'
+
+
+#-[+++++++++++++++++++++++++++++++++++++++++++++++|
+#               Meps
+#-[+++++++++++++++++++++++++++++++++++++++++++++++|
+
 @app.route('/meps/<path:date>')
 def ranking(date):
     from parltrack.views.views import mepRanking
     rankings=mepRanking(date)
     return render_template('mep_ranking.html', rankings=rankings, d=date)
 
-@app.route('/dossier/<path:d_id>')
-def view_dossier(d_id):
-    from parltrack.views.views import dossier
-    return render_template('dossier.html', dossier=dossier(d_id), d=d_id)
-
 @app.route('/mep/<string:d_id>')
 def view_mep(d_id):
     from parltrack.views.views import mep
     return render_template('mep.html', mep=mep(d_id), d=d_id, today=datetime.now())
+
+
+#-[+++++++++++++++++++++++++++++++++++++++++++++++|
+#               Dossiers
+#-[+++++++++++++++++++++++++++++++++++++++++++++++|
+
+@app.route('/dossier/<path:d_id>')
+def view_dossier(d_id):
+    from parltrack.views.views import dossier
+    return render_template('dossier.html', dossier=dossier(d_id), d=d_id)
 
 if __name__ == '__main__':
     app.run(debug=True)
