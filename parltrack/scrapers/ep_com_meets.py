@@ -118,7 +118,7 @@ def scrape(comid, url):
             issue['Misc']=issue.get('Misc',[])
             issue['Misc'].append(m.group(1))
             if m.group(1).startswith('Deadline for tabling amendments:'):
-                issue['tabling deadline']=datetime.fromtimestamp(mktime(strptime(m.group(1).split(':')[1].strip(),"%d %B %Y, %H.%M")))
+                issue['tabling_deadline']=datetime.fromtimestamp(mktime(strptime(m.group(1).split(':')[1].strip(),"%d %B %Y, %H.%M")))
             continue
 
         if inblock and len(line.strip()):
@@ -139,12 +139,12 @@ def scrape(comid, url):
                             issue['comref']=dossier['_id']
             ax[1]="%s\n%s" % (ax[1],line)
 
-    print >>sys.stderr, '\n'.join(["%s %s %s" % (i['tabling deadline'].isoformat(),
+    print >>sys.stderr, '\n'.join(["%s %s %s" % (i['tabling_deadline'].isoformat(),
                                     comid.strip(),
                                     i.get('comref',i['title'].split('\n')[-2].strip()),
                                     )
                       for i in res
-                      if 'tabling deadline' in i]).encode('utf8') or "no deadlines"
+                      if 'tabling_deadline' in i]).encode('utf8') or "no deadlines"
     sys.stderr.flush()
     return res
 
@@ -312,4 +312,4 @@ if __name__ == "__main__":
     db = connect_db()
     crawl(db)
     #print json.dumps(scrape('LIBE','http://www.europarl.europa.eu/meetdocs/2009_2014/documents/libe/oj/867/867690/867690en.pdf'),indent=1,default=dateJSONhandler)
-    # find some tabling dates: db.ep_com_meets.find({'tabling deadline' : { $exists : true }}).sort({'tabling deadline': -1})
+    # find some tabling dates: db.ep_com_meets.find({'tabling_deadline' : { $exists : true }}).sort({'tabling_deadline': -1})
