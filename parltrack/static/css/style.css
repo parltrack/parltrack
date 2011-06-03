@@ -28,8 +28,8 @@ ul.dropdown ul li { clear: both; min-width: 130px; }
 ul.dropdown ul li a { font-size: 0.8em; }
 ul.dropdown li:hover > div { visibility: visible; }
 .hidden { display: none; }
-dl, dd, dt { display: inline-block; vertical-align:top;}
-dt { width: 40px; }
+dl, dd, dt { vertical-align:top;}
+dt { display: inline-block; width: 80px; }
 .mepshot { float: right; }
 
 #search_input { width: 200px; }
