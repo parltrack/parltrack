@@ -123,8 +123,10 @@ def parseMember(userid):
                      'Parliamentary activities'] or
             key.startswith('Parliamentary activities in plenary')):
             continue # all urls can be recreated from the UserID
-        if key not in ['Curriculum vitae']:
+        if key!='Curriculum vitae':
             print >>sys.stderr, '[!] unknown field', key
+        else:
+            key='CV'
         data[key] = []
         for cc in c.xpath("../../tr[@class='mep_CVtext']/td[2]"):
             data[key].append(cc.text if not len(cc.xpath('a')) else (cc.text.strip(), BASE_URL+cc.xpath('a')[0].attrib['href']))
