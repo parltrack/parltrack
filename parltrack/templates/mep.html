@@ -9,7 +9,7 @@
         window.location = '/meps/'+$('#ranking_date').attr('value');
         return false;
        });
-       $('.has_summary').click(function() {
+       $('.more').click(function() {
         $(this).next().toggleClass('hidden');
        });
      });
@@ -19,21 +19,26 @@
 <h2>{{ mep.Name.full }}</h2>
 <ul>
 {%for c in mep.Constituencies|sort(attribute='start',reverse=True) %}
-   <li>
   {% if c.end>today%}
-  {{c.country}}
-  {{c.party}}
-  {{c.start}}
-  {{c.end}}
-  {% else %}
-  {{c.country}}
-  <strike>
-  {{c.party}}
-  </strike>
-  {{c.start}}
-  {{c.end}}
+    <li>
+    {{c.country}}
+    {{c.party}}
+    {{c.start}}
+    </li>
   {% endif %}
-  </li>
+{% endfor %}
+</ul>
+<div class="more" >Show earlier Constituencies...</div>
+<ul class="hidden">
+{%for c in mep.Constituencies|sort(attribute='start',reverse=True) %}
+  {% if c.end<today%}
+    <li>
+    {{c.country}}
+    {{c.party}}
+    {{c.start}}
+    {{c.end}}
+    </li>
+  {% endif %}
 {% endfor %}
 </ul>
 <h3>Groups</h3>
@@ -45,38 +50,48 @@
   {{c.role}}
   {%if c.group%}{{c.group}}{%else%}{{c.Organization}}{%endif%}
   {{c.start}}
-  {{c.end}}
-  {% else %}
-  {{c.country}}
-  {{c.groupid}}
-  <strike>
-  {{c.role}}
-  </strike>
-  {%if c.group%}{{c.group}}{%else%}{{c.Organization}}{%endif%}
-  {{c.start}}
-  {{c.end}}
   {% endif %}
   </li>
+{% endfor %}
+</ul>
+<div class="more">Show earlier groups...</div>
+<ul class="hidden">
+{%for c in mep.Groups|sort(attribute='start',reverse=True) %}
+  {% if c.end<=today%}
+   <li>
+    {{c.country}}
+    {{c.groupid}}
+    {{c.role}}
+    {%if c.group%}{{c.group}}{%else%}{{c.Organization}}{%endif%}
+    {{c.start}}
+    {{c.end}}
+  </li>
+  {% endif %}
 {% endfor %}
 </ul>
 <h3>Committees</h3>
 <ul>
 {%for c in mep.Committees|sort(attribute='start',reverse=True) %}
+   {% if c.end>today%}
    <li>
-  {% if c.end>today%}
-  {{c.role}} of
-  {{c.Organization}}
-  {{c.start}}
-  {{c.end}}
-  {% else %}
-  <strike>
-  {{c.role}} of
-  </strike>
-  {{c.Organization}}
-  {{c.start}}
-  {{c.end}}
-  {% endif %}
+    {{c.role}} of
+    {{c.Organization}}
+    {{c.start}}
   </li>
+  {%endif%}
+{% endfor %}
+</ul>
+<div class="more">Show earlier commitees...</div>
+<ul class="hidden">
+{%for c in mep.Committees|sort(attribute='start',reverse=True) %}
+  {% if c.end<=today%}
+    <li>
+    {{c.role}} of
+    {{c.Organization}}
+    {{c.start}}
+    {{c.end}}
+  </li>
+  {% endif %}
 {% endfor %}
 </ul>
 {{mep}}
