@@ -4,7 +4,7 @@ body { background: #EFEFEF; }
 
 a { color: #1A67B8; text-decoration: none; }
 a:hover { text-decoration: underline; }
-input { border: 1px solid #EFEFEF; color: #777777;}
+input { border: 1px solid #CDCDCD; color: #777777;}
 
 #menu { background: url('/static/images/menu_bg.png') repeat-x; height: 29px; clear: both; font-size: 12px; }
 #menu ul { list-style-type: none; margin: 0; padding: 0; }
@@ -28,3 +28,5 @@ ul.dropdown ul li { clear: both; min-width: 130px; }
 ul.dropdown ul li a { font-size: 0.8em; }
 ul.dropdown li:hover > div { visibility: visible; }
 .hidden { display: none; }
+
+#search_input { width: 200px; }
