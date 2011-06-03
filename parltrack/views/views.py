@@ -118,6 +118,15 @@ def dossier(id):
     del dossier['changes']
     # find related votes
     votes=list(db.ep_votes.find({'dossierid': dossier['_id']}))
+    for vote in votes:
+        groups=[]
+        for dec, new in [('+','For'),
+                         ('-','Against'),
+                         ('0','Abstain')]:
+            vote[new]=vote[dec]
+            del vote[dec]
+            groups.extend([x for x in vote[new].keys() if x!='total'])
+        vote['groups']=sorted(set(groups))
     dossier['votes']=votes
     return dossier
 

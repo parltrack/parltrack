@@ -20,6 +20,10 @@
 <p>{{dossier.procedure.title}}</p>
 <p><strong>{{dossier.procedure.stage_reached}}</strong></p>
 <ul>{%for sub in dossier.procedure.subjects%}<li>{{sub}}</li>{%endfor%}</ul>
+<h3>Legal Basis</h3>
+<ul>{%for sub in dossier.procedure.legal_basis%}<li>{{sub}}</li>{%endfor%}</ul>
+{% if dossier.procedure.agents %}
+<h3>Committees</h3>
 <ul>{%for agent in dossier.procedure.agents%}
    <li>
      {%if agent.responsible%}
@@ -33,6 +37,7 @@
    </li>
   {%endfor%}
 </ul>
+{%endif%}
 <h3>Activites</h3>
 <ul>{%for act in dossier.activities%}
    <li>
@@ -80,26 +85,84 @@
   {%endfor%}
 </ul>
 <h3>Documents</h3>
-  <ul>
-  {%for doc in dossier.docs%}
-    {%if doc.url %}
-      <li>
-      {%if doc.summary%}
-         <a class="has_summary">{{doc.title}}</a>
-         {{doc.type}}
-         <div class="hidden" id="{{doc.title}}-summary">
-           {%for line in doc.summary %}
-           {{line|safe}}
-           {%endfor%}
-         </div>
-      {%else%}
-         {{doc.title}} {{doc.type}}
-      {%endif%}
-      <a href="{{doc.url}}">[↓]</a>
-      </li>
+<ul>
+{%for doc in dossier.docs%}
+  {%if doc.url %}
+    <li>
+    {%if doc.summary%}
+       <a class="has_summary">{{doc.title}}</a>
+       {{doc.type}}
+       <div class="hidden" id="{{doc.title}}-summary">
+         {%for line in doc.summary %}
+         {{line|safe}}
+         {%endfor%}
+       </div>
+    {%else%}
+       {{doc.title}} {{doc.type}}
     {%endif%}
-  {%endfor%}
-  </ul>
+    <a href="{{doc.url}}">[↓]</a>
+    </li>
+  {%endif%}
+{%endfor%}
+</ul>
+{% if dossier.votes %}
+<h3>Votes</h3>
+{%for vote in dossier.votes%}
+<h4>{{vote.title}}</h4>
+  <table class="votes">
+     <thead>
+        <tr>
+          <td>Position</td>
+          <td>Total</td>
+          {% for g in vote.groups|sort %}
+            {% if g not in ['correctional', 'total']%}
+            <td>{{g}}</td>
+            {%endif%}
+          {%endfor%}
+          <td>correctional</td>
+        </tr>
+     </thead>
+     <tbody>
+       <tr>
+         <td>For</td>
+         <td>{{vote.For.total}}</td>
+         {% for k,v in vote.For.items() %}
+            {% if k not in ['correctional', 'total']%}
+            <td>{{v|length}}</td>
+            {%endif%}
+         {%endfor%}
+         {% if 'correctional' in vote.For%}
+           <td>{{vote.For.correctional|length}}</td>
+         {%endif%}
+       </tr>
+       <tr>
+         <td>Against</td>
+         <td>{{vote.Against.total}}</td>
+         {% for k,v in vote.Against.items() %}
+            {% if k not in ['correctional', 'total']%}
+            <td>{{v|length}}</td>
+            {%endif%}
+         {%endfor%}
+         {% if 'correctional' in vote.Against%}
+           <td>{{vote.Against.correctional|length}}</td>
+         {%endif%}
+       </tr>
+       <tr>
+         <td>Abstain</td>
+         <td>{{vote.Abstain.total}}</td>
+         {% for k,v in vote.Abstain.items() %}
+            {% if k not in ['correctional', 'total']%}
+            <td>{{v|length}}</td>
+            {%endif%}
+         {%endfor%}
+         {% if 'correctional' in vote.Abstain%}
+           <td>{{vote.Abstain.correctional|length}}</td>
+         {%endif%}
+       </tr>
+     </tbody>
+  </table>
+{%endfor%}
+{% endif %}
 
 {{dossier}}
 {% endblock %}

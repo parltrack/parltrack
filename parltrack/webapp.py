@@ -141,5 +141,9 @@ def view_dossier(d_id):
     from parltrack.views.views import dossier
     return render_template('dossier.html', dossier=dossier(d_id), d=d_id)
 
+@app.template_filter()
+def asdate(value):
+    return value.strftime('%Y/%m/%d')
+
 if __name__ == '__main__':
     app.run(debug=True)

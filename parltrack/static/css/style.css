@@ -16,7 +16,7 @@ input { border: 1px solid #CDCDCD; color: #777777;}
 #header { background: url('/static/images/header_bg.png') repeat-x; height: 120px; background-position: bottom; }
 #header h1 { color: #F7F7F7; }
 
-#content { font-size: 13px; min-height: 600px; }
+#content { font-size: 13px; min-height: 600px; margin: 2em; }
 
 #footer { background: url('/static/images/footer_bg.png') repeat-x; height: 100px; clear: both; }
 
@@ -28,5 +28,10 @@ ul.dropdown ul li { clear: both; min-width: 130px; }
 ul.dropdown ul li a { font-size: 0.8em; }
 ul.dropdown li:hover > div { visibility: visible; }
 .hidden { display: none; }
+dl, dd, dt { display: inline-block; vertical-align:top;}
+dt { width: 40px; }
+.mepshot { float: right; }
 
 #search_input { width: 200px; }
+
+.votes thead td { width: 5em; }
