@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ group.id }} notification group</h2>
+<h3>Informations</h3>
+<ul>
+ <li>Dossiers: <ul>
+                {% for dossier in group.dossiers %}
+                <li><a href="/dossier/{{ dossier }}">{{ dossier }}</a></li>
+                {% endfor %}
+            </ul>
+ <li>Number of subscribers: {{ group.active_emails|length }}</li>
+ <li>Pending subscribers: {{ group.pending_emails|length }}</li>
+ <li><a href="/rss/{{ group.id }}">Feed URL</a></li>
+{% if group.restricted %}
+    <li>Restricted</li>
+{% else %}
+    <li>Public</li>
+{% endif %}
+</ul>
+{% endblock %}
+
