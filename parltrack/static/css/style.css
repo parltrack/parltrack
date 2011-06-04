@@ -35,7 +35,7 @@ dt { display: inline-block; width: 80px; }
 #search_input { width: 200px; }
 
 .votes thead td { width: 5em; }
-.has_summary, .more { cursor: pointer; }
+.has_summary, .more { cursor: pointer; padding-left: 40px; font-size: .7em; color: #454545; }
 .asjson { font-size: .7em; float: right; }
 #legal { width: 100%; text-align: center; color: black; }
 #legal a, #legal a:visited { color: white; }
