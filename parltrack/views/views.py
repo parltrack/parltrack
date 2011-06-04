@@ -27,6 +27,8 @@ except:
     db=pymongo.Connection().parltrack
 from bson.objectid import ObjectId
 
+db.oeil.ensure_index([('reference.procedure', 1)])
+
 def dateJSONhandler(obj):
     if hasattr(obj, 'isoformat'):
         return obj.isoformat()
@@ -45,9 +47,9 @@ def mepsInGroups(group, date):
     return meps.count()
     return [x for x in meps]
 
-group_positions={u'Chair': 7,
-                 u'Co-Chair': 6,
-                 u'Vice-Chair': 5,
+group_positions={u'Chair': 10,
+                 u'Co-Chair': 8,
+                 u'Vice-Chair': 6,
                  u'Deputy Chair': 5,
                  u'Chair of the Bureau': 4,
                  u'Vice-Chair/Member of the Bureau': 3,
@@ -67,11 +69,11 @@ staff_positions={"President": 7,
                  "Quaestor": 5,
                  "Member": 4,
                  }
-def mepRanking(date):
+def mepRanking(date,query={}):
     date=datetime.strptime(date, "%d/%m/%Y")
-    query={"Constituencies.start" : {'$lt': date},
-           "Constituencies.end" : {'$gt': date},
-           }
+    query.update({"Constituencies.start" : {'$lt': date},
+                  "Constituencies.end" : {'$gt': date},
+                  })
     meps=db.ep_meps.find(query)
     rankedMeps=[]
     for mep in meps:
@@ -132,7 +134,16 @@ def dossier(id):
                 if g not in vote[dec]:
                     vote[dec][g]=[]
     dossier['votes']=votes
-    dossier['comeets']=list(db.ep_com_meets.find({'comref': dossier['_id']}))
+    dossier['comeets']=[]
+    for item in db.ep_com_meets.find({'comref': dossier['_id']}):
+        item['Committees']={}
+        if 'Rapporteur' in item:
+            item['Rapporteur']['rapporteurs']=[db.ep_meps.find_one({'_id': x}) for x in item['Rapporteur']['rapporteurs']]
+            item['Committees'][item['committee']]=item['Rapporteur']['rapporteurs']
+        for com in item['Opinions']:
+            com['rapporteurs']=[db.ep_meps.find_one({'_id': x}) for x in com['rapporteurs']]
+            item['Committees'][com['committee']]=com['rapporteurs']
+        dossier['comeets'].append(item)
     return dossier
 
 def getMep(text):

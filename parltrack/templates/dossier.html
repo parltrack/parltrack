@@ -20,23 +20,54 @@
 <p>{{dossier.procedure.title}}</p>
 <p><strong>{{dossier.procedure.stage_reached}}</strong></p>
 <ul>{%for sub in dossier.procedure.subjects%}<li>{{sub}}</li>{%endfor%}</ul>
-<h3>Legal Basis</h3>
-<ul>{%for sub in dossier.procedure.legal_basis%}<li>{{sub}}</li>{%endfor%}</ul>
-{% if dossier.procedure.agents %}
+{% if dossier.comeets %}
 <h3>Committees</h3>
-<ul>{%for agent in dossier.procedure.agents%}
-   <li>
-     {%if agent.responsible%}
-        <strong>{{agent.commitee}}</strong>
-        {%if dossier.procedure.dossier_of_the_committee %}<a href="/doc/{{dossier.procedure.dossier_of_the_committee}}">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
-     {%else%}
-        {{agent.commitee}}
-     {%endif%}
-     {%if agent.name%}{{agent.name}}{%endif%}
-     {%if agent.group%}{{agent.group}}{%endif%}
-   </li>
+  {% for committee in dossier.comeets%}
+    {{committee.committee}} meets on {{ committee.meeting_date|asdate }}
+    <div>{{committee.title}}</div>
+    {%if 'tabling_deadline' in committee%}<div><strong>Tabling deadline</strong> {{committee.tabling_deadline}}</div>{%endif%}
+    {%if 'Rapporteur' in committee%}
+    <dl><dt>Rapporteur</dt><dd>
+      {{committee.committee}}: {%for mep in committee.Rapporteur.rapporteurs%}
+         <a href="/mep/{{mep.Name.full}}">{{mep.Name.full}}</a>
+      {%endfor%}
+    </dd></dl>
+    {%endif%}
+    {%if 'Opinions' in committee%}
+    <dl><dt>Opinions</dt><dd>
+      {% for com in committee.Opinions %}
+      {{com.committee}}:
+        {%for mep in com.rapporteurs%}
+          <a href="/mep/{{mep.Name.full}}">{{mep.Name.full}}</a>
+        {%endfor%}
+      {%endfor%}
+    </dd></dl>
+    {%endif%}
+    {%if Misc in committee%}
+    <ul>
+      {%for line in committee.Misc%}
+        <li>{{line}}</li>
+      {%endfor%}
+    </ul>
+    {%endif%}
   {%endfor%}
-</ul>
+{% else %}
+  {% if dossier.procedure.agents %}
+  <h3>Committees</h3>
+  <ul>{%for agent in dossier.procedure.agents%}
+     <li>
+       {%if agent.responsible%}
+          <strong>{{agent.commitee}}</strong>
+          {%if dossier.procedure.dossier_of_the_committee %}{{dossier.procedure.dossier_of_the_committee}}{%endif%}
+       {%else%}
+          {{agent.commitee}}
+       {%endif%}
+       {%if agent.name%}<a href="/mep/{{agent.name}}">{{agent.name}}</a>{%endif%}
+       {%if agent.group%}{{agent.group}}{%endif%}
+     </li>
+    {%endfor%}
+  </ul>
+  {%endif%}
 {%endif%}
 <h3>Activites</h3>
 <ul>{%for act in dossier.activities%}
@@ -50,7 +81,7 @@
            <li>
              {%if agent.responsible%}
                 <strong>{{agent.commitee}}</strong>
-                {%if dossier.procedure.dossier_of_the_committee %}<a href="/doc/{{dossier.procedure.dossier_of_the_committee}}">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
+                {%if dossier.procedure.dossier_of_the_committee %}{{dossier.procedure.dossier_of_the_committee}}{%endif%}
              {%else%}
                 {{agent.commitee}}
              {%endif%}
@@ -84,27 +115,29 @@
    </li>
   {%endfor%}
 </ul>
-<h3>Documents</h3>
-<ul>
-{%for doc in dossier.docs%}
-  {%if doc.url %}
-    <li>
-    {%if doc.summary%}
-       <a class="has_summary">{{doc.title}}</a>
-       {{doc.type}}
-       <div class="hidden" id="{{doc.title}}-summary">
-         {%for line in doc.summary %}
-         {{line|safe}}
-         {%endfor%}
-       </div>
-    {%else%}
-       {{doc.title}} {{doc.type}}
+{% if dossier.docs|length %}
+  <h3>Documents</h3>
+  <ul>
+  {%for doc in dossier.docs%}
+    {%if doc.url %}
+      <li>
+      {%if doc.summary%}
+         <a class="has_summary">{{doc.title}}</a>
+         {{doc.type}}
+         <div class="hidden" id="{{doc.title}}-summary">
+           {%for line in doc.summary %}
+           {{line|safe}}
+           {%endfor%}
+         </div>
+      {%else%}
+         {{doc.title}} {{doc.type}}
+      {%endif%}
+      <a href="{{doc.url}}">[↓]</a>
+      </li>
     {%endif%}
-    <a href="{{doc.url}}">[↓]</a>
-    </li>
-  {%endif%}
-{%endfor%}
-</ul>
+  {%endfor%}
+  </ul>
+{%endif%}
 {% if dossier.votes %}
 <h3>Votes</h3>
 {%for vote in dossier.votes%}
@@ -163,6 +196,8 @@
   </table>
 {%endfor%}
 {% endif %}
+<div>Legal Basis
+<ul>{%for sub in dossier.procedure.legal_basis%}<li>{{sub}}</li>{%endfor%}</ul></div>
 
 {{dossier}}
 {% endblock %}
