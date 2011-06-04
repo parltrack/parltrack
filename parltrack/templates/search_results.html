@@ -5,7 +5,7 @@
 {% for result in results %}
 <li>
   {% if 'procedure' in result %}
-     <dl><dt><a href="/dossier/{{result.procedure.reference}}">{{ result.procedure.reference }}</a></dt><dd>{{ result.procedure.title }}</dd></dl>
+     <a href="/dossier/{{result.procedure.reference}}">{{ result.procedure.reference }}</a> {{ result.procedure.title }}
   {% elif 'Name' in result %}
      <a href="/mep/{{result.Name.full}}">{{ result.Name.full }}</a>
   {% endif %}
