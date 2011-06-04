@@ -22,12 +22,13 @@ import os
 import re
 from pymongo import Connection
 from flaskext.mail import Mail
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 from parltrack import default_settings
 from datetime import datetime
 from random import randint
 from hashlib import sha1
 from werkzeug import ImmutableDict
+from bson.objectid import ObjectId
 
 Flask.jinja_options = ImmutableDict({'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_', 'jinja2.ext.loopcontrols']})
 app = Flask(__name__)
@@ -141,7 +142,11 @@ def bygroup(g_id, date):
 @app.route('/mep/<string:d_id>')
 def view_mep(d_id):
     from parltrack.views.views import mep
-    return render_template('mep.html', mep=mep(d_id), d=d_id, today=datetime.now())
+    m=mep(d_id)
+    if request.args.get('format','')=='json':
+        print 'asdf'
+        return jsonify(tojson(m))
+    return render_template('mep.html', mep=m, d=d_id, today=datetime.now())
 
 
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
@@ -156,6 +161,17 @@ def view_dossier(d_id):
 @app.template_filter()
 def asdate(value):
     return value.strftime('%Y/%m/%d')
+
+def tojson(data):
+    if type(data)==type(ObjectId()):
+        return
+    if type(data)==type(dict()):
+        return dict([(k,tojson(v)) for k,v in data.items() if not type(ObjectId()) in [type(k), type(v)]])
+    if '__iter__' in dir(data):
+        return [tojson(x) for x in data if type(x)!=type(ObjectId())]
+    if hasattr(data, 'isoformat'):
+        return data.isoformat()
+    return data
 
 if __name__ == '__main__':
     app.run(debug=True)
