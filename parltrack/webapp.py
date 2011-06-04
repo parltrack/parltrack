@@ -153,6 +153,8 @@ def activate():
 def ranking(date):
     from parltrack.views.views import mepRanking
     rankings=mepRanking(date)
+    if request.args.get('format','')=='json':
+        return jsonify(meps=tojson([z for x,y,z in rankings]))
     return render_template('mep_ranking.html', rankings=rankings, d=date)
 
 @app.route('/group/<string:g_id>/<path:date>')
@@ -160,6 +162,8 @@ def bygroup(g_id, date):
     from parltrack.views.views import mepRanking
     query={'Groups.groupid': g_id}
     rankings=mepRanking(date,query)
+    if request.args.get('format','')=='json':
+        return jsonify(meps=tojson([z for x,y,z in rankings]))
     return render_template('mep_ranking.html', rankings=rankings, d=date, group=g_id)
 
 @app.route('/mep/<string:d_id>')
@@ -167,7 +171,6 @@ def view_mep(d_id):
     from parltrack.views.views import mep
     m=mep(d_id)
     if request.args.get('format','')=='json':
-        print 'asdf'
         return jsonify(tojson(m))
     return render_template('mep.html', mep=m, d=d_id, today=datetime.now())
 
@@ -179,7 +182,10 @@ def view_mep(d_id):
 @app.route('/dossier/<path:d_id>')
 def view_dossier(d_id):
     from parltrack.views.views import dossier
-    return render_template('dossier.html', dossier=dossier(d_id), d=d_id)
+    d=dossier(d_id)
+    if request.args.get('format','')=='json':
+        return jsonify(tojson(d))
+    return render_template('dossier.html', dossier=d, d=d_id)
 
 @app.template_filter()
 def asdate(value):
