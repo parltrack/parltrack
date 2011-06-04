@@ -154,7 +154,7 @@ def ranking(date):
     from parltrack.views.views import mepRanking
     rankings=mepRanking(date)
     if request.args.get('format','')=='json':
-        return jsonify(meps=tojson([z for x,y,z in rankings]))
+        return jsonify(count=len(rankings), meps=tojson([z for x,y,z in rankings]))
     return render_template('mep_ranking.html', rankings=rankings, d=date)
 
 @app.route('/group/<string:g_id>/<path:date>')
@@ -163,7 +163,7 @@ def bygroup(g_id, date):
     query={'Groups.groupid': g_id}
     rankings=mepRanking(date,query)
     if request.args.get('format','')=='json':
-        return jsonify(meps=tojson([z for x,y,z in rankings]))
+        return jsonify(count=len(rankings), meps=tojson([z for x,y,z in rankings]))
     return render_template('mep_ranking.html', rankings=rankings, d=date, group=g_id)
 
 @app.route('/mep/<string:d_id>')
