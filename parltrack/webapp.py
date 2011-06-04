@@ -22,7 +22,7 @@ import os
 import re
 from pymongo import Connection
 from flaskext.mail import Mail, Message
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, abort
 from parltrack import default_settings
 from datetime import datetime
 from random import randint
@@ -153,6 +153,8 @@ def activate():
 def ranking(date):
     from parltrack.views.views import mepRanking
     rankings=mepRanking(date)
+    if not rankings:
+        abort(404)
     if request.args.get('format','')=='json':
         return jsonify(count=len(rankings),
                        meps=tojson([z for x,y,z in rankings]))
@@ -166,6 +168,8 @@ def bygroup(g_id, date):
     from parltrack.views.views import mepRanking
     query={'Groups.groupid': g_id}
     rankings=mepRanking(date,query)
+    if not rankings:
+        abort(404)
     if request.args.get('format','')=='json':
         return jsonify(count=len(rankings), meps=tojson([z for x,y,z in rankings]))
     return render_template('mep_ranking.html',
@@ -178,6 +182,8 @@ def bygroup(g_id, date):
 def view_mep(d_id):
     from parltrack.views.views import mep
     m=mep(d_id)
+    if not m:
+        abort(404)
     if request.args.get('format','')=='json':
         return jsonify(tojson(m))
     return render_template('mep.html',
@@ -194,6 +200,8 @@ def view_mep(d_id):
 def view_dossier(d_id):
     from parltrack.views.views import dossier
     d=dossier(d_id)
+    if not d:
+        abort(404)
     if request.args.get('format','')=='json':
         return jsonify(tojson(d))
     return render_template('dossier.html',
