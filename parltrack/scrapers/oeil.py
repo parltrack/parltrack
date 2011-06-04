@@ -34,6 +34,7 @@ except:
 from bson.objectid import ObjectId
 
 db.oeil.ensure_index([('reference.procedure', 1)])
+db.oeil.ensure_index([('activities.actors.mepref', 1)])
 
 # and some global objects
 base = 'http://www.europarl.europa.eu/oeil/file.jsp'
