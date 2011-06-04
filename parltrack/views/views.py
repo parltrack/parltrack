@@ -17,7 +17,7 @@
 
 # (C) 2011 by Stefan Marsiske, <stefan.marsiske@gmail.com>
 
-import sys, json, unicodedata
+import sys, unicodedata
 from datetime import datetime
 try:
     from parltrack.webapp import connect_db
@@ -25,17 +25,8 @@ try:
 except:
     import pymongo
     db=pymongo.Connection().parltrack
-from bson.objectid import ObjectId
 
 db.oeil.ensure_index([('reference.procedure', 1)])
-
-def dateJSONhandler(obj):
-    if hasattr(obj, 'isoformat'):
-        return obj.isoformat()
-    elif type(obj)==ObjectId:
-        return str(obj)
-    else:
-        raise TypeError, 'Object of type %s with value of %s is not JSON serializable' % (type(obj), repr(obj))
 
 def mepsInGroups(group, date):
     date=datetime.strptime(date, "%d/%m/%Y")
@@ -178,4 +169,13 @@ if __name__ == "__main__":
     #groupstrengths=[mepsInGroups(x,date) for x in groups]
     #print groupstrengths, sum(groupstrengths)
     #data=mepRanking(date)
+    ## from bson.objectid import ObjectId
+    ## import json
+    ## def dateJSONhandler(obj):
+    ##     if hasattr(obj, 'isoformat'):
+    ##         return obj.isoformat()
+    ##     elif type(obj)==ObjectId:
+    ##         return str(obj)
+    ##     else:
+    ##         raise TypeError, 'Object of type %s with value of %s is not JSON serializable' % (type(obj), repr(obj))
     #print json.dumps(data, default=dateJSONhandler, indent=1, ensure_ascii=False).encode('utf-8')
