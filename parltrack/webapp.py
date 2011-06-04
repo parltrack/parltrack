@@ -154,8 +154,12 @@ def ranking(date):
     from parltrack.views.views import mepRanking
     rankings=mepRanking(date)
     if request.args.get('format','')=='json':
-        return jsonify(count=len(rankings), meps=tojson([z for x,y,z in rankings]))
-    return render_template('mep_ranking.html', rankings=rankings, d=date)
+        return jsonify(count=len(rankings),
+                       meps=tojson([z for x,y,z in rankings]))
+    return render_template('mep_ranking.html',
+                           rankings=rankings,
+                           d=date,
+                           url=request.base_url)
 
 @app.route('/group/<string:g_id>/<path:date>')
 def bygroup(g_id, date):
@@ -164,7 +168,11 @@ def bygroup(g_id, date):
     rankings=mepRanking(date,query)
     if request.args.get('format','')=='json':
         return jsonify(count=len(rankings), meps=tojson([z for x,y,z in rankings]))
-    return render_template('mep_ranking.html', rankings=rankings, d=date, group=g_id)
+    return render_template('mep_ranking.html',
+                           rankings=rankings,
+                           d=date,
+                           group=g_id,
+                           url=request.base_url)
 
 @app.route('/mep/<string:d_id>')
 def view_mep(d_id):
@@ -172,8 +180,11 @@ def view_mep(d_id):
     m=mep(d_id)
     if request.args.get('format','')=='json':
         return jsonify(tojson(m))
-    return render_template('mep.html', mep=m, d=d_id, today=datetime.now())
-
+    return render_template('mep.html',
+                           mep=m,
+                           d=d_id,
+                           today=datetime.now(),
+                           url=request.base_url)
 
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 #               Dossiers
@@ -185,7 +196,10 @@ def view_dossier(d_id):
     d=dossier(d_id)
     if request.args.get('format','')=='json':
         return jsonify(tojson(d))
-    return render_template('dossier.html', dossier=d, d=d_id)
+    return render_template('dossier.html',
+                           dossier=d,
+                           d=d_id,
+                           url=request.base_url)
 
 @app.template_filter()
 def asdate(value):

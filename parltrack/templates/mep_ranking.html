@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+<a class="asjson" href="{{url}}?format=json">download as json</a>
 <h2>Members of the European Parliament - {{ d }}</h2>
 <table>
 {% for ranking in rankings %}

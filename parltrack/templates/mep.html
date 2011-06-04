@@ -16,7 +16,11 @@
     </script>
 {% endblock %}
 {% block content %}
-<img src="http://www.europarl.europa.eu/mepphoto/{{mep.UserID}}.jpg" class="mepshot">
+<div class="mepshot">
+<a class="asjson" href="{{url}}?format=json">download as json</a>
+  <br/>
+<img src="http://www.europarl.europa.eu/mepphoto/{{mep.UserID}}.jpg">
+</div>
 <h2>{{ mep.Name.full }}</h2>
 <ul>
 {%for c in mep.Constituencies|sort(attribute='start',reverse=True) %}
