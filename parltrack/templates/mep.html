@@ -215,4 +215,12 @@
   {% endif %}
 {% endfor %}
 </ul>
+{% if mep.dossiers %}
+  <h3>Rapporteur</h3>
+  <ul>
+    {%for doc,resp in mep.dossiers%}
+    <li>{%if not resp%}(shadow){%endif%} <a href="/dossier/{{doc.procedure.reference}}">{{doc.procedure.reference}}</a> {{doc.procedure.title}}</li>
+    {%endfor%}
+  </ul>
+{%endif%}
 {% endblock %}

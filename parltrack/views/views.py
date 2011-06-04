@@ -161,11 +161,12 @@ def getMep(text):
 def mep(id):
     mep=getMep(id)
     if not mep:
-        return 404
-    #print mep
-    # find related votes
-    #votes=list(db.ep_votes.find({'mepid': dossier['_id']}))
-    #ep['votes']=votes
+        return None
+
+    # find related dossiers
+    docs=[(x, True) for x in db.dossiers.find({'activities.actors.mepref': mep['_id'], 'activities.actors.responsible': True})]
+    docs.extend([(x, False) for x in db.dossiers.find({'activities.actors.mepref': mep['_id'], 'activities.actors.responsible': False})])
+    mep['dossiers']=docs
     return mep
 
 if __name__ == "__main__":
