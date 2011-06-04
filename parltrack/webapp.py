@@ -27,8 +27,9 @@ from parltrack import default_settings
 from datetime import datetime
 from random import randint
 from hashlib import sha1
+from werkzeug import ImmutableDict
 
-
+Flask.jinja_options = ImmutableDict({'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_', 'jinja2.ext.loopcontrols']})
 app = Flask(__name__)
 app.config.from_object(default_settings)
 app.config.from_envvar('PARLTRACK_SETTINGS', silent=True)
@@ -129,6 +130,13 @@ def ranking(date):
     from parltrack.views.views import mepRanking
     rankings=mepRanking(date)
     return render_template('mep_ranking.html', rankings=rankings, d=date)
+
+@app.route('/group/<string:g_id>/<path:date>')
+def bygroup(g_id, date):
+    from parltrack.views.views import mepRanking
+    query={'Groups.groupid': g_id}
+    rankings=mepRanking(date,query)
+    return render_template('mep_ranking.html', rankings=rankings, d=date, group=g_id)
 
 @app.route('/mep/<string:d_id>')
 def view_mep(d_id):

@@ -55,6 +55,7 @@
     {%if c.group%}{{c.group}}{%else%}{{c.Organization}}{%endif%}
     {{c.start|asdate}} - ...
     </li>
+    {% break %}
   {% endif %}
 {% endfor %}
 </ul>
