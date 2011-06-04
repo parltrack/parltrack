@@ -21,7 +21,7 @@
 import os
 import re
 from pymongo import Connection
-from flaskext.mail import Mail
+from flaskext.mail import Mail, Message
 from flask import Flask, render_template, request, jsonify
 from parltrack import default_settings
 from datetime import datetime
@@ -109,8 +109,18 @@ def notification_add_detail(g_id, item, value):
     #if group.restricted:
     #    return 'restricted group'
     if item == 'pending_emails':
-        # TODO validation and mail sending
+        # TODO validation, mail sending
+        addr = db.notifications.find_one({'pending_emails.address': value})
+        if addr:
+            # or just return with OK?! -> more privacy but harder debug
+            return 'Already subscribed'
         i = {'address': value, 'token': sha1(''.join([chr(randint(32, 122)) for x in range(12)])).hexdigest(), 'date': datetime.now()}
+        msg = Message("Parltrack Notification Subscription Verification",
+                sender = "asdf@localhost",
+                recipients = [value])
+        msg.body = "your verification key is %sactivate?key=%s" % (request.url_root, i['token'])
+        mail.send(msg)
+
     else:
         i = db.dossiers.find_one({'procedure.reference': value})
         if not i:
@@ -121,6 +131,19 @@ def notification_add_detail(g_id, item, value):
     db.notifications.save(group)
     return 'OK'
 
+@app.route('/activate')
+def activate():
+    db = connect_db()
+    if not request.args.get('key'):
+        return 'Missing key'
+    k = request.args.get('key')
+    if db.notifications.find({'pending_emails.token': k}).count():
+        # TODO activation method
+        return 'activated'
+    elif db.notifications.find({'actions.token': k}).count():
+        # TODO
+        return 'action activation'
+    return 'wrong key'
 
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 #               Meps
