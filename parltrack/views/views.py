@@ -26,8 +26,6 @@ except:
     import pymongo
     db=pymongo.Connection().parltrack
 
-db.oeil.ensure_index([('reference.procedure', 1)])
-
 def mepsInGroups(group, date):
     date=datetime.strptime(date, "%d/%m/%Y")
     query={"Constituencies.start" : {'$lt': date},
@@ -66,34 +64,43 @@ def mepRanking(date,query={}):
                   "Constituencies.end" : {'$gt': date},
                   })
     meps=db.ep_meps.find(query)
+    # workaround for pre-1970 dates
+    tmp=[]
+    for m in meps:
+        for c in m['Constituencies']:
+            if c['start']<=date and c['end']>=date:
+                tmp.append(m)
+                break
     rankedMeps=[]
-    for mep in meps:
+    for mep in tmp:
         score=0
         ranks=[]
         # get group rank
-        for i, group in enumerate(mep['Groups']):
+        for group in mep['Groups']:
             if group['start']<date and group['end']>date:
                 score=group_positions[group['role']]
                 if type(group['groupid'])==list:
                     group['groupid']=group['groupid'][0]
                 ranks.append((group_positions[group['role']],group['role'],group['groupid']))
+                mep['Groups']=[group]
                 break
-            else:
-                del mep['Groups'][i]
         # get committee ranks
-        for i,com in enumerate(mep['Committees']):
+        tmp=[]
+        for com in mep['Committees']:
             if com['start']<date and com['end']>date:
                 score+=com_positions[com['role']]
                 ranks.append((com_positions[com['role']],com['role'],com['Organization']))
-            else:
-                del mep['Committees'][i]
+                tmp.append(com)
+        mep['Committees']=tmp
         # get ep staff ranks
-        for i,staff in enumerate(mep.get('Staff',[])):
+        tmp=[]
+        for staff in mep.get('Staff',[]):
             if staff['start']<date and staff['end']>date:
                 score+=staff_positions[staff['role']]
                 ranks.append((staff_positions[staff['role']],staff['role'],staff['Organization']))
-            else:
-                del mep['Staff'][i]
+                tmp.append(staff)
+        if len(tmp):
+            mep['Staff']=tmp
         rankedMeps.append((score,sorted(ranks, reverse=True),mep))
     return [x for x in sorted(rankedMeps,reverse=True)]
 
