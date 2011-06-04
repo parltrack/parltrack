@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
 <a class="asjson" href="{{url}}?format=json">download as json</a>
-<h2>Members of the European Parliament - {{ d }}</h2>
+<h2>Members of the European Parliament</h2>
+<h3>{%if country or group%}from {{country}}{%if group and country %}/{%endif%}{{group}}{%endif%} as of  {{ d|asdate }}</h3>
+
 <table>
 {% for ranking in rankings %}
 <tr>

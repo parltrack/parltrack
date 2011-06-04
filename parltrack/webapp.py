@@ -29,6 +29,7 @@ from random import randint
 from hashlib import sha1
 from werkzeug import ImmutableDict
 from bson.objectid import ObjectId
+from parltrack.scrapers.ep_meps import groupids, COUNTRIES
 
 Flask.jinja_options = ImmutableDict({'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_', 'jinja2.ext.loopcontrols']})
 app = Flask(__name__)
@@ -149,24 +150,13 @@ def activate():
 #               Meps
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 
-@app.route('/meps/<path:date>')
-def ranking(date):
+def render_meps(query={},kwargs={}):
     from parltrack.views.views import mepRanking
-    rankings=mepRanking(date)
-    if not rankings:
+    date=datetime.now()
+    if request.args.get('date'):
+        date=datetime.strptime(request.args['date'], "%d/%m/%Y")
+    if not query:
         abort(404)
-    if request.args.get('format','')=='json':
-        return jsonify(count=len(rankings),
-                       meps=tojson([z for x,y,z in rankings]))
-    return render_template('mep_ranking.html',
-                           rankings=rankings,
-                           d=date,
-                           url=request.base_url)
-
-@app.route('/group/<string:g_id>/<path:date>')
-def bygroup(g_id, date):
-    from parltrack.views.views import mepRanking
-    query={'Groups.groupid': g_id}
     rankings=mepRanking(date,query)
     if not rankings:
         abort(404)
@@ -175,8 +165,36 @@ def bygroup(g_id, date):
     return render_template('mep_ranking.html',
                            rankings=rankings,
                            d=date,
-                           group=g_id,
-                           url=request.base_url)
+                           url=request.base_url,
+                           **kwargs)
+
+@app.route('/meps/<string:country>/<path:group>')
+def mepfilter(country, group):
+    query={}
+    args={}
+    if group in groupids:
+        query['Groups.groupid']=group
+        args['group']=group
+    if country.upper() in COUNTRIES.keys():
+        query['Constituencies.country']=COUNTRIES[country.upper()]
+        args['country']=COUNTRIES[country.upper()]
+    return render_meps(query, args)
+
+@app.route('/meps/<path:p1>')
+def mepsbygroup(p1):
+    query={}
+    args={}
+    if p1 in groupids:
+        query['Groups.groupid']=p1
+        args['group']=p1
+    elif p1.upper() in COUNTRIES.keys():
+        query['Constituencies.country']=COUNTRIES[p1.upper()]
+        args['country']=COUNTRIES[p1.upper()]
+    return render_meps(query, args)
+
+@app.route('/meps/')
+def ranking():
+    return render_meps()
 
 @app.route('/mep/<string:d_id>')
 def view_mep(d_id):

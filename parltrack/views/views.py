@@ -59,7 +59,6 @@ staff_positions={"President": 7,
                  "Member": 4,
                  }
 def mepRanking(date,query={}):
-    date=datetime.strptime(date, "%d/%m/%Y")
     query.update({"Constituencies.start" : {'$lt': date},
                   "Constituencies.end" : {'$gt': date},
                   })
