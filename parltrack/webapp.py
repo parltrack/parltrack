@@ -75,7 +75,7 @@ def search():
         ret.extend(db.ep_meps.find({'Name.full': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
     if request.args.get('s_dossiers'):
         print q
-        ret.extend(db.dossiers.find({'procedure.reference': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
+        ret.extend(db.dossiers.find({'procedure.title': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
     '''
     if request.headers.get('X-Requested-With'):
         return json.dumps(ret)
