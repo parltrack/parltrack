@@ -27,12 +27,14 @@
     <li><a href="#committees">Committees</a></li>
     <li><a href="#delegations">Delegations</a></li>
     {% if mep.dossiers %}<li><a href="#dossiers">Dossiers</a></li>{%endif%}
-    {% if mep.CV %}<li><a href="#cv">Curriculum Vitae</a></li>{%endif%}
+    <li><a href="#cv">Curriculum Vitae</a></li>
   </ul>
 <div id="general">
 <div class="mepshot">
 <img src="http://www.europarl.europa.eu/mepphoto/{{mep.UserID}}.jpg">
+  <br />
 </div>
+<h3>Constituencies</h3>
 <ul>
 {%for c in mep.Constituencies|sort(attribute='start',reverse=True) %}
   {% if c.end>today%}
@@ -245,14 +247,16 @@
   </ul>
   </div>
 {%endif%}
-{% if mep.CV %}
-  <div id='cv'>
+<div id='cv'>
+  <h3>Born</h3>
+    {{mep.Birth.date|asdate}} {{mep.Birth.place}}
+  {% if mep.CV %}
   <h3>Curriculum Vitae</h3>
   <ul>
     {%for line in mep.CV%}
     <li>{{line}}</li>
     {%endfor%}
   </ul>
-  </div>
-{%endif%}
+  {%endif%}
+</div>
 {% endblock %}
