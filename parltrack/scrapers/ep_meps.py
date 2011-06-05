@@ -104,7 +104,7 @@ def parseMember(userid):
     (d,p)=tmp[-1].split(',',1)
     data['Birth'] = { 'date': datetime.strptime(d, "Born on %d %B %Y"),
                       'place': p.strip() }
-    data['Homepage'] = '' if not len(root.xpath("//td[@class='mepurl']/a/text()")) else root.xpath("//td[@class='mepurl']/a/text()")[0]
+    data['Homepage'] = '' if not len(root.xpath("//td[@class='mepurl']/a/text()")) else root.xpath("//td[@class='mepurl']/a/text()")[0].strip()
     # LOL at HTML source - class="mepmail" -> obfuscation?! =))
     data['Mail'] = unws(''.join(root.xpath("//td[@class='mepmail']//text()")))
     data['Addresses'] = { 'Brussels': getAddress(map(strip, root.xpath("//td[@style='width: 225px; white-space: nowrap;']//text()"))),
