@@ -22,7 +22,7 @@ import os
 import re
 from pymongo import Connection
 from flaskext.mail import Mail, Message
-from flask import Flask, render_template, request, jsonify, abort
+from flask import Flask, render_template, request, jsonify, abort, redirect
 from parltrack import default_settings
 from datetime import datetime
 from random import randint
@@ -93,7 +93,17 @@ def search():
 #               Notifications
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 
-@app.route('/notifications/<string:g_id>')
+@app.route('/notification')
+def gen_notif_id():
+    from random import choice
+    db = connect_db()
+    while True:
+        nid = ''.join([chr(randint(97, 122)) if randint(0, 5) else choice("_-.") for x in range(10)])
+        if not db.notifications.find({'id': nid}):
+            break
+    return redirect('/notification/'+nid)
+
+@app.route('/notification/<string:g_id>')
 def notification_view_or_create(g_id):
     db = connect_db()
     # TODO g_id validation
@@ -104,7 +114,7 @@ def notification_view_or_create(g_id):
     return render_template('view_notif_group.html',
                             group=group)
 
-@app.route('/notifications/<string:g_id>/add/<any(dossiers, emails):item>/<path:value>')
+@app.route('/notification/<string:g_id>/add/<any(dossiers, emails):item>/<path:value>')
 def notification_add_detail(g_id, item, value):
     db = connect_db()
     group = db.notifications.find_one({'id': g_id})
@@ -124,7 +134,7 @@ def notification_add_detail(g_id, item, value):
         msg = Message("Parltrack Notification Subscription Verification",
                 sender = "asdf@localhost",
                 recipients = [value])
-        msg.body = "Your verification key is %sactivate?key=%s\nNotification group url: %snotifications/%s" % (request.url_root, i['token'], request.url_root, g_id)
+        msg.body = "Your verification key is %sactivate?key=%s\nNotification group url: %snotification/%s" % (request.url_root, i['token'], request.url_root, g_id)
         mail.send(msg)
 
     else:
