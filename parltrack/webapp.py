@@ -30,7 +30,7 @@ from hashlib import sha1
 from werkzeug import ImmutableDict
 from bson.objectid import ObjectId
 from parltrack.scrapers.ep_meps import groupids, COUNTRIES
-from parltrack.scrapers.ep_com_meets import COMMITTEES
+from parltrack.scrapers.ep_com_meets import COMMITTEES, COMMITTEE_MAP
 
 Flask.jinja_options = ImmutableDict({'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_', 'jinja2.ext.loopcontrols']})
 app = Flask(__name__)
@@ -247,6 +247,7 @@ def view_committee(c_id):
         return jsonify(tojson(c))
     return render_template('committee.html',
                            committee=c,
+                           Committee=COMMITTEE_MAP[c_id],
                            c=c_id,
                            committees=COMMITTEES,
                            url=request.base_url)
