@@ -28,6 +28,7 @@
     <li><a href="#delegations">Delegations</a></li>
     {% if mep.dossiers %}<li><a href="#dossiers">Dossiers</a></li>{%endif%}
     <li><a href="#cv">Curriculum Vitae</a></li>
+    {% if mep.term7 or mep.term6 %}<li><a href="#activities">Activities</a></li>{%endif%}
   </ul>
 <div id="general">
 <div class="mepshot">
@@ -259,4 +260,29 @@
   </ul>
   {%endif%}
 </div>
+{% if mep.term7 or mep.term6 %}
+  <div id='activities'>
+  <h3>Activities</h3>
+    {% if mep.term7%}
+    <h4>Term 7 14.07.2009 / ...</h4>
+    <ul>
+    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=QP&language=EN&term=7&author={{mep.UserID}}">Questions</a></li>
+    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=MOTION&language=EN&term=7&author={{mep.UserID}}">Motions for resolutions</a></li>
+    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=CRE&language=EN&term=7&author={{mep.UserID}}">Speeches in plenary</a></li>
+    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=WDECL&language=EN&term=7&author={{mep.UserID}}">Written declarations</a></li>
+    </ul>
+    {%endif%}
+    {% if mep.term6%}
+    <h4>Term 6 20.07.2004 - 13.07.2009</h4>
+    <ul>
+    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=QP&language=EN&term=6&author={{mep.UserID}}">Questions</a></li>
+    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=MOTION&language=EN&term=6&author={{mep.UserID}}">Motions for resolutions</a></li>
+    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=CRE&language=EN&term=6&author={{mep.UserID}}">Speeches in plenary</a></li>
+    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=WDECL&language=EN&term=6&author={{mep.UserID}}">Written declarations</a></li>
+    <li><a href="http://www.europarl.europa.eu/mepatt/leg6/{{mep.UserID}}.pdf">Attendance List</a> (pdf)</li>
+    </ul>
+    {%endif%}
+    All references link to europarl.eu
+  </div>
+{%endif%}
 {% endblock %}
