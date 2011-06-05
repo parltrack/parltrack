@@ -42,3 +42,7 @@ li .has_summary, .more { cursor: pointer; padding-left: 0px; font-size: 1em; col
 .asjson { font-size: .7em; float: right; }
 #legal { width: 100%; text-align: center; color: black; }
 #legal a, #legal a:visited { color: white; }
+
+.ui-widget-header { background: #EFEFEF !important; border: 0 !important; }
+.ui-widget-content a { color: #1A67B8 !important; text-decoration: none; }
+.ui-widget-content a:hover { color: #1A67B8 !important; text-decoration: underline; }
