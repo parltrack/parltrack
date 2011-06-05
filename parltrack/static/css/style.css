@@ -32,6 +32,7 @@ ul.dropdown li:hover > div { visibility: visible; }
 .hidden { display: none; }
 dl, dd, dt { vertical-align:top;}
 dt { display: inline-block; width: 80px; }
+dd { display: inline-block; }
 .mepshot { float: right; }
 
 #search_input { width: 200px; }
