@@ -29,6 +29,7 @@ import urllib2, sys, subprocess, re, os, json
 from parltrack.environment import connect_db
 from bson.objectid import ObjectId
 
+db = connect_db()
 datere=re.compile(r'^([0-9]{1,2} \w+ [0-9]{4}, [0-9]{2}\.[0-9]{2})(?: . [0-9]{2}\.[0-9]{2})?.*')
 block_start=re.compile(r'^([0-9]+)\. {,10}(.*)')
 fields=[(re.compile(r'^ {,10}Rapporteur: {3,}(.*)'),"Rapporteur"),
@@ -41,6 +42,55 @@ fields=[(re.compile(r'^ {,10}Rapporteur: {3,}(.*)'),"Rapporteur"),
 misc_block=re.compile(u'^ {,10}\uf0b7 {3,}(.*)')
 opinon_junk=re.compile(r'^ {,10}opinion: {3,}(.*)')
 comref_re=re.compile(r' {3,}(COM\([0-9]{4}\)[0-9]{4})')
+COMMITTEES=db.ep_com_meets.distinct('committee')
+COMMITTEE_MAP={'AFET': "Foreign Affairs",
+               'DROI': "Human Rights",
+               'SEDE': "Security and Defence",
+               'DEVE': "Development",
+               'INTA': "International Trade",
+               'BUDG': "Budgets",
+               'CONT': "Budgetary Control",
+               'ECON': "Economic and Monetary Affairs",
+               'EMPL': "Employment and Social Affairs",
+               'ENVI': "Environment, Public Health and Food Safety",
+               'ITRE': "Industry, Research and Energy",
+               'IMCO': "Internal Market and Consumer Protection",
+               'TRAN': "Transport and Tourism",
+               'REGI': "Regional Development",
+               'AGRI': "Agriculture and Rural Development",
+               'PECH': "Fisheries",
+               'CULT': "Culture and Education",
+               'JURI': "Legal Affairs",
+               'LIBE': "Civil Liberties, Justice and Home Affairs",
+               'AFCO': "Constitutional Affairs",
+               'FEMM': "Women's Rights and Gender Equality",
+               'PETI': "Petitions",
+               'CRIS': "Financial, Economic and Social Crisis",
+               'SURE': "Policy Challenges Committee",
+               'Foreign Affairs': 'AFET',
+               'Human Rights': 'DROI',
+               'Security and Defence': 'SEDE',
+               'Development': 'DEVE',
+               'International Trade': 'INTA',
+               'Budgets': 'BUDG',
+               'Budgetary Control': 'CONT',
+               'Economic and Monetary Affairs': 'ECON',
+               'Employment and Social Affairs': 'EMPL',
+               'Environment, Public Health and Food Safety': 'ENVI',
+               'Industry, Research and Energy': 'ITRE',
+               'Internal Market and Consumer Protection': 'IMCO',
+               'Transport and Tourism': 'TRAN',
+               'Regional Development': 'REGI',
+               'Agriculture and Rural Development': 'AGRI',
+               'Fisheries': 'PECH',
+               'Culture and Education': 'CULT',
+               'Legal Affairs': 'JURI',
+               'Civil Liberties, Justice and Home Affairs': 'LIBE',
+               'Constitutional Affairs': 'AFCO',
+               "Women's Rights and Gender Equality": 'FEMM',
+               'Petitions': 'PETI',
+               'Financial, Economic and Social Crisis': 'CRIS',
+               'Policy Challenges Committee': 'SURE'}
 
 def fetch(url):
     # url to etree
@@ -89,7 +139,7 @@ def scrape(comid, url):
                 if meeting_date:
                     issue['meeting_date']=meeting_date
                 res.append(issue)
-            issue={'committee': comid,'seq no': m.group(1), 'src': url}
+            issue={'committee': comid,'seq_no': int(m.group(1)), 'src': url}
             ax=['title', m.group(2)]
             continue
         # ignore all lines not in agenda items
@@ -129,9 +179,10 @@ def scrape(comid, url):
             elif ax[0]=='title':
                 m=comref_re.search(line)
                 if m:
-                    issue['comref']=m.group(1)
+                    issue['comdoc']=m.group(1)
                     dossier=db.dossiers.find_one({'procedure.reference': "COM/%s/%s" % (m.group(1)[4:8], m.group(1)[9:13])})
                     if dossier:
+                        issue['comdoc']="COM/%s/%s" % (m.group(1)[4:8], m.group(1)[9:13])
                         issue['comref']=dossier['_id']
                     else:
                         dossier=db.dossiers.find_one({'activities.documents.title': m.group(1)})
@@ -181,7 +232,7 @@ def crawl(db):
                 print >>sys.stderr, 'url', url
                 raise
             for item in data:
-                q={'src': url, 'seq no': item['seq no']}
+                q={'src': url, 'seq_no': item['seq_no']}
                 db.ep_com_meets.update(q, {"$set": item}, upsert=True)
             result.append(data)
         else:
@@ -309,7 +360,6 @@ def scrapOp(text):
 
 
 if __name__ == "__main__":
-    db = connect_db()
     crawl(db)
     #print json.dumps(scrape('LIBE','http://www.europarl.europa.eu/meetdocs/2009_2014/documents/libe/oj/867/867690/867690en.pdf'),indent=1,default=dateJSONhandler)
     # find some tabling dates: db.ep_com_meets.find({'tabling_deadline' : { $exists : true }}).sort({'tabling_deadline': -1})
