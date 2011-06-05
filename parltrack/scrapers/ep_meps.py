@@ -65,9 +65,9 @@ def getAddress(txts):
             flag = 2
             continue
         if flag == 1:
-            ret['Phone'] = addr
+            ret['Phone'] = addr[1:].strip()
         elif flag == 2:
-            ret['Fax'] = addr
+            ret['Fax'] = addr[1:].strip()
         else:
             ret['Address'].append(addr)
     if len(ret['Address'])==7:
