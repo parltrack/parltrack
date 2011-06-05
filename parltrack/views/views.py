@@ -47,6 +47,7 @@ group_positions={u'Chair': 10,
                  u'Member of the Bureau': 2,
                  u'Treasurer': 2,
                  u'Co-treasurer': 1,
+                 u'Deputy Treasurer': 1,
                  u'Member': 0,
                  }
 com_positions={"Chair": 4,
