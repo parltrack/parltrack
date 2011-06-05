@@ -51,8 +51,9 @@ def get_data_dir():
     return data_dir
 
 @app.context_processor
-def inject_date():
-    return dict(now_date=datetime.now())
+def inject_data():
+    return dict(now_date=datetime.now(),
+                committees=COMMITTEES)
 
 @app.route('/')
 def index():
@@ -85,7 +86,6 @@ def search():
         if 'Name' in ret[0]:
             return view_mep(ret[0]['Name']['full'])
     return render_template('search_results.html', query=q,
-                           committees=COMMITTEES,
                            results=ret)
 
 
@@ -102,7 +102,6 @@ def notification_view_or_create(g_id):
         group = {'id': g_id, 'active_emails': [], 'dossiers': [], 'restricted': False, 'actions' :[]}
         db.notifications.save(group)
     return render_template('view_notif_group.html',
-                            committees=COMMITTEES,
                             group=group)
 
 @app.route('/notifications/<string:g_id>/add/<any(dossiers, emails):item>/<path:value>')
@@ -174,7 +173,6 @@ def render_meps(query={},kwargs={}):
                            rankings=rankings,
                            d=date,
                            url=request.base_url,
-                           committees=COMMITTEES,
                            **kwargs)
 
 @app.route('/meps/<string:country>/<path:group>')
@@ -217,7 +215,6 @@ def view_mep(d_id):
                            mep=m,
                            d=d_id,
                            today=datetime.now(),
-                           committees=COMMITTEES,
                            url=request.base_url)
 
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
@@ -235,7 +232,6 @@ def view_dossier(d_id):
     return render_template('dossier.html',
                            dossier=d,
                            d=d_id,
-                           committees=COMMITTEES,
                            url=request.base_url)
 
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
@@ -254,7 +250,6 @@ def view_committee(c_id):
                            committee=c,
                            Committee=COMMITTEE_MAP[c_id],
                            c=c_id,
-                           committees=COMMITTEES,
                            url=request.base_url)
 
 @app.template_filter()
