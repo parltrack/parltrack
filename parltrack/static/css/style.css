@@ -37,6 +37,7 @@ dd { display: inline-block; }
 .mepshot { float: right; }
 
 #search_input { width: 200px; }
+.right { text-align: right; }
 
 .votes thead td { width: 5em; }
 .has_summary, .more { cursor: pointer; padding-left: 40px; font-size: .7em; color: #454545; }

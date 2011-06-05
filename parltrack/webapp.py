@@ -99,9 +99,9 @@ def gen_notif_id():
     db = connect_db()
     while True:
         nid = ''.join([chr(randint(97, 122)) if randint(0, 5) else choice("_-.") for x in range(10)])
-        if not db.notifications.find({'id': nid}):
+        if not db.notifications.find({'id': nid}).count():
             break
-    return redirect('/notification/'+nid)
+    return '/notification/'+nid
 
 @app.route('/notification/<string:g_id>')
 def notification_view_or_create(g_id):
@@ -124,8 +124,10 @@ def notification_add_detail(g_id, item, value):
     #if group.restricted:
     #    return 'restricted group'
     if item == 'emails':
+        if db.notifications.find({'id': item}).count():
+            return 'already subscribed'
         item = 'actions'
-        # TODO validation, mail sending
+        # TODO validation
         addr = db.notifications.find_one({'actions.address': value})
         if addr:
             # or just return with OK?! -> more privacy but harder debug

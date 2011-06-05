@@ -2,21 +2,48 @@
 {% block scripts %}
 <script type="text/javascript">
      $(document).ready(function() {
-       $('#ranking_date').click(function() {
-        if($(this).attr('value') == 'DD/MM/YYYY') $(this).attr('value', '');
-       });
-       $('#ranking_form').submit(function() {
-        window.location = '/meps/'+$('#ranking_date').attr('value');
-        return false;
-       });
        $('.has_summary').click(function() {
-        $(this).next().toggleClass('hidden');
+        $(this).next('div').toggleClass('hidden');
        });
-		 $( "#tabs" ).tabs();
+       $('#track_dossier').click(function() {
+           $('#notif_subscr').toggle();
+           return false;
+       });
+       $( "#tabs" ).tabs();
+       $('#notif_form').submit(function() {
+            var group = $(this).children('input:eq(1)').attr('value');
+            if(!group) {
+                $.ajax({url: '/notification', success: function(data) { group = data;
+                    $.ajax({url: group, success: function(data) {
+                        $.ajax({url: group+'/add/emails/'+$('#notif_form').children('input:first').attr('value'), success: function(data) { $('#notif_subscr h3').html(data); }});
+                        $.ajax({url: group+'/add/dossiers/'+$('#content > h2:first').html()});
+                    }});
+                }});
+            } else {
+                $.ajax({url: '/notification/'+group+'/add/emails/'+$('#notif_form').children('input:first').attr('value'), success: function(data) {
+                    $('#notif_subscr h3').html(data);
+                }});
+                $.ajax({url: '/notification/'+group+'/add/dossiers/'+$('#content > h2:first').html()});
+            }
+            return false;
+       });
      });
     </script>
 {% endblock %}
 {% block content %}
+<a class="asjson" href="/notification" id="track_dossier">Track this dossier</a><br />
+<div class="hidden right" id="notif_subscr">
+<h3>Notification subscription</h3>
+<p>
+    <form method="get" action="" name="notif_form" id="notif_form">
+    E-mail: <input type="text" name="address" /><br />
+    //required<br />
+    Notification group: <input type="text" name="group" /><br />
+    //generated if empty<br />
+    <input type="submit" value="subscribe" />
+    </form>
+</p>
+</div>
 <a class="asjson" href="{{url}}?format=json">download as json</a>
 <h2>{{ dossier.procedure.reference }}</h2>
 <p>{{dossier.procedure.title}}</p>
