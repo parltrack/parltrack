@@ -175,7 +175,16 @@ def committee(id):
     agendas=db.ep_com_meets.find({'committee': id, 'meeting_date': { '$exists': True}}).sort([('meeting_date', pymongo.DESCENDING), ('seq no', pymongo.ASCENDING)])
     # get dossiers
     comre=re.compile(COMMITTEE_MAP[id],re.I)
-    dossiers=db.dossiers.find({'activities.actors.commitee': comre, 'procedure.stage_reached': {'$in': STAGES}})
+    dossiers=[]
+    for d in db.dossiers.find({'activities.actors.commitee': comre, 'procedure.stage_reached': {'$in': STAGES}}):
+        for a in d['activities']:
+            for c in a.get('actors',{}):
+                if type(c)!=type(dict()):
+                    continue
+                if comre.search(c.get('commitee','')):
+                    d['crole']=0 if c.get('responsible',False) else 1
+                    dossiers.append(d)
+                    break
     # get members of committee
     date=datetime.now()
     query={"Committees.start" : {'$lt': date},
