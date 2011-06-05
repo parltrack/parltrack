@@ -183,7 +183,7 @@ def committee(id):
                     continue
                 if comre.search(c.get('commitee','')):
                     d['crole']=0 if c.get('responsible',False) else 1
-                    dossiers.append(d)
+                    if d not in dossiers: dossiers.append(d)
                     break
     # get members of committee
     date=datetime.now()
