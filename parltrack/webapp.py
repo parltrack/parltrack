@@ -30,6 +30,7 @@ from hashlib import sha1
 from werkzeug import ImmutableDict
 from bson.objectid import ObjectId
 from parltrack.scrapers.ep_meps import groupids, COUNTRIES
+from parltrack.scrapers.ep_com_meets import COMMITTEES
 
 Flask.jinja_options = ImmutableDict({'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_', 'jinja2.ext.loopcontrols']})
 app = Flask(__name__)
@@ -83,7 +84,9 @@ def search():
             return view_dossier(ret[0]['procedure']['reference'])
         if 'Name' in ret[0]:
             return view_mep(ret[0]['Name']['full'])
-    return render_template('search_results.html', query=q, results=ret)
+    return render_template('search_results.html', query=q,
+                           committees=COMMITTEES,
+                           results=ret)
 
 
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
@@ -98,7 +101,9 @@ def notification_view_or_create(g_id):
     if not group:
         group = {'id': g_id, 'active_emails': [], 'dossiers': [], 'pending_emails': [], 'restricted': False}
         db.notifications.save(group)
-    return render_template('view_notif_group.html', group=group)
+    return render_template('view_notif_group.html',
+                            committees=COMMITTEES,
+                            group=group)
 
 @app.route('/notifications/<string:g_id>/add/<any(dossiers, pending_emails):item>/<path:value>')
 def notification_add_detail(g_id, item, value):
@@ -166,6 +171,7 @@ def render_meps(query={},kwargs={}):
                            rankings=rankings,
                            d=date,
                            url=request.base_url,
+                           committees=COMMITTEES,
                            **kwargs)
 
 @app.route('/meps/<string:country>/<path:group>')
@@ -208,6 +214,7 @@ def view_mep(d_id):
                            mep=m,
                            d=d_id,
                            today=datetime.now(),
+                           committees=COMMITTEES,
                            url=request.base_url)
 
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
@@ -225,6 +232,25 @@ def view_dossier(d_id):
     return render_template('dossier.html',
                            dossier=d,
                            d=d_id,
+                           committees=COMMITTEES,
+                           url=request.base_url)
+
+#-[+++++++++++++++++++++++++++++++++++++++++++++++|
+#              Committees
+#-[+++++++++++++++++++++++++++++++++++++++++++++++|
+
+@app.route('/committee/<string:c_id>')
+def view_committee(c_id):
+    from parltrack.views.views import committee
+    c=committee(c_id)
+    if not c:
+        abort(404)
+    if request.args.get('format','')=='json':
+        return jsonify(tojson(c))
+    return render_template('committee.html',
+                           committee=c,
+                           c=c_id,
+                           committees=COMMITTEES,
                            url=request.base_url)
 
 @app.template_filter()

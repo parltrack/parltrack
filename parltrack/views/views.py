@@ -19,11 +19,13 @@
 
 import sys, unicodedata
 from datetime import datetime
+import pymongo, re
+from parltrack.scrapers.ep_com_meets import COMMITTEE_MAP
+from parltrack.scrapers.new_dossiers import STAGES
 try:
     from parltrack.webapp import connect_db
     db = connect_db()
 except:
-    import pymongo
     db=pymongo.Connection().parltrack
 
 def mepsInGroups(group, date):
@@ -168,9 +170,34 @@ def mep(id):
     mep['dossiers']=docs
     return mep
 
+def committee(id):
+    # get agendas
+    agendas=db.ep_com_meets.find({'committee': id, 'meeting_date': { '$exists': True}}).sort([('meeting_date', pymongo.DESCENDING), ('seq no', pymongo.ASCENDING)])
+    # get dossiers
+    comre=re.compile(COMMITTEE_MAP[id],re.I)
+    dossiers=db.dossiers.find({'activities.actors.commitee': comre, 'procedure.stage_reached': {'$in': STAGES}})
+    # get members of committee
+    date=datetime.now()
+    query={"Committees.start" : {'$lt': date},
+           "Committees.end" : {'$gt': date},
+           "Committees.Organization": comre,
+           }
+    rankedMeps=[]
+    for mep in db.ep_meps.find(query):
+        for c in mep['Committees']:
+            if c['start']<date and c['end']>date and comre.search(c['Organization']):
+                score=com_positions[c['role']]
+                mep['crole']=c['role']
+                rankedMeps.append((score,mep))
+                break
+    return {'meps': [x for _,x in sorted(rankedMeps,reverse=True)],
+            'dossiers': dossiers,
+            'agendas': agendas}
+
 if __name__ == "__main__":
     dossier('COD/2007/0247')
     date='24/11/2010'
+    print committee('LIBE')
     #date='02/06/2011'
     #groups=['PPE','S&D','ALDE','Verts/ALE','GUE/NGL','NI','EFD','ECR']
     #groupstrengths=[mepsInGroups(x,date) for x in groups]
