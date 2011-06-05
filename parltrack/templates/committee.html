@@ -11,11 +11,11 @@
 <h2>{{Committee}} ({{c}})</h2>
 <div id="tabs">
   <ul>
-    <li><a href="#tabs-1">Meetings</a></li>
-    <li><a href="#tabs-2">Dossiers</a></li>
-    <li><a href="#tabs-3">Members</a></li>
+    <li><a href="#meetings">Meetings</a></li>
+    <li><a href="#dossiers">Dossiers</a></li>
+    <li><a href="#members">Members</a></li>
   </ul>
-<div id="tabs-1">
+<div id="meetings">
 {%for group in committee.agendas|groupby('meeting_date') %}
 <h3>{{group.grouper}}</h3><ul>
   {% for meet in group.list %}
@@ -29,7 +29,7 @@
  <h3>No agenda known</h3>
 {%endfor%}
 </div>
-<div id="tabs-2">
+<div id="dossiers">
   {%for grp in committee.dossiers|groupby('crole') %}
   <h3>{% if grp.grouper == 0%}Responsible{%else%}Opinion{%endif%}</h3>
   <ul>
@@ -43,7 +43,7 @@
   </ul>
   {%endfor%}
 </div>
-<div id="tabs-3">
+<div id="members">
   {%for group in committee.meps|groupby('crole') %}
     <h3>{{group.grouper}}</h3><ul>
       {% for mep in group.list|sort(attribute='Name.full') %}{% if not loop.first %}, {%endif%}<a href="/mep/{{mep.Name.full}}">{{mep.Name.full}}</a></li>{%endfor%}
