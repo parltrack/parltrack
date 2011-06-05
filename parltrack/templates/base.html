@@ -35,7 +35,7 @@
         if($(this).attr('value') == 'DD/MM/YYYY') $(this).attr('value', '');
        });
        $('#ranking_form').submit(function() {
-        window.location = '/meps/'+$('#ranking_date').attr('value');
+        window.location = '/meps/?date='+$('#ranking_date').attr('value');
         return false;
        });
      });
@@ -52,7 +52,7 @@
    <div id="menu">
     <ul class="dropdown dropdown-horizontal">
      <li><a href="/">Home</a></li>
-     <li><a href="/meps/{{ now_date.strftime('%d/%m/%Y') }}">MEPs</a>
+     <li><a href="/meps/?date={{ now_date.strftime('%d/%m/%Y') }}">MEPs</a>
       <div>
        <p>Click for today's ranking</p>
        <form method="get" action="/meps/" id="ranking_form">

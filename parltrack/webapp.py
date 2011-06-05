@@ -160,8 +160,6 @@ def render_meps(query={},kwargs={}):
     date=datetime.now()
     if request.args.get('date'):
         date=datetime.strptime(request.args['date'], "%d/%m/%Y")
-    if not query:
-        abort(404)
     rankings=mepRanking(date,query)
     if not rankings:
         abort(404)
