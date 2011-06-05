@@ -223,4 +223,12 @@
     {%endfor%}
   </ul>
 {%endif%}
+{% if mep.CV %}
+  <h3>Curriculum Vitae</h3>
+  <ul>
+    {%for line in mep.CV%}
+    <li>{{line}}</li>
+    {%endfor%}
+  </ul>
+{%endif%}
 {% endblock %}
