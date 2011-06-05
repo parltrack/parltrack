@@ -65,7 +65,7 @@
 {%for c in mep.Groups|sort(attribute='start',reverse=True) %}
   {% if c.end>today%}
     <li>
-    {{c.groupid}}
+    {% if c.groupid.__iter__ %}{{c.groupid.0}}{%else%}{{c.groupid}}{%endif%}
     {{c.role}}
     {%if c.group%}{{c.group}}{%else%}{{c.Organization}}{%endif%}
     {{c.start|asdate}} - ...
