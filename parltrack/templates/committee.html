@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block scripts %}
+<script>
+	$(function() {
+		$( "#tabs" ).tabs();
+	});
+</script>
+{% endblock %}
+{% block content %}
+<a class="asjson" href="{{url}}?format=json">download as json</a>
+<h2>{{c}}</h2>
+<div id="tabs">
+  <ul>
+    <li><a href="#tabs-1">Meetings</a></li>
+    <li><a href="#tabs-2">Dossiers</a></li>
+    <li><a href="#tabs-3">Members</a></li>
+  </ul>
+<div id="tabs-1">
+{%for group in committee.agendas|groupby('meeting_date') %}
+<h3>{{group.grouper}}</h3><ul>
+  {% for meet in group.list %}
+    <li>{{meet.title}}
+      {%if meet.comdoc %}<a href="/dossier/{{meet.comdoc}}">{{meet.comdoc}}</a>{%endif%}
+      {%if meet.tabling_deadline %}<div><strong>Tabling Deadline</strong> {{meet.tabling_deadline}}</div>{%endif%}
+    </li>
+  {%endfor%}
+  </ul>
+{% else %}
+ <h3>No agenda known</h3>
+{%endfor%}
+</div>
+<div id="tabs-2">
+  {%for grp in committee.dossiers|groupby('crole') %}
+  <h3>{% if grp.grouper == 0%}Responsible{%else%}Opinion{%endif%}</h3>
+  <ul>
+  {%for group in grp.list|groupby('procedure.stage_reached') %}
+    <li>{{group.grouper}}<ul>
+       {% for dossier in group.list %}
+       <li><a href="/dossier/{{dossier.procedure.reference}}">{{dossier.procedure.reference}}</a> {{dossier.procedure.title}}</li>
+       {% endfor %}
+    </ul></li>
+  {%endfor%}
+  </ul>
+  {%endfor%}
+</div>
+<div id="tabs-3">
+  {%for group in committee.meps|groupby('crole') %}
+    <h3>{{group.grouper}}</h3><ul>
+      {% for mep in group.list|sort(attribute='Name.full') %}{% if not loop.first %}, {%endif%}<a href="/mep/{{mep.Name.full}}">{{mep.Name.full}}</a></li>{%endfor%}
+      </ul>
+  {%endfor%}
+</div>
+{% endblock %}
+
