@@ -12,13 +12,24 @@
        $('.more').click(function() {
         $(this).next().toggleClass('hidden');
        });
+		 $( "#tabs" ).tabs();
      });
     </script>
 {% endblock %}
 {% block content %}
-<div class="mepshot">
 <a class="asjson" href="{{url}}?format=json">download as json</a>
-  <br/>
+<br style="clear: both" />
+<div id="tabs">
+  <ul>
+    <li><a href="#general">General</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#committees">Committees</a></li>
+    <li><a href="#delegations">Delegations</a></li>
+    {% if mep.dossiers %}<li><a href="#dossiers">Dossiers</a></li>{%endif%}
+    {% if mep.CV %}<li><a href="#cv">Curriculum Vitae</a></li>{%endif%}
+  </ul>
+<div id="general">
+<div class="mepshot">
 <img src="http://www.europarl.europa.eu/mepphoto/{{mep.UserID}}.jpg">
 </div>
 <h2>{{ mep.Name.full }}</h2>
@@ -112,7 +123,9 @@
 {% endfor %}
 </ul>
 {% endif %}
+</div>
 
+<div id="committees">
 <h3>Committees</h3>
 <ul>
 {%for c in mep.Committees|sort(attribute='start',reverse=True) %}
@@ -141,7 +154,10 @@
   {% endif %}
 {% endfor %}
 </ul>
+</div>
+
 {% if 'Addresses' in mep %}
+<div id="contact">
 <h3>Contact</h3>
 {% if mep.Homepage or mep.Mail%}
 <h4>Online</h4>
@@ -186,7 +202,10 @@
   {%endfor%}
   </ul>
 </ul>
+</div>
 {%endif%}
+
+<div id="delegations">
 <h3>Delegations</h3>
 <ul>
 {%for c in mep.Delegations|sort(attribute='start',reverse=True) %}
@@ -215,20 +234,25 @@
   {% endif %}
 {% endfor %}
 </ul>
+</div>
 {% if mep.dossiers %}
+  <div id='dossiers'>
   <h3>Rapporteur</h3>
   <ul>
     {%for doc,resp in mep.dossiers%}
     <li>{%if not resp%}(shadow){%endif%} <a href="/dossier/{{doc.procedure.reference}}">{{doc.procedure.reference}}</a> {{doc.procedure.title}}</li>
     {%endfor%}
   </ul>
+  </div>
 {%endif%}
 {% if mep.CV %}
+  <div id='cv'>
   <h3>Curriculum Vitae</h3>
   <ul>
     {%for line in mep.CV%}
     <li>{{line}}</li>
     {%endfor%}
   </ul>
+  </div>
 {%endif%}
 {% endblock %}
