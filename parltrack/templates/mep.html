@@ -135,7 +135,8 @@
    {% if c.end>today%}
    <li>
     {{c.role}} of
-    {{c.Organization}}
+    {% if c.Organization|length == 4 %}<a href="/committee/{{c.Organization}}">{{c.Organization}}</a>
+    {%else%}<a href="/committee/{{committee_map[c.Organization]}}">{{c.Organization}}</a>{%endif%}
     {{c.start|asdate}} - ...
   </li>
   {%endif%}
@@ -151,7 +152,8 @@
   {% if c.end<=today%}
     <li>
     {{c.role}} of
-    {{c.Organization}}
+    {% if c.Organization|length == 4 %}<a href="/committee/{{c.Organization}}">{{c.Organization}}</a>
+    {%else%}<a href="/committee/{{committee_map[c.Organization]}}">{{c.Organization}}</a>{%endif%}
     {{c.start|asdate}} - {{c.end|asdate}}
   </li>
   {% endif %}

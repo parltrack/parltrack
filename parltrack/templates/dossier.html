@@ -64,12 +64,16 @@
 {% if dossier.comeets %}
 <h3>Committees</h3>
   {% for committee in dossier.comeets%}
-    {{committee.committee}} meets on {{ committee.meeting_date|asdate }}
+    {% if committee|length == 4 %}<a href="/committee/{{committee}}">{{committee.committee}}</a>
+    {%else%}<a href="/committee/{{committee_map[committee]}}">{{committee.committee}}</a>{%endif%}
+    meets on {{ committee.meeting_date|asdate }}
     <div>{{committee.title}}</div>
     {%if 'tabling_deadline' in committee%}<div><strong>Tabling deadline</strong> {{committee.tabling_deadline}}</div>{%endif%}
     {%if 'Rapporteur' in committee%}
     <dl><dt>Rapporteur</dt><dd>
-      {{committee.committee}}: {%for mep in committee.Rapporteur.rapporteurs%}
+      {% if committee|length == 4 %}<a href="/committee/{{committee}}">{{committee.committee}}</a>
+      {%else%}<a href="/committee/{{committee_map[committee]}}">{{committee.committee}}</a>{%endif%}:
+      {%for mep in committee.Rapporteur.rapporteurs%}
          <a href="/mep/{{mep.Name.full}}">{{mep.Name.full}}</a>
       {%endfor%}
     </dd></dl>
@@ -77,7 +81,8 @@
     {%if 'Opinions' in committee%}
     <dl><dt>Opinions</dt><dd>
       {% for com in committee.Opinions %}
-      {{com.committee}}:
+        {% if com|length == 4 %}<a href="/committee/{{com}}">{{com.committee}}</a>
+        {%else%}<a href="/committee/{{committee_map[com]}}">{{com.committee}}</a>{%endif%}:
         {%for mep in com.rapporteurs%}
           <a href="/mep/{{mep.Name.full}}">{{mep.Name.full}}</a>
         {%endfor%}
@@ -98,10 +103,12 @@
   <ul>{%for agent in dossier.procedure.agents%}
      <li>
        {%if agent.responsible%}
-          <strong>{{agent.commitee}}</strong>
+          <strong>{% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
+            {%else%}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>{%endif%}</strong>
           {%if dossier.procedure.dossier_of_the_committee %}{{dossier.procedure.dossier_of_the_committee}}{%endif%}
        {%else%}
-          {{agent.commitee}}
+          {% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
+          {%else%}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>{%endif%}
        {%endif%}
        {%if agent.name%}<a href="/mep/{{agent.name}}">{{agent.name}}</a>{%endif%}
        {%if agent.group%}{{agent.group}}{%endif%}
@@ -123,10 +130,12 @@
         {%if agent.function == "MEP" %}
            <li>
              {%if agent.responsible%}
-                <strong>{{agent.commitee}}</strong>
+                <strong>{% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
+                {%else%}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>{%endif%}</strong>
                 {%if dossier.procedure.dossier_of_the_committee %}{{dossier.procedure.dossier_of_the_committee}}{%endif%}
              {%else%}
-                {{agent.commitee}}
+                {% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
+                {%else%}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>{%endif%}
              {%endif%}
              {%if agent.name%}<a href="/mep/{{agent.name}}">{{agent.name}}</a>{%endif%}
              {%if agent.group%}{{agent.group}}{%endif%}

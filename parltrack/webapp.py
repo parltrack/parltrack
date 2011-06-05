@@ -53,7 +53,9 @@ def get_data_dir():
 @app.context_processor
 def inject_data():
     return dict(now_date=datetime.now(),
-                committees=COMMITTEES)
+                committees=COMMITTEES,
+                committee_map=COMMITTEE_MAP,
+                )
 
 @app.route('/')
 def index():
@@ -239,6 +241,7 @@ def view_dossier(d_id):
     d=dossier(d_id)
     if not d:
         abort(404)
+    print d
     if request.args.get('format','')=='json':
         return jsonify(tojson(d))
     return render_template('dossier.html',
