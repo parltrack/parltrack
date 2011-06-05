@@ -65,7 +65,7 @@
           <ul>{%for c in committees|sort%}<li><a href="/committee/{{c}}">{{c}}</a></li>{%endfor%}</ul>
        </div>
      </li>
-     <li><a href="/search">Search</a>
+     <li><a>Search</a>
      <div id="search"><form action="/search" method="GET">MEPs:<input type="checkbox" checked="checked" name="s_meps"/> Dossiers:<input type="checkbox" checked="checked" name="s_dossiers"/><br /><input type="text" value="//search" id="search_input" name="q"/></form></div>
      </li>
     </ul>
