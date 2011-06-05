@@ -120,7 +120,7 @@
              <a class="has_summary">{{doc.title}}</a>
              <div class="hidden" id="{{doc.title}}-summary">
                {%for line in doc.summary %}
-               {{line|safe}}
+               {{line|striptags}}
                {%endfor%}
              </div>
           {%else%}
@@ -146,7 +146,7 @@
          {{doc.type}}
          <div class="hidden" id="{{doc.title}}-summary">
            {%for line in doc.summary %}
-           {{line|safe}}
+           {{line|striptags}}
            {%endfor%}
          </div>
       {%else%}
