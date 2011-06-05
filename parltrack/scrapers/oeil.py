@@ -33,7 +33,8 @@ except:
     db=pymongo.Connection().parltrack
 from bson.objectid import ObjectId
 
-db.oeil.ensure_index([('reference.procedure', 1)])
+db.oeil.ensure_index([('procedure.reference', 1)])
+db.oeil.ensure_index([('procedure.title', 1)])
 db.oeil.ensure_index([('activities.actors.mepref', 1)])
 db.oeil.ensure_index([('activities.actors.commitee', 1)])
 
