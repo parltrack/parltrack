@@ -9,6 +9,7 @@ input { border: 1px solid #CDCDCD; color: #777777;}
 #menu { background: url('/static/images/menu_bg.png') repeat-x; height: 29px; clear: both; font-size: 12px; }
 #menu ul { list-style-type: none; margin: 0; padding: 0; }
 #menu a { color: #FFFFFF; text-decoration: none; float: left; line-height: 29px; text-align: center; padding: 0 20px; border-right: 1px solid #454545;}
+#menu div a { color: #000; text-decoration: none; float: left; border: 0;}
 #menu a:hover { background: #F7F7F7; color: #000000; }
 #menu li div { visibility: hidden; }
 #menu li:hover > div { visibility: visible; }
@@ -25,6 +26,7 @@ ul.dropdown li { float: left; vertical-align: middle; zoom: 1; z-index: 599; }
 ul.dropdown li.hover, ul.dropdown li:hover { position: relative; z-index: 599; cursor: default; }
 ul.dropdown div { visibility: hidden; position: absolute; top: 100%; left: -2px; z-index: 598; width: 100%; background: #F7F7F7; padding: 10px; min-width: 300px; border: 2px solid #454545; }
 ul.dropdown ul li { clear: both; min-width: 130px; }
+ul.dropdown div ul li { clear: both; min-width: 0px; }
 ul.dropdown ul li a { font-size: 0.8em; }
 ul.dropdown li:hover > div { visibility: visible; }
 .hidden { display: none; }
