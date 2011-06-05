@@ -99,13 +99,13 @@ def notification_view_or_create(g_id):
     # TODO g_id validation
     group = db.notifications.find_one({'id': g_id})
     if not group:
-        group = {'id': g_id, 'active_emails': [], 'dossiers': [], 'pending_emails': [], 'restricted': False}
+        group = {'id': g_id, 'active_emails': [], 'dossiers': [], 'restricted': False, 'actions' :[]}
         db.notifications.save(group)
     return render_template('view_notif_group.html',
                             committees=COMMITTEES,
                             group=group)
 
-@app.route('/notifications/<string:g_id>/add/<any(dossiers, pending_emails):item>/<path:value>')
+@app.route('/notifications/<string:g_id>/add/<any(dossiers, emails):item>/<path:value>')
 def notification_add_detail(g_id, item, value):
     db = connect_db()
     group = db.notifications.find_one({'id': g_id})
@@ -114,17 +114,18 @@ def notification_add_detail(g_id, item, value):
     # TODO handle restricted groups
     #if group.restricted:
     #    return 'restricted group'
-    if item == 'pending_emails':
+    if item == 'emails':
+        item = 'actions'
         # TODO validation, mail sending
-        addr = db.notifications.find_one({'pending_emails.address': value})
+        addr = db.notifications.find_one({'actions.address': value})
         if addr:
             # or just return with OK?! -> more privacy but harder debug
             return 'Already subscribed'
-        i = {'address': value, 'token': sha1(''.join([chr(randint(32, 122)) for x in range(12)])).hexdigest(), 'date': datetime.now()}
+        i = {'address': value, 'type': 'subscription', 'token': sha1(''.join([chr(randint(32, 122)) for x in range(12)])).hexdigest(), 'date': datetime.now()}
         msg = Message("Parltrack Notification Subscription Verification",
                 sender = "asdf@localhost",
                 recipients = [value])
-        msg.body = "your verification key is %sactivate?key=%s" % (request.url_root, i['token'])
+        msg.body = "Your verification key is %sactivate?key=%s\nNotification group url: %snotifications/%s" % (request.url_root, i['token'], request.url_root, g_id)
         mail.send(msg)
 
     else:
@@ -140,15 +141,19 @@ def notification_add_detail(g_id, item, value):
 @app.route('/activate')
 def activate():
     db = connect_db()
-    if not request.args.get('key'):
-        return 'Missing key'
     k = request.args.get('key')
-    if db.notifications.find({'pending_emails.token': k}).count():
+    if not k:
+        return 'Missing key'
+    notif = db.notifications.find_one({'actions.token': k})
+    if notif:
+        for action in notif['actions']:
+            if action.get('token') == k:
+                notif['active_emails'].append(action['address'])
+                notif['actions'].remove(action)
+                db.notifications.save(notif)
+                break
         # TODO activation method
         return 'activated'
-    elif db.notifications.find({'actions.token': k}).count():
-        # TODO
-        return 'action activation'
     return 'wrong key'
 
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
