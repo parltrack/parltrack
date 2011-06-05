@@ -183,11 +183,11 @@ def scrape(comid, url):
                     dossier=db.dossiers.find_one({'procedure.reference': "COM/%s/%s" % (m.group(1)[4:8], m.group(1)[9:13])})
                     if dossier:
                         issue['comdoc']="COM/%s/%s" % (m.group(1)[4:8], m.group(1)[9:13])
-                        issue['comref']=dossier['_id']
+                        issue['comref']=dossier['procedure']['reference']
                     else:
                         dossier=db.dossiers.find_one({'activities.documents.title': m.group(1)})
                         if dossier:
-                            issue['comref']=dossier['_id']
+                            issue['comref']=dossier['procedure']['reference']
             ax[1]="%s\n%s" % (ax[1],line)
 
     print >>sys.stderr, '\n'.join(["%s %s %s" % (i['tabling_deadline'].isoformat(),

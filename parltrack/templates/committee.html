@@ -20,7 +20,7 @@
 <h3>{{group.grouper}}</h3><ul>
   {% for meet in group.list %}
     <li>{{meet.title}}
-      {%if meet.comdoc %}<a href="/dossier/{{meet.comdoc}}">{{meet.comdoc}}</a>{%endif%}
+      {%if meet.comdoc %}{%if meet.comref %}<a href="/dossier/{{meet.comref}}">{{meet.comdoc}}</a>{%else%}{{meet.comdoc}}{%endif%}{%endif%}
       {%if meet.tabling_deadline %}<div><strong>Tabling Deadline</strong> {{meet.tabling_deadline}}</div>{%endif%}
     </li>
   {%endfor%}
