@@ -43,7 +43,7 @@
     {% block scripts %}
     {% endblock %}
     <link rel="stylesheet" href="/static/css/style.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="/static/css/jquery-ui.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/jquery-ui.css" />
     {% block styles %}
     {% endblock %}
 </head>
@@ -66,7 +66,7 @@
        </div>
      </li>
      <li><a href="/search">Search</a>
-     <div id="search"><form action="/search" method="GET">MEPs:<input type="checkbox" checked="checked" name="s_meps"/> Dossiers:<input type="checkbox" checked="checked" name="s_dossiers"/><br /><input type="text" value="//search" id="search_input" name="q"/></form></div>
+     <div id="search"><form action="/search" method="get">MEPs:<input type="checkbox" checked="checked" name="s_meps"/> Dossiers:<input type="checkbox" checked="checked" name="s_dossiers"/><br /><input type="text" value="//search" id="search_input" name="q"/></form></div>
      </li>
     </ul>
    {% block menu %}
