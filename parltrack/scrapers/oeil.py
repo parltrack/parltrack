@@ -35,6 +35,7 @@ from bson.objectid import ObjectId
 
 db.oeil.ensure_index([('reference.procedure', 1)])
 db.oeil.ensure_index([('activities.actors.mepref', 1)])
+db.oeil.ensure_index([('activities.actors.commitee', 1)])
 
 # and some global objects
 base = 'http://www.europarl.europa.eu/oeil/file.jsp'
@@ -235,14 +236,14 @@ def fetch(url):
     try:
         f=urllib2.urlopen(url)
     except urllib2.URLError, e:
-        if e.code>=400:
+        if hasattr(e, 'code') and e.code>=400:
             print >>sys.stderr, "[!] %d %s" % (e.code, url)
             raise
         try:
             # 1st retry
             f=urllib2.urlopen(url)
         except urllib2.URLError:
-            if e.code>=400:
+            if hasattr(e, 'code') and e.code>=400:
                 print >>sys.stderr, "[!] %d %s" % (e.code, url)
                 raise
             try:
