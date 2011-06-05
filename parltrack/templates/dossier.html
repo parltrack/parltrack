@@ -12,6 +12,7 @@
        $('.has_summary').click(function() {
         $(this).next().toggleClass('hidden');
        });
+		 $( "#tabs" ).tabs();
      });
     </script>
 {% endblock %}
@@ -20,7 +21,19 @@
 <h2>{{ dossier.procedure.reference }}</h2>
 <p>{{dossier.procedure.title}}</p>
 <p><strong>{{dossier.procedure.stage_reached}}</strong></p>
+<div id="tabs">
+  <ul>
+    <li><a href="#general">General</a></li>
+    <li><a href="#activities">Activities</a></li>
+    {% if dossier.docs|length %}<li><a href="#documents">Documents</a></li>{%endif%}
+    {% if dossier.votes %}<li><a href="#votes">Votes</a></li>{%endif%}
+  </ul>
+<div id="general">
+<div>Subjects
 <ul>{%for sub in dossier.procedure.subjects%}<li>{{sub}}</li>{%endfor%}</ul>
+</div>
+<div>Legal Basis
+<ul>{%for sub in dossier.procedure.legal_basis%}<li>{{sub}}</li>{%endfor%}</ul></div>
 {% if dossier.comeets %}
 <h3>Committees</h3>
   {% for committee in dossier.comeets%}
@@ -70,6 +83,8 @@
   </ul>
   {%endif%}
 {%endif%}
+</div>
+<div id="activities">
 <h3>Activites</h3>
 <ul>{%for act in dossier.activities%}
    <li>
@@ -118,7 +133,9 @@
    </li>
   {%endfor%}
 </ul>
+</div>
 {% if dossier.docs|length %}
+  <div id="documents">
   <h3>Documents</h3>
   <ul>
   {%for doc in dossier.docs%}
@@ -140,8 +157,10 @@
     {%endif%}
   {%endfor%}
   </ul>
+  </div>
 {%endif%}
 {% if dossier.votes %}
+<div id="votes">
 <h3>Votes</h3>
 {%for vote in dossier.votes%}
 <h4>{{vote.title}}</h4>
@@ -198,7 +217,6 @@
      </tbody>
   </table>
 {%endfor%}
+</div>
 {% endif %}
-<div>Legal Basis
-<ul>{%for sub in dossier.procedure.legal_basis%}<li>{{sub}}</li>{%endfor%}</ul></div>
 {% endblock %}
