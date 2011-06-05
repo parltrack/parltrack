@@ -116,7 +116,7 @@ def dossier(id):
         if dossier:
             break
     if not dossier:
-        return 404
+        return
     del dossier['changes']
     # find related votes
     votes=list(db.ep_votes.find({'dossierid': dossier['_id']}))
