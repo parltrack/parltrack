@@ -25,6 +25,7 @@ from string import strip
 from parltrack.environment import connect_db
 from parltrack.scrapers.oeil import scrape as oeil_scrape
 from os.path import realpath, exists, dirname
+import sys
 
 db = connect_db()
 
@@ -73,19 +74,19 @@ def scrape(url):
     root = fetch(url)
     # TODO optimize this!! (reduce steps)
     if not exists(LAST_UPDATED_CACHE) or open(LAST_UPDATED_CACHE).read() != strip(root.xpath('//div[text()="Data updated on :"]/span/text()')[0]):
-        print '[!] Site modification found, scraping unfinished dossiers....'
+        print >>sys.stderr, '[!] Site modification found, scraping unfinished dossiers....'
         for d in db.dossiers.find({'procedure.stage_reached': {'$in': STAGES}}):
             oeil_scrape(d['meta']['source'])
-            print '\t%s, %s' % (d['procedure']['reference'], d['procedure']['title'])
+            print >>sys.stderr, '\t%s, %s' % (d['procedure']['reference'].encode('utf8'), d['procedure']['title'].encode('utf8'))
         f = open(LAST_UPDATED_CACHE, "w+")
         f.write(strip(root.xpath('//div[text()="Data updated on :"]/span/text()')[0]))
         f.close()
-    print '\n[!] Searching/scraping new items..'
+    print >>sys.stderr, '\n[!] Searching/scraping new items..'
     getNewItems(root)
     return True
 
 if __name__ == '__main__':
-    print scrape(URL)
+    print scrape(URL).encode('utf8')
 
 
 

@@ -118,7 +118,7 @@ COMMITTEE_MAP={'AFET': "Foreign Affairs",
 
 def fetch(url):
     # url to etree
-    #print >> sys.stderr, url
+    print >> sys.stderr, url
     f=urllib2.urlopen(url)
     raw=parse(f)
     f.close()
@@ -214,12 +214,12 @@ def scrape(comid, url):
                             issue['comref']=dossier['procedure']['reference']
             ax[1]="%s\n%s" % (ax[1],line)
 
-    print >>sys.stderr, '\n'.join(["%s %s %s" % (i['tabling_deadline'].isoformat(),
-                                    comid.strip(),
-                                    i.get('comref',i['title'].split('\n')[-2].strip()),
-                                    )
-                      for i in res
-                      if 'tabling_deadline' in i]).encode('utf8') or "no deadlines"
+    #print >>sys.stderr, '\n'.join(["%s %s %s" % (i['tabling_deadline'].isoformat(),
+    #                                comid.strip(),
+    #                                i.get('comref',i['title'].split('\n')[-2].strip()),
+    #                                )
+    #                  for i in res
+    #                  if 'tabling_deadline' in i]).encode('utf8') or "no deadlines"
     sys.stderr.flush()
     return res
 
