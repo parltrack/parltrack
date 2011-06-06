@@ -136,7 +136,8 @@
    <li>
     {{c.role}} of
     {% if c.Organization|length == 4 %}<a href="/committee/{{c.Organization}}">{{c.Organization}}</a>
-    {%else%}<a href="/committee/{{committee_map[c.Organization]}}">{{c.Organization}}</a>{%endif%}
+    {%elif committee_map[c.Organization]|length == 4%}<a href="/committee/{{committee_map[c.Organization]}}">{{c.Organization}}</a>{%else%}
+    {{c.Organization}}{%endif%}
     {{c.start|asdate}} - ...
   </li>
   {%endif%}
@@ -153,7 +154,8 @@
     <li>
     {{c.role}} of
     {% if c.Organization|length == 4 %}<a href="/committee/{{c.Organization}}">{{c.Organization}}</a>
-    {%else%}<a href="/committee/{{committee_map[c.Organization]}}">{{c.Organization}}</a>{%endif%}
+    {%elif committee_map[c.Organization]|length == 4%}<a href="/committee/{{committee_map[c.Organization]}}">{{c.Organization}}</a>{%else%}
+    {{c.Organization}}{%endif%}
     {{c.start|asdate}} - {{c.end|asdate}}
   </li>
   {% endif %}
