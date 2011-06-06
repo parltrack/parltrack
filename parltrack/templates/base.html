@@ -61,8 +61,12 @@
       </div>
      </li>
      <li><a>Committees</a>
-       <div style="min-width:160px;">
-          <ul>{%for c in committees|sort%}<li><a href="/committee/{{c}}">{{c}}</a></li>{%endfor%}</ul>
+       <div style="min-width:300px;">
+          <ul>{%for c in committees|sort%}<li>
+            {% if c|length != 4 %}<a href="/committee/{{committee_map[c]}}">{{committee_map[c]}} - {{c}}</a>
+            {%elif committee_map[c]|length != 4 %}<a href="/committee/{{c}}">{{c}} - {{committee_map[c]}}</a>
+            {%endif%}
+          </li>{%endfor%}</ul>
        </div>
      </li>
      <li><a>Search</a>
