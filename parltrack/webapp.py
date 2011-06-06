@@ -188,11 +188,18 @@ def activate():
 #               Meps
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 
-def render_meps(query={},kwargs={}):
-    from parltrack.views.views import mepRanking
+def getDate():
     date=datetime.now()
     if request.args.get('date'):
-        date=datetime.strptime(request.args['date'], "%d/%m/%Y")
+        try:
+            date=datetime.strptime(request.args['date'], "%d/%m/%Y")
+        except ValueError:
+            date=datetime.strptime(request.args['date'], "%Y-%m-%d")
+    return date
+
+def render_meps(query={},kwargs={}):
+    from parltrack.views.views import mepRanking
+    date=getDate()
     rankings=mepRanking(date,query)
     if not rankings:
         abort(404)
@@ -210,6 +217,9 @@ def mepfilter(country, group):
     args={}
     if group in groupids:
         query['Groups.groupid']=group
+        date=getDate()
+        query["Groups.start"]={'$lt': date}
+        query["Groups.end"]={'$gt': date}
         args['group']=group
     if country.upper() in COUNTRIES.keys():
         query['Constituencies.country']=COUNTRIES[country.upper()]
@@ -222,6 +232,9 @@ def mepsbygroup(p1):
     args={}
     if p1 in groupids:
         query['Groups.groupid']=p1
+        date=getDate()
+        query["Groups.start"]={'$lt': date}
+        query["Groups.end"]={'$gt': date}
         args['group']=p1
     elif p1.upper() in COUNTRIES.keys():
         query['Constituencies.country']=COUNTRIES[p1.upper()]

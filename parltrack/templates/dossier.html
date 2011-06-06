@@ -116,7 +116,7 @@
           {%else%}{{agent.commitee}}{%endif%}
        {%endif%}
        {%if agent.name%}<a href="/mep/{{agent.name}}">{{agent.name}}</a>{%endif%}
-       {%if agent.group%}{{agent.group}}{%endif%}
+       {%if agent.group%}<a href="/meps/{{agent.group}}">{{agent.group}}</a>{%endif%}
      </li>
     {%endfor%}
   </ul>
@@ -145,7 +145,7 @@
                 {%else%}{{agent.commitee}}{%endif%}
              {%endif%}
              {%if agent.name%}<a href="/mep/{{agent.name}}">{{agent.name}}</a>{%endif%}
-             {%if agent.group%}{{agent.group}}{%endif%}
+             {%if agent.group%}<a href="/meps/{{agent.group}}?date={{act.date}}">{{agent.group}}</a>{%endif%}
            </li>
         {%endif%}
         {%if agent.body == "CSL" %}
@@ -215,7 +215,7 @@
           <td>Total</td>
           {% for g in vote.groups|sort %}
             {% if g not in ['correctional', 'total']%}
-            <td>{{g}}</td>
+            <td><a href="/meps/{{g}}?date={{vote.ts|asdate}}">{{g}}</a></td>
             {%endif%}
           {%endfor%}
           <td>correctional</td>
