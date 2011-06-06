@@ -23,7 +23,7 @@
 <div id="tabs">
   <ul>
     <li><a href="#general">General</a></li>
-    <li><a href="#contact">Contact</a></li>
+    {% if 'Addresses' in mep %}<li><a href="#contact">Contact</a></li>{%endif%}
     <li><a href="#committees">Committees</a></li>
     <li><a href="#delegations">Delegations</a></li>
     {% if mep.dossiers %}<li><a href="#dossiers">Dossiers</a></li>{%endif%}
@@ -253,8 +253,10 @@
   </div>
 {%endif%}
 <div id='cv'>
-  <h3>Born</h3>
-    {{mep.Birth.date|asdate}} {{mep.Birth.place}}
+  {% if mep.Birth %}
+    <h3>Born</h3>
+      {{mep.Birth.date|asdate}} {{mep.Birth.place}}
+  {%endif%}
   {% if mep.CV %}
   <h3>Curriculum Vitae</h3>
   <ul>
