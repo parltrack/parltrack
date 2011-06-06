@@ -11,6 +11,8 @@ SOLR_PASS = None
 CACHE_TYPE = 'filesystem'
 CACHE_DIR = '/tmp/parltrack'
 
+ROOT_URL = 'http://parltrack.euwiki.org'
+
 try:
     from parltrack.local_settings import *
 except:

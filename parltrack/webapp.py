@@ -32,7 +32,7 @@ from werkzeug import ImmutableDict
 from bson.objectid import ObjectId
 from parltrack.scrapers.ep_meps import groupids, COUNTRIES
 from parltrack.scrapers.ep_com_meets import COMMITTEES, COMMITTEE_MAP
-from parltrack.scrapers.new_dossiers import ALL_STAGES as STAGES
+from parltrack.scrapers.mappings import ALL_STAGES as STAGES
 from bson.code import Code
 
 Flask.jinja_options = ImmutableDict({'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_', 'jinja2.ext.loopcontrols']})
@@ -150,7 +150,7 @@ def notification_add_detail(g_id, item, value):
             return 'Already subscribed'
         i = {'address': value, 'type': 'subscription', 'token': sha1(''.join([chr(randint(32, 122)) for x in range(12)])).hexdigest(), 'date': datetime.now()}
         msg = Message("Parltrack Notification Subscription Verification",
-                sender = "asdf@localhost",
+                sender = "parltrack@parltrack.euwiki.org",
                 recipients = [value])
         msg.body = "Your verification key is %sactivate?key=%s\nNotification group url: %snotification/%s" % (request.url_root, i['token'], request.url_root, g_id)
         mail.send(msg)
@@ -175,7 +175,8 @@ def activate():
     if notif:
         for action in notif['actions']:
             if action.get('token') == k:
-                notif['active_emails'].append(action['address'])
+                if not action['address'] in notif['active_emails']:
+                    notif['active_emails'].append(action['address'])
                 notif['actions'].remove(action)
                 db.notifications.save(notif)
                 break

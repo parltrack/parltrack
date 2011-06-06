@@ -24,6 +24,9 @@ from urlparse import urljoin
 from itertools import izip_longest
 import urllib2, urllib, cookielib, datetime, sys, json, logging, re
 from operator import itemgetter
+from flaskext.mail import Message
+from parltrack.webapp import mail
+from parltrack.default_settings import ROOT_URL
 import unicodedata
 try:
     from parltrack.environment import connect_db
@@ -195,6 +198,13 @@ def save(data):
             stats[1]+=1
             data['_id']=res['_id']
             #print >> sys.stderr, (d)
+        m=db.notifications.find({'dossiers': data['procedure']['reference']},['active_emails'])
+        for g in m:
+            msg = Message("Parltrack Notification for %s" % data['procedure']['reference'],
+                          sender = "parltrack@parltrack.euwiki.org",
+                          bcc = g['active_emails'])
+            msg.body = "Parltrack has detected a change in %s on OEIL.\nfollow this URL: %s to see the dossier, or here to see the changes formatted on the web: %s\n\nchanges below\n%s" % (data['procedure']['reference'],'%s/dossier/%s' % (ROOT_URL,data['procedure']['reference']),'%s/dossier/history/%s' % (ROOT_URL,data['procedure']['reference']), json.dumps(d))
+            mail.send(msg)
         data['changes']=res.get('changes',{})
         data['changes'][now]=d
         db.dossiers.save(data)
