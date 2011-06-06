@@ -22,6 +22,7 @@ import os
 import re
 from pymongo import Connection
 from flaskext.mail import Mail, Message
+from flaskext.cache import Cache
 from flask import Flask, render_template, request, jsonify, abort, redirect
 from parltrack import default_settings
 from datetime import datetime
@@ -31,11 +32,14 @@ from werkzeug import ImmutableDict
 from bson.objectid import ObjectId
 from parltrack.scrapers.ep_meps import groupids, COUNTRIES
 from parltrack.scrapers.ep_com_meets import COMMITTEES, COMMITTEE_MAP
+from parltrack.scrapers.new_dossiers import ALL_STAGES as STAGES
+from bson.code import Code
 
 Flask.jinja_options = ImmutableDict({'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_', 'jinja2.ext.loopcontrols']})
 app = Flask(__name__)
 app.config.from_object(default_settings)
 app.config.from_envvar('PARLTRACK_SETTINGS', silent=True)
+cache = Cache(app)
 mail = Mail(app)
 
 #@app.context_processor
@@ -58,9 +62,19 @@ def inject_data():
                 )
 
 @app.route('/')
+@cache.cached()
 def index():
     db = connect_db()
-    return render_template('index.html', dossiers_num=db.dossiers.find().count(), votes_num=db.ep_votes.find().count(), meps_num=db.ep_meps.find().count())
+    tmp=dict([(x[u'procedure.stage_reached'],int(x['count'])) for x in db.dossiers.group({'procedure.stage_reached': True},
+                                                                                  {},
+                                                                                  {'count': 0},
+                                                                                  Code('function(doc, out){ out.count++ }'))])
+    stages=[(k,tmp[k]) for k in STAGES if tmp.get(k)]
+    return render_template('index.html',
+                           stages=stages,
+                           dossiers_num=db.dossiers.find().count(),
+                           votes_num=db.ep_votes.find().count(),
+                           meps_num=db.ep_meps.find().count())
 
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 #               Search

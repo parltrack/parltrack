@@ -6,5 +6,11 @@
  <li>Number of dossiers: {{ dossiers_num }}</li>
  <li>Number of votes: {{ votes_num }}</li>
 </ul>
+<h3>Dossiers</h3>
+<ul>
+{% for stage,c in stages %}
+  <li>{{stage}}: {{c}}</li>
+{%endfor%}
+</ul>
 {% endblock %}
 
