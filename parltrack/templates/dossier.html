@@ -205,8 +205,9 @@
 {% if dossier.votes %}
 <div id="votes">
 <h3>Votes</h3>
-{%for vote in dossier.votes%}
+{%for vote in dossier.votes|sort(attribute='ts')%}
 <h4>{{vote.title}}</h4>
+  <div>{{vote.ts|asdate}}</div>
   <table class="votes">
      <thead>
         <tr>
