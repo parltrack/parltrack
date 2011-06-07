@@ -283,7 +283,7 @@ def view_mep(d_id):
     return render_template('mep.html',
                            mep=m,
                            d=d_id,
-                           group_cutoff=datetime(2004,8,31),
+                           group_cutoff=datetime(2004,7,20),
                            today=datetime.now(),
                            url=request.base_url)
 
