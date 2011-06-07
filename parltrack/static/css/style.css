@@ -22,6 +22,10 @@ input { border: 1px solid #CDCDCD; color: #777777;}
 
 #footer { background: url('/static/images/footer_bg.png') repeat-x; height: 100px; clear: both; }
 
+#track_dossier { display: inline; }
+#track_dossier:hover > div { display: block; }
+#track_dossier:hover { display: block; }
+
 ul.dropdown { position: relative; z-index: 597; float: left; }
 ul.dropdown li { float: left; vertical-align: middle; zoom: 1; z-index: 599; }
 ul.dropdown li.hover, ul.dropdown li:hover { position: relative; z-index: 599; cursor: default; }
