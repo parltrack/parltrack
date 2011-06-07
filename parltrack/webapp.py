@@ -215,34 +215,54 @@ def render_meps(query={},kwargs={}):
 def mepfilter(country, group):
     query={}
     args={}
+    date=getDate()
     if group in groupids:
-        query['Groups.groupid']=group
-        date=getDate()
-        query["Groups.start"]={'$lt': date}
-        query["Groups.end"]={'$gt': date}
+        query['Groups']={'$elemMatch' :
+                         {'groupid': group,
+                          'start' : {'$lt': date},
+                          "end" : {'$gt': date},}}
         args['group']=group
     if country.upper() in COUNTRIES.keys():
-        query['Constituencies.country']=COUNTRIES[country.upper()]
+        query["Constituencies"]={'$elemMatch' :
+                                 {'start' : {'$lt': date},
+                                  'country': COUNTRIES[country.upper()],
+                                  "end" : {'$gt': date},}}
         args['country']=COUNTRIES[country.upper()]
+    else:
+        query["Constituencies"]={'$elemMatch' :
+                                 {'start' : {'$lt': date},
+                                  "end" : {'$gt': date},}}
     return render_meps(query, args)
 
 @app.route('/meps/<path:p1>')
 def mepsbygroup(p1):
     query={}
     args={}
+    date=getDate()
     if p1 in groupids:
-        query['Groups.groupid']=p1
-        date=getDate()
-        query["Groups.start"]={'$lt': date}
-        query["Groups.end"]={'$gt': date}
+        query['Groups']={'$elemMatch' :
+                         {'groupid': p1,
+                          'start' : {'$lt': date},
+                          "end" : {'$gt': date},}}
         args['group']=p1
     elif p1.upper() in COUNTRIES.keys():
-        query['Constituencies.country']=COUNTRIES[p1.upper()]
+        query["Constituencies"]={'$elemMatch' :
+                                 {'start' : {'$lt': date},
+                                  'country': COUNTRIES[p1.upper()],
+                                  "end" : {'$gt': date},}}
         args['country']=COUNTRIES[p1.upper()]
+    else:
+        query["Constituencies"]={'$elemMatch' :
+                                 {'start' : {'$lt': date},
+                                  "end" : {'$gt': date},}}
     return render_meps(query, args)
 
 @app.route('/meps/')
 def ranking():
+    date=getDate()
+    query["Constituencies"]={'$elemMatch' :
+                             {'start' : {'$lt': date},
+                              'end' : {'$gt': date},}}
     return render_meps()
 
 @app.route('/mep/<string:d_id>')

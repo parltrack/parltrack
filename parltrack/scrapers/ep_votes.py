@@ -85,7 +85,7 @@ def splitMeps(text, res, date):
     for q in text.split('/'):
         mep=getMep(q,date)
         if mep:
-            res['rapporteur'].append((q,mep))
+           res['rapporteur'].append({'name': q, 'ref': mep})
 
 def scanMeps(text, res, date):
     tmp=text.split(':')

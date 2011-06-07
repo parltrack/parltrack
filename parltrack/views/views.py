@@ -62,10 +62,6 @@ staff_positions={"President": 7,
                  "Member": 4,
                  }
 def mepRanking(date,query={}):
-    query.update({"Constituencies.start" : {'$lt': date},
-                  "Constituencies.end" : {'$gt': date},
-                  })
-    print query
     meps=db.ep_meps.find(query)
     # workaround for pre-1970 dates
     tmp=[]
