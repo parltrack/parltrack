@@ -305,6 +305,24 @@ def view_dossier(d_id):
                            d=d_id,
                            url=request.base_url)
 
+@app.route('/new/')
+def new_docs():
+    db = connect_db()
+    d=db.dossiers.find().sort([('meta.created', -1)]).limit(30)
+    if request.args.get('format','')=='json':
+        return jsonify(tojson(d))
+    if request.args.get('format','')=='atom':
+        return render_template('atom.xml', dossiers=list(d))
+
+@app.route('/changed/')
+def changed():
+    db = connect_db()
+    d=db.dossiers.find().sort([('meta.updated', -1)]).limit(30)
+    if request.args.get('format','')=='json':
+        return jsonify(tojson(d))
+    if request.args.get('format','')=='atom':
+        return render_template('atom.xml', dossiers=list(d))
+
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 #              Committees
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|

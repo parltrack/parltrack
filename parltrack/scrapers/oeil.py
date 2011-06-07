@@ -40,6 +40,8 @@ db.oeil.ensure_index([('procedure.reference', 1)])
 db.oeil.ensure_index([('procedure.title', 1)])
 db.oeil.ensure_index([('activities.actors.mepref', 1)])
 db.oeil.ensure_index([('activities.actors.commitee', 1)])
+db.oeil.ensure_index([('meta.created', -1)])
+db.oeil.ensure_index([('meta.updated', -1)])
 
 # and some global objects
 base = 'http://www.europarl.europa.eu/oeil/file.jsp'
