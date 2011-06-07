@@ -140,11 +140,11 @@ def notification_add_detail(g_id, item, value):
     #if group.restricted:
     #    return 'restricted group'
     if item == 'emails':
-        if db.notifications.find({'active_emails': value}).count():
+        if value in group['active_emails']:
             return 'already subscribed to this group'
         item = 'actions'
         # TODO validation
-        addr = db.notifications.find_one({'actions.address': value})
+        addr = db.notifications.find_one({'actions.address': value, 'id': g_id})
         if addr:
             # or just return with OK?! -> more privacy but harder debug
             return 'Already subscribed'
