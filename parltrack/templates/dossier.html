@@ -5,10 +5,6 @@
        $('.has_summary').click(function() {
         $(this).next('div').toggleClass('hidden');
        });
-       $('#track_dossier').click(function() {
-           $('#notif_subscr').toggle();
-           return false;
-       });
        $( "#tabs" ).tabs();
        $('#notif_form').submit(function() {
            var group = $(this).children('input:eq(1)').attr('value');
@@ -33,18 +29,19 @@
     </script>
 {% endblock %}
 {% block content %}
-<a class="asjson" href="/notification" id="track_dossier">Track this dossier</a><br />
-<div class="hidden right" id="notif_subscr">
-<h3>Notification subscription</h3>
-<p>
-    <form method="get" action="" name="notif_form" id="notif_form">
-    E-mail: <input type="text" name="address" /><br />
-    //required<br />
-    Notification group: <input type="text" name="group" /><br />
-    //generated if empty<br />
-    <input type="submit" value="subscribe" />
-    </form>
-</p>
+<div id="track_dossier"><a class="asjson" href="/notification">Track this dossier</a><br />
+    <div class="hidden right" id="notif_subscr">
+    <h3>Notification subscription</h3>
+    <p>
+        <form method="get" action="" name="notif_form" id="notif_form">
+        E-mail: <input type="text" name="address" /><br />
+        //required<br />
+        Notification group: <input type="text" name="group" /><br />
+        //generated if empty<br />
+        <input type="submit" value="subscribe" />
+        </form>
+    </p>
+    </div>
 </div>
 <a class="asjson" href="{{url}}?format=json">download as json</a>
 <h2>{{ dossier.procedure.reference }}</h2>
