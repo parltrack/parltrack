@@ -42,7 +42,7 @@ fields=[(re.compile(r'^ {,10}Rapporteur: {3,}(.*)'),"Rapporteur"),
 misc_block=re.compile(u'^ {,10}\uf0b7 {3,}(.*)')
 opinon_junk=re.compile(r'^ {,10}opinion: {3,}(.*)')
 comref_re=re.compile(r' {3,}(COM\([0-9]{4}\)[0-9]{4})')
-COMMITTEES=db.ep_com_meets.distinct('committee')
+COMMITTEES=[x for x in db.ep_com_meets.distinct('committee') if x not in ['Security and Defence', 'SURE'] ]
 COMMITTEE_MAP={'AFET': "Foreign Affairs",
                'DROI': "Human Rights",
                'SEDE': "Security and Defence",
