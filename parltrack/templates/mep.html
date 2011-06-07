@@ -68,7 +68,7 @@
 {%for c in mep.Groups|sort(attribute='start',reverse=True) %}
   {% if c.end>today%}
     <li>
-    {% if c.groupid.__iter__ %}{{c.groupid.0}}{%else%}{{c.groupid}}{%endif%}
+    {% if c.groupid.__iter__ %}<a href="/meps/{{c.groupid.0}}">{{c.groupid.0}}</a>{%else%}<a href="/meps/{{c.groupid}}">{{c.groupid}}</a>{%endif%}
     {{c.role}}
     {%if c.group%}{{c.group}}{%else%}{{c.Organization}}{%endif%}
     {{c.start|asdate}} - ...
@@ -87,7 +87,7 @@
   {% if c.end<=today%}
    <li>
     {{c.country}}
-    {{c.groupid}}
+    {% if c.groupid %}{% if c.groupid.__iter__ %}<a href="/meps/{{c.groupid.0}}?date={{c.start|asdate}}">{{c.groupid.0}}</a>{%else%}<a href="/meps/{{c.groupid}}?date={{c.start|asdate}}">{{c.groupid}}</a>{%endif%}{%endif%}
     {{c.role}}
     {%if c.group%}{{c.group}}{%else%}{{c.Organization}}{%endif%}
     {{c.start|asdate}} - {{c.end|asdate}}
