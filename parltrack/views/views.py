@@ -28,16 +28,6 @@ try:
 except:
     db=pymongo.Connection().parltrack
 
-def mepsInGroups(group, date):
-    date=datetime.strptime(date, "%d/%m/%Y")
-    query={"Constituencies.start" : {'$lte': date},
-           "Constituencies.end" : {'$gte': date},
-           "Groups.groupid": group,
-           }
-    meps=db.ep_meps.find(query)
-    return meps.count()
-    return [x for x in meps]
-
 group_positions={u'Chair': 10,
                  u'Co-Chair': 8,
                  u'Vice-Chair': 6,
@@ -213,9 +203,6 @@ if __name__ == "__main__":
     date='24/11/2010'
     print committee('LIBE')
     #date='02/06/2011'
-    #groups=['PPE','S&D','ALDE','Verts/ALE','GUE/NGL','NI','EFD','ECR']
-    #groupstrengths=[mepsInGroups(x,date) for x in groups]
-    #print groupstrengths, sum(groupstrengths)
     #data=mepRanking(date)
     ## from bson.objectid import ObjectId
     ## import json
