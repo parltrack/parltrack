@@ -76,7 +76,7 @@ def mepRanking(date,query={}):
         ranks=[]
         # get group rank
         for group in mep['Groups']:
-            if group['start']<date and group['end']>date:
+            if group['start']<=date and group['end']>=date:
                 score=group_positions[group['role']]
                 if type(group['groupid'])==list:
                     group['groupid']=group['groupid'][0]
@@ -86,7 +86,7 @@ def mepRanking(date,query={}):
         # get committee ranks
         tmp=[]
         for com in mep['Committees']:
-            if com['start']<date and com['end']>date:
+            if com['start']<=date and com['end']>=date:
                 score+=com_positions[com['role']]
                 ranks.append((com_positions[com['role']],com['role'],com['Organization']))
                 tmp.append(com)
@@ -94,7 +94,7 @@ def mepRanking(date,query={}):
         # get ep staff ranks
         tmp=[]
         for staff in mep.get('Staff',[]):
-            if staff['start']<date and staff['end']>date:
+            if staff['start']<=date and staff['end']>=date:
                 score+=staff_positions[staff['role']]
                 ranks.append((staff_positions[staff['role']],staff['role'],staff['Organization']))
                 tmp.append(staff)
@@ -163,8 +163,8 @@ def mep(id):
         return None
 
     # find related dossiers
-    docs=[(x, True) for x in db.dossiers.find({'activities.actors.mepref': mep['_id'], 'activities.actors.responsible': True})]
-    docs.extend([(x, False) for x in db.dossiers.find({'activities.actors.mepref': mep['_id'], 'activities.actors.responsible': False})])
+    docs=[(x, True) for x in db.dossiers.find({ 'activities.actors': { '$elemMatch': {'mepref': mep['_id'], 'responsible': True}}})]
+    docs.extend([(x, False) for x in db.dossiers.find({ 'activities.actors': { '$elemMatch': {'mepref': mep['_id'], 'responsible': False}}})])
     for c in mep['Constituencies']:
         # term 6 20.07.2004 / 13.07.2009
         if c['start']>=datetime(2004,07,20) and c['end']<=datetime(2009,07,13):
