@@ -140,8 +140,8 @@ def notification_add_detail(g_id, item, value):
     #if group.restricted:
     #    return 'restricted group'
     if item == 'emails':
-        if db.notifications.find({'id': item}).count():
-            return 'already subscribed'
+        if db.notifications.find({'active_emails': value}).count():
+            return 'already subscribed to this group'
         item = 'actions'
         # TODO validation
         addr = db.notifications.find_one({'actions.address': value})
@@ -156,6 +156,8 @@ def notification_add_detail(g_id, item, value):
         mail.send(msg)
 
     else:
+        if db.notifications.find({'dossiers': value}).count():
+            return 'OK'
         i = db.dossiers.find_one({'procedure.reference': value})
         if not i:
             return 'unknown dossier - '+value
@@ -263,6 +265,7 @@ def mepsbygroup(p1):
 
 @app.route('/meps/')
 def ranking():
+    query={}
     date=getDate()
     query["Constituencies"]={'$elemMatch' :
                              {'start' : {'$lt': date},
@@ -293,7 +296,7 @@ def view_dossier(d_id):
     d=dossier(d_id)
     if not d:
         abort(404)
-    print d
+    #print d
     if request.args.get('format','')=='json':
         return jsonify(tojson(d))
     return render_template('dossier.html',
