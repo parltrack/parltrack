@@ -163,8 +163,8 @@ def mep(id):
         return None
 
     # find related dossiers
-    docs=[(x, True) for x in db.dossiers.find({'activities.actors.mepref': mep['_id'], 'activities.actors.responsible': True})]
-    docs.extend([(x, False) for x in db.dossiers.find({'activities.actors.mepref': mep['_id'], 'activities.actors.responsible': False})])
+    docs=[(x, True) for x in db.dossiers.find({ 'activities.actors': { '$elemMatch': {'mepref': mep['_id'], 'responsible': True}}})]
+    docs.extend([(x, False) for x in db.dossiers.find({ 'activities.actors': { '$elemMatch': {'mepref': mep['_id'], 'responsible': False}}})])
     for c in mep['Constituencies']:
         # term 6 20.07.2004 / 13.07.2009
         if c['start']>=datetime(2004,07,20) and c['end']<=datetime(2009,07,13):
