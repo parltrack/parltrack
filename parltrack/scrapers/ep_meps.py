@@ -96,9 +96,9 @@ def parseMember(userid):
     if not root or root.xpath('head/title/text()')=='The requested page does not exist.':
         return {'active': False}
     group=unws(''.join(root.xpath("//td[@style='width: 94%;']/span[@class='titlemep']/text()")))
-    data['Groups'] = [{ 'role':  unws(''.join(root.xpath("//td[@style='width: 94%;']/span[@class='titlemep2']/text()"))),
-                        'group': group,
-                        'groupid': group_map[group]}]
+    #data['Groups'] = [{ 'role':  unws(''.join(root.xpath("//td[@style='width: 94%;']/span[@class='titlemep2']/text()"))),
+    #                    'group': group,
+    #                    'groupid': group_map[group]}]
     data['Photo'] = '' if not len(root.xpath("//img[@class='photoframe']")) else BASE_URL + root.xpath("//img[@class='photoframe']")[0].attrib['src']
     tmp = map(unws, root.xpath("//td[@class='mep_CVtext']/text()"))
     (d,p)=tmp[-1].split(',',1)
@@ -223,6 +223,7 @@ def parseRoles(c, data):
 def scrape(userid, name):
     data = { 'Constituencies': [],
              'Name' : mangleName(name),
+             'Groups': [],
              'UserID': userid }
     # retrieve supplemental info for currently active meps
     data.update(parseMember(userid))
@@ -239,7 +240,7 @@ def scrape(userid, name):
         except:
             start=period.split()[0]
             end='31.12.9999' # end of time
-            data['Groups'][0].update({'start':datetime.strptime(start,"%d.%m.%Y"), 'end': datetime.strptime(end,"%d.%m.%Y")})
+            #data['Groups'][0].update({'start':datetime.strptime(start,"%d.%m.%Y"), 'end': datetime.strptime(end,"%d.%m.%Y")})
         start=datetime.strptime(start,"%d.%m.%Y")
         end=datetime.strptime(end,"%d.%m.%Y")
         data['Constituencies'].append({
