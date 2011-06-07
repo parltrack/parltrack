@@ -194,7 +194,10 @@ def getDate():
         try:
             date=datetime.strptime(request.args['date'], "%d/%m/%Y")
         except ValueError:
-            date=datetime.strptime(request.args['date'], "%Y-%m-%d")
+            try:
+                date=datetime.strptime(request.args['date'], "%Y-%m-%d")
+            except ValueError:
+                date=datetime.strptime(request.args['date'], "%Y/%m/%d")
     return date
 
 def render_meps(query={},kwargs={}):
@@ -216,12 +219,6 @@ def mepfilter(country, group):
     query={}
     args={}
     date=getDate()
-    if group in groupids:
-        query['Groups']={'$elemMatch' :
-                         {'groupid': group,
-                          'start' : {'$lt': date},
-                          "end" : {'$gt': date},}}
-        args['group']=group
     if country.upper() in COUNTRIES.keys():
         query["Constituencies"]={'$elemMatch' :
                                  {'start' : {'$lt': date},
@@ -232,6 +229,13 @@ def mepfilter(country, group):
         query["Constituencies"]={'$elemMatch' :
                                  {'start' : {'$lt': date},
                                   "end" : {'$gt': date},}}
+        group="%s/%s" % (country, group)
+    if group in groupids:
+        query['Groups']={'$elemMatch' :
+                         {'groupid': group,
+                          'start' : {'$lt': date},
+                          "end" : {'$gt': date},}}
+        args['group']=group
     return render_meps(query, args)
 
 @app.route('/meps/<path:p1>')
