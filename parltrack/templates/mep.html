@@ -68,7 +68,19 @@
 {%for c in mep.Groups|sort(attribute='start',reverse=True) %}
   {% if c.end>today%}
     <li>
-    {% if c.groupid.__iter__ %}<a href="/meps/{{c.groupid.0}}">{{c.groupid.0}}</a>{%else%}<a href="/meps/{{c.groupid}}">{{c.groupid}}</a>{%endif%}
+    {% if c.groupid.__iter__ %}
+      {% if c.start >= group_cutoff %}
+        <a href="/meps/{{c.groupid.0}}">{{c.groupid.0}}</a>
+      {%else%}
+        {{c.groupid.0}}
+      {%endif%}
+    {%else%}
+      {% if c.start >= group_cutoff %}
+        <a href="/meps/{{c.groupid}}">{{c.groupid}}</a>
+      {%else%}
+        {{c.groupid}}
+      {%endif%}
+    {%endif%}
     {{c.role}}
     {%if c.group%}{{c.group}}{%else%}{{c.Organization}}{%endif%}
     {{c.start|asdate}} - ...
@@ -87,7 +99,21 @@
   {% if c.end<=today%}
    <li>
     {{c.country}}
-    {% if c.groupid %}{% if c.groupid.__iter__ %}<a href="/meps/{{c.groupid.0}}?date={{c.start|asdate}}">{{c.groupid.0}}</a>{%else%}<a href="/meps/{{c.groupid}}?date={{c.start|asdate}}">{{c.groupid}}</a>{%endif%}{%endif%}
+    {% if c.groupid %}
+    {% if c.groupid.__iter__ %}
+      {% if c.start >= group_cutoff %}
+        <a href="/meps/{{c.groupid.0}}?date={{c.start|asdate}}">{{c.groupid.0}}</a>
+      {%else%}
+        {{c.groupid.0}}
+      {%endif%}
+    {%else%}
+      {% if c.start >= group_cutoff %}
+        <a href="/meps/{{c.groupid}}?date={{c.start|asdate}}">{{c.groupid}}</a>
+      {%else%}
+        {{c.groupid}}
+      {%endif%}
+    {%endif%}
+    {%endif%}
     {{c.role}}
     {%if c.group%}{{c.group}}{%else%}{{c.Organization}}{%endif%}
     {{c.start|asdate}} - {{c.end|asdate}}

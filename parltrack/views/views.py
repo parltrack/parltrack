@@ -30,8 +30,8 @@ except:
 
 def mepsInGroups(group, date):
     date=datetime.strptime(date, "%d/%m/%Y")
-    query={"Constituencies.start" : {'$lt': date},
-           "Constituencies.end" : {'$gt': date},
+    query={"Constituencies.start" : {'$lte': date},
+           "Constituencies.end" : {'$gte': date},
            "Groups.groupid": group,
            }
     meps=db.ep_meps.find(query)
@@ -192,8 +192,8 @@ def committee(id):
                     break
     # get members of committee
     date=datetime.now()
-    query={"Committees.start" : {'$lt': date},
-           "Committees.end" : {'$gt': date},
+    query={"Committees.start" : {'$lte': date},
+           "Committees.end" : {'$gte': date},
            "Committees.Organization": comre,
            }
     rankedMeps=[]
