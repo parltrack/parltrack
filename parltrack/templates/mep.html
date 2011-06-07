@@ -27,7 +27,7 @@
     <li><a href="#committees">Committees</a></li>
     <li><a href="#delegations">Delegations</a></li>
     {% if mep.dossiers %}<li><a href="#dossiers">Dossiers</a></li>{%endif%}
-    <li><a href="#cv">Curriculum Vitae</a></li>
+    {% if mep.CV %}<li><a href="#cv">Curriculum Vitae</a></li>{%endif%}
     {% if mep.term7 or mep.term6 %}<li><a href="#activities">Activities</a></li>{%endif%}
   </ul>
 <div id="general">
