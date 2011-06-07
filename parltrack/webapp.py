@@ -223,20 +223,20 @@ def mepfilter(country, group):
     date=getDate()
     if country.upper() in COUNTRIES.keys():
         query["Constituencies"]={'$elemMatch' :
-                                 {'start' : {'$lt': date},
+                                 {'start' : {'$lte': date},
                                   'country': COUNTRIES[country.upper()],
-                                  "end" : {'$gt': date},}}
+                                  "end" : {'$gte': date},}}
         args['country']=COUNTRIES[country.upper()]
     else:
         query["Constituencies"]={'$elemMatch' :
-                                 {'start' : {'$lt': date},
-                                  "end" : {'$gt': date},}}
+                                 {'start' : {'$lte': date},
+                                  "end" : {'$gte': date},}}
         group="%s/%s" % (country, group)
     if group in groupids:
         query['Groups']={'$elemMatch' :
                          {'groupid': group,
-                          'start' : {'$lt': date},
-                          "end" : {'$gt': date},}}
+                          'start' : {'$lte': date},
+                          "end" : {'$gte': date},}}
         args['group']=group
     if not args:
         abort(404)
@@ -250,14 +250,14 @@ def mepsbygroup(p1):
     if p1 in groupids:
         query['Groups']={'$elemMatch' :
                          {'groupid': p1,
-                          'start' : {'$lt': date},
-                          "end" : {'$gt': date},}}
+                          'start' : {'$lte': date},
+                          "end" : {'$gte': date},}}
         args['group']=p1
     elif p1.upper() in COUNTRIES.keys():
         query["Constituencies"]={'$elemMatch' :
-                                 {'start' : {'$lt': date},
+                                 {'start' : {'$lte': date},
                                   'country': COUNTRIES[p1.upper()],
-                                  "end" : {'$gt': date},}}
+                                  "end" : {'$gte': date},}}
         args['country']=COUNTRIES[p1.upper()]
     else:
         abort(404)
@@ -268,8 +268,8 @@ def ranking():
     query={}
     date=getDate()
     query={"Constituencies": {'$elemMatch' :
-                             {'start' : {'$lt': date},
-                              'end' : {'$gt': date},}}}
+                             {'start' : {'$lte': date},
+                              'end' : {'$gte': date},}}}
     return render_meps(query)
 
 @app.route('/mep/<string:d_id>')
@@ -283,6 +283,7 @@ def view_mep(d_id):
     return render_template('mep.html',
                            mep=m,
                            d=d_id,
+                           group_cutoff=datetime(2004,7,20),
                            today=datetime.now(),
                            url=request.base_url)
 
