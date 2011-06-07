@@ -236,6 +236,8 @@ def mepfilter(country, group):
                           'start' : {'$lt': date},
                           "end" : {'$gt': date},}}
         args['group']=group
+    if not args:
+        abort(404)
     return render_meps(query, args)
 
 @app.route('/meps/<path:p1>')
@@ -256,18 +258,16 @@ def mepsbygroup(p1):
                                   "end" : {'$gt': date},}}
         args['country']=COUNTRIES[p1.upper()]
     else:
-        query["Constituencies"]={'$elemMatch' :
-                                 {'start' : {'$lt': date},
-                                  "end" : {'$gt': date},}}
+        abort(404)
     return render_meps(query, args)
 
 @app.route('/meps/')
 def ranking():
     date=getDate()
-    query["Constituencies"]={'$elemMatch' :
+    query={"Constituencies": {'$elemMatch' :
                              {'start' : {'$lt': date},
-                              'end' : {'$gt': date},}}
-    return render_meps()
+                              'end' : {'$gt': date},}}}
+    return render_meps(query)
 
 @app.route('/mep/<string:d_id>')
 def view_mep(d_id):
