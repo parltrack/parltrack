@@ -75,7 +75,7 @@ def scrape(url):
     # TODO optimize this!! (reduce steps)
     if not exists(LAST_UPDATED_CACHE) or open(LAST_UPDATED_CACHE).read() != strip(root.xpath('//div[text()="Data updated on :"]/span/text()')[0]):
         print >>sys.stderr, '[!] Site modification found, scraping unfinished dossiers....'
-        for d in db.dossiers.find({'procedure.stage_reached': {'$in': STAGES}}):
+        for d in db.dossiers.find({'procedure.stage_reached': {'$in': STAGES}},timeout=False):
             oeil_scrape(d['meta']['source'])
             print >>sys.stderr, '\t%s, %s' % (d['procedure']['reference'].encode('utf8'), d['procedure']['title'].encode('utf8'))
         f = open(LAST_UPDATED_CACHE, "w+")
