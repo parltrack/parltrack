@@ -311,8 +311,8 @@ def new_docs():
     d=db.dossiers.find().sort([('meta.created', -1)]).limit(30)
     if request.args.get('format','')=='json':
         return jsonify(tojson(d))
-    if request.args.get('format','')=='atom':
-        return render_template('atom.xml', dossiers=list(d))
+    #if request.args.get('format','')=='atom':
+    return render_template('atom.xml', dossiers=list(d), path="new")
 
 @app.route('/changed/')
 def changed():
@@ -320,8 +320,8 @@ def changed():
     d=db.dossiers.find().sort([('meta.updated', -1)]).limit(30)
     if request.args.get('format','')=='json':
         return jsonify(tojson(d))
-    if request.args.get('format','')=='atom':
-        return render_template('atom.xml', dossiers=list(d))
+    #if request.args.get('format','')=='atom':
+    return render_template('atom.xml', dossiers=list(d), path="changed")
 
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 #              Committees
