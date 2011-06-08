@@ -26,6 +26,7 @@ import urllib2, urllib, cookielib, datetime, sys, json, logging, re
 from operator import itemgetter
 from flaskext.mail import Message
 from parltrack.webapp import mail
+from parltrack.utils import diff
 from parltrack.default_settings import ROOT_URL
 import unicodedata
 try:
@@ -211,27 +212,6 @@ def save(data):
         data['changes'][now]=d
         db.dossiers.save(data)
     return stats
-
-def diff(e1,e2):
-    if type(e1) == str:
-       e1=unicode(e1,'utf8')
-    if type(e1) == tuple:
-       e1=list(e1)
-    if type(e1) != type(e2):
-        return {'new': e1, 'old': e2}
-    if type(e1) == list:
-        return filter(None,[diff(*k) for k in izip_longest(sorted(e1),sorted(e2))])
-    if type(e1) == dict:
-        res=[]
-        for k in set(e1.keys() + e2.keys()):
-            if k == '_id': continue
-            r=diff(e1.get(k),e2.get(k))
-            if r:
-                res.append((k,r))
-        return dict(res)
-    if e1 != e2:
-        return {'new': e1, 'old': e2}
-    return
 
 def dictapp(d,k,v):
     if not k in d:

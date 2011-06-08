@@ -6,13 +6,39 @@
 	<updated>{% if dossiers.0.updated %}{{dossiers.0.updated}}{%else%}{{dossiers.0.created}}{%endif%}</updated>
    <generator uri="http://github.org/pudo/parltrack">parltrack</generator>
    <id>{{request.url}}</id>
-   {% for c in dossiers %}
+   {% for d in dossiers %}
 	<entry>
-		<title>{{c.procedure.reference}} {{c.procedure.title}}</title>
-		<link rel="alternate" type="text/html" href="{{request.url_root}}dossier/{{c.procedure.reference}}"/>
-      {% if c.updated %}<updated>{{c.updated}}</updated>{%else%}<created>{{c.created}}</created>{%endif%}
-      <id>{{c.meta.source}}</id>
-		<content type="html" xml:lang="en"><![CDATA[{% if c.activities and c.activities[-1].documents and c.activities[-1].documents.0.url %}<a href="{{c.activities[-1].documents.0.url}}">{{c.activities[-1].documents.0.title}}</a><br />Stage Reached: {{c.procedure['stage_reached']}}{%endif%}
+		<title>{{d.procedure.reference}} {{d.procedure.title}}</title>
+		<link rel="alternate" type="text/html" href="{{request.url_root}}dossier/{{d.procedure.reference}}"/>
+      {% if d.updated %}<updated>{{d.updated}}</updated>{%else%}<created>{{d.created}}</created>{%endif%}
+      <id>{{d.meta.source}}</id>
+		<content type="html" xml:lang="en"><![CDATA[
+         {% if d.activities and d.activities[-1].documents and d.activities[-1].documents.0.url %}
+           <a href="{{d.activities[-1].documents.0.url}}">{{d.activities[-1].documents.0.title}}</a><br />
+         {%endif%}
+           Stage Reached: {{d.procedure['stage_reached']}}
+         {% if d.changes %}
+           <ul>
+           {%for c in d.changes.values()[-1]%}
+             <li><dl><dt>
+               {%if 'added' in c%}Added: {%endif%}
+               {%if 'deleted' in c%}Deleted: {%endif%}
+               {%if 'changed' in c%}Changed: {%endif%}
+               {% for f in c.path%}{{f}}/{%endfor%}</dt>
+               <dd>
+                 {%if 'changed' in c%}
+                   new value: {{c.changed.0}}<br />
+                   old value: {{c.changed.1}}
+                 {%elif 'added' in c%}
+                   {{c.added}}
+                 {%elif 'deleted' in c%}
+                   {{c.deleted}}
+                 {%endif%}
+               </dd></dl>
+             </li>
+           {%endfor%}
+           </ul>
+         {%endif%}
 ]]></content>
 	</entry>
    {%endfor%}
