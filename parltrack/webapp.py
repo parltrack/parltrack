@@ -30,7 +30,7 @@ from random import randint
 from hashlib import sha1
 from werkzeug import ImmutableDict
 from bson.objectid import ObjectId
-from parltrack.scrapers.ep_meps import groupids, COUNTRIES
+from parltrack.scrapers.ep_meps import groupids, COUNTRIES, SEIRTNUOC
 from parltrack.scrapers.ep_com_meets import COMMITTEES, COMMITTEE_MAP
 from parltrack.scrapers.mappings import ALL_STAGES as STAGES
 from bson.code import Code
@@ -59,6 +59,7 @@ def inject_data():
     return dict(now_date=datetime.now(),
                 committees=COMMITTEES,
                 committee_map=COMMITTEE_MAP,
+                countries=SEIRTNUOC,
                 )
 
 @app.route('/')

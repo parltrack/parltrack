@@ -1,18 +1,36 @@
 {% extends "base.html" %}
+{% block scripts %}
+    <script type="text/javascript" src="/static/js/jquery.tablesorter.min.js"> </script>
+    <script type="text/javascript">
+     $(document).ready(function() {
+           $("#sortedlist").tablesorter();
+     });
+    </script>
+{% endblock %}
 {% block content %}
 <a class="asjson" href="{{url}}?format=json">download as json</a>
 <h2>Members of the European Parliament</h2>
 <h3>{%if country or group%}from {{country}}{%if group and country %}/{%endif%}{{group}}{%endif%} as of  {{ d|asdate }}</h3>
 
-<table>
-{% for ranking in rankings %}
-<tr>
-<td><a href="/mep/{{ ranking.2.Name.full }}">{{ ranking.2.Name.full }}</a></td>
-<td>{{ ranking.2.Groups.0.groupid }}</td>
-<td>{{ ranking.2.Groups.0.role }}</td>
-<td>{{ ranking.2.Constituencies.0.country }}</td>
-</tr>
-{% endfor %}
+<table id='sortedlist' class="tablesorter">
+   <thead>
+      <tr>
+         <th>Name</th>
+         <th>Role</th>
+         <th>Group</th>
+         <th>Country</th>
+      </tr>
+   </thead>
+   <tbody>
+      {% for ranking in rankings %}
+      <tr>
+         <td><a href="/mep/{{ ranking.2.Name.full }}">{{ ranking.2.Name.full }}</a></td>
+         <td>{{ ranking.2.Groups.0.role }}</td>
+         <td><a href="/meps/{{ ranking.2.Groups.0.groupid }}?date={{d|asdate}}">{{ranking.2.Groups.0.groupid }}</a></td>
+         <td><a href="/meps/{{ countries[ranking.2.Constituencies.0.country] }}?date={{d|asdate}}">{{ ranking.2.Constituencies.0.country }}</a></td>
+      </tr>
+      {% endfor %}
+   </tbody>
 </table>
 {% endblock %}
 
