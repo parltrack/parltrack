@@ -448,6 +448,35 @@ COUNTRIES = {'BE': 'Belgium',
              'UK': 'United Kingdom',
              }
 
+SEIRTNUOC = {'Belgium': 'BE',
+             'Bulgaria': 'BG',
+             'Czech Republic':'CZ',
+             'Denmark': 'DK',
+             'Germany': 'DE',
+             'Estonia': 'EE',
+             'Ireland': 'IE',
+             'Greece': 'EL',
+             'Spain': 'ES',
+             'France': 'FR',
+             'Italy': 'IT',
+             'Cyprus': 'CY',
+             'Latvia': 'LV',
+             'Lithuania': 'LT',
+             'Luxembourg': 'LU',
+             'Hungary': 'HU',
+             'Malta': 'MT',
+             'Netherlands': 'NL',
+             'Austria': 'AT',
+             'Poland': 'PL',
+             'Portugal': 'PT',
+             'Romania': 'RO',
+             'Slovenia': 'SI',
+             'Slovakia': 'SK',
+             'Finland': 'FI',
+             'Sweden': 'SE',
+             'United Kingdom':'GB',
+             }
+
 if __name__ == "__main__":
     seen=[]
     for letter in uppercase:
