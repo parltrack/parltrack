@@ -104,6 +104,10 @@ def dossier(id):
             break
     if not dossier:
         return
+    if 'dossier_of_the_committee' in dossier['procedure']:
+        dossier['procedure']['committee']=dossier['procedure']['dossier_of_the_committee'].split('/')[0]
+    tmp=dossier['procedure']['reference'].split('/')
+    dossier['procedure']['eprodid']="%s/%s(%s)" % (tmp[1],tmp[2],tmp[0])
     if 'changes' in dossier: del dossier['changes']
     # find related votes
     votes=list(db.ep_votes.find({'dossierid': dossier['_id']}))
