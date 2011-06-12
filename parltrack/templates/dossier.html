@@ -55,13 +55,17 @@
     {% if dossier.votes %}<li><a href="#votes">Votes</a></li>{%endif%}
   </ul>
 <div id="general">
-<div>Subjects
-<ul>{%for sub in dossier.procedure.subjects%}<li>{{sub}}</li>{%endfor%}</ul>
-</div>
 <div>Legal Basis
 <ul>{%for sub in dossier.procedure.legal_basis%}<li>{{sub}}</li>{%endfor%}</ul></div>
+<div>Links
+<ul>
+  <li><a href="{{dossier.meta.source}}">OEIL</a></li>
+  <li><a href="http://www.google.com/search?q={{dossier.procedure.title}}-europarl.europa.eu">Google</a></li>
+  <li><a href="http://www.europarl.europa.eu/RegistreWeb/search/simple.htm?fulltext={{dossier.procedure.eprodid}}">Eprod</a></li>
+</ul></div>
 {% if dossier.comeets %}
 <h3>Committees</h3>
+  <div>Dossier of the Committee <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&body={{dossier.procedure.committee}}&language=EN">{{dossier.procedure.dossier_of_the_committee}}</a></div>
   {% for committee in dossier.comeets%}
     {% if committee|length == 4 %}<a href="/committee/{{committee}}">{{committee.committee}}</a>
     {%elif committee_map[committee]|length == 4 %}<a href="/committee/{{committee_map[committee]}}">{{committee.committee}}</a>
@@ -102,13 +106,14 @@
 {% else %}
   {% if dossier.procedure.agents %}
   <h3>Committees</h3>
+  <div>Dossier of the Committee <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&body={{dossier.procedure.committee}}&language=EN">{{dossier.procedure.dossier_of_the_committee}}</a></div>
   <ul>{%for agent in dossier.procedure.agents%}
      <li>
        {%if agent.responsible%}
           <strong>{% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
             {%elif committee_map[agent.commitee]|length == 4 %}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>
             {%else%}{{agent.commitee}}{%endif%}</strong>
-          {%if dossier.procedure.dossier_of_the_committee %}{{dossier.procedure.dossier_of_the_committee}}{%endif%}
+          {%if dossier.procedure.dossier_of_the_committee %}<a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&body={{dossier.procedure.committee}}&language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
        {%else%}
           {% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
           {%elif committee_map[agent.commitee]|length == 4 %}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>
@@ -121,6 +126,9 @@
   </ul>
   {%endif%}
 {%endif%}
+<div>Subjects
+<ul>{%for sub in dossier.procedure.subjects%}<li>{{sub}}</li>{%endfor%}</ul>
+</div>
 </div>
 <div id="activities">
 <h3>Activites</h3>
@@ -137,7 +145,7 @@
                 <strong>{% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
                   {%elif committee_map[agent.commitee]|length == 4 %}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>
                   {%else%}{{agent.commitee}}{%endif%}</strong>
-                {%if dossier.procedure.dossier_of_the_committee %}{{dossier.procedure.dossier_of_the_committee}}{%endif%}
+                {%if dossier.procedure.dossier_of_the_committee %}<a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&body={{dossier.procedure.committee}}&language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
              {%else%}
                 {% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
                 {%elif committee_map[agent.commitee]|length == 4 %}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>
