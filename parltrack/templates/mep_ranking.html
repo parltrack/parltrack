@@ -17,8 +17,8 @@
       <tr>
          <th>Name</th>
          <th>Role</th>
-         <th>Group</th>
-         <th>Country</th>
+         {% if not group %}<th>Group</th>{% endif %}
+         {% if not country %}<th>Country</th>{% endif %}
       </tr>
    </thead>
    <tbody>
@@ -26,8 +26,8 @@
       <tr>
          <td><a href="/mep/{{ ranking.2.Name.full }}">{{ ranking.2.Name.full }}</a></td>
          <td>{{ ranking.2.Groups.0.role }}</td>
-         <td><a href="/meps/{{ ranking.2.Groups.0.groupid }}?date={{d|asdate}}">{{ranking.2.Groups.0.groupid }}</a></td>
-         <td><a href="/meps/{{ countries[ranking.2.Constituencies.0.country] }}?date={{d|asdate}}">{{ ranking.2.Constituencies.0.country }}</a></td>
+         {% if not group %}<td><a href="/meps/{{ ranking.2.Groups.0.groupid }}?date={{d|asdate}}">{{ranking.2.Groups.0.groupid }}</a></td>{% endif %}
+         {% if not country %}<td><a href="/meps/{{ countries[ranking.2.Constituencies.0.country] }}?date={{d|asdate}}">{{ ranking.2.Constituencies.0.country }}</a></td>{% endif %}
       </tr>
       {% endfor %}
    </tbody>
