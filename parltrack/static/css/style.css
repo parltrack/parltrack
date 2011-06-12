@@ -56,6 +56,8 @@ li .has_summary, .more { cursor: pointer; padding-left: 0px; font-size: 1em; col
 .ui-widget-content a:hover { color: #1A67B8 !important; text-decoration: underline; }
 .ui-state-hover { background: url(images/ui-bg_glass_100_f6f6f6_1x400.png) repeat-x scroll 50% 50% !important; border: 1px solid #f6f6f6 !important;}
 
+.group_icon { height:1em; margin:2px; vertical-align:top; }
+
 /* tables */
 table.tablesorter {
 	font-family:arial;

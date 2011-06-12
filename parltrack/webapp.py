@@ -346,6 +346,11 @@ def view_committee(c_id):
 def asdate(value):
     return value.strftime('%Y/%m/%d')
 
+@app.template_filter()
+def group_icon(value):
+    if value=='NA': value='NI'
+    return "static/images/%s.gif" % value.lower().replace('/','_')
+
 def tojson(data):
     if type(data)==type(ObjectId()):
         return

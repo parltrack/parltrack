@@ -10,7 +10,7 @@
 {% block content %}
 <a class="asjson" href="{{url}}?format=json">download as json</a>
 <h2>Members of the European Parliament</h2>
-<h3>{%if country or group%}from {{country}}{%if group and country %}/{%endif%}{{group}}{%endif%} as of  {{ d|asdate }}</h3>
+<h3>{%if country or group%}from {{country}}{%if group and country %}/{%endif%}<img class="group_icon" title="icon: {{group}}" src="/{{group|group_icon}}" />{{group}}{%endif%} as of  {{ d|asdate }}</h3>
 
 <table id='sortedlist' class="tablesorter">
    <thead>
@@ -26,7 +26,7 @@
       <tr>
          <td><a href="/mep/{{ ranking.2.Name.full }}">{{ ranking.2.Name.full }}</a></td>
          <td>{{ ranking.2.Groups.0.role }}</td>
-         {% if not group %}<td><a href="/meps/{{ ranking.2.Groups.0.groupid }}?date={{d|asdate}}">{{ranking.2.Groups.0.groupid }}</a></td>{% endif %}
+         {% if not group %}<td><img class="group_icon" title="icon: {{ranking.2.Groups.0.groupidgroup}}" src="/{{ranking.2.Groups.0.groupid|group_icon}}" /><a href="/meps/{{ ranking.2.Groups.0.groupid }}?date={{d|asdate}}">{{ranking.2.Groups.0.groupid }}</a></td>{% endif %}
          {% if not country %}<td><a href="/meps/{{ countries[ranking.2.Constituencies.0.country] }}?date={{d|asdate}}">{{ ranking.2.Constituencies.0.country }}</a></td>{% endif %}
       </tr>
       {% endfor %}
