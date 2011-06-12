@@ -44,7 +44,28 @@ def diff(e1,e2, path=[]):
         return res
     elif hasattr(e1,'__iter__'):
         res=[]
-        for item in filter(None,[diff(a,b,path+[i]) for i,(a,b) in enumerate(izip_longest(e1,(e2 or [])))]):
+        if len(e1)!=len(e2):
+            if len(e1)<len(e2):
+                l=e2
+                s=e1
+            elif len(e1)>len(e2):
+                l=e1
+                s=e2
+            for i in s:
+                if i in l:
+                    l[l.index(i)]=None
+                    s[s.index(i)]=None
+            while len(s)<len(l): s.insert(0,None)
+        ## for i in s:
+        ## for n,i in enumerate(l):
+        ##     if i:
+        ##         s.insert(n,None)
+        ## for n,i in enumerate(s):
+        ##     if i:
+        ##         l.insert(n,None)
+        ## print 'asdf',e1
+        ## print 'qwer',e2
+        for item in filter(None,[diff(a,b,path+[i]) for i,(a,b) in enumerate(izip_longest(e1,(e2)))]):
             if type(item)==type(list()):
                 res.extend(item)
             else:
@@ -55,9 +76,9 @@ def diff(e1,e2, path=[]):
     return
 
 def test_diff():
-    d2={ 'a': [ { 'aa': 1, 'bb':2 }, {'AA': 1, 'BB': { 'asdf': 'qwer'} } ],
+    d2={ 'a': [ {'aa': 2, 'bb': 3 }, { 'aa': 1, 'bb':3 }, {'AA': 1, 'BB': { 'asdf': { 'asdf': 'qwer'}}}, {'Mm': [ 'a','b','c','d'] } ],
          'c': [ 1,2,3,4]}
-    d1={ 'a': [ { 'aa': 1, 'bb':3 }, {'AA': 1, 'BB': { 'asdf': { 'asdf': 'qwer'}}}, {'Mm': [ 'a','b','c','d'] } ],
+    d1={ 'a': [ { 'aa': 1, 'bb':3 }, {'AA': 1, 'BB': { 'asdf': '2'}}, {'Mm': [ 'a','b','c','d'] } ],
          'b': { 'z': 9, 'x': 8 },
          'c': [ 3,4,5,9,10]}
     import pprint
