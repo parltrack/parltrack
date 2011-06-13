@@ -4,3 +4,9 @@ doc/_build/*
 env
 build
 parltrack/scrapers/data
+parltrack/scrapers/logs
+parltrack/scrapers/dumps
+parltrack/static/js/ckeditor
+parltrack/static/css/images
+stats
+dump
