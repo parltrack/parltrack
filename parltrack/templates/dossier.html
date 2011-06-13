@@ -29,6 +29,7 @@
     </script>
 {% endblock %}
 {% block content %}
+<a class="asjson" href="{{url}}?format=json">download as json</a>
 <div id="track_dossier"><a class="asjson" href="/notification">Track this dossier</a><br />
     <div class="hidden right" id="notif_subscr">
     <h3>Notification subscription</h3>
@@ -43,7 +44,6 @@
     </p>
     </div>
 </div>
-<a class="asjson" href="{{url}}?format=json">download as json</a>
 <h2>{{ dossier.procedure.reference }}</h2>
 <p>{{dossier.procedure.title}}</p>
 <p><strong>{{dossier.procedure.stage_reached}}</strong></p>
