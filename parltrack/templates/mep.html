@@ -199,7 +199,7 @@
   <li><dl><dt>Homepage</dt><dd><a href="{{mep.Homepage}}">{{mep.Homepage}}</a></dd></dl></li>
 {%endif%}
 {% if mep.Mail%}
-  <li><dl><dt>Mail</dt><dd>{{mep.Mail}}</dd></dl></li>
+  <li><dl><dt>Mail</dt><dd>{{mep.Mail|protect_email|safe}}</dd></dl></li>
 {%endif%}
 </ul>
 {%endif%}

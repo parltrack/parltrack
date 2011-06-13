@@ -26,7 +26,7 @@ from flaskext.cache import Cache
 from flask import Flask, render_template, request, jsonify, abort, redirect
 from parltrack import default_settings
 from datetime import datetime
-from random import randint
+from random import randint, choice, shuffle, randrange
 from hashlib import sha1
 from werkzeug import ImmutableDict
 from bson.objectid import ObjectId
@@ -112,7 +112,6 @@ def search():
 
 @app.route('/notification')
 def gen_notif_id():
-    from random import choice
     db = connect_db()
     while True:
         nid = ''.join([chr(randint(97, 122)) if randint(0, 5) else choice("_-.") for x in range(10)])
@@ -350,6 +349,30 @@ def asdate(value):
 def group_icon(value):
     if value=='NA': value='NI'
     return "static/images/%s.gif" % value.lower().replace('/','_')
+
+@app.template_filter()
+def protect_email(email_address):
+    character_set = '+-.0123456789@ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz'
+    char_list = list(character_set)
+    shuffle(char_list)
+
+    key = ''.join(char_list)
+
+    cipher_text = ''
+    id = 'e' + str(randrange(1,999999999))
+
+    for a in email_address:
+        cipher_text += key[ character_set.find(a) ]
+
+    script = 'var a="'+key+'";var b=a.split("").sort().join("");var c="'+cipher_text+'";var d="";'
+    script += 'for(var e=0;e<c.length;e++)d+=b.charAt(a.indexOf(c.charAt(e)));'
+    script += 'document.getElementById("'+id+'").innerHTML="<a href=\\"mailto:"+d+"\\">"+d+"</a>"'
+
+
+    script = "eval(\""+ script.replace("\\","\\\\").replace('"','\\"') + "\")"
+    script = '<script type="text/javascript">/*<![CDATA[*/'+script+'/*]]>*/</script>'
+
+    return '<span id="'+ id + '">[javascript protected email address]</span>'+ script
 
 def tojson(data):
     if type(data)==type(ObjectId()):
