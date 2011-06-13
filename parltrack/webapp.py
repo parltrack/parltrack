@@ -175,8 +175,8 @@ def notification_add_detail(g_id, item, value):
         mail.send(msg)
 
     else:
-        if db.notifications.find({'dossiers': value}).count():
-            return 'OK'
+        #if db.notifications.find({'dossiers': value}).count():
+        #    return 'OK'
         i = db.dossiers.find_one({'procedure.reference': value})
         if not i:
             return 'unknown dossier - '+value
