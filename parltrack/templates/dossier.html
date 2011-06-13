@@ -110,7 +110,8 @@
   <h3>Committees</h3>
   <div>Dossier of the Committee <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&body={{dossier.procedure.committee}}&language=EN">{{dossier.procedure.dossier_of_the_committee}}</a></div>
   <ul>{%for agent in dossier.procedure.agents%}
-     <li>
+       {% if agent.commitee %}
+       <li>
        {%if agent.responsible%}
           <strong>{% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
             {%elif committee_map[agent.commitee]|length == 4 %}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>
@@ -124,6 +125,7 @@
        {%if agent.name%}<a href="/mep/{{agent.name}}">{{agent.name}}</a>{%endif%}
        {%if agent.group%}<a href="/meps/{{agent.group}}">{{agent.group}}</a>{%endif%}
      </li>
+     {%endif%}
     {%endfor%}
   </ul>
   {%endif%}

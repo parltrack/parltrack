@@ -49,6 +49,7 @@
     <li><a href="#general">General</a></li>
     <li><a href="#calendar-tab">Calendar</a></li>
   </ul>
+{% if dossiers %}
 <div id='calendar-tab'>
   <div id="calendar_legend">
     <ul id='legend'>
@@ -63,6 +64,7 @@
   </div>
   <div id='calendar'></div>
 </div>
+{% endif %}
 <div id="general">
 <h3>Information</h3>
 <ul>
@@ -75,6 +77,7 @@
     <li>Public</li>
 {% endif %}
 </ul>
+{% if dossiers %}
 <h3>Tracked Dossiers</h3>
 <table id='sortedlist' class="tablesorter">
     <thead>
@@ -112,5 +115,6 @@
   </table>
 <div>
 </div>
+{% endif %}
 {% endblock %}
 
