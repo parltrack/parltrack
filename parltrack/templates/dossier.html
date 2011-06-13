@@ -29,8 +29,8 @@
     </script>
 {% endblock %}
 {% block content %}
-<a class="asjson" href="{{url}}?format=json">download as json</a>
-<div id="track_dossier"><a class="asjson" href="/notification">Track this dossier</a><br />
+<a class="asjson" href="{{url}}?format=json">download as json</a><br />
+<div id="track_dossier"><a class="asjson" href="/notification">Track this dossier</a>
     <div class="hidden right" id="notif_subscr">
     <h3>Notification subscription</h3>
     <p>
@@ -50,13 +50,15 @@
 <div id="tabs">
   <ul>
     <li><a href="#general">General</a></li>
-    <li><a href="#activities">Activities</a></li>
+    {% if dossier.activities %}<li><a href="#activities">Activities</a></li>{% endif %}
     {% if dossier.docs|length %}<li><a href="#documents">Documents</a></li>{%endif%}
     {% if dossier.votes %}<li><a href="#votes">Votes</a></li>{%endif%}
   </ul>
 <div id="general">
-<div>Legal Basis
-<ul>{%for sub in dossier.procedure.legal_basis%}<li>{{sub}}</li>{%endfor%}</ul></div>
+  {% if dossier.procedure.legal_basis %}
+  <div>Legal Basis
+  <ul>{%for sub in dossier.procedure.legal_basis%}<li>{{sub}}</li>{%endfor%}</ul></div>
+  {% endif %}
 <div>Links
 <ul>
   <li><a href="{{dossier.meta.source}}">OEIL</a></li>
@@ -130,6 +132,7 @@
 <ul>{%for sub in dossier.procedure.subjects%}<li>{{sub}}</li>{%endfor%}</ul>
 </div>
 </div>
+{% if dossier.activities %}
 <div id="activities">
 <h3>Activites</h3>
 <ul>{%for act in dossier.activities%}
@@ -184,6 +187,7 @@
   {%endfor%}
 </ul>
 </div>
+{% endif %}
 {% if dossier.docs|length %}
   <div id="documents">
   <h3>Documents</h3>
