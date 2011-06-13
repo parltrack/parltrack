@@ -48,8 +48,8 @@ dd { display: inline-block; }
 .has_summary, .more { cursor: pointer; padding-left: 40px; font-size: .7em; color: #454545; }
 li .has_summary, .more { cursor: pointer; padding-left: 0px; font-size: 1em; color: #454545; }
 .asjson { font-size: .7em; float: right; }
-#legal { width: 100%; text-align: center; color: black; }
-#legal a, #legal a:visited { color: white; }
+.centered { width: 100%; text-align: center; color: black; }
+#footer a, #footer a:visited { color: white; }
 
 .ui-widget-header { background: #EFEFEF !important; border: 0 !important; }
 .ui-widget-content a { color: #1A67B8 !important; text-decoration: none; }
