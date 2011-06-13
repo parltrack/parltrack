@@ -127,8 +127,27 @@ def notification_view_or_create(g_id):
     if not group:
         group = {'id': g_id, 'active_emails': [], 'dossiers': [], 'restricted': False, 'actions' :[]}
         db.notifications.save(group)
+    ds=[]
+    if len(group['dossiers']):
+        for d in db.dossiers.find({'procedure.reference': { '$in' : group['dossiers'] } }):
+            if 'agents' in d['procedure']:
+                d['rapporteur']=[{'name': x['name'], 'grp': x['group']} for x in d['procedure']['agents'] if x.get('responsible') and x.get('name')]
+            forecasts=[]
+            for act in d['activities']:
+                if act['type']=='Forecast':
+                    forecasts.append({'date':datetime.strptime(act['date'], "%Y-%m-%d"),
+                                      'title': act['title']})
+                if act['type']=='Non-legislative initial document':
+                    if 'comdoc' in d:
+                         print 'WTF!WTF!WTF!WTF!WTF!WTF!WTF!WTF!WTF!WTF!WTF!WTF!'
+                         raise
+                    d['comdoc']={'title': act['documents'][0]['title'], 'url': act['documents'][0]['url'], }
+            d['forecasts']=forecasts
+            ds.append(d)
     return render_template('view_notif_group.html',
-                            group=group)
+                           dossiers=ds,
+                           date=datetime.now(),
+                           group=group)
 
 @app.route('/notification/<string:g_id>/add/<any(dossiers, emails):item>/<path:value>')
 def notification_add_detail(g_id, item, value):

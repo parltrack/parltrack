@@ -58,6 +58,19 @@ li .has_summary, .more { cursor: pointer; padding-left: 0px; font-size: 1em; col
 
 .group_icon { height:1em; margin:2px; vertical-align:top; }
 
+#calendar { width: 700px; }
+#calendar_legend { width: 240px; float: right; }
+.council-debate-expected, .council-debate-expected a { background-color: green !important; border-color: green !important; color: white !important }
+.council-final, .council-final a{ background-color: green !important; border-color: green !important; color: yellow !important; }
+.council-agree, .council-agree a{ background-color: green !important; border-color: green !important; color: #ffcc00 !important; }
+.ep-sitting, .ep-sitting a{ background-color: #214478 !important; border-color: #214478 !important; color: #ccc !important; }
+.ep-debate, .ep-debate a{ background-color: #214478 !important; border-color: #214478 !important; color: white !important; }
+.ep-1streading, .ep-1streading a { background-color: #214478 !important; border-color: #214478 !important; color: yellow !important; }
+.ep-vote, .ep-vote a { background-color: #214478 !important; border-color: #214478 !important; color: #ffcc00 !important; }
+#legend li { font-size:0.7em; list-style-type:none; margin-bottom:0.2em; margin-left:-2.5em; margin-right:1em; }
+.fc-content { clear:none !important; }
+#calendar a:hover { color: red !important; }
+
 /* tables */
 table.tablesorter {
 	font-family:arial;

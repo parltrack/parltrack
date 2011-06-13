@@ -1,13 +1,71 @@
 {% extends "base.html" %}
+{% block scripts %}
+    <script type="text/javascript" src="/static/js/jquery.tablesorter.min.js"> </script>
+    <script type='text/javascript' src='/static/js/fullcalendar.min.js'></script>
+    <script type='text/javascript' src='/static/js/radarcal.js'></script>
+    <script type="text/javascript">
+     $(document).ready(function() {
+       $( "#tabs" ).tabs();
+       $('#notif_form').submit(function() {
+            $.ajax({url: '/notification', success: function(data) { group = data;
+                $.ajax({url: '{{group.id}}', success: function(data) {
+                    $.ajax({url: '{{group.id}}/add/emails/'+$('#notif_form').children('input:first').attr('value'), success: function(data) { $('#notif_subscr h3').html(data); }});
+                    $.ajax({url: '{{group.id}}/add/dossiers/'+$('#content > h2:first').html()});
+                }});
+            }});
+            return false;
+       });
+     $("#sortedlist").tablesorter({
+         sortList: [[1,1],[0,0]],
+         textExtraction: function(node) {
+            return $(node).text();
+        },
+       });
+     });
+    </script>
+{% endblock %}
+{% block styles %}
+<link rel='stylesheet' type='text/css' href='/static/css/fullcalendar.css' />
+{%endblock%}
+
+
 {% block content %}
+<div id="track_dossier"><a class="asjson" href="/notification">Join this notification group</a><br />
+    <div class="hidden right" id="notif_subscr">
+    <h3>Notification subscription</h3>
+    <p>
+        <form method="get" action="" name="notif_form" id="notif_form">
+        E-mail: <input type="text" name="address" /><br />
+        //required<br />
+        <input type="hidden" name="group" value="{{group.id}}" />
+        <input type="submit" value="subscribe" />
+        </form>
+    </p>
+    </div>
+</div>
 <h2>{{ group.id }} notification group</h2>
-<h3>Informations</h3>
+<div id="tabs">
+  <ul>
+    <li><a href="#general">General</a></li>
+    <li><a href="#calendar-tab">Calendar</a></li>
+  </ul>
+<div id='calendar-tab'>
+  <div id="calendar_legend">
+    <ul id='legend'>
+      <li class='ep-sitting'>EP plenary sitting (indicative date)</li>
+      <li class='ep-debate'>Plenary sitting agenda, debate</li>
+      <li class='ep-1streading'>EP: report scheduled for adoption in committee, 1st or single reading</li>
+      <li class='ep-vote'>Plenary sitting agenda, vote</li>
+      <li class='council-debate-expected'>Council: debate or examination expected</li>
+      <li class='council-final'>Council: final act scheduled</li>
+      <li class='council-agree'>Council: political agreement on final act expected</li>
+    </ul>
+  </div>
+  <div id='calendar'></div>
+</div>
+<div id="general">
+<h3>Information</h3>
 <ul>
- <li>Dossiers: <ul>
-                {% for dossier in group.dossiers %}
-                <li><a href="/dossier/{{ dossier }}">{{ dossier }}</a></li>
-                {% endfor %}
-            </ul>
  <li>Number of subscribers: {{ group.active_emails|length }}</li>
  <li>Pending subscribers: {{ group.pending_emails|length }}</li>
  <li><a href="/rss/{{ group.id }}">Feed URL</a></li>
@@ -17,5 +75,42 @@
     <li>Public</li>
 {% endif %}
 </ul>
+<h3>Tracked Dossiers</h3>
+<table id='sortedlist' class="tablesorter">
+    <thead>
+      <tr>
+        <th>Dossier</th>
+        <th class="{sorter: 'text'}">Forecasts</th>
+        <th>Stage Reached</th>
+        <th>Legal Basis</th>
+        <th>Name</th>
+        <th>Committee Dossier</th>
+        <th>Rapporteur</th>
+        <th>Commission Doc</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for dossier in dossiers %}
+      <tr>
+        <td><a href="/dossier/{{ dossier.procedure.reference }}">{{ dossier.procedure.reference }}</a></td>
+        <td class='forecasts'>{% for fc in dossier.forecasts|sort %}
+            {% if fc.date > date %}
+              <span class="vevent"><span class="dtstart">{{ fc.date|asdate }}</span> -
+              <span class="summary">{{ fc.title }}</span></span>
+            {% endif %}
+          {% else %} - 
+          {% endfor %}</td>
+        <td>{{ dossier.procedure.stage_reached }}</td>
+        <td>{% for sub in dossier.procedure.legal_basis %}{% if not loop.first %}, {% endif %}{{ sub }}{% endfor %}</td>
+        <td>{{ dossier.procedure.title }}</td>
+        <td>{{ dossier.procedure.dossier_of_the_committee }}</td>
+        <td>{% for r in dossier.rapporteur %}{% if not loop.first %}, {% endif %}<a href="/mep/{{r.name}}">{{ r.name }}</a> ({{r.grp}}){% endfor %}</td>
+        <td>{% if dossier.comdoc %}<a href="{{dossier.comdoc.url}}">{{ dossier.comdoc.title }}</a>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+<div>
+</div>
 {% endblock %}
 
