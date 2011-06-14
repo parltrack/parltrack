@@ -246,7 +246,7 @@ table.fc-header {
 	border-style: solid; 
 	border-color: #36c;     /* default BORDER color (probably the same as background-color) */
 	background-color: #36c; /* default BACKGROUND color */
-	color: #fff !important;            /* default TEXT color */
+	color: #fff;            /* default TEXT color */
 	}
 	
 	/* Use the 'className' CalEvent property and the following
