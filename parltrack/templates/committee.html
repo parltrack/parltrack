@@ -16,15 +16,15 @@
     <li><a href="#members">Members</a></li>
   </ul>
 <div id="meetings">
-{%for group in committee.agendas|groupby('meeting_date') %}
-<h3>{{group.grouper}}</h3><ul>
-  {% for meet in group.list %}
-    <li>{{meet.title}}
-      {%if meet.comdoc %}{%if meet.comref %}<a href="/dossier/{{meet.comref}}">{{meet.comdoc}}</a>{%else%}{{meet.comdoc}}{%endif%}{%endif%}
-      {%if meet.tabling_deadline %}<div><strong>Tabling Deadline</strong> {{meet.tabling_deadline}}</div>{%endif%}
-    </li>
-  {%endfor%}
-  </ul>
+{%for group in committee.agendas|groupby('meeting_date') if group.grouper >= today %}
+  <h3>{{group.grouper|asdate}}</h3><ul>
+    {% for meet in group.list %}
+      <li>{{meet.title}}
+        {%if meet.comdoc %}{%if meet.comref %}<a href="/dossier/{{meet.comref}}">{{meet.comdoc}}</a>{%else%}{{meet.comdoc}}{%endif%}{%endif%}
+        {%if meet.tabling_deadline %}<div><strong>Tabling Deadline</strong> {{meet.tabling_deadline}}</div>{%endif%}
+      </li>
+    {%endfor%}
+    </ul>
 {% else %}
  <h3>No agenda known</h3>
 {%endfor%}
