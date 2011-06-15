@@ -186,6 +186,30 @@ def notification_add_detail(g_id, item, value):
     db.notifications.save(group)
     return 'OK'
 
+@app.route('/notification/<string:g_id>/del/<any(dossiers, emails):item>/<path:value>')
+def notification_del_detail(g_id, item, value):
+    db = connect_db()
+    group = db.notifications.find_one({'id': g_id})
+    if not group:
+        return 'unknown group '+g_id
+    # TODO handle restricted groups
+    #if group.restricted:
+    #    return 'restricted group'
+    if item == 'emails':
+        print value
+        print group['active_emails']
+        if value not in group['active_emails']:
+            return 'Cannot complete this action'
+        i = {'address': value, 'type': 'unsubscription', 'token': sha1(''.join([chr(randint(32, 122)) for x in range(12)])).hexdigest(),'date': datetime.now()}
+        group['actions'].append(i)
+        msg = Message("Parltrack Notification Unsubscription Verification",
+                sender = "parltrack@parltrack.euwiki.org",
+                recipients = [value])
+        msg.body = "Your verification key is %sactivate?key=%s\nNotification group url: %snotification/%s" % (request.url_root, i['token'], request.url_root, g_id)
+        mail.send(msg)
+        db.notifications.save(group)
+    return 'OK'
+
 @app.route('/activate')
 def activate():
     db = connect_db()
@@ -193,17 +217,24 @@ def activate():
     if not k:
         return 'Missing key'
     notif = db.notifications.find_one({'actions.token': k})
-    if notif:
-        for action in notif['actions']:
-            if action.get('token') == k:
+    if not notif:
+        return 'wrong key'
+    for action in notif['actions']:
+        if action.get('token') == k:
+            if action['type'] == 'subscription':
                 if not action['address'] in notif['active_emails']:
                     notif['active_emails'].append(action['address'])
                 notif['actions'].remove(action)
                 db.notifications.save(notif)
-                break
-        # TODO activation method
-        return 'activated'
-    return 'wrong key'
+                # TODO activation method
+                return 'activated'
+
+            if action['type'] == 'unsubscription':
+                notif['actions'].remove(action)
+                notif['active_emails'].remove(action['address'])
+                db.notifications.save(notif)
+                # TODO activation method
+                return 'deactivated'
 
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 #               Meps
