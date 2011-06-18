@@ -248,7 +248,13 @@ def scrape(comid, url, meeting_date):
             finalizeIssue(ax, issue)
             ax=['Misc','']
             if m.group(2).startswith('Deadline for tabling amendments:'):
-                issue['tabling_deadline']=datetime.fromtimestamp(mktime(strptime(m.group(2).split(':')[1].strip(),"%d %B %Y, %H.%M")))
+                try:
+                    issue['tabling_deadline']=datetime.fromtimestamp(mktime(strptime(m.group(2).split(':')[1].strip(),"%d %B %Y, %H.%M")))
+                except ValueError:
+                    try:
+                        issue['tabling_deadline']=datetime.fromtimestamp(mktime(strptime(m.group(2).split(':')[1].strip(),"%d.%m.%Y at %H.%M")))
+                    except:
+                        print >>sys.stderr, '[$] unknown tabling deadline format', m.group(2).split(':')[1].strip()
             if DEBUG: print 'misc', line.encode('utf8')
             continue
 
