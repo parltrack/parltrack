@@ -28,7 +28,7 @@
       <tr>
          <td><a href="/mep/{{ ranking.2.Name.full }}">{{ ranking.2.Name.full }}</a></td>
          <td>{{ ranking.2.Groups.0.role }}</td>
-         {% if not group %}<td><img class="group_icon" title="icon: {{ranking.2.Groups.0.groupidgroup}}" src="/{{ranking.2.Groups.0.groupid|group_icon}}" /> {% if ranking.2.Groups.0.groupid in groupids %}<a href="/meps/{{ ranking.2.Groups.0.groupid }}?date={{d|asdate}}">{{ranking.2.Groups.0.groupid }}</a>{% else %}{{ranking.2.Groups.0.groupid }}{% endif %}</td>{% endif %}
+         {% if not group %}<td><img class="group_icon" title="icon: {{ranking.2.Groups.0.groupid}}" src="/{{ranking.2.Groups.0.groupid|group_icon}}" /> {% if ranking.2.Groups.0.groupid in groupids %}<a href="/meps/{{ ranking.2.Groups.0.groupid }}?date={{d|asdate}}">{{ranking.2.Groups.0.groupid }}</a>{% else %}{{ranking.2.Groups.0.groupid }}{% endif %}</td>{% endif %}
          {% if not country %}<td><img class="group_icon" title="icon: {{countries[ranking.2.Constituencies.0.country]}}" src="/static/images/{{countries[ranking.2.Constituencies.0.country]|lower}}.gif" /> <a href="/meps/{{ countries[ranking.2.Constituencies.0.country] }}?date={{d|asdate}}">{{ ranking.2.Constituencies.0.country }}</a></td>{% endif %}
       </tr>
       {% endfor %}
