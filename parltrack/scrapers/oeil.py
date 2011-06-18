@@ -202,6 +202,8 @@ def save(data):
             #print >> sys.stderr, (d)
         m=db.notifications.find({'dossiers': data['procedure']['reference']},['active_emails'])
         for g in m:
+            if not len(g['active_emails']):
+                continue
             msg = Message("Parltrack Notification for %s" % data['procedure']['reference'],
                           sender = "parltrack@parltrack.euwiki.org",
                           bcc = g['active_emails'])
