@@ -65,7 +65,7 @@
       </div>
      </li>
      <li><a>Committees</a>
-       <div style="min-width:300px;">
+       <div style="min-width:320px;">
           <ul>{%for c in committees|sort%}<li>
             {% if c|length != 4 %}<a href="/committee/{{committee_map[c]}}">{{committee_map[c]}} - {{c}}</a>
             {%elif committee_map[c]|length != 4 %}<a href="/committee/{{c}}">{{c}} - {{committee_map[c]}}</a>
