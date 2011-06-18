@@ -76,6 +76,27 @@ li .has_summary, .more { cursor: pointer; padding-left: 0px; font-size: 1em; col
 
 div.qtip { font-family:Trebuchet MS,Tahoma,Verdana,Arial,sans-serif; font-size: .8em; }
 
+#dossiers-graph {
+    width: 600px;
+    height: 300px;
+}
+/* JIT TOOLTIPS*/
+.tip {
+    color: #111;
+    width: 139px;
+    background-color: white;
+    border:1px solid #ccc;
+    -moz-box-shadow:#555 2px 2px 8px;
+    -webkit-box-shadow:#555 2px 2px 8px;
+    -o-box-shadow:#555 2px 2px 8px;
+    box-shadow:#555 2px 2px 8px;
+    opacity:0.9;
+    filter:alpha(opacity=90);
+    font-size:10px;
+    font-family:Verdana, Geneva, Arial, Helvetica, sans-serif;
+    padding:7px;
+}
+
 /* tables */
 table.tablesorter {
 	font-family:arial;

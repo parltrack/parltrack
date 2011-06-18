@@ -1,4 +1,12 @@
 {% extends "base.html" %}
+{% block scripts %}
+<script language="javascript" type="text/javascript" src="/static/js/jit-yc.js"></script>
+<!--[if IE]><script language="javascript" type="text/javascript" src="/static/js/excanvas.js"></script><![endif]-->
+<script language="javascript" type="text/javascript" src="/static/js/jitchart.js"></script>
+{% endblock %}
+{% block styles %}
+<link type="text/css" href="/static/js/css/jit/BarChart.css" rel="stylesheet" />
+{% endblock %}
 {% block content %}
 <h2>Welcome to ParlTrack!</h2>
 <ul>
@@ -7,10 +15,11 @@
  <li>Number of votes: {{ votes_num }}</li>
 </ul>
 <h3>Dossiers</h3>
-<ul>
+<ul style="display: box; float: right;">
 {% for stage,c in stages %}
-  <li>{{stage}}: {{c}}</li>
+  <li class='stagestat'><span class='stage'>{{stage}}</span>: <span class='count'>{{c}}</span></li>
 {%endfor%}
 </ul>
+<div id='dossiers-graph'> </div>
 {% endblock %}
 
