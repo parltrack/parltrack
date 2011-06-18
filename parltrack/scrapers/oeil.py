@@ -61,7 +61,7 @@ def getMEPRef(name):
     if mep:
         return mep['_id']
     else:
-        print >>sys.stderr, 'lookup oops', actor['name'].encode('utf8'), item['meta']['source']
+        print >>sys.stderr, '[!] lookup oops', name.encode('utf8')
 
 def makeActivities(data):
     #print >> sys.stderr, data
