@@ -66,7 +66,7 @@
       <tr>
         <td><a href="/dossier/{{ dossier.procedure.reference }}">{{ dossier.procedure.reference }}</a></td>
         <td class='forecasts'>{% for fc in dossier.forecasts|sort if fc.date > date  %}
-           <div class="vevent"><span class="dtstart">{{ fc.date|asdate }}</span> -
+           <div class="vevent"><abbr title="{{fc.date.isoformat()}}" class="dtstart">{{ fc.date|asdate }}</abbr> -
               <span class="summary">{{ fc.title }}</span></div>
           {% else %} -
           {% endfor %}</td>
