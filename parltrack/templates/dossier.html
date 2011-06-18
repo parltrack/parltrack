@@ -138,14 +138,14 @@
 <div id="activities">
 <h3>Activites</h3>
 <ul>{%for act in dossier.activities%}
-   <li>
-     {%if act.date%}{{act.date}}{%endif%}
-     {%if act.title%}{{act.title}}{%endif%}
+   <li class='vevent'>
+     {%if act.date%}<abbr class="dtstart" title="{{act.date|isodate}}">{{act.date}}</abbr>{%endif%}
+     {%if act.title%}<span class='summary'>{{act.title}}</span>{%endif%}
      {%if act.type%}{{act.type}}{%endif%}
      <ul>
      {%for agent in act.actors%}
         {%if agent.function == "MEP" %}
-           <li>
+           <li class='agent'>
              {%if agent.responsible%}
                 <strong>{% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
                   {%elif committee_map[agent.commitee]|length == 4 %}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>
@@ -161,7 +161,7 @@
            </li>
         {%endif%}
         {%if agent.body == "CSL" %}
-           <li>
+           <li class='agent'>
              {%if agent.department%}{{agent.department}}{%endif%}
              {%if agent.meeting_id%}#{{agent.meeting_id}}{%endif%}
            </li>
