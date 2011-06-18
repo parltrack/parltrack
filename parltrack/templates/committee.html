@@ -7,6 +7,13 @@
 		$( "#tabs" ).tabs();
       $("#sortedlist").tablesorter();
       $('#sortedlist').tableFilter();
+      $("#sortedlist2").tablesorter({
+         sortList: [[0,1],[3,1]],
+         textExtraction: function(node) {
+            return $(node).text();
+         }
+      });
+      $('#sortedlist2').tableFilter();
 	});
 </script>
 {% endblock %}
@@ -34,18 +41,40 @@
 {%endfor%}
 </div>
 <div id="dossiers">
-  {%for grp in committee.dossiers|groupby('crole') %}
-  <h3>{% if grp.grouper == 0%}Responsible{%else%}Opinion{%endif%}</h3>
-  <ul>
-  {%for group in grp.list|groupby('procedure.stage_reached') %}
-    <li>{{group.grouper}}<ul>
-       {% for dossier in group.list %}
-       <li><a href="/dossier/{{dossier.procedure.reference}}">{{dossier.procedure.reference}}</a> {{dossier.procedure.title}}</li>
-       {% endfor %}
-    </ul></li>
-  {%endfor%}
-  </ul>
-  {%endfor%}
+<table id='sortedlist2' class="tablesorter">
+    <thead>
+      <tr>
+        <th filter-type='ddl'>Role</th>
+        <th filter='false'>Dossier</th>
+        <th filter='false'>Name</th>
+        <th filter='false' class="{sorter: 'text'}">Forecasts</th>
+        <th filter-type='ddl'>Stage Reached</th>
+        <th filter='false'>Legal Basis</th>
+        <th filter='false'>Committee Dossier</th>
+        <th filter-type='ddl'>Rapporteur</th>
+        <th filter='false'>Commission Doc</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for dossier in committee.dossiers %}
+      <tr>
+        <td>{% if dossier.crole %}Responsible{%else%}Opinion{%endif%}</td>
+        <td><a href="/dossier/{{dossier.procedure.reference}}">{{dossier.procedure.reference}}</a></td>
+        <td>{{ dossier.procedure.title }}</td>
+        <td class='forecasts'>{% for fc in dossier.forecasts|sort if fc.date > date  %}
+           <div class="vevent"><abbr title="{{fc.date.isoformat()}}" class="dtstart">{{ fc.date|asdate }}</abbr> -
+              <span class="summary">{{ fc.title }}</span></div>
+          {% else %} -
+          {% endfor %}</td>
+        <td>{{ dossier.procedure.stage_reached }}</td>
+        <td>{% for sub in dossier.procedure.legal_basis %}{% if not loop.first %}, {% endif %}{{ sub }}{% endfor %}</td>
+        <td>{{ dossier.procedure.dossier_of_the_committee }}</td>
+        <td>{% for r in dossier.rapporteur %}{% if not loop.first %}, {% endif %}<a href="/mep/{{r.name}}">{{ r.name }}</a> ({{r.grp}}){% endfor %}</td>
+        <td>{% if dossier.comdoc %}<a href="{{dossier.comdoc.url}}">{{ dossier.comdoc.title }}</a>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 <div id="members">
 <table id='sortedlist' class="tablesorter">
