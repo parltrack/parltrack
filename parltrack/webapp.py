@@ -363,7 +363,10 @@ def view_committee(c_id):
 
 @app.template_filter()
 def asdate(value):
-    return value.strftime('%Y/%m/%d')
+    date=value.strftime('%Y/%m/%d %H:%M')
+    if not date.endswith(" 00:00"):
+        return date
+    else: return date[:-len(" 00:00")]
 
 @app.template_filter()
 def group_icon(value):
