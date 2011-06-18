@@ -392,6 +392,7 @@ def active_dossiers():
 def view_committee(c_id):
     from parltrack.views.views import committee
     c=committee(c_id)
+    c['dossiers']=[listdossiers(d) for d in c['dossiers']]
     if not c:
         abort(404)
     if request.args.get('format','')=='json':

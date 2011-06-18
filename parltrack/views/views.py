@@ -179,8 +179,6 @@ def committee(id):
     comre=re.compile(COMMITTEE_MAP[id],re.I)
     dossiers=[]
     for d in db.dossiers.find({'activities.actors.commitee': comre, 'procedure.stage_reached': {'$in': STAGES}}):
-        if 'agents' in d['procedure']:
-            d['rapporteur']=[dict(i) for i in set([(('name', x['name']), ('grp', x['group'])) for x in d['procedure']['agents'] if x.get('responsible') and x.get('name')])]
         for a in d['activities']:
             for c in a.get('actors',{}):
                 if type(c)!=type(dict()):

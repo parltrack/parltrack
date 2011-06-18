@@ -3,6 +3,14 @@
 <script type="text/javascript" src="/static/js/jquery.tablesorter.min.js"> </script>
 <script type="text/javascript" src="/static/js/picnet.table.filter.min.js"></script>
 <script>
+   if(typeof(String.prototype.trim) === "undefined")
+   {
+      String.prototype.trim = function()
+      {
+         return String(this).replace(/^\s+|\s+$/g, '').replace(/\s+/,' ');
+      };
+   }
+
 	$(function() {
 		$( "#tabs" ).tabs();
       $("#sortedlist").tablesorter();
@@ -10,7 +18,9 @@
       $("#sortedlist2").tablesorter({
          sortList: [[0,1],[3,1]],
          textExtraction: function(node) {
-            return $(node).text();
+            var d=$(node).find('abbr').eq(0).text();
+            if(d) { return d.trim(); }
+            return $(node).text().trim();
          }
       });
       $('#sortedlist2').tableFilter();
@@ -61,10 +71,10 @@
         <td>{% if dossier.crole %}Responsible{%else%}Opinion{%endif%}</td>
         <td><a href="/dossier/{{dossier.procedure.reference}}">{{dossier.procedure.reference}}</a></td>
         <td>{{ dossier.procedure.title }}</td>
-        <td class='forecasts'>{% for fc in dossier.forecasts|sort if fc.date > date  %}
+        <td class='forecasts'>{% for fc in dossier.forecasts|sort if fc.date > today %}
            <div class="vevent"><abbr title="{{fc.date.isoformat()}}" class="dtstart">{{ fc.date|asdate }}</abbr> -
               <span class="summary">{{ fc.title }}</span></div>
-          {% else %} -
+          {% else %}-
           {% endfor %}</td>
         <td>{{ dossier.procedure.stage_reached }}</td>
         <td>{% for sub in dossier.procedure.legal_basis %}{% if not loop.first %}, {% endif %}{{ sub }}{% endfor %}</td>
