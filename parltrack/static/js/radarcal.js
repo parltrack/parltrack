@@ -4,8 +4,12 @@ $(document).ready(function() {
       'Council: final act scheduled' : 'council-final',
       'Council: political agreement on final act expected' : 'council-agree',
       'EP plenary sitting (indicative date)' : 'ep-sitting',
+      'EP plenary sitting, 2nd reading (indicative date)' : 'ep-2ndsitting',
+      'EP plenary sitting, 3rd reading (indicative date)' : 'ep-3rdsitting',
       'Plenary sitting agenda, debate' : 'ep-debate',
       'EP: report scheduled for adoption in committee, 1st or single reading' : 'ep-1streading',
+      'EP: report scheduled for adoption in committee, 1st or single reading' : 'ep-1streading',
+      'EP: report scheduled for adoption in committee, 2nd reading': 'ep-2ndreading',
       'Plenary sitting agenda, vote' :  'ep-vote'
     };
     var events=[];
