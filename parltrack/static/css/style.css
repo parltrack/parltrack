@@ -76,6 +76,8 @@ li .has_summary, .more { cursor: pointer; padding-left: 0px; font-size: 1em; col
 
 div.qtip { font-family:Trebuchet MS,Tahoma,Verdana,Arial,sans-serif; font-size: .8em; }
 
+.dtstart { text-decoration: underline; }
+
 /* tables */
 table.tablesorter {
 	font-family:arial;
