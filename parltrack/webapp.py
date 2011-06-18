@@ -264,6 +264,7 @@ def render_meps(query={},kwargs={}):
     return render_template('mep_ranking.html',
                            rankings=rankings,
                            d=date,
+                           groupids=groupids,
                            url=request.base_url,
                            **kwargs)
 
