@@ -17,6 +17,7 @@ $(document).ready(function() {
        var eventclass=$(this).find('span.summary').text();
        events.push( {
           title : $(this).parent().prev().text(),
+          summary : $(this).parent().next().next().next().text(),
           type  : eventclass,
           url   : $(this).parent().prev().find("a").attr('href'),
           start : $(this).find(".dtstart").text(),
@@ -30,7 +31,23 @@ $(document).ready(function() {
         weekends: false,
         weekMode: 'liquid',
         contentHeight: 500,
-        defaultView: "month"
+        defaultView: "month",
+        eventRender: function(event, element) {
+          element.qtip({content: '<div class="'+eventclasses[event.type]+'">'+event.type+"</div><div>"+event.summary+"</div>",
+                        tip: 'bottomLeft',
+                        style: {
+                          padding: 2,
+                          border: { width: 2 }},
+                        position: {
+                          corner: {
+                            target: 'mouse',
+                            tooltip: 'bottomLeft'
+                          }
+                        },
+                        adjust: {y: 10,
+                                 screen: true,
+                                 mouse: false}
+                      });}
     });
 });
 

@@ -74,6 +74,8 @@ li .has_summary, .more { cursor: pointer; padding-left: 0px; font-size: 1em; col
 .fc-content { clear:none !important; }
 #calendar a:hover { color: red !important; }
 
+div.qtip { font-family:Trebuchet MS,Tahoma,Verdana,Arial,sans-serif; font-size: .8em; }
+
 /* tables */
 table.tablesorter {
 	font-family:arial;
