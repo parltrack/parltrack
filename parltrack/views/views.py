@@ -171,7 +171,7 @@ def mep(id):
 
 def committee(id):
     # get agendas
-    agendas=db.ep_com_meets.find({'committee': id, 'meeting_date': { '$exists': True}}).sort([('meeting_date', pymongo.DESCENDING), ('seq no', pymongo.ASCENDING)])
+    agendas=db.ep_com_meets.find({'committee': id, 'meeting_date': { '$exists': True}}).sort([('meeting_date', pymongo.DESCENDING), ('seq_no', pymongo.ASCENDING)])
     # get dossiers
     comre=re.compile(COMMITTEE_MAP[id],re.I)
     dossiers=[]
