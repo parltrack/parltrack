@@ -137,7 +137,7 @@ def notification_view_or_create(g_id):
                 if act['type']=='Forecast':
                     forecasts.append({'date':datetime.strptime(act['date'], "%Y-%m-%d"),
                                       'title': act['title']})
-                if act['type']=='Non-legislative initial document':
+                if act['type'] in ['Non-legislative initial document', 'Commission/Council: initial legislative document']:
                     if 'comdoc' in d:
                          print 'WTF!WTF!WTF!WTF!WTF!WTF!WTF!WTF!WTF!WTF!WTF!WTF!'
                          raise
