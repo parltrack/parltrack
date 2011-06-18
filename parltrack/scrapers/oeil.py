@@ -207,7 +207,8 @@ def save(data):
             msg = Message("Parltrack Notification for %s" % data['procedure']['reference'],
                           sender = "parltrack@parltrack.euwiki.org",
                           bcc = g['active_emails'])
-            msg.body = "Parltrack has detected a change in %s %s on OEIL.\nfollow this URL: %s to see the dossier\n\nchanges below\n%s" % (data['procedure']['reference'], data['procedure']['title'],'%s/dossier/%s' % (ROOT_URL,data['procedure']['reference']), json.dumps(d,indent=1,default=dateJSONhandler))
+            #msg.body = "Parltrack has detected a change in %s %s on OEIL.\nfollow this URL: %s to see the dossier\n\nchanges below\n%s" % (data['procedure']['reference'], data['procedure']['title'],'%s/dossier/%s' % (ROOT_URL,data['procedure']['reference']), json.dumps(d,indent=1,default=dateJSONhandler))
+            msg.body = "Parltrack has detected a change in %s %s on OEIL.\nfollow this URL: %s to see the dossier\n" % (data['procedure']['reference'], data['procedure']['title'],'%s/dossier/%s' % (ROOT_URL,data['procedure']['reference']))
             mail.send(msg)
         data['changes']=res.get('changes',{})
         data['changes'][now]=d
