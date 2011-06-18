@@ -25,33 +25,13 @@ from string import strip
 from parltrack.environment import connect_db
 from parltrack.scrapers.oeil import scrape as oeil_scrape
 from os.path import realpath, exists, dirname
+from parltrack.scrapers.mappings import STAGES
 import sys
 
 db = connect_db()
 
 URL = 'http://www.europarl.europa.eu/oeil/'
 LAST_UPDATED_CACHE = "%s/.dossiers_last_updated" % dirname(realpath(__file__))
-
-STAGES = ['Preparatory phase in Parliament',
-          'Awaiting Parliament 1st reading / single reading / budget 1st stage',
-          'Awaiting reconsultation',
-          'Awaiting Council decision, blocked at 1st reading',
-          'Awaiting Council 1st reading position / budgetary conciliation convocation',
-          'Budgetary conciliation committee convened',
-          'Awaiting announcement of budgetary joint text',
-          'Awaiting budgetary conciliation report',
-          'Awaiting Parliament decision on budgetary joint text',
-          'Awaiting Council decision on budgetary joint text',
-          'Awaiting Parliament decision after Council rejection of joint text',
-          'Awaiting Parliament 2nd reading',
-          'Awaiting Council decision, 2nd reading',
-          'Conciliation ongoing',
-          'Conciliation ended',
-          'Awaiting Parliament and Council decision, 3rd reading',
-          'Political agreement on final act',
-          'Awaiting signature',
-          'Awaiting final decision',
-          'Procedure completed, awaiting publication in Official Journal']
 
 def fetch(url):
     # url to etree
