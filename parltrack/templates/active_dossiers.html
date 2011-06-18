@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block scripts %}
+    <script type="text/javascript" src="/static/js/jquery.tablesorter.min.js"> </script>
+    <script type='text/javascript' src='/static/js/fullcalendar.min.js'></script>
+    <script type='text/javascript' src='/static/js/radarcal.js'></script>
+    <script type="text/javascript">
+     $(document).ready(function() {
+       $( "#tabs" ).tabs();
+     $("#sortedlist").tablesorter({
+         sortList: [[1,1],[0,0]],
+         textExtraction: function(node) {
+            return $(node).text();
+        },
+       });
+     });
+    </script>
+{% endblock %}
+{% block styles %}
+<link rel='stylesheet' type='text/css' href='/static/css/fullcalendar.css' />
+{%endblock%}
+
+
+{% block content %}
+<h2>Active Dossiers</h2>
+<div id="tabs">
+  <ul>
+    <li><a href="#dossiers">Dossiers</a></li>
+    <li><a href="#calendar-tab">Calendar</a></li>
+  </ul>
+{% if dossiers %}
+<div id='calendar-tab'>
+  <div id="calendar_legend">
+    <ul id='legend'>
+      <li class='ep-vote'>Plenary sitting agenda, vote</li>
+      <li class='ep-debate'>Plenary sitting agenda, debate</li>
+      <li class='ep-sitting'>EP plenary sitting (indicative date)</li>
+      <li class='ep-2ndsitting'>'EP plenary sitting, 2nd reading'</li>
+      <li class='ep-3rdsitting'>EP plenary sitting, 3rd reading'</li>
+      <li class='ep-1streading'>EP: report scheduled for adoption in committee, 1st or single reading</li>
+      <li class='ep-2ndreading'>'EP: report scheduled for adoption in committee, 2nd reading'</li>
+      <li class='council-debate-expected'>Council: debate or examination expected</li>
+      <li class='council-final'>Council: final act scheduled</li>
+      <li class='council-agree'>Council: political agreement on final act expected</li>
+    </ul>
+  </div>
+  <div id='calendar'></div>
+</div>
+{% endif %}
+<div id="dossiers">
+<table id='sortedlist' class="tablesorter">
+    <thead>
+      <tr>
+        <th>Dossier</th>
+        <th class="{sorter: 'text'}">Forecasts</th>
+        <th>Stage Reached</th>
+        <th>Legal Basis</th>
+        <th>Name</th>
+        <th>Committee Dossier</th>
+        <th>Rapporteur</th>
+        <th>Commission Doc</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for dossier in dossiers %}
+      <tr>
+        <td><a href="/dossier/{{ dossier.procedure.reference }}">{{ dossier.procedure.reference }}</a></td>
+        <td class='forecasts'>{% for fc in dossier.forecasts|sort %}
+            {% if fc.date > date %}
+              <span class="vevent"><span class="dtstart">{{ fc.date|asdate }}</span> -
+              <span class="summary">{{ fc.title }}</span></span>
+            {% endif %}
+          {% else %} -
+          {% endfor %}</td>
+        <td>{{ dossier.procedure.stage_reached }}</td>
+        <td>{% for sub in dossier.procedure.legal_basis %}{% if not loop.first %}, {% endif %}{{ sub }}{% endfor %}</td>
+        <td>{{ dossier.procedure.title }}</td>
+        <td>{{ dossier.procedure.dossier_of_the_committee }}</td>
+        <td>{% for r in dossier.rapporteur %}{% if not loop.first %}, {% endif %}<a href="/mep/{{r.name}}">{{ r.name }}</a> ({{r.grp}}){% endfor %}</td>
+        <td>{% if dossier.comdoc %}<a href="{{dossier.comdoc.url}}">{{ dossier.comdoc.title }}</a>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+<div>
+</div>
+{% endblock %}
+

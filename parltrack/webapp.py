@@ -18,8 +18,7 @@
 
 # (C) 2011 by Adam Tauber, <asciimoo@gmail.com>
 
-import os
-import re
+import os, re
 from pymongo import Connection
 from flaskext.mail import Mail, Message
 from flaskext.cache import Cache
@@ -32,7 +31,7 @@ from werkzeug import ImmutableDict
 from bson.objectid import ObjectId
 from parltrack.scrapers.ep_meps import groupids, COUNTRIES, SEIRTNUOC
 from parltrack.scrapers.ep_com_meets import COMMITTEES, COMMITTEE_MAP
-from parltrack.scrapers.mappings import ALL_STAGES as STAGES
+from parltrack.scrapers.mappings import ALL_STAGES, STAGES
 from bson.code import Code
 
 Flask.jinja_options = ImmutableDict({'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_', 'jinja2.ext.loopcontrols']})
@@ -70,7 +69,7 @@ def index():
                                                                                   {},
                                                                                   {'count': 0},
                                                                                   Code('function(doc, out){ out.count++ }'))])
-    stages=[(k,tmp[k]) for k in STAGES if tmp.get(k)]
+    stages=[(k,tmp[k]) for k in ALL_STAGES if tmp.get(k)]
     return render_template('index.html',
                            stages=stages,
                            dossiers_num=db.dossiers.find().count(),
@@ -119,6 +118,22 @@ def gen_notif_id():
             break
     return '/notification/'+nid
 
+def listdossiers(d):
+    if 'agents' in d['procedure']:
+        d['rapporteur']=[{'name': x['name'], 'grp': x['group']} for x in d['procedure']['agents'] if x.get('responsible') and x.get('name')]
+    forecasts=[]
+    for act in d['activities']:
+        if act['type']=='Forecast':
+            forecasts.append({'date':datetime.strptime(act['date'], "%Y-%m-%d"),
+                              'title': ' '.join(act['title'].split())})
+        if act['type'] in ['Non-legislative initial document', 'Commission/Council: initial legislative document']:
+            if 'comdoc' in d:
+                print 'WTF? there is already a comdoc'
+                raise
+            d['comdoc']={'title': act['documents'][0]['title'], 'url': act['documents'][0].get('url'), }
+    d['forecasts']=forecasts
+    return d
+
 @app.route('/notification/<string:g_id>')
 def notification_view_or_create(g_id):
     db = connect_db()
@@ -129,21 +144,7 @@ def notification_view_or_create(g_id):
         db.notifications.save(group)
     ds=[]
     if len(group['dossiers']):
-        for d in db.dossiers.find({'procedure.reference': { '$in' : group['dossiers'] } }):
-            if 'agents' in d['procedure']:
-                d['rapporteur']=[{'name': x['name'], 'grp': x['group']} for x in d['procedure']['agents'] if x.get('responsible') and x.get('name')]
-            forecasts=[]
-            for act in d['activities']:
-                if act['type']=='Forecast':
-                    forecasts.append({'date':datetime.strptime(act['date'], "%Y-%m-%d"),
-                                      'title': act['title']})
-                if act['type'] in ['Non-legislative initial document', 'Commission/Council: initial legislative document']:
-                    if 'comdoc' in d:
-                         print 'WTF!WTF!WTF!WTF!WTF!WTF!WTF!WTF!WTF!WTF!WTF!WTF!'
-                         raise
-                    d['comdoc']={'title': act['documents'][0]['title'], 'url': act['documents'][0]['url'], }
-            d['forecasts']=forecasts
-            ds.append(d)
+        ds=[listdossiers(d) for d in db.dossiers.find({'procedure.reference': { '$in' : group['dossiers'] } })]
     return render_template('view_notif_group.html',
                            dossiers=ds,
                            date=datetime.now(),
@@ -373,6 +374,15 @@ def changed():
     #if request.args.get('format','')=='atom':
     return render_template('atom.xml', dossiers=list(d), path="changed")
 
+@app.route('/dossiers')
+def active_dossiers():
+    db = connect_db()
+    query={'procedure.stage_reached': { "$in": STAGES } }
+    ds=[listdossiers(d) for d in db.dossiers.find(query)]
+    return render_template('active_dossiers.html',
+                           dossiers=ds,
+                           date=datetime.now())
+
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 #              Committees
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
@@ -398,6 +408,10 @@ def asdate(value):
     if not date.endswith(" 00:00"):
         return date
     else: return date[:-len(" 00:00")]
+
+@app.template_filter()
+def isodate(value):
+    return datetime.strptime(value,'%Y-%m-%d').isoformat()
 
 @app.template_filter()
 def group_icon(value):
