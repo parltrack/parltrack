@@ -1,9 +1,11 @@
 {% extends "base.html" %}
 {% block scripts %}
     <script type="text/javascript" src="/static/js/jquery.tablesorter.min.js"> </script>
+    <script type="text/javascript" src="/static/js/picnet.table.filter.min.js"></script>
     <script type="text/javascript">
      $(document).ready(function() {
-           $("#sortedlist").tablesorter();
+        $("#sortedlist").tablesorter();
+        $('#sortedlist').tableFilter();
      });
     </script>
 {% endblock %}
@@ -15,10 +17,10 @@
 <table id='sortedlist' class="tablesorter">
    <thead>
       <tr>
-         <th>Name</th>
-         <th>Role</th>
-         {% if not group %}<th>Group</th>{% endif %}
-         {% if not country %}<th>Country</th>{% endif %}
+         <th filter='false'>Name</th>
+         <th filter-type='ddl'>Role</th>
+         {% if not group %}<th filter-type='ddl'>Group</th>{% endif %}
+         {% if not country %}<th filter-type='ddl'>Country</th>{% endif %}
       </tr>
    </thead>
    <tbody>
