@@ -34,6 +34,7 @@ group_positions={u'Chair': 10,
                  u'Deputy Chair': 5,
                  u'Chair of the Bureau': 4,
                  u'Vice-Chair/Member of the Bureau': 8,
+                 u'Secretary to the Bureau': 4,
                  u'Member of the Bureau': 2,
                  u'Treasurer': 2,
                  u'Co-treasurer': 1,
@@ -68,14 +69,16 @@ def mepRanking(date,query={}):
         for group in mep['Groups']:
             if group['start']<=date and group['end']>=date:
                 score=group_positions[group['role']]
-                if type(group['groupid'])==list:
+                if not 'groupid' in group:
+                    group['groupid']=group['Organization']
+                elif type(group.get('groupid'))==list:
                     group['groupid']=group['groupid'][0]
-                ranks.append((group_positions[group['role']],group['role'],group['groupid']))
+                ranks.append((group_positions[group['role']],group['role'],group.get('groupid',group['Organization'])))
                 mep['Groups']=[group]
                 break
         # get committee ranks
         tmp=[]
-        for com in mep['Committees']:
+        for com in mep.get('Committees',[]):
             if com['start']<=date and com['end']>=date:
                 score+=com_positions[com['role']]
                 ranks.append((com_positions[com['role']],com['role'],com['Organization']))
