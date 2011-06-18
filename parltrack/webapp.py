@@ -400,6 +400,7 @@ def view_committee(c_id):
                            committee=c,
                            Committee=COMMITTEE_MAP[c_id],
                            today=datetime.now(),
+                           groupids=groupids,
                            c=c_id,
                            url=request.base_url)
 
@@ -416,6 +417,8 @@ def isodate(value):
 
 @app.template_filter()
 def group_icon(value):
+    if not value: return ''
+    if type(value)==type(list()): value=value[0]
     if value=='NA': value='NI'
     return "static/images/%s.gif" % value.lower().replace('/','_')
 
