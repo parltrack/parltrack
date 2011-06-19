@@ -242,35 +242,47 @@
      <tbody>
        <tr>
          <td>For</td>
-         <td>{{vote.For.total}}</td>
-         {% for v in vote.For.groups %}
-            <td class="for" title="{{v.group}}">{{v.votes|length}}</td>
-         {%endfor%}
-         {% if 'correctional' in vote.For%}
-           <td>{{vote.For.correctional|length}}</td>
-         {% else %}<td>0</td>
+         {% if 'For' in vote.keys() %}
+           <td>{{vote.For.total}}</td>
+           {% for v in vote.For.groups %}
+              <td class="for" title="{{v.group}}">{{v.votes|length}}</td>
+           {%endfor%}
+           {% if 'correctional' in vote.For%}
+             <td>{{vote.For.correctional|length}}</td>
+           {% else %}<td>0</td>
+           {%endif%}
+         {% else %}
+             <td>0</td>
          {%endif%}
        </tr>
        <tr>
          <td>Against</td>
-         <td>{{vote.Against.total}}</td>
-         {% for v in vote.Against.groups %}
-            <td class="against" title="{{vote.group}}">{{v.votes|length}}</td>
-         {%endfor%}
-         {% if 'correctional' in vote.Against%}
-           <td>{{vote.Against.correctional|length}}</td>
-         {% else %}<td>0</td>
+         {% if 'Against' in vote.keys() %}
+           <td>{{vote.Against.total}}</td>
+           {% for v in vote.Against.groups %}
+              <td class="against" title="{{vote.group}}">{{v.votes|length}}</td>
+           {%endfor%}
+           {% if 'correctional' in vote.Against%}
+             <td>{{vote.Against.correctional|length}}</td>
+           {% else %}<td>0</td>
+           {%endif%}
+         {% else %}
+             <td>0</td>
          {%endif%}
        </tr>
        <tr>
          <td>Abstain</td>
-         <td>{{vote.Abstain.total}}</td>
-         {% for v in vote.Abstain.groups %}
-            <td class="abstain" title="{{v.group}}">{{v.votes|length}}</td>
-         {%endfor%}
-         {% if 'correctional' in vote.Abstain%}
-           <td>{{vote.Abstain.correctional|length}}</td>
-         {% else %}<td>0</td>
+         {% if 'Abstain' in vote.keys() %}
+           <td>{{vote.Abstain.total}}</td>
+           {% for v in vote.Abstain.groups %}
+              <td class="abstain" title="{{v.group}}">{{v.votes|length}}</td>
+           {%endfor%}
+           {% if 'correctional' in vote.Abstain%}
+             <td>{{vote.Abstain.correctional|length}}</td>
+           {% else %}<td>0</td>
+           {%endif%}
+         {% else %}
+             <td>0</td>
          {%endif%}
        </tr>
      </tbody>

@@ -116,9 +116,9 @@ def dossier(id):
     # find related votes
     votes=list(db.ep_votes.find({'dossierid': dossier['_id']}))
     for vote in votes:
-        groups=[x['group'] for new in ['For','Against','Abstain'] for x in vote[new]['groups']]
+        groups=[x['group'] for new in ['For','Against','Abstain'] if new in vote for x in vote[new]['groups']]
         vote['groups']=sorted(set(groups))
-        for dec in ['For','Against','Abstain']:
+        for dec in [x for x in ['For','Against','Abstain'] if x in vote]:
             for g in groups:
                 if g not in [x['group'] for x in vote[dec]['groups']]:
                     vote[dec]['groups'].append({'group':g, 'votes': []})
