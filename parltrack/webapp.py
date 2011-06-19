@@ -61,8 +61,8 @@ def inject_data():
                 countries=SEIRTNUOC,
                 )
 
+#@cache.cached()
 @app.route('/')
-@cache.cached()
 def index():
     db = connect_db()
     tmp=dict([(x[u'procedure.stage_reached'],int(x['count'])) for x in db.dossiers.group({'procedure.stage_reached': True},

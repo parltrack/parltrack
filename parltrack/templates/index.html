@@ -1,16 +1,33 @@
 {% extends "base.html" %}
 {% block content %}
+<img src="/static/images/ep.jpg" style="float:right; margin: 10px;" />
 <h2>Welcome to ParlTrack!</h2>
 <ul>
  <li>Number of meps: {{ meps_num }}</li>
  <li>Number of dossiers: {{ dossiers_num }}</li>
  <li>Number of votes: {{ votes_num }}</li>
 </ul>
-<h3>Dossiers</h3>
-<ul>
-{% for stage,c in stages %}
-  <li class='stagestat'><span class='stage'>{{stage}}</span>: <span class='count'>{{c}}</span></li>
-{%endfor%}
-</ul>
+<h2>About Parltrack</h2>
+
+<p>Parltrack is a european initiative to improve the transparency of legislative processes. It combines dossiers, MEPs, vote results and committee agendas into a unique database and allows the tracking of dossiers using email and RSS. Using Parltrack it's easy to see at a glance which dossiers are being handled by committees and MEPs. Most of the data displayed is also available for further processing in JSON format.</p>
+
+<h2>Sources</h2>
+<p>Parltrack currently monitors the European law-making using the data available from europarl.europa.eu. The data is being scraped from <a href="http://www.europarl.europa.eu/oeil/">OEIL</a>, <a href="http://www.europarl.europa.eu/activities/plenary/pv/calendar.do?language=EN&LEG_ID=7">EP plenary minutes</a>, <a href="http://www.europarl.europa.eu/members/public/geoSearch.do?language=EN">online MEP profiles</a> and parliamentary <a href="http://www.europarl.europa.eu/activities/committees/committeesList.do?language=EN">committee agendas</a>.</p>
+
+<h2>Legal</h2>
+<h3>Copyright</h3>
+<p>The EP releases this data under the <a href="http://www.europarl.europa.eu/tools/disclaimer/default_en.htm#copyright">following terms</a>:
+<blockquote>Reproduction of textual data and multimedia items which are the property of the European Union (identified by the words '© European Union, [year(s)] – Source: European Parliament' or '© European Union, [year(s)] – EP' ) or of third parties (© External source, [year(s)]) and for which the European Union holds the rights of use is authorised for non-commercial purposes only provided that the entire item is reproduced and the source is acknowledged.</blockquote>
+As long as the European institutions do not provide everything as raw data in open machine-processable formats, there can always be some errors in the data being scraped, so all warranties for the fitness of this data are void.</p>
+
+<p>The <a href="/dumps">data available as JSON</a> from Parltrack is available under the <a href="http://www.opendatacommons.org/licenses/odbl/">Open Database License v1.0</a> (ODBL). Parltrack is <a href="https://github.com/pudo/parltrack/">available</a> as free software under the <a href="http://www.gnu.org/licenses/agpl.html">Affero GPL v3+</a> license.</p>
+
+<p>The image of the EP plenary is by Alina Zienowicz, from <a href="https://secure.wikimedia.org/wikipedia/en/wiki/File:2007_07_16_parlament_europejski_bruksela_40.JPG">Wikipedia</a> under the <a href="http://creativecommons.org/licenses/by-sa/3.0/deed.en">Creative Commons Attribution-Share Alike 3.0 Unported</a> license.</p>
+
+<h3>Privacy</h3>
+<p>Parltrack currently does not use cookies, the only private information stored are the email addresses of the users of the monitoring feature. These email addresses are used for the sole purpose of monitoring dossiers.</p>
+
+<p>-- </p>
+<p>Parltrack is inspired by <a href="http://euwiki.org/Tratten">Tratten</a>.</p>
 {% endblock %}
 
