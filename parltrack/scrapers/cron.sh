@@ -19,3 +19,9 @@ ${0%/*}/ep_votes_by_year.py 2011 2>"$voteslog" | bzip2 -c >"$dumpsdir/$filename.
 filename="dossiers-$(date '+%Y-%m-%d-%H:%M')"
 dossierlog="$logdir/$filename.log"
 ${0%/*}/new_dossiers.py 2>"$dossierlog" | bzip2 -c >"$dumpsdir/$filename.json.bz2"
+
+cd ${0%/*}/../../dumps
+mongoexport -d parltrack -c ep_com_meets >ep_meets.json
+mongoexport -d parltrack -c ep_votes >ep_votes.json
+mongoexport -d parltrack -c dossiers >ep_dossiers.json
+mongoexport -d parltrack -c ep_meps >ep_meps.json
