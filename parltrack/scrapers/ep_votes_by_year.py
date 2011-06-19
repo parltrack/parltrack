@@ -71,3 +71,6 @@ if __name__ == '__main__':
         url = url+'&LEG_ID=6'
     # !! important part: getDates(fetch(url)) -> returns: array of dates !!
     map(scrape_votes, getDates(fetch(url)))
+    if year==2009:
+        url = url+'&LEG_ID=6'
+        map(scrape_votes, getDates(fetch(url)))
