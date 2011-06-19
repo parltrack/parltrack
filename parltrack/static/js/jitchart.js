@@ -53,7 +53,7 @@ $(document).ready(function() {
       $(this).next().find('td.for').each(function() {
          labels.push($(this).attr('title'));
          var c=colormap[$(this).attr('title')]
-         if (!c) {console.log($(this)); console.log($(this).attr('title'));}
+         //if (!c) {console.log($(this)); console.log($(this).attr('title'));}
          colors.push(c);
          count=(parseInt($(this).text()));
          values.push(count);
