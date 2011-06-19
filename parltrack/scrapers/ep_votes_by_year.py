@@ -61,6 +61,10 @@ def getDates(root, future=False):
 if __name__ == '__main__':
     # dirty but funky oneliner, handles multiple arguments =)
     # if len(set(argv))-1 != len([map(scrape_votes, getDates(fetch(URL+'?language=EN&YEAR='+year))) for year in set(argv) if year.isdigit() and int(year) >= 2004 and int(year) <= 2014 and not stderr.write('[!] Scraping '+year+' votes\n')]): print '[!] usage: %s [years (2004-2014)]' % argv[0]
+    import platform
+    if platform.machine() in ['i386', 'i686']:
+        import psyco
+        psyco.full()
     try:
         year = int(argv[1])
     except:
