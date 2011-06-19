@@ -7,7 +7,7 @@
  <li>Number of votes: {{ votes_num }}</li>
 </ul>
 <h3>Dossiers</h3>
-<ul style="display: box; float: right;">
+<ul>
 {% for stage,c in stages %}
   <li class='stagestat'><span class='stage'>{{stage}}</span>: <span class='count'>{{c}}</span></li>
 {%endfor%}
