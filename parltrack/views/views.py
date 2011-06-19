@@ -27,6 +27,7 @@ try:
     db = connect_db()
 except:
     db=pymongo.Connection().parltrack
+from operator import itemgetter
 
 group_positions={u'Chair': 10,
                  u'Co-Chair': 8,
@@ -115,18 +116,13 @@ def dossier(id):
     # find related votes
     votes=list(db.ep_votes.find({'dossierid': dossier['_id']}))
     for vote in votes:
-        groups=[]
-        for dec, new in [('+','For'),
-                         ('-','Against'),
-                         ('0','Abstain')]:
-            vote[new]=vote[dec]
-            del vote[dec]
-            groups.extend([x for x in vote[new].keys() if x!='total'])
+        groups=[x['group'] for new in ['For','Against','Abstain'] for x in vote[new]['groups']]
         vote['groups']=sorted(set(groups))
         for dec in ['For','Against','Abstain']:
             for g in groups:
-                if g not in vote[dec]:
-                    vote[dec][g]=[]
+                if g not in [x['group'] for x in vote[dec]['groups']]:
+                    vote[dec]['groups'].append({'group':g, 'votes': []})
+            vote[dec]['groups'].sort(key=itemgetter('group'))
     dossier['votes']=votes
     dossier['comeets']=[]
     for item in db.ep_com_meets.find({'comref': dossier['_id']}):

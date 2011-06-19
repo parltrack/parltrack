@@ -234,9 +234,7 @@
           <td>Position</td>
           <td>Total</td>
           {% for g in vote.groups|sort %}
-            {% if g not in ['correctional', 'total']%}
             <td><a href="/meps/{{g}}?date={{vote.ts|asdate}}">{{g}}</a></td>
-            {%endif%}
           {%endfor%}
           <td>correctional</td>
         </tr>
@@ -245,37 +243,34 @@
        <tr>
          <td>For</td>
          <td>{{vote.For.total}}</td>
-         {% for k,v in vote.For.items()|sort %}
-            {% if k not in ['correctional', 'total']%}
-            <td class="for" title="{{k}}">{{v|length}}</td>
-            {%endif%}
+         {% for v in vote.For.groups %}
+            <td class="for" title="{{v.group}}">{{v.votes|length}}</td>
          {%endfor%}
          {% if 'correctional' in vote.For%}
            <td>{{vote.For.correctional|length}}</td>
+         {% else %}<td>0</td>
          {%endif%}
        </tr>
        <tr>
          <td>Against</td>
          <td>{{vote.Against.total}}</td>
-         {% for k,v in vote.Against.items()|sort %}
-            {% if k not in ['correctional', 'total']%}
-            <td class="against" title="{{k}}">{{v|length}}</td>
-            {%endif%}
+         {% for v in vote.Against.groups %}
+            <td class="against" title="{{vote.group}}">{{v.votes|length}}</td>
          {%endfor%}
          {% if 'correctional' in vote.Against%}
            <td>{{vote.Against.correctional|length}}</td>
+         {% else %}<td>0</td>
          {%endif%}
        </tr>
        <tr>
          <td>Abstain</td>
          <td>{{vote.Abstain.total}}</td>
-         {% for k,v in vote.Abstain.items()|sort %}
-            {% if k not in ['correctional', 'total']%}
-            <td class="abstain" title="{{k}}">{{v|length}}</td>
-            {%endif%}
+         {% for v in vote.Abstain.groups %}
+            <td class="abstain" title="{{v.group}}">{{v.votes|length}}</td>
          {%endfor%}
          {% if 'correctional' in vote.Abstain%}
            <td>{{vote.Abstain.correctional|length}}</td>
+         {% else %}<td>0</td>
          {%endif%}
        </tr>
      </tbody>

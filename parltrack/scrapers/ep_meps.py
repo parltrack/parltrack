@@ -365,7 +365,7 @@ meps_aliases={
     u"MUSTIN-MAYER, Christine": ['Barthet-Mayer Christine', 'barthet-mayer christine', 'barthet-mayerchristine'],
     u"YÁÑEZ-BARNUEVO GARCÍA, Luis": [ u'Yañez-Barnuevo García', u'yañez-barnuevogarcía', u'Luis Yañez-Barnuevo García', u'luisyanez-barnuevogarcia'],
     u"ZAPPALA', Stefano": [ u'Zappalà', u'zappalà'],
-    u"OBIOLS, Raimon": [u'Obiols i Germà', u'obiols i germà', u'ObiolsiGermà', u'obiolsigermà', u'Raimon Obiols i Germà', u'raimonobiolsigermà' ],
+    u"OBIOLS, Raimon": [u'Obiols i Germà', u'obiols i germà', u'ObiolsiGermà', u'obiolsigermà', u'Raimon Obiols i Germà', u'raimonobiolsigermà', u'OBIOLS i GERMÀ' ],
     u"CHATZIMARKAKIS, Jorgo": [u'Chatzimartakis', u'chatzimartakis'],
     u"XENOGIANNAKOPOULOU, Marilisa": [u'Xenagiannakopoulou', u'xenagiannakopoulou'],
     u"GRÄSSLE, Ingeborg": [u'Graessle', u'graessle'],
@@ -406,6 +406,7 @@ meps_aliases={
     u'ŢÎRLE, Radu': [u'Tîrle', u'tîrle'],
     u'HYUSMENOVA, Filiz Hakaeva': [u'Husmenova', u'husmenova'],
     u'LØKKEGAARD, Morten': [u'Morten Lokkegaard', u'mortenlokkegaard'],
+    u"GOMES, Ana": [u'Ana Maria Gomes', u'ana maria gomes', u'anamariagomes'],
     }
 
 Titles=['Sir',
