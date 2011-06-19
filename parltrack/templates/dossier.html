@@ -1,5 +1,11 @@
 {% extends "base.html" %}
+{% block styles %}
+<link type="text/css" href="/static/js/css/jit/BarChart.css" rel="stylesheet" />
+{% endblock %}
 {% block scripts %}
+<script language="javascript" type="text/javascript" src="/static/js/jit-yc.js"></script>
+<!--[if IE]><script language="javascript" type="text/javascript" src="/static/js/excanvas.js"></script><![endif]-->
+<script language="javascript" type="text/javascript" src="/static/js/jitchart.js"></script>
 <script type="text/javascript">
      $(document).ready(function() {
        $('.has_summary').click(function() {
@@ -221,6 +227,7 @@
 {%for vote in dossier.votes|sort(attribute='ts')%}
 <h4>{{vote.title}}</h4>
   <div>{{vote.ts|asdate}}</div>
+  <div class='votes-graph'> </div>
   <table class="votes">
      <thead>
         <tr>
@@ -240,7 +247,7 @@
          <td>{{vote.For.total}}</td>
          {% for k,v in vote.For.items()|sort %}
             {% if k not in ['correctional', 'total']%}
-            <td>{{v|length}}</td>
+            <td class="for" title="{{k}}">{{v|length}}</td>
             {%endif%}
          {%endfor%}
          {% if 'correctional' in vote.For%}
@@ -252,7 +259,7 @@
          <td>{{vote.Against.total}}</td>
          {% for k,v in vote.Against.items()|sort %}
             {% if k not in ['correctional', 'total']%}
-            <td>{{v|length}}</td>
+            <td class="against" title="{{k}}">{{v|length}}</td>
             {%endif%}
          {%endfor%}
          {% if 'correctional' in vote.Against%}
@@ -264,7 +271,7 @@
          <td>{{vote.Abstain.total}}</td>
          {% for k,v in vote.Abstain.items()|sort %}
             {% if k not in ['correctional', 'total']%}
-            <td>{{v|length}}</td>
+            <td class="abstain" title="{{k}}">{{v|length}}</td>
             {%endif%}
          {%endfor%}
          {% if 'correctional' in vote.Abstain%}

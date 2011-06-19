@@ -80,6 +80,10 @@ div.qtip { font-family:Trebuchet MS,Tahoma,Verdana,Arial,sans-serif; font-size: 
     width: 600px;
     height: 300px;
 }
+.votes-graph {
+    width: 600px;
+    height: 100px;
+}
 /* JIT TOOLTIPS*/
 .tip {
     color: #111;
