@@ -41,13 +41,13 @@ def fetchVotes(d):
     print >>sys.stderr, url
     try:
         f=urllib2.urlopen(url)
-    except urllib2.HTTPError:
+    except (urllib2.HTTPError, urllib2.URLError):
         try:
             f=urllib2.urlopen(url)
-        except urllib2.HTTPError:
+        except (urllib2.HTTPError, urllib2.URLError):
             try:
                 f=urllib2.urlopen(url)
-            except urllib2.HTTPError:
+            except (urllib2.HTTPError, urllib2.URLError):
                 return ''
     tmp=mkstemp()
     fd=os.fdopen(tmp[0],'w')

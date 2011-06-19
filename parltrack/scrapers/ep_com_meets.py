@@ -125,7 +125,16 @@ COMMITTEE_MAP={'AFET': "Foreign Affairs",
 def fetch(url):
     # url to etree
     print >> sys.stderr, url
-    f=urllib2.urlopen(url)
+    try:
+        f=urllib2.urlopen(url)
+    except (urllib2.HTTPError, urllib2.URLError):
+        try:
+            f=urllib2.urlopen(url)
+        except (urllib2.HTTPError, urllib2.URLError):
+            try:
+                f=urllib2.urlopen(url)
+            except (urllib2.HTTPError, urllib2.URLError):
+                return ''
     raw=parse(f)
     f.close()
     return raw

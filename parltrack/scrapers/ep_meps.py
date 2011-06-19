@@ -36,13 +36,13 @@ def fetch(url):
     # url to etree
     try:
         f=urllib2.urlopen(url)
-    except urllib2.HTTPError:
+    except (urllib2.HTTPError, urllib2.URLError):
         try:
             f=urllib2.urlopen(url)
-        except urllib2.HTTPError:
+        except (urllib2.HTTPError, urllib2.URLError):
             try:
                 f=urllib2.urlopen(url)
-            except urllib2.HTTPError:
+            except (urllib2.HTTPError, urllib2.URLError):
                 return ''
     return parse(f)
 
