@@ -22,3 +22,11 @@ source env/bin/activate
 # setup parltrack pkg
 
  sudo python setup.py develop
+
+# start initial scraping
+
+ cd parltrack/scrapers
+ ./ep_meps.py >meps.log 2>&1
+ ./oeil.py >oeil.log 2>&1
+ ./ep_com_meets.py >meets.log 2>&1
+ for b in $(seq 2004 2011); do ./ep_votes_by_year.py $b 2>&1 ; done >votes.log
