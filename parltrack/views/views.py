@@ -189,12 +189,21 @@ def committee(id):
                     break
     # get members of committee
     date=datetime.now()
-    query={"Committees.start" : {'$lte': date},
-           "Committees.end" : {'$gte': date},
-           "Committees.Organization": comre,
-           }
+    query={"Committees": {'$elemMatch' :
+                         {'start' : {'$lte': date},
+                          "end" : {'$gte': date},
+                          "Organization": comre,
+                          }}}
     rankedMeps=[]
     for mep in db.ep_meps.find(query):
+        for group in mep['Groups']:
+            if group['start']<=date and group['end']>=date:
+                if not 'groupid' in group:
+                    group['groupid']=group['Organization']
+                elif type(group.get('groupid'))==list:
+                    group['groupid']=group['groupid'][0]
+                mep['Groups']=[group]
+                break
         for c in mep['Committees']:
             if c['start']<date and c['end']>date and comre.search(c['Organization']):
                 score=com_positions[c['role']]

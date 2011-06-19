@@ -264,6 +264,7 @@ def render_meps(query={},kwargs={}):
     return render_template('mep_ranking.html',
                            rankings=rankings,
                            d=date,
+                           groupids=groupids,
                            url=request.base_url,
                            **kwargs)
 
@@ -391,6 +392,7 @@ def active_dossiers():
 def view_committee(c_id):
     from parltrack.views.views import committee
     c=committee(c_id)
+    c['dossiers']=[listdossiers(d) for d in c['dossiers']]
     if not c:
         abort(404)
     if request.args.get('format','')=='json':
@@ -399,6 +401,7 @@ def view_committee(c_id):
                            committee=c,
                            Committee=COMMITTEE_MAP[c_id],
                            today=datetime.now(),
+                           groupids=groupids,
                            c=c_id,
                            url=request.base_url)
 
@@ -415,6 +418,8 @@ def isodate(value):
 
 @app.template_filter()
 def group_icon(value):
+    if not value: return ''
+    if type(value)==type(list()): value=value[0]
     if value=='NA': value='NI'
     return "static/images/%s.gif" % value.lower().replace('/','_')
 

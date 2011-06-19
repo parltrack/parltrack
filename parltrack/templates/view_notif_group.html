@@ -98,12 +98,10 @@
       {% for dossier in dossiers %}
       <tr>
         <td><a href="/dossier/{{ dossier.procedure.reference }}">{{ dossier.procedure.reference }}</a></td>
-        <td class='forecasts'>{% for fc in dossier.forecasts|sort %}
-            {% if fc.date > date %}
-              <span class="vevent"><span class="dtstart">{{ fc.date|asdate }}</span> -
-              <span class="summary">{{ fc.title }}</span></span>
-            {% endif %}
-          {% else %} - 
+        <td class='forecasts'>{% for fc in dossier.forecasts|sort if fc.date > date  %}
+           <div class="vevent"><abbr title="{{fc.date.isoformat()}}" class="dtstart">{{ fc.date|asdate }}</abbr> -
+              <span class="summary">{{ fc.title }}</span></div>
+          {% else %} -
           {% endfor %}</td>
         <td>{{ dossier.procedure.stage_reached }}</td>
         <td>{% for sub in dossier.procedure.legal_basis %}{% if not loop.first %}, {% endif %}{{ sub }}{% endfor %}</td>
