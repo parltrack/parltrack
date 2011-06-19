@@ -3,6 +3,9 @@
 dumpsdir=${0%/*}/dumps
 logdir=${0%/*}/logs
 
+mkdir -p "$dumpsdir"
+mkdir -p "$logdir"
+
 source ${0%/*}/../../env/bin/activate
 
 filename="com-$(date '+%Y-%m-%d-%H:%M')"
