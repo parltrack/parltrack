@@ -484,6 +484,10 @@ SEIRTNUOC = {'Belgium': 'BE',
              }
 
 if __name__ == "__main__":
+    import platform
+    if platform.machine() in ['i386', 'i686']:
+        import psyco
+        psyco.full()
     seen=[]
     for letter in uppercase:
         for term in [3, 4, 5, 6, 7]:

@@ -674,6 +674,10 @@ def crawl(fast=True):
     return result
 
 if __name__ == "__main__":
+    import platform
+    if platform.machine() in ['i386', 'i686']:
+        import psyco
+        psyco.full()
     crawl(fast=(False if len(sys.argv)>1 and sys.argv[1]=='full' else True))
     #import pprint
     #print '['
