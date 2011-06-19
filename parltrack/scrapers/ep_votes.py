@@ -39,7 +39,16 @@ def fetchVotes(d):
                     d,
                     "+RES-RCV+DOC+WORD+V0//EN&language=EN")
     print >>sys.stderr, url
-    f=urllib2.urlopen(url)
+    try:
+        f=urllib2.urlopen(url)
+    except urllib2.HTTPError:
+        try:
+            f=urllib2.urlopen(url)
+        except urllib2.HTTPError:
+            try:
+                f=urllib2.urlopen(url)
+            except urllib2.HTTPError:
+                return ''
     tmp=mkstemp()
     fd=os.fdopen(tmp[0],'w')
     fd.write(f.read())
@@ -65,6 +74,7 @@ def getMep(text,date):
         return mepCache['name']
 
     if not name: return
+    if name.endswith('('): name=name[:-1].strip()
     # TODO add date constraints based on groups.start/end
     mep=db.ep_meps.find_one({'Name.aliases': name,
                              "Constituencies.start" : {'$lt': date},
