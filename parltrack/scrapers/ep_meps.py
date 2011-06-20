@@ -36,13 +36,13 @@ def fetch(url):
     # url to etree
     try:
         f=urllib2.urlopen(url)
-    except urllib2.HTTPError:
+    except (urllib2.HTTPError, urllib2.URLError):
         try:
             f=urllib2.urlopen(url)
-        except urllib2.HTTPError:
+        except (urllib2.HTTPError, urllib2.URLError):
             try:
                 f=urllib2.urlopen(url)
-            except urllib2.HTTPError:
+            except (urllib2.HTTPError, urllib2.URLError):
                 return ''
     return parse(f)
 
@@ -266,15 +266,14 @@ group_map={ "Confederal Group of the European United Left - Nordic Green Left": 
             "Group of the Alliance of Liberals and Democrats for Europe": 'ALDE',
             "Group of the Greens/European Free Alliance": "Verts/ALE",
             "Group of the Progressive Alliance of Socialists and Democrats in the European Parliament": "S&D",
-            "Non-attached Members": "NI",
             'Group for a Europe of Democracies and Diversities': 'EDD',
             'Group of the European Liberal Democrat and Reform Party': 'ELDR',
             'Group of the European Liberal, Democrat and Reform Party': 'ELDR',
             'Group indépendence/Démocratie': ['ID','INDDEM', 'IND/DEM'],
             'Independence/Democracy Group': ['ID', 'INDDEM', 'IND/DEM'],
+            'Non-attached Members': ['NA','NI'],
+            'Non-attached': ['NA','NI'],
             'Identity, Tradition and Sovereignty Group': 'ITS',
-            'Non-attached Members': ['NA','NI', 'IND/DEM'],
-            'Non-attached': ['NA','NI', 'IND/DEM'],
             "Group of the European People's Party (Christian Democrats) and European Democrats": 'PPE-DE',
             "Group of the European People's Party (Christian Democrats)": 'PPE',
             "Group of the European People's Party (Christian-Democratic Group)": "PPE",
@@ -361,12 +360,12 @@ GROUPS=[
 meps_aliases={
     u"GRÈZE, Catherine": ['GREZE', 'greze', 'Catherine Greze', 'catherine greze', u'Grčze', u'grcze'],
     u"SCOTTÀ, Giancarlo": ["SCOTTA'", "scotta'"],
-    u"in 't VELD, Sophia": ["in't VELD", "in't veld", "IN'T VELD", "in'tveld"],
+    u"in 't VELD, Sophia": ["in't VELD", "in't veld", "IN'T VELD", "in'tveld", u'in `t Veld', u'in `t veld', u'in`tveld'],
     u"MORKŪNAITĖ-MIKULĖNIENĖ, Radvilė": [u"MORKŪNAITĖ Radvilė",u"morkūnaitė radvilė",u"radvilė morkūnaitė ",u"Radvilė MORKŪNAITĖ ", u"MORKŪNAITĖ", u"morkūnaitė"],
     u"MUSTIN-MAYER, Christine": ['Barthet-Mayer Christine', 'barthet-mayer christine', 'barthet-mayerchristine'],
     u"YÁÑEZ-BARNUEVO GARCÍA, Luis": [ u'Yañez-Barnuevo García', u'yañez-barnuevogarcía', u'Luis Yañez-Barnuevo García', u'luisyanez-barnuevogarcia'],
     u"ZAPPALA', Stefano": [ u'Zappalà', u'zappalà'],
-    u"OBIOLS, Raimon": [u'Obiols i Germà', u'obiols i germà', u'ObiolsiGermà', u'obiolsigermà', u'Raimon Obiols i Germà', u'raimonobiolsigermà' ],
+    u"OBIOLS, Raimon": [u'Obiols i Germà', u'obiols i germà', u'ObiolsiGermà', u'obiolsigermà', u'Raimon Obiols i Germà', u'raimonobiolsigermà', u'OBIOLS i GERMÀ' ],
     u"CHATZIMARKAKIS, Jorgo": [u'Chatzimartakis', u'chatzimartakis'],
     u"XENOGIANNAKOPOULOU, Marilisa": [u'Xenagiannakopoulou', u'xenagiannakopoulou'],
     u"GRÄSSLE, Ingeborg": [u'Graessle', u'graessle'],
@@ -393,11 +392,11 @@ meps_aliases={
     u'NEYNSKY, Nadezhda': [u'Mihaylova', u'mihaylova', u'Nadezhda Mihaylova', u'nadezhdamihaylova'],
     u'MOHÁCSI, Viktória': [u'Bernáthné Mohácsi', u'bernáthnémohácsi', u'bernathnemohacsi'],
     u'WOJCIECHOWSKI, Bernard': [u'Wojciechowski Bernard Piotr', u'wojciechowskibernardpiotr'],
-    u'GARCÍA-MARGALLO Y MARFIL, José Manuel': [u'García-MarGállo y Marfil', u'garcía-margálloymarfil'],
+    u'GARCÍA-MARGALLO Y MARFIL, José Manuel': [u'García-MarGállo y Marfil', u'garcía-margálloymarfil', u'García-Margallo', u'garcía-margallo'],
     u'ROGALSKI, Bogusław': [u'RoGálski', u'rogalski'],
     u'ROMEVA i RUEDA, Raül': [u'Romeva Rueda', u'romevarueda', u'Raьl Romeva i Rueda', u'raьlromevairueda'],
     u'JØRGENSEN, Dan': [u'Dan Jшrgensen', u'danjшrgensen', u'dan jшrgensen'],
-    u'HÄFNER, Gerald': [u'Haefner', u'haefner', u'Gerald Haefner', u'geraldhaefner'],
+    u'HÄFNER, Gerald': [u'Haefner', u'haefner', u'Gerald Haefner', u'geraldhaefner',u'gerald haefner'],
     u'EVANS, Robert': [u'Evans Robert J.E.', u'evansrobertj.e.'],
     u'LAMBSDORFF, Alexander Graf': [u'Lambsdorff Graf', u'lambsdorffgraf'],
     u'STARKEVIČIŪTĖ, Margarita': [u'Starkeviciūtė', u'starkeviciūtė'],
@@ -406,6 +405,13 @@ meps_aliases={
     u'FLAŠÍKOVÁ BEŇOVÁ, Monika': [u'Beňová', u'beňová'],
     u'ŢÎRLE, Radu': [u'Tîrle', u'tîrle'],
     u'HYUSMENOVA, Filiz Hakaeva': [u'Husmenova', u'husmenova'],
+    u'LØKKEGAARD, Morten': [u'Morten Lokkegaard', u'mortenlokkegaard'],
+    u"GOMES, Ana": [u'Ana Maria Gomes', u'ana maria gomes', u'anamariagomes'],
+    u'(The Earl of) DARTMOUTH, William': [u'WilliAmendment (The Earl of) Dartmouth', u'williamendment (the earl of) dartmouth', u'williamendment(theearlof)dartmouth'],
+    u'ESTARÀS FERRAGUT, Rosa': [u'Estarŕs Ferragut', u'estarŕs ferragut', u'estarŕsferragut'],
+    u'GROSSETÊTE, Françoise': [u'Grossetęte', u'grossetęte'],
+    u'SAVISAAR-TOOMAST, Vilja': [u'Vilja Savisaar', u'vilja savisaar', u'viljasavisaar'],
+    u'HEDKVIST PETERSEN, Ewa' : [u'Hedkvist Pedersen', u'hedkvist pedersen', u'hedkvistpedersen'],
     }
 
 Titles=['Sir',
@@ -448,7 +454,40 @@ COUNTRIES = {'BE': 'Belgium',
              'UK': 'United Kingdom',
              }
 
+SEIRTNUOC = {'Belgium': 'BE',
+             'Bulgaria': 'BG',
+             'Czech Republic':'CZ',
+             'Denmark': 'DK',
+             'Germany': 'DE',
+             'Estonia': 'EE',
+             'Ireland': 'IE',
+             'Greece': 'EL',
+             'Spain': 'ES',
+             'France': 'FR',
+             'Italy': 'IT',
+             'Cyprus': 'CY',
+             'Latvia': 'LV',
+             'Lithuania': 'LT',
+             'Luxembourg': 'LU',
+             'Hungary': 'HU',
+             'Malta': 'MT',
+             'Netherlands': 'NL',
+             'Austria': 'AT',
+             'Poland': 'PL',
+             'Portugal': 'PT',
+             'Romania': 'RO',
+             'Slovenia': 'SI',
+             'Slovakia': 'SK',
+             'Finland': 'FI',
+             'Sweden': 'SE',
+             'United Kingdom':'GB',
+             }
+
 if __name__ == "__main__":
+    import platform
+    if platform.machine() in ['i386', 'i686']:
+        import psyco
+        psyco.full()
     seen=[]
     for letter in uppercase:
         for term in [3, 4, 5, 6, 7]:

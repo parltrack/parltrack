@@ -18,21 +18,20 @@
 
 # (C) 2011 by Adam Tauber, <asciimoo@gmail.com>
 
-import os
-import re
+import os, re
 from pymongo import Connection
 from flaskext.mail import Mail, Message
 from flaskext.cache import Cache
 from flask import Flask, render_template, request, jsonify, abort, redirect
 from parltrack import default_settings
 from datetime import datetime
-from random import randint
+from random import randint, choice, shuffle, randrange
 from hashlib import sha1
 from werkzeug import ImmutableDict
 from bson.objectid import ObjectId
-from parltrack.scrapers.ep_meps import groupids, COUNTRIES
+from parltrack.scrapers.ep_meps import groupids, COUNTRIES, SEIRTNUOC
 from parltrack.scrapers.ep_com_meets import COMMITTEES, COMMITTEE_MAP
-from parltrack.scrapers.mappings import ALL_STAGES as STAGES
+from parltrack.scrapers.mappings import ALL_STAGES, STAGES
 from bson.code import Code
 
 Flask.jinja_options = ImmutableDict({'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_', 'jinja2.ext.loopcontrols']})
@@ -59,17 +58,18 @@ def inject_data():
     return dict(now_date=datetime.now(),
                 committees=COMMITTEES,
                 committee_map=COMMITTEE_MAP,
+                countries=SEIRTNUOC,
                 )
 
+#@cache.cached()
 @app.route('/')
-@cache.cached()
 def index():
     db = connect_db()
     tmp=dict([(x[u'procedure.stage_reached'],int(x['count'])) for x in db.dossiers.group({'procedure.stage_reached': True},
                                                                                   {},
                                                                                   {'count': 0},
                                                                                   Code('function(doc, out){ out.count++ }'))])
-    stages=[(k,tmp[k]) for k in STAGES if tmp.get(k)]
+    stages=[(k,tmp[k]) for k in ALL_STAGES if tmp.get(k)]
     return render_template('index.html',
                            stages=stages,
                            dossiers_num=db.dossiers.find().count(),
@@ -111,13 +111,28 @@ def search():
 
 @app.route('/notification')
 def gen_notif_id():
-    from random import choice
     db = connect_db()
     while True:
         nid = ''.join([chr(randint(97, 122)) if randint(0, 5) else choice("_-.") for x in range(10)])
         if not db.notifications.find({'id': nid}).count():
             break
     return '/notification/'+nid
+
+def listdossiers(d):
+    if 'agents' in d['procedure']:
+        d['rapporteur']=[{'name': x['name'], 'grp': x['group']} for x in d['procedure']['agents'] if x.get('responsible') and x.get('name')]
+    forecasts=[]
+    for act in d['activities']:
+        if act['type']=='Forecast':
+            forecasts.append({'date':datetime.strptime(act['date'], "%Y-%m-%d"),
+                              'title': ' '.join(act['title'].split())})
+        if act['type'] in ['Non-legislative initial document', 'Commission/Council: initial legislative document']:
+            if 'comdoc' in d:
+                print 'WTF? there is already a comdoc'
+                raise
+            d['comdoc']={'title': act['documents'][0]['title'], 'url': act['documents'][0].get('url'), }
+    d['forecasts']=forecasts
+    return d
 
 @app.route('/notification/<string:g_id>')
 def notification_view_or_create(g_id):
@@ -127,8 +142,13 @@ def notification_view_or_create(g_id):
     if not group:
         group = {'id': g_id, 'active_emails': [], 'dossiers': [], 'restricted': False, 'actions' :[]}
         db.notifications.save(group)
+    ds=[]
+    if len(group['dossiers']):
+        ds=[listdossiers(d) for d in db.dossiers.find({'procedure.reference': { '$in' : group['dossiers'] } })]
     return render_template('view_notif_group.html',
-                            group=group)
+                           dossiers=ds,
+                           date=datetime.now(),
+                           group=group)
 
 @app.route('/notification/<string:g_id>/add/<any(dossiers, emails):item>/<path:value>')
 def notification_add_detail(g_id, item, value):
@@ -156,8 +176,8 @@ def notification_add_detail(g_id, item, value):
         mail.send(msg)
 
     else:
-        if db.notifications.find({'dossiers': value}).count():
-            return 'OK'
+        #if db.notifications.find({'dossiers': value}).count():
+        #    return 'OK'
         i = db.dossiers.find_one({'procedure.reference': value})
         if not i:
             return 'unknown dossier - '+value
@@ -167,6 +187,30 @@ def notification_add_detail(g_id, item, value):
     db.notifications.save(group)
     return 'OK'
 
+@app.route('/notification/<string:g_id>/del/<any(dossiers, emails):item>/<path:value>')
+def notification_del_detail(g_id, item, value):
+    db = connect_db()
+    group = db.notifications.find_one({'id': g_id})
+    if not group:
+        return 'unknown group '+g_id
+    # TODO handle restricted groups
+    #if group.restricted:
+    #    return 'restricted group'
+    if item == 'emails':
+        print value
+        print group['active_emails']
+        if value not in group['active_emails']:
+            return 'Cannot complete this action'
+        i = {'address': value, 'type': 'unsubscription', 'token': sha1(''.join([chr(randint(32, 122)) for x in range(12)])).hexdigest(),'date': datetime.now()}
+        group['actions'].append(i)
+        msg = Message("Parltrack Notification Unsubscription Verification",
+                sender = "parltrack@parltrack.euwiki.org",
+                recipients = [value])
+        msg.body = "Your verification key is %sactivate?key=%s\nNotification group url: %snotification/%s" % (request.url_root, i['token'], request.url_root, g_id)
+        mail.send(msg)
+        db.notifications.save(group)
+    return 'OK'
+
 @app.route('/activate')
 def activate():
     db = connect_db()
@@ -174,17 +218,24 @@ def activate():
     if not k:
         return 'Missing key'
     notif = db.notifications.find_one({'actions.token': k})
-    if notif:
-        for action in notif['actions']:
-            if action.get('token') == k:
+    if not notif:
+        return 'wrong key'
+    for action in notif['actions']:
+        if action.get('token') == k:
+            if action['type'] == 'subscription':
                 if not action['address'] in notif['active_emails']:
                     notif['active_emails'].append(action['address'])
                 notif['actions'].remove(action)
                 db.notifications.save(notif)
-                break
-        # TODO activation method
-        return 'activated'
-    return 'wrong key'
+                # TODO activation method
+                return 'activated'
+
+            if action['type'] == 'unsubscription':
+                notif['actions'].remove(action)
+                notif['active_emails'].remove(action['address'])
+                db.notifications.save(notif)
+                # TODO activation method
+                return 'deactivated'
 
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 #               Meps
@@ -213,6 +264,7 @@ def render_meps(query={},kwargs={}):
     return render_template('mep_ranking.html',
                            rankings=rankings,
                            d=date,
+                           groupids=groupids,
                            url=request.base_url,
                            **kwargs)
 
@@ -311,8 +363,8 @@ def new_docs():
     d=db.dossiers.find().sort([('meta.created', -1)]).limit(30)
     if request.args.get('format','')=='json':
         return jsonify(tojson(d))
-    if request.args.get('format','')=='atom':
-        return render_template('atom.xml', dossiers=list(d))
+    #if request.args.get('format','')=='atom':
+    return render_template('atom.xml', dossiers=list(d), path="new")
 
 @app.route('/changed/')
 def changed():
@@ -320,8 +372,17 @@ def changed():
     d=db.dossiers.find().sort([('meta.updated', -1)]).limit(30)
     if request.args.get('format','')=='json':
         return jsonify(tojson(d))
-    if request.args.get('format','')=='atom':
-        return render_template('atom.xml', dossiers=list(d))
+    #if request.args.get('format','')=='atom':
+    return render_template('atom.xml', dossiers=list(d), path="changed")
+
+@app.route('/dossiers')
+def active_dossiers():
+    db = connect_db()
+    query={'procedure.stage_reached': { "$in": STAGES } }
+    ds=[listdossiers(d) for d in db.dossiers.find(query)]
+    return render_template('active_dossiers.html',
+                           dossiers=ds,
+                           date=datetime.now())
 
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 #              Committees
@@ -331,6 +392,7 @@ def changed():
 def view_committee(c_id):
     from parltrack.views.views import committee
     c=committee(c_id)
+    c['dossiers']=[listdossiers(d) for d in c['dossiers']]
     if not c:
         abort(404)
     if request.args.get('format','')=='json':
@@ -338,12 +400,52 @@ def view_committee(c_id):
     return render_template('committee.html',
                            committee=c,
                            Committee=COMMITTEE_MAP[c_id],
+                           today=datetime.now(),
+                           groupids=groupids,
                            c=c_id,
                            url=request.base_url)
 
 @app.template_filter()
 def asdate(value):
-    return value.strftime('%Y/%m/%d')
+    date=value.strftime('%Y/%m/%d %H:%M')
+    if not date.endswith(" 00:00"):
+        return date
+    else: return date[:-len(" 00:00")]
+
+@app.template_filter()
+def isodate(value):
+    return datetime.strptime(value,'%Y-%m-%d').isoformat()
+
+@app.template_filter()
+def group_icon(value):
+    if not value: return ''
+    if type(value)==type(list()): value=value[0]
+    if value=='NA': value='NI'
+    return "static/images/%s.gif" % value.lower().replace('/','_')
+
+@app.template_filter()
+def protect_email(email_address):
+    character_set = '+-.0123456789@ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz'
+    char_list = list(character_set)
+    shuffle(char_list)
+
+    key = ''.join(char_list)
+
+    cipher_text = ''
+    id = 'e' + str(randrange(1,999999999))
+
+    for a in email_address:
+        cipher_text += key[ character_set.find(a) ]
+
+    script = 'var a="'+key+'";var b=a.split("").sort().join("");var c="'+cipher_text+'";var d="";'
+    script += 'for(var e=0;e<c.length;e++)d+=b.charAt(a.indexOf(c.charAt(e)));'
+    script += 'document.getElementById("'+id+'").innerHTML="<a href=\\"mailto:"+d+"\\">"+d+"</a>"'
+
+
+    script = "eval(\""+ script.replace("\\","\\\\").replace('"','\\"') + "\")"
+    script = '<script type="text/javascript">/*<![CDATA[*/'+script+'/*]]>*/</script>'
+
+    return '<span id="'+ id + '">[javascript protected email address]</span>'+ script
 
 def tojson(data):
     if type(data)==type(ObjectId()):

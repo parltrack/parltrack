@@ -5,7 +5,7 @@
 
 # install non-pythonic dependencies dependencies
 
- apt-get install wv poppler-utils mongodb-server mongodb-clients
+ apt-get install wv poppler-utils mongodb-server mongodb-clients ksh bzip2
 
 # create a virtual environment
 
@@ -22,3 +22,11 @@ source env/bin/activate
 # setup parltrack pkg
 
  sudo python setup.py develop
+
+# start initial scraping
+
+ cd parltrack/scrapers
+ ./ep_meps.py >meps.log 2>&1
+ ./oeil.py full >oeil.log 2>&1
+ ./ep_com_meets.py >meets.log 2>&1
+ for b in $(seq 2004 2011); do ./ep_votes_by_year.py $b 2>&1 ; done >votes.log

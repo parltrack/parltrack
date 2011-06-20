@@ -62,7 +62,7 @@ def getMEPRef(name):
     if mep:
         return mep['_id']
     else:
-        print >>sys.stderr, 'lookup oops', actor['name'].encode('utf8'), item['meta']['source']
+        print >>sys.stderr, '[!] lookup oops', name.encode('utf8')
 
 def makeActivities(data):
     #print >> sys.stderr, data
@@ -203,10 +203,13 @@ def save(data):
             #print >> sys.stderr, (d)
         m=db.notifications.find({'dossiers': data['procedure']['reference']},['active_emails'])
         for g in m:
+            if len(g['active_emails'])==0:
+                continue
             msg = Message("Parltrack Notification for %s" % data['procedure']['reference'],
                           sender = "parltrack@parltrack.euwiki.org",
                           bcc = g['active_emails'])
-            msg.body = "Parltrack has detected a change in %s on OEIL.\nfollow this URL: %s to see the dossier\n\nchanges below\n%s" % (data['procedure']['reference'],'%s/dossier/%s' % (ROOT_URL,data['procedure']['reference']), json.dumps(d))
+            #msg.body = "Parltrack has detected a change in %s %s on OEIL.\nfollow this URL: %s to see the dossier\n\nchanges below\n%s" % (data['procedure']['reference'], data['procedure']['title'],'%s/dossier/%s' % (ROOT_URL,data['procedure']['reference']), json.dumps(d,indent=1,default=dateJSONhandler))
+            msg.body = "Parltrack has detected a change in %s %s on OEIL.\nfollow this URL: %s to see the dossier\n" % (data['procedure']['reference'], data['procedure']['title'],'%s/dossier/%s' % (ROOT_URL,data['procedure']['reference']))
             mail.send(msg)
         data['changes']=res.get('changes',{})
         data['changes'][now]=d
@@ -651,6 +654,10 @@ def crawl(fast=True):
     return result
 
 if __name__ == "__main__":
+    import platform
+    if platform.machine() in ['i386', 'i686']:
+        import psyco
+        psyco.full()
     crawl(fast=(False if len(sys.argv)>1 and sys.argv[1]=='full' else True))
     #import pprint
     #print '['

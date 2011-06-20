@@ -1,5 +1,11 @@
 {% extends "base.html" %}
+{% block styles %}
+<link type="text/css" href="/static/js/css/jit/BarChart.css" rel="stylesheet" />
+{% endblock %}
 {% block scripts %}
+<script language="javascript" type="text/javascript" src="/static/js/jit-yc.js"></script>
+<!--[if IE]><script language="javascript" type="text/javascript" src="/static/js/excanvas.js"></script><![endif]-->
+<script language="javascript" type="text/javascript" src="/static/js/jitchart.js"></script>
 <script type="text/javascript">
      $(document).ready(function() {
        $('.has_summary').click(function() {
@@ -29,7 +35,8 @@
     </script>
 {% endblock %}
 {% block content %}
-<div id="track_dossier"><a class="asjson" href="/notification">Track this dossier</a><br />
+<a class="asjson" href="{{url}}?format=json">download as json</a><br />
+<div id="track_dossier"><a class="asjson" href="/notification">Track this dossier</a>
     <div class="hidden right" id="notif_subscr">
     <h3>Notification subscription</h3>
     <p>
@@ -43,25 +50,30 @@
     </p>
     </div>
 </div>
-<a class="asjson" href="{{url}}?format=json">download as json</a>
 <h2>{{ dossier.procedure.reference }}</h2>
 <p>{{dossier.procedure.title}}</p>
 <p><strong>{{dossier.procedure.stage_reached}}</strong></p>
 <div id="tabs">
   <ul>
     <li><a href="#general">General</a></li>
-    <li><a href="#activities">Activities</a></li>
+    {% if dossier.activities %}<li><a href="#activities">Activities</a></li>{% endif %}
     {% if dossier.docs|length %}<li><a href="#documents">Documents</a></li>{%endif%}
     {% if dossier.votes %}<li><a href="#votes">Votes</a></li>{%endif%}
   </ul>
 <div id="general">
-<div>Subjects
-<ul>{%for sub in dossier.procedure.subjects%}<li>{{sub}}</li>{%endfor%}</ul>
-</div>
-<div>Legal Basis
-<ul>{%for sub in dossier.procedure.legal_basis%}<li>{{sub}}</li>{%endfor%}</ul></div>
+  {% if dossier.procedure.legal_basis %}
+  <div>Legal Basis
+  <ul>{%for sub in dossier.procedure.legal_basis%}<li>{{sub}}</li>{%endfor%}</ul></div>
+  {% endif %}
+<div>Links
+<ul>
+  <li><a href="{{dossier.meta.source}}">OEIL</a></li>
+  <li><a href="http://www.google.com/search?q={{dossier.procedure.title}}+-europarl.europa.eu">Google</a></li>
+  <li><a href="http://www.europarl.europa.eu/RegistreWeb/search/simple.htm?fulltext={{dossier.procedure.eprodid}}">Eprod</a></li>
+</ul></div>
 {% if dossier.comeets %}
 <h3>Committees</h3>
+  <div>Dossier of the Committee <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&body={{dossier.procedure.committee}}&language=EN">{{dossier.procedure.dossier_of_the_committee}}</a></div>
   {% for committee in dossier.comeets%}
     {% if committee|length == 4 %}<a href="/committee/{{committee}}">{{committee.committee}}</a>
     {%elif committee_map[committee]|length == 4 %}<a href="/committee/{{committee_map[committee]}}">{{committee.committee}}</a>
@@ -102,13 +114,15 @@
 {% else %}
   {% if dossier.procedure.agents %}
   <h3>Committees</h3>
+  <div>Dossier of the Committee <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&body={{dossier.procedure.committee}}&language=EN">{{dossier.procedure.dossier_of_the_committee}}</a></div>
   <ul>{%for agent in dossier.procedure.agents%}
-     <li>
+       {% if agent.commitee %}
+       <li>
        {%if agent.responsible%}
           <strong>{% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
             {%elif committee_map[agent.commitee]|length == 4 %}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>
             {%else%}{{agent.commitee}}{%endif%}</strong>
-          {%if dossier.procedure.dossier_of_the_committee %}{{dossier.procedure.dossier_of_the_committee}}{%endif%}
+          {%if dossier.procedure.dossier_of_the_committee %}<a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&body={{dossier.procedure.committee}}&language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
        {%else%}
           {% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
           {%elif committee_map[agent.commitee]|length == 4 %}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>
@@ -117,27 +131,32 @@
        {%if agent.name%}<a href="/mep/{{agent.name}}">{{agent.name}}</a>{%endif%}
        {%if agent.group%}<a href="/meps/{{agent.group}}">{{agent.group}}</a>{%endif%}
      </li>
+     {%endif%}
     {%endfor%}
   </ul>
   {%endif%}
 {%endif%}
+<div>Subjects
+<ul>{%for sub in dossier.procedure.subjects%}<li>{{sub}}</li>{%endfor%}</ul>
 </div>
+</div>
+{% if dossier.activities %}
 <div id="activities">
 <h3>Activites</h3>
 <ul>{%for act in dossier.activities%}
-   <li>
-     {%if act.date%}{{act.date}}{%endif%}
-     {%if act.title%}{{act.title}}{%endif%}
+   <li class='vevent'>
+     {%if act.date%}<abbr class="dtstart" title="{{act.date|isodate}}">{{act.date}}</abbr>{%endif%}
+     {%if act.title%}<span class='summary'>{{act.title}}</span>{%endif%}
      {%if act.type%}{{act.type}}{%endif%}
      <ul>
      {%for agent in act.actors%}
         {%if agent.function == "MEP" %}
-           <li>
+           <li class='agent'>
              {%if agent.responsible%}
                 <strong>{% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
                   {%elif committee_map[agent.commitee]|length == 4 %}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>
                   {%else%}{{agent.commitee}}{%endif%}</strong>
-                {%if dossier.procedure.dossier_of_the_committee %}{{dossier.procedure.dossier_of_the_committee}}{%endif%}
+                {%if dossier.procedure.dossier_of_the_committee %}<a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&body={{dossier.procedure.committee}}&language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
              {%else%}
                 {% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
                 {%elif committee_map[agent.commitee]|length == 4 %}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>
@@ -148,7 +167,7 @@
            </li>
         {%endif%}
         {%if agent.body == "CSL" %}
-           <li>
+           <li class='agent'>
              {%if agent.department%}{{agent.department}}{%endif%}
              {%if agent.meeting_id%}#{{agent.meeting_id}}{%endif%}
            </li>
@@ -176,6 +195,7 @@
   {%endfor%}
 </ul>
 </div>
+{% endif %}
 {% if dossier.docs|length %}
   <div id="documents">
   <h3>Documents</h3>
@@ -207,15 +227,14 @@
 {%for vote in dossier.votes|sort(attribute='ts')%}
 <h4>{{vote.title}}</h4>
   <div>{{vote.ts|asdate}}</div>
+  <div class='votes-graph'> </div>
   <table class="votes">
      <thead>
         <tr>
           <td>Position</td>
           <td>Total</td>
           {% for g in vote.groups|sort %}
-            {% if g not in ['correctional', 'total']%}
             <td><a href="/meps/{{g}}?date={{vote.ts|asdate}}">{{g}}</a></td>
-            {%endif%}
           {%endfor%}
           <td>correctional</td>
         </tr>
@@ -223,38 +242,47 @@
      <tbody>
        <tr>
          <td>For</td>
-         <td>{{vote.For.total}}</td>
-         {% for k,v in vote.For.items()|sort %}
-            {% if k not in ['correctional', 'total']%}
-            <td>{{v|length}}</td>
-            {%endif%}
-         {%endfor%}
-         {% if 'correctional' in vote.For%}
-           <td>{{vote.For.correctional|length}}</td>
+         {% if 'For' in vote.keys() %}
+           <td>{{vote.For.total}}</td>
+           {% for v in vote.For.groups %}
+              <td class="for" title="{{v.group}}">{{v.votes|length}}</td>
+           {%endfor%}
+           {% if 'correctional' in vote.For%}
+             <td>{{vote.For.correctional|length}}</td>
+           {% else %}<td>0</td>
+           {%endif%}
+         {% else %}
+             <td>0</td>
          {%endif%}
        </tr>
        <tr>
          <td>Against</td>
-         <td>{{vote.Against.total}}</td>
-         {% for k,v in vote.Against.items()|sort %}
-            {% if k not in ['correctional', 'total']%}
-            <td>{{v|length}}</td>
-            {%endif%}
-         {%endfor%}
-         {% if 'correctional' in vote.Against%}
-           <td>{{vote.Against.correctional|length}}</td>
+         {% if 'Against' in vote.keys() %}
+           <td>{{vote.Against.total}}</td>
+           {% for v in vote.Against.groups %}
+              <td class="against" title="{{vote.group}}">{{v.votes|length}}</td>
+           {%endfor%}
+           {% if 'correctional' in vote.Against%}
+             <td>{{vote.Against.correctional|length}}</td>
+           {% else %}<td>0</td>
+           {%endif%}
+         {% else %}
+             <td>0</td>
          {%endif%}
        </tr>
        <tr>
          <td>Abstain</td>
-         <td>{{vote.Abstain.total}}</td>
-         {% for k,v in vote.Abstain.items()|sort %}
-            {% if k not in ['correctional', 'total']%}
-            <td>{{v|length}}</td>
-            {%endif%}
-         {%endfor%}
-         {% if 'correctional' in vote.Abstain%}
-           <td>{{vote.Abstain.correctional|length}}</td>
+         {% if 'Abstain' in vote.keys() %}
+           <td>{{vote.Abstain.total}}</td>
+           {% for v in vote.Abstain.groups %}
+              <td class="abstain" title="{{v.group}}">{{v.votes|length}}</td>
+           {%endfor%}
+           {% if 'correctional' in vote.Abstain%}
+             <td>{{vote.Abstain.correctional|length}}</td>
+           {% else %}<td>0</td>
+           {%endif%}
+         {% else %}
+             <td>0</td>
          {%endif%}
        </tr>
      </tbody>

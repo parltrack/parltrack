@@ -1,8 +1,29 @@
 {% extends "base.html" %}
 {% block scripts %}
+<script type="text/javascript" src="/static/js/jquery.tablesorter.min.js"> </script>
+<script type="text/javascript" src="/static/js/picnet.table.filter.min.js"></script>
 <script>
+   if(typeof(String.prototype.trim) === "undefined")
+   {
+      String.prototype.trim = function()
+      {
+         return String(this).replace(/^\s+|\s+$/g, '').replace(/\s+/,' ');
+      };
+   }
+
 	$(function() {
 		$( "#tabs" ).tabs();
+      $("#sortedlist").tablesorter();
+      $('#sortedlist').tableFilter();
+      $("#sortedlist2").tablesorter({
+         sortList: [[0,1],[3,1]],
+         textExtraction: function(node) {
+            var d=$(node).find('abbr').eq(0).text();
+            if(d) { return d.trim(); }
+            return $(node).text().trim();
+         }
+      });
+      $('#sortedlist2').tableFilter();
 	});
 </script>
 {% endblock %}
@@ -16,39 +37,82 @@
     <li><a href="#members">Members</a></li>
   </ul>
 <div id="meetings">
-{%for group in committee.agendas|groupby('meeting_date') %}
-<h3>{{group.grouper}}</h3><ul>
-  {% for meet in group.list %}
-    <li>{{meet.title}}
-      {%if meet.comdoc %}{%if meet.comref %}<a href="/dossier/{{meet.comref}}">{{meet.comdoc}}</a>{%else%}{{meet.comdoc}}{%endif%}{%endif%}
-      {%if meet.tabling_deadline %}<div><strong>Tabling Deadline</strong> {{meet.tabling_deadline}}</div>{%endif%}
-    </li>
-  {%endfor%}
-  </ul>
+{%for group in committee.agendas|groupby('meeting_date') if group.grouper >= today %}
+  <h3>{{group.grouper|asdate}}</h3><ul>
+    {% for meet in group.list %}
+      <li>{{meet.title}}
+        {%if meet.comdoc %}{%if meet.comref %}<a href="/dossier/{{meet.comref}}">{{meet.comdoc}}</a>{%else%}{{meet.comdoc}}{%endif%}{%endif%}
+        {%if meet.tabling_deadline %}<div><strong>Tabling Deadline</strong> {{meet.tabling_deadline}}</div>{%endif%}
+      </li>
+    {%endfor%}
+    </ul>
 {% else %}
  <h3>No agenda known</h3>
 {%endfor%}
 </div>
 <div id="dossiers">
-  {%for grp in committee.dossiers|groupby('crole') %}
-  <h3>{% if grp.grouper == 0%}Responsible{%else%}Opinion{%endif%}</h3>
-  <ul>
-  {%for group in grp.list|groupby('procedure.stage_reached') %}
-    <li>{{group.grouper}}<ul>
-       {% for dossier in group.list %}
-       <li><a href="/dossier/{{dossier.procedure.reference}}">{{dossier.procedure.reference}}</a> {{dossier.procedure.title}}</li>
-       {% endfor %}
-    </ul></li>
-  {%endfor%}
-  </ul>
-  {%endfor%}
+<table id='sortedlist2' class="tablesorter">
+    <thead>
+      <tr>
+        <th filter-type='ddl'>Role</th>
+        <th filter='false'>Dossier</th>
+        <th filter='false'>Name</th>
+        <th filter='false' class="{sorter: 'text'}">Forecasts</th>
+        <th filter-type='ddl'>Stage Reached</th>
+        <th filter='false'>Legal Basis</th>
+        <th filter='false'>Committee Dossier</th>
+        <th filter-type='ddl'>Rapporteur</th>
+        <th filter='false'>Commission Doc</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for dossier in committee.dossiers %}
+      <tr>
+        <td>{% if dossier.crole %}Responsible{%else%}Opinion{%endif%}</td>
+        <td><a href="/dossier/{{dossier.procedure.reference}}">{{dossier.procedure.reference}}</a></td>
+        <td>{{ dossier.procedure.title }}</td>
+        <td class='forecasts'>{% for fc in dossier.forecasts|sort if fc.date > today %}
+           <div class="vevent"><abbr title="{{fc.date.isoformat()}}" class="dtstart">{{ fc.date|asdate }}</abbr> -
+              <span class="summary">{{ fc.title }}</span></div>
+          {% else %}-
+          {% endfor %}</td>
+        <td>{{ dossier.procedure.stage_reached }}</td>
+        <td>{% for sub in dossier.procedure.legal_basis %}{% if not loop.first %}, {% endif %}{{ sub }}{% endfor %}</td>
+        <td>{{ dossier.procedure.dossier_of_the_committee }}</td>
+        <td>{% for r in dossier.rapporteur %}{% if not loop.first %}, {% endif %}<a href="/mep/{{r.name}}">{{ r.name }}</a> ({{r.grp}}){% endfor %}</td>
+        <td>{% if dossier.comdoc %}<a href="{{dossier.comdoc.url}}">{{ dossier.comdoc.title }}</a>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 <div id="members">
-  {%for group in committee.meps|groupby('crole') %}
-    <h3>{{group.grouper}}</h3><ul>
-      {% for mep in group.list|sort(attribute='Name.full') %}{% if not loop.first %}, {%endif%}<a href="/mep/{{mep.Name.full}}">{{mep.Name.full}}</a></li>{%endfor%}
-      </ul>
-  {%endfor%}
+<table id='sortedlist' class="tablesorter">
+   <thead>
+      <tr>
+         <th filter='false'>Name</th>
+         <th filter-type='ddl'>Role</th>
+         <th filter-type='ddl'>Group</th>
+         <th filter-type='ddl'>Country</th>
+      </tr>
+   </thead>
+   <tbody>
+      {% for mep in committee.meps %}
+      <tr>
+         <td><a href="/mep/{{ mep.Name.full }}">{{ mep.Name.full }}</a></td>
+         <td>{{ mep.crole }}</td>
+         <td><img class="group_icon" title="icon: {{mep.Groups.0.groupid}}" src="/{{mep.Groups.0.groupid|group_icon}}" />
+             {% if mep.Groups.0.groupid in groupids %}
+               <a href="/meps/{{ mep.Groups.0.groupid }}?date={{now_date|asdate}}">{{mep.Groups.0.groupid }}</a>
+             {% else %}
+               {{mep.Groups.0.groupid }}
+             {% endif %}
+         </td>
+         <td><img class="group_icon" title="icon: {{countries[mep.Constituencies.0.country]}}" src="/static/images/{{countries[mep.Constituencies.0.country]|lower}}.gif" /> <a href="/meps/{{ countries[mep.Constituencies.0.country] }}?date={{now_date|asdate}}">{{ mep.Constituencies.0.country }}</a></td>
+      </tr>
+      {% endfor %}
+   </tbody>
+</table>
 </div>
 </div>
 {% endblock %}

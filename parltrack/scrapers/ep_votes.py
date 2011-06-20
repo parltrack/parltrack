@@ -39,7 +39,16 @@ def fetchVotes(d):
                     d,
                     "+RES-RCV+DOC+WORD+V0//EN&language=EN")
     print >>sys.stderr, url
-    f=urllib2.urlopen(url)
+    try:
+        f=urllib2.urlopen(url)
+    except (urllib2.HTTPError, urllib2.URLError):
+        try:
+            f=urllib2.urlopen(url)
+        except (urllib2.HTTPError, urllib2.URLError):
+            try:
+                f=urllib2.urlopen(url)
+            except (urllib2.HTTPError, urllib2.URLError):
+                return ''
     tmp=mkstemp()
     fd=os.fdopen(tmp[0],'w')
     fd.write(f.read())
@@ -65,6 +74,7 @@ def getMep(text,date):
         return mepCache['name']
 
     if not name: return
+    if name.endswith('('): name=name[:-1].strip()
     # TODO add date constraints based on groups.start/end
     mep=db.ep_meps.find_one({'Name.aliases': name,
                              "Constituencies.start" : {'$lt': date},
@@ -142,6 +152,7 @@ def votemeta(line, date):
     return res
 
 reportre=re.compile(r'(Report: .*) ?- ?(.*)$')
+kmap={'0':'Abstain','+':'For','-':'Against'}
 def scrape(f):
     tree=fetchVotes(f)
 
@@ -169,7 +180,9 @@ def scrape(f):
                 k="-"
             if u'Απoχές' in vtype or u'ΑΠOΧΕΣ' in vtype:
                 k="0"
-            vote[k]={'total': total}
+            if k not in kmap: continue
+            k=kmap[k]
+            vote[k]={'total': total, 'groups': []}
             for cur in decision.xpath('../following-sibling::*'):
                 group=cur.xpath('.//b/text()')
                 if group and ''.join([x.strip() for x in group]) in Groupids:
@@ -234,7 +247,8 @@ def scrape(f):
                         if not mep:
                             print >>sys.stderr, '[?] warning unknown MEP',vote['ts'] , group.encode('utf8'), name.encode('utf8')
                             vtmp.append(name)
-                    vote[k][group]=vtmp
+                    #vote[k][group]=vtmp
+                    vote[k]['groups'].append({'group': group, 'votes': vtmp})
                 if cur.xpath('.//table'):
                     break
         # get the correctional votes
@@ -277,6 +291,7 @@ def scrape(f):
                 skip=True
 
             if k not in ['0','+','-']: continue
+            k=kmap[k]
             voters=[x.strip() for x in voters.split(',') if x.strip()]
             if not voters:
                 continue

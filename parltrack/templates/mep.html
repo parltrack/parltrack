@@ -40,7 +40,7 @@
 {%for c in mep.Constituencies|sort(attribute='start',reverse=True) %}
   {% if c.end>today%}
     <li>
-    {{c.country}}
+    <img class="group_icon" title="icon: {{countries[c.country]}}" src="/static/images/{{countries[c.country]|lower}}.gif" /> {{c.country}}
     {{c.party}}
     {{c.start|asdate}} - ...
     </li>
@@ -56,7 +56,7 @@
 {%for c in mep.Constituencies|sort(attribute='start',reverse=True) %}
   {% if c.end<today%}
     <li>
-    {{c.country}}
+    <img class="group_icon" title="icon: {{countries[c.country]}}" src="/static/images/{{countries[c.country]|lower}}.gif" /> {{c.country}}
     {{c.party}}
     {{c.start|asdate}} - {{c.end|asdate}}
     </li>
@@ -70,15 +70,15 @@
     <li>
     {% if c.groupid.__iter__ %}
       {% if c.start >= group_cutoff %}
-        <a href="/meps/{{c.groupid.0}}">{{c.groupid.0}}</a>
+        <img class="group_icon" title="icon: {{c.groupid.0}}" src="/{{c.groupid.0|group_icon}}" /> <a href="/meps/{{c.groupid.0}}">{{c.groupid.0}}</a>
       {%else%}
-        {{c.groupid.0}}
+        <img class="group_icon" title="icon: {{c.groupid.0}}" src="/{{c.groupid.0|group_icon}}" /> {{c.groupid.0}}
       {%endif%}
     {%else%}
       {% if c.start >= group_cutoff %}
-        <a href="/meps/{{c.groupid}}">{{c.groupid}}</a>
+        <img class="group_icon" title="icon: {{c.groupid}}" src="/{{c.groupid|group_icon}}" /> <a href="/meps/{{c.groupid}}">{{c.groupid}}</a>
       {%else%}
-        {{c.groupid}}
+        <img class="group_icon" title="icon: {{c.groupid}}" src="/{{c.groupid|group_icon}}" /> {{c.groupid}}
       {%endif%}
     {%endif%}
     {{c.role}}
@@ -98,19 +98,19 @@
 {%for c in mep.Groups|sort(attribute='start',reverse=True) %}
   {% if c.end<=today%}
    <li>
-    {{c.country}}
+    <img class="group_icon" title="icon: {{countries[c.country]}}" src="/static/images/{{countries[c.country]|lower}}.gif" /> {{c.country}}
     {% if c.groupid %}
     {% if c.groupid.__iter__ %}
       {% if c.start >= group_cutoff %}
-        <a href="/meps/{{c.groupid.0}}?date={{c.start|asdate}}">{{c.groupid.0}}</a>
+        <img class="group_icon" title="icon: {{c.groupid.0}}" src="/{{c.groupid.0|group_icon}}" /> <a href="/meps/{{c.groupid.0}}?date={{c.start|asdate}}">{{c.groupid.0}}</a>
       {%else%}
-        {{c.groupid.0}}
+        <img class="group_icon" title="icon: {{c.groupid.0}}" src="/{{c.groupid.0|group_icon}}" /> {{c.groupid.0}}
       {%endif%}
     {%else%}
       {% if c.start >= group_cutoff %}
-        <a href="/meps/{{c.groupid}}?date={{c.start|asdate}}">{{c.groupid}}</a>
+        <img class="group_icon" title="icon: {{c.groupid}}" src="/{{c.groupid|group_icon}}" /> <a href="/meps/{{c.groupid}}?date={{c.start|asdate}}">{{c.groupid}}</a>
       {%else%}
-        {{c.groupid}}
+        <img class="group_icon" title="icon: {{c.groupid}}" src="/{{c.groupid|group_icon}}" /> {{c.groupid}}
       {%endif%}
     {%endif%}
     {%endif%}
@@ -199,7 +199,7 @@
   <li><dl><dt>Homepage</dt><dd><a href="{{mep.Homepage}}">{{mep.Homepage}}</a></dd></dl></li>
 {%endif%}
 {% if mep.Mail%}
-  <li><dl><dt>Mail</dt><dd>{{mep.Mail}}</dd></dl></li>
+  <li><dl><dt>Mail</dt><dd>{{mep.Mail|protect_email|safe}}</dd></dl></li>
 {%endif%}
 </ul>
 {%endif%}

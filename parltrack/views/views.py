@@ -27,13 +27,15 @@ try:
     db = connect_db()
 except:
     db=pymongo.Connection().parltrack
+from operator import itemgetter
 
 group_positions={u'Chair': 10,
                  u'Co-Chair': 8,
                  u'Vice-Chair': 6,
                  u'Deputy Chair': 5,
                  u'Chair of the Bureau': 4,
-                 u'Vice-Chair/Member of the Bureau': 3,
+                 u'Vice-Chair/Member of the Bureau': 8,
+                 u'Secretary to the Bureau': 4,
                  u'Member of the Bureau': 2,
                  u'Treasurer': 2,
                  u'Co-treasurer': 1,
@@ -68,14 +70,16 @@ def mepRanking(date,query={}):
         for group in mep['Groups']:
             if group['start']<=date and group['end']>=date:
                 score=group_positions[group['role']]
-                if type(group['groupid'])==list:
+                if not 'groupid' in group:
+                    group['groupid']=group['Organization']
+                elif type(group.get('groupid'))==list:
                     group['groupid']=group['groupid'][0]
-                ranks.append((group_positions[group['role']],group['role'],group['groupid']))
+                ranks.append((group_positions[group['role']],group['role'],group.get('groupid',group['Organization'])))
                 mep['Groups']=[group]
                 break
         # get committee ranks
         tmp=[]
-        for com in mep['Committees']:
+        for com in mep.get('Committees',[]):
             if com['start']<=date and com['end']>=date:
                 score+=com_positions[com['role']]
                 ranks.append((com_positions[com['role']],com['role'],com['Organization']))
@@ -104,22 +108,21 @@ def dossier(id):
             break
     if not dossier:
         return
+    if 'dossier_of_the_committee' in dossier['procedure']:
+        dossier['procedure']['committee']=dossier['procedure']['dossier_of_the_committee'].split('/')[0]
+    tmp=dossier['procedure']['reference'].split('/')
+    dossier['procedure']['eprodid']="%s/%s(%s)" % (tmp[1],tmp[2],tmp[0])
     if 'changes' in dossier: del dossier['changes']
     # find related votes
     votes=list(db.ep_votes.find({'dossierid': dossier['_id']}))
     for vote in votes:
-        groups=[]
-        for dec, new in [('+','For'),
-                         ('-','Against'),
-                         ('0','Abstain')]:
-            vote[new]=vote[dec]
-            del vote[dec]
-            groups.extend([x for x in vote[new].keys() if x!='total'])
+        groups=[x['group'] for new in ['For','Against','Abstain'] if new in vote for x in vote[new]['groups']]
         vote['groups']=sorted(set(groups))
-        for dec in ['For','Against','Abstain']:
+        for dec in [x for x in ['For','Against','Abstain'] if x in vote]:
             for g in groups:
-                if g not in vote[dec]:
-                    vote[dec][g]=[]
+                if g not in [x['group'] for x in vote[dec]['groups']]:
+                    vote[dec]['groups'].append({'group':g, 'votes': []})
+            vote[dec]['groups'].sort(key=itemgetter('group'))
     dossier['votes']=votes
     dossier['comeets']=[]
     for item in db.ep_com_meets.find({'comref': dossier['_id']}):
@@ -167,7 +170,7 @@ def mep(id):
 
 def committee(id):
     # get agendas
-    agendas=db.ep_com_meets.find({'committee': id, 'meeting_date': { '$exists': True}}).sort([('meeting_date', pymongo.DESCENDING), ('seq no', pymongo.ASCENDING)])
+    agendas=db.ep_com_meets.find({'committee': id, 'meeting_date': { '$exists': True}}).sort([('meeting_date', pymongo.DESCENDING), ('seq_no', pymongo.ASCENDING)])
     # get dossiers
     comre=re.compile(COMMITTEE_MAP[id],re.I)
     dossiers=[]
@@ -182,12 +185,21 @@ def committee(id):
                     break
     # get members of committee
     date=datetime.now()
-    query={"Committees.start" : {'$lte': date},
-           "Committees.end" : {'$gte': date},
-           "Committees.Organization": comre,
-           }
+    query={"Committees": {'$elemMatch' :
+                         {'start' : {'$lte': date},
+                          "end" : {'$gte': date},
+                          "Organization": comre,
+                          }}}
     rankedMeps=[]
     for mep in db.ep_meps.find(query):
+        for group in mep['Groups']:
+            if group['start']<=date and group['end']>=date:
+                if not 'groupid' in group:
+                    group['groupid']=group['Organization']
+                elif type(group.get('groupid'))==list:
+                    group['groupid']=group['groupid'][0]
+                mep['Groups']=[group]
+                break
         for c in mep['Committees']:
             if c['start']<date and c['end']>date and comre.search(c['Organization']):
                 score=com_positions[c['role']]

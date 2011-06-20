@@ -48,10 +48,95 @@ dd { display: inline-block; }
 .has_summary, .more { cursor: pointer; padding-left: 40px; font-size: .7em; color: #454545; }
 li .has_summary, .more { cursor: pointer; padding-left: 0px; font-size: 1em; color: #454545; }
 .asjson { font-size: .7em; float: right; }
-#legal { width: 100%; text-align: center; color: black; }
-#legal a, #legal a:visited { color: white; }
+.centered { width: 100%; text-align: center; color: black; }
+#footer a, #footer a:visited { color: white; }
 
 .ui-widget-header { background: #EFEFEF !important; border: 0 !important; }
 .ui-widget-content a { color: #1A67B8 !important; text-decoration: none; }
 .ui-widget-content a:hover { color: #1A67B8 !important; text-decoration: underline; }
 .ui-state-hover { background: url(images/ui-bg_glass_100_f6f6f6_1x400.png) repeat-x scroll 50% 50% !important; border: 1px solid #f6f6f6 !important;}
+
+.group_icon { height:1em; margin:2px; vertical-align:top; }
+
+#calendar { width: 700px; }
+#calendar_legend { width: 240px; float: right; }
+.council-debate-expected, .council-debate-expected a { background-color: green !important; border-color: green !important; color: white !important }
+.council-final, .council-final a{ background-color: green !important; border-color: green !important; color: yellow !important; }
+.council-agree, .council-agree a{ background-color: green !important; border-color: green !important; color: #ffcc00 !important; }
+.ep-sitting, .ep-sitting a{ background-color: #214478 !important; border-color: #214478 !important; color: #ccc !important; }
+.ep-2ndsitting, .ep-2ndsitting a{ background-color: #315488 !important; border-color: #315488 !important; color: #ccc !important; }
+.ep-3rdsitting, .ep-3rdsitting a{ background-color: #416488 !important; border-color: #416498 !important; color: white !important; }
+.ep-debate, .ep-debate a{ background-color: #214478 !important; border-color: #214478 !important; color: white !important; }
+.ep-1streading, .ep-1streading a{ background-color: #214478 !important; border-color: #214478 !important; color: yellow !important; }
+.ep-2ndreading, .ep-2ndreading a{ background-color: #315488 !important; border-color: #315488 !important; color: yellow !important; }
+.ep-vote, .ep-vote a { background-color: #214478 !important; border-color: #214478 !important; color: #ffcc00 !important; }
+#legend li { font-size:0.7em; list-style-type:none; margin-bottom:0.2em; margin-left:-2.5em; margin-right:1em; }
+.fc-content { clear:none !important; }
+#calendar a:hover { color: red !important; }
+
+div.qtip { font-family:Trebuchet MS,Tahoma,Verdana,Arial,sans-serif; font-size: .8em; }
+
+#dossiers-graph {
+    width: 600px;
+    height: 300px;
+}
+.votes-graph {
+    width: 600px;
+    height: 100px;
+}
+/* JIT TOOLTIPS*/
+.tip {
+    color: #111;
+    width: 139px;
+    background-color: white;
+    border:1px solid #ccc;
+    -moz-box-shadow:#555 2px 2px 8px;
+    -webkit-box-shadow:#555 2px 2px 8px;
+    -o-box-shadow:#555 2px 2px 8px;
+    box-shadow:#555 2px 2px 8px;
+    opacity:0.9;
+    filter:alpha(opacity=90);
+    font-size:10px;
+    font-family:Verdana, Geneva, Arial, Helvetica, sans-serif;
+    padding:7px;
+}
+
+/* tables */
+table.tablesorter {
+	font-family:arial;
+	background-color: #CDCDCD;
+	margin:10px 0pt 15px;
+	font-size: 8pt;
+	width: 100%;
+	text-align: left;
+}
+table.tablesorter thead tr th, table.tablesorter tfoot tr th {
+	background-color: #e6EEEE;
+	border: 1px solid #FFF;
+	font-size: 8pt;
+	padding: 4px;
+}
+table.tablesorter thead tr .header {
+	background-image: url(images/bg.gif);
+	background-repeat: no-repeat;
+	background-position: center right;
+	cursor: pointer;
+}
+table.tablesorter tbody td {
+	color: #3D3D3D;
+	padding: 4px;
+	background-color: #FFF;
+	vertical-align: top;
+}
+table.tablesorter tbody tr.odd td {
+	background-color:#F0F0F6;
+}
+table.tablesorter thead tr .headerSortUp {
+	background-image: url(images/asc.gif);
+}
+table.tablesorter thead tr .headerSortDown {
+	background-image: url(images/desc.gif);
+}
+table.tablesorter thead tr .headerSortDown, table.tablesorter thead tr .headerSortUp {
+background-color: #8dbdd8;
+}
