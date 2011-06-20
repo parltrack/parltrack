@@ -27,9 +27,9 @@ def sanitizeHtml(value, base_url=None):
     return soup.renderContents().decode('utf8')
 
 def diff(e1,e2, path=[]):
-    if not e1 and e2:
+    if e1==None and e2!=None:
         return [{'added': e2, 'path': path}]
-    elif not e2 and e1:
+    elif e2==None and e1!=None:
         return [{'deleted': e1, 'path': path}]
     if type(e1) == str: e1=unicode(e1,'utf8')
     if type(e2) == str: e2=unicode(e2,'utf8')
@@ -44,32 +44,11 @@ def diff(e1,e2, path=[]):
         return res
     elif hasattr(e1,'__iter__'):
         res=[]
-        if len(e1)!=len(e2):
-            if len(e1)<len(e2):
-                l=e2
-                s=e1
-            elif len(e1)>len(e2):
-                l=e1
-                s=e2
-            for i in s:
-                if i in l:
-                    l[l.index(i)]=None
-                    s[s.index(i)]=None
-            while len(s)<len(l): s.insert(0,None)
-        ## for i in s:
-        ## for n,i in enumerate(l):
-        ##     if i:
-        ##         s.insert(n,None)
-        ## for n,i in enumerate(s):
-        ##     if i:
-        ##         l.insert(n,None)
-        ## print 'asdf',e1
-        ## print 'qwer',e2
-        for item in filter(None,[diff(a,b,path+[i]) for i,(a,b) in enumerate(izip_longest(e1,(e2)))]):
+        for item in filter(None,[diff(a,b,path+[(len(e1) if len(e1)<len(e2) else len(e2))-i]) for i,(a,b) in enumerate(izip_longest(reversed(e1),reversed(e2)))]):
             if type(item)==type(list()):
                 res.extend(item)
             else:
-                append(item)
+                res.append(item)
         return res
     elif e1 != e2:
         return [{'changed': (e1, e2), 'path': path}]
@@ -77,10 +56,10 @@ def diff(e1,e2, path=[]):
 
 def test_diff():
     d2={ 'a': [ {'aa': 2, 'bb': 3 }, { 'aa': 1, 'bb':3 }, {'AA': 1, 'BB': { 'asdf': { 'asdf': 'qwer'}}}, {'Mm': [ 'a','b','c','d'] } ],
-         'c': [ 1,2,3,4]}
+         'c': [ 0,1,2,3,4]}
     d1={ 'a': [ { 'aa': 1, 'bb':3 }, {'AA': 1, 'BB': { 'asdf': '2'}}, {'Mm': [ 'a','b','c','d'] } ],
          'b': { 'z': 9, 'x': 8 },
-         'c': [ 3,4,5,9,10]}
+         'c': [ 1,2,3,4]}
     import pprint
     pprint.pprint(diff(d1,d2))
 
