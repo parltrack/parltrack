@@ -120,7 +120,7 @@ def gen_notif_id():
 
 def listdossiers(d):
     if 'agents' in d['procedure']:
-        d['rapporteur']=[{'name': x['name'], 'grp': x['group']} for x in d['procedure']['agents'] if x.get('responsible') and x.get('name')]
+        d['rapporteur']=[dict(y) for y in set([(('name', x['name']), ('grp', x['group'])) for x in d['procedure']['agents'] if x.get('responsible') and x.get('name')])]
     forecasts=[]
     for act in d['activities']:
         if act['type']=='Forecast':
