@@ -453,6 +453,10 @@ def protect_email(email_address):
 
     return '<span id="'+ id + '">[javascript protected email address]</span>'+ script
 
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
 def tojson(data):
     if type(data)==type(ObjectId()):
         return
