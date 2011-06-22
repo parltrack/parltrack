@@ -61,16 +61,14 @@
     {% if dossier.votes %}<li><a href="#votes">Votes</a></li>{%endif%}
   </ul>
 <div id="general">
-  {% if dossier.procedure.legal_basis %}
-  <div>Legal Basis
-  <ul>{%for sub in dossier.procedure.legal_basis%}<li>{{sub}}</li>{%endfor%}</ul></div>
+  {% if dossier.forecasts %} 
+  <h3>Forecasts</h3>
+  <ul>
+    {% for fc in dossier.forecasts %}
+    <li><abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr> {{fc.title}}</li>
+    {% endfor %}
+  </ul>
   {% endif %}
-<div>Links
-<ul>
-  <li><a href="{{dossier.meta.source}}">OEIL</a></li>
-  <li><a href="http://www.google.com/search?q={{dossier.procedure.title}}+-europarl.europa.eu">Google</a></li>
-  <li><a href="http://www.europarl.europa.eu/RegistreWeb/search/simple.htm?fulltext={{dossier.procedure.eprodid}}">Eprod</a></li>
-</ul></div>
 {% if dossier.comeets %}
 <h3>Committees</h3>
   <div>Dossier of the Committee <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&body={{dossier.procedure.committee}}&language=EN">{{dossier.procedure.dossier_of_the_committee}}</a></div>
@@ -139,6 +137,16 @@
 <div>Subjects
 <ul>{%for sub in dossier.procedure.subjects%}<li>{{sub}}</li>{%endfor%}</ul>
 </div>
+  {% if dossier.procedure.legal_basis %}
+  <div>Legal Basis
+  <ul>{%for sub in dossier.procedure.legal_basis%}<li>{{sub}}</li>{%endfor%}</ul></div>
+  {% endif %}
+<div>Links
+<ul>
+  <li><a href="{{dossier.meta.source}}">OEIL</a></li>
+  <li><a href="http://www.google.com/search?q={{dossier.procedure.title}}+-europarl.europa.eu">Google</a></li>
+  <li><a href="http://www.europarl.europa.eu/RegistreWeb/search/simple.htm?fulltext={{dossier.procedure.eprodid}}">Eprod</a></li>
+</ul></div>
 </div>
 {% if dossier.activities %}
 <div id="activities">
