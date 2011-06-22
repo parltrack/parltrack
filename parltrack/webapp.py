@@ -33,6 +33,7 @@ from parltrack.scrapers.ep_meps import groupids, COUNTRIES, SEIRTNUOC
 from parltrack.scrapers.ep_com_meets import COMMITTEES, COMMITTEE_MAP
 from parltrack.scrapers.mappings import ALL_STAGES, STAGES
 from bson.code import Code
+from operator import itemgetter
 
 Flask.jinja_options = ImmutableDict({'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_', 'jinja2.ext.loopcontrols']})
 app = Flask(__name__)
@@ -119,6 +120,7 @@ def gen_notif_id():
     return '/notification/'+nid
 
 def listdossiers(d):
+    db = connect_db()
     if 'agents' in d['procedure']:
         d['rapporteur']=[dict(y) for y in set([(('name', x['name']), ('grp', x['group'])) for x in d['procedure']['agents'] if x.get('responsible') and x.get('name')])]
     forecasts=[]
@@ -131,7 +133,11 @@ def listdossiers(d):
                 print 'WTF? there is already a comdoc'
                 raise
             d['comdoc']={'title': act['documents'][0]['title'], 'url': act['documents'][0].get('url'), }
-    d['forecasts']=forecasts
+    for item in db.ep_com_meets.find({'comref': d['_id']}):
+        if 'tabling_deadline' in item and item['tabling_deadline']>=datetime.now():
+            dossier['activities'].insert(0,{'type': 'Forecast', 'body': 'EP', 'date': item['tabling_deadline'], 'title': 'EP (%s) Deadline for tabling ammendments' % item['committee']})
+            forecasts.append(item)
+    d['forecasts']=sorted(forecasts, key=itemgetter('date'))
     return d
 
 @app.route('/notification/<string:g_id>')

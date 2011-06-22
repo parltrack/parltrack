@@ -113,6 +113,16 @@ def dossier(id):
     tmp=dossier['procedure']['reference'].split('/')
     dossier['procedure']['eprodid']="%s/%s(%s)" % (tmp[1],tmp[2],tmp[0])
     if 'changes' in dossier: del dossier['changes']
+    forecasts=[]
+    for act in dossier['activities']:
+        if act['type']=='Forecast':
+            forecasts.append({'date':datetime.strptime(act['date'], "%Y-%m-%d"),
+                              'title': ' '.join(act['title'].split())})
+        if act['type'] in ['Non-legislative initial document', 'Commission/Council: initial legislative document']:
+            if 'comdoc' in dossier:
+                print 'WTF? there is already a comdoc'
+                raise
+            dossier['comdoc']={'title': act['documents'][0]['title'], 'url': act['documents'][0].get('url'), }
     # find related votes
     votes=list(db.ep_votes.find({'dossierid': dossier['_id']}))
     for vote in votes:
@@ -133,7 +143,11 @@ def dossier(id):
         for com in item['Opinions']:
             com['rapporteurs']=[db.ep_meps.find_one({'_id': x}) for x in com['rapporteurs']]
             item['Committees'][com['committee']]=com['rapporteurs']
+        if 'tabling_deadline' in item and item['tabling_deadline']>=datetime.now():
+            dossier['activities'].insert(0,{'type': 'Forecast', 'body': 'EP', 'date': item['tabling_deadline'], 'title': 'Deadline for tabling ammendments (%s)' % item['committee']})
+            forecasts.append(item)
         dossier['comeets'].append(item)
+    dossier['forecasts']=sorted(forecasts, key=itemgetter('date'))
     return dossier
 
 def getMep(text):
