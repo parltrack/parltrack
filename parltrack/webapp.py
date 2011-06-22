@@ -24,7 +24,7 @@ from flaskext.mail import Mail, Message
 from flaskext.cache import Cache
 from flask import Flask, render_template, request, jsonify, abort, redirect
 from parltrack import default_settings
-from datetime import datetime
+from datetime import datetime, date
 from random import randint, choice, shuffle, randrange
 from hashlib import sha1
 from werkzeug import ImmutableDict
@@ -56,7 +56,7 @@ def get_data_dir():
 
 @app.context_processor
 def inject_data():
-    return dict(now_date=datetime.now(),
+    return dict(now_date=datetime(*date.today().timetuple()[:3]),
                 committees=COMMITTEES,
                 committee_map=COMMITTEE_MAP,
                 countries=SEIRTNUOC,
