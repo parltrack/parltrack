@@ -183,8 +183,8 @@ def save(data):
     src=data['meta']['source']
 
     res=db.dossiers.find_one({ 'meta.source' : src }) or {}
-    d=diff(dict([(k,v) for k,v in data.items() if not k in ['_id', 'meta', 'changes',]]),
-           dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes']]))
+    d=diff(dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes']]),
+           dict([(k,v) for k,v in data.items() if not k in ['_id', 'meta', 'changes',]]))
     if d:
         now=datetime.datetime.utcnow().replace(microsecond=0).isoformat()
         if not res:
@@ -208,13 +208,41 @@ def save(data):
             msg = Message("Parltrack Notification for %s" % data['procedure']['reference'],
                           sender = "parltrack@parltrack.euwiki.org",
                           bcc = g['active_emails'])
-            #msg.body = "Parltrack has detected a change in %s %s on OEIL.\nfollow this URL: %s to see the dossier\n\nchanges below\n%s" % (data['procedure']['reference'], data['procedure']['title'],'%s/dossier/%s' % (ROOT_URL,data['procedure']['reference']), json.dumps(d,indent=1,default=dateJSONhandler))
-            msg.body = "Parltrack has detected a change in %s %s on OEIL.\nfollow this URL: %s to see the dossier\n" % (data['procedure']['reference'], data['procedure']['title'],'%s/dossier/%s' % (ROOT_URL,data['procedure']['reference']))
+            msg.body = makemsg(data,d)
             mail.send(msg)
         data['changes']=res.get('changes',{})
         data['changes'][now]=d
         db.dossiers.save(data)
     return stats
+
+def printdict(d,i=0):
+    if type(d)==type(list()):
+        return (u'\n\t%s' % ('  '*i)).join([printdict(v,i+1) for v in d])
+    if not type(d)==type(dict()):
+        return unicode(d)
+    res=['']
+    for k,v in [(k,v) for k,v in d.items() if k not in ['mepref','comref']]:
+        res.append(u"\t%s%s:\t%s" % ('  '*i,k,printdict(v,i+1)))
+    return u'\n'.join(res)
+
+def makemsg(data, d):
+    res=[]
+    for di in sorted(d,key=itemgetter('path')):
+        if 'text' in di['path'] or 'summary' in di['path']:
+            res.append(u'\nsummary text changed in %s' % '/'.join([str(x) for x in di['path']]))
+            continue
+        if di['type']=='changed':
+            res.append(u'\nchanged %s from:\n\t%s\n  to:\n\t%s' % ('/'.join([str(x) for x in di['path']]),di['data'][0],printdict(di['data'][1])))
+            continue
+        res.append(u"\n%s %s:\t%s" % (di['type'], '/'.join([str(x) for x in di['path']]), printdict(di['data'])))
+
+    dt='\n'.join(res)
+    return (u"Parltrack has detected a change in %s %s on OEIL.\n\nPlease follow this URL: %s/dossier/%s to see the dossier.\n\nChanges follow\n%s\n\n\nsincerly, Your Parltrack team" %
+            (data['procedure']['reference'],
+             data['procedure']['title'],
+             ROOT_URL,
+             data['procedure']['reference'],
+             dt))
 
 def dictapp(d,k,v):
     if not k in d:

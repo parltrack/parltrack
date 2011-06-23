@@ -26,32 +26,32 @@ def sanitizeHtml(value, base_url=None):
 
     return soup.renderContents().decode('utf8')
 
-def diff(e1,e2, path=[]):
-    if e1==None and e2!=None:
-        return [{'added': e2, 'path': path}]
-    elif e2==None and e1!=None:
-        return [{'deleted': e1, 'path': path}]
-    if type(e1) == str: e1=unicode(e1,'utf8')
-    if type(e2) == str: e2=unicode(e2,'utf8')
-    if not type(e1)==type(e2):
-        return [{'changed': (e1, e2), 'path': path}]
-    elif hasattr(e1,'keys'):
+def diff(old, new, path=[]):
+    if old==None and new!=None:
+        return [{'type': 'added', 'data': new, 'path': path}]
+    elif new==None and old!=None:
+        return [{'type': 'deleted', 'data': old, 'path': path}]
+    if type(old) == str: old=unicode(old,'utf8')
+    if type(new) == str: new=unicode(new,'utf8')
+    if not type(old)==type(new):
+        return [{'type': 'changed', 'data': (old, new), 'path': path}]
+    elif hasattr(old,'keys'):
         res=[]
-        for k in set(e1.keys() + (e2 or {}).keys()):
-            r=diff(e1.get(k),(e2 or {}).get(k), path+[k])
+        for k in set(old.keys() + (new or {}).keys()):
+            r=diff(old.get(k),(new or {}).get(k), path+[k])
             if r:
                 res.extend(r)
         return res
-    elif hasattr(e1,'__iter__'):
+    elif hasattr(old,'__iter__'):
         res=[]
-        for item in filter(None,[diff(a,b,path+[(len(e1) if len(e1)<len(e2) else len(e2))-i]) for i,(a,b) in enumerate(izip_longest(reversed(e1),reversed(e2)))]):
+        for item in filter(None,[diff(a,b,path+[(len(old) if len(old)<len(new) else len(new))-i]) for i,(a,b) in enumerate(izip_longest(reversed(old),reversed(new)))]):
             if type(item)==type(list()):
                 res.extend(item)
             else:
                 res.append(item)
         return res
-    elif e1 != e2:
-        return [{'changed': (e1, e2), 'path': path}]
+    elif old != new:
+        return [{'type': 'changed', 'data': (old, new), 'path': path}]
     return
 
 def test_diff():
