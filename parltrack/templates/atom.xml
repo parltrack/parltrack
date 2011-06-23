@@ -21,18 +21,18 @@
            <ul>
            {%for c in d.changes.values()[-1]%}
              <li><dl><dt>
-               {%if 'added' in c%}Added: {%endif%}
-               {%if 'deleted' in c%}Deleted: {%endif%}
-               {%if 'changed' in c%}Changed: {%endif%}
+               {%if c.type == 'added' %}Added: {%endif%}
+               {%if c.type == 'deleted' %}Deleted: {%endif%}
+               {%if c.type =='changed' %}Changed: {%endif%}
                {% for f in c.path%}{{f}}/{%endfor%}</dt>
                <dd>
-                 {%if 'changed' in c%}
-                   new value: {{c.changed.0}}<br />
-                   old value: {{c.changed.1}}
-                 {%elif 'added' in c%}
-                   {{c.added}}
-                 {%elif 'deleted' in c%}
-                   {{c.deleted}}
+                 {%if c.type == 'changed' %}
+                   new value: {{c.data.0|safe}}<br />
+                   old value: {{c.data.1|safe}}
+                 {%elif c.type == 'added'%}
+                   {{c.data|safe}}
+                 {%elif c.type == 'deleted'%}
+                   {{c.data|safe}}
                  {%endif%}
                </dd></dl>
              </li>
