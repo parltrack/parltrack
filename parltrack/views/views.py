@@ -135,17 +135,18 @@ def dossier(id):
             vote[dec]['groups'].sort(key=itemgetter('group'))
     dossier['votes']=votes
     dossier['comeets']=[]
-    for item in db.ep_com_meets.find({'comref': dossier['_id']}):
+    for item in db.ep_com_meets.find({'docref': dossier['_id']}):
         item['Committees']={}
         if 'Rapporteur' in item:
             item['Rapporteur']['rapporteurs']=[db.ep_meps.find_one({'_id': x}) for x in item['Rapporteur']['rapporteurs']]
             item['Committees'][item['committee']]=item['Rapporteur']['rapporteurs']
-        for com in item['Opinions']:
+        for com in item.get('Opinions',[]):
             com['rapporteurs']=[db.ep_meps.find_one({'_id': x}) for x in com['rapporteurs']]
             item['Committees'][com['committee']]=com['rapporteurs']
         if 'tabling_deadline' in item and item['tabling_deadline']>=datetime.now():
-            dossier['activities'].insert(0,{'type': 'Forecast', 'body': 'EP', 'date': item['tabling_deadline'], 'title': 'Deadline for tabling ammendments (%s)' % item['committee']})
-            forecasts.append(item)
+            dossier['activities'].insert(0,{'type': 'Forecast', 'body': 'EP', 'date': item['tabling_deadline'].isoformat()[:10], 'title': 'Deadline for tabling ammendments (%s)' % item['committee']})
+            forecasts.append({'type': 'Forecast', 'body': 'EP', 'date': item['tabling_deadline'], 'title': 'Deadline for tabling ammendments (%s)' % item['committee']})
+        item['resp']=item['committee'] in [x['committee'] for x in item.get('Responsible',[])]
         dossier['comeets'].append(item)
     dossier['forecasts']=sorted(forecasts, key=itemgetter('date'))
     return dossier
