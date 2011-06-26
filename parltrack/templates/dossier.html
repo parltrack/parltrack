@@ -69,6 +69,28 @@
     {% endfor %}
   </ul>
   {% endif %}
+  {% for committee in dossier.comeets|sort(attribute='resp',reverse=True) if committee.meeting_date > now_date %}
+    {%if loop.first %}<ul>{%endif%}
+    <li>
+    {{ committee.meeting_date|asdate }}
+    EP: On
+    {% if committee.resp %}<b>{%endif%}
+    {% if committee.committee|length == 4 %}<a href="/committee/{{committee.committee}}">{{committee.committee}}</a>
+    {%elif committee_map[committee.committee]|length == 4 %}<a href="/committee/{{committee_map[committee.committee]}}">{{committee.committee}}</a>
+    {%else%}{{committee.committee}}{%endif%}
+    {% if committee.resp %}</b>{%endif%}
+    agenda
+    {%if 'tabling_deadline' in committee and committee.tabling_deadline > now_date %}<div><strong>Tabling deadline</strong> {{committee.tabling_deadline}}</div>{%endif%}
+    {%if Misc in committee%}
+    <ul>
+      {%for line in committee.Misc%}
+        <li>{{line}}</li>
+      {%endfor%}
+    </ul>
+    {%endif%}
+    </li>
+    {%if loop.last %}</ul>{%endif%}
+  {%endfor%}
   {% if dossier.procedure.agents %}
   <h3>Committees</h3>
   <div>Dossier of the Committee <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&body={{dossier.procedure.committee}}&language=EN">{{dossier.procedure.dossier_of_the_committee}}</a></div>
@@ -92,26 +114,6 @@
     {%endfor%}
   </ul>
   {%endif%}
-{% if dossier.comeets %}
-  {% for committee in dossier.comeets|sort(attribute='resp',reverse=True) if committee.meeting_date > now_date %}
-    {%if loop.first %}<ul>{%endif%}
-    <li>
-    {% if committee|length == 4 %}<a href="/committee/{{committee}}">{{committee.committee}}</a>
-    {%elif committee_map[committee]|length == 4 %}<a href="/committee/{{committee_map[committee]}}">{{committee.committee}}</a>
-    {%else%}{{committee.committee}}{%endif%}
-    meets on {{ committee.meeting_date|asdate }}
-    {%if 'tabling_deadline' in committee and committee.tabling_deadline > now_date %}<div><strong>Tabling deadline</strong> {{committee.tabling_deadline}}</div>{%endif%}
-    {%if Misc in committee%}
-    <ul>
-      {%for line in committee.Misc%}
-        <li>{{line}}</li>
-      {%endfor%}
-    </ul>
-    {%endif%}
-    </li>
-    {%if loop.last %}</ul>{%endif%}
-  {%endfor%}
-{%endif%}
 <div>Subjects
 <ul>{%for sub in dossier.procedure.subjects%}<li>{{sub}}</li>{%endfor%}</ul>
 </div>
