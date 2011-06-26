@@ -29,6 +29,7 @@
     {% if mep.dossiers %}<li><a href="#dossiers">Dossiers</a></li>{%endif%}
     {% if mep.CV %}<li><a href="#cv">Curriculum Vitae</a></li>{%endif%}
     {% if mep.term7 or mep.term6 %}<li><a href="#activities">Activities</a></li>{%endif%}
+    <li><a href="#links">Links</a></li>
   </ul>
 <div id="general">
 <div class="mepshot">
@@ -315,4 +316,11 @@
     All references link to europarl.eu
   </div>
 {%endif%}
+  <div id='links'>
+  <h3>{{mep.Name.full}} on</h3>
+    <ul>
+        <li><a href="https://secure.wikimedia.org/wikipedia/en/wiki/{{mep.Name.sur.replace(' ','_')}}_{{mep.Name.family.title().replace(' ','_')}}">... wikipedia</a></li>
+        <li><a href="https://encrypted.google.com/search?q={{mep.Name.sur}}+{{mep.Name.family.title()}}">... google</a></li>
+    </ul>
+  </div>
 {% endblock %}
