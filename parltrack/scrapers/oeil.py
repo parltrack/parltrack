@@ -205,7 +205,7 @@ def save(data):
         for g in m:
             if len(g['active_emails'])==0:
                 continue
-            msg = Message("Parltrack Notification for %s" % data['procedure']['reference'],
+            msg = Message("Parltrack Notification for %s %s" % (data['procedure']['reference'],data['procedure']['title']),
                           sender = "parltrack@parltrack.euwiki.org",
                           bcc = g['active_emails'])
             msg.body = makemsg(data,d)
@@ -237,7 +237,7 @@ def makemsg(data, d):
         res.append(u"\n%s %s:\t%s" % (di['type'], '/'.join([str(x) for x in di['path']]), printdict(di['data'])))
 
     dt='\n'.join(res)
-    return (u"Parltrack has detected a change in %s %s on OEIL.\n\nPlease follow this URL: %s/dossier/%s to see the dossier.\n\nChanges follow\n%s\n\n\nsincerly, Your Parltrack team" %
+    return (u"Parltrack has detected a change in %s %s on OEIL.\n\nPlease follow this URL: %s/dossier/%s to see the dossier.\n\nChanges follow\n%s\n\n\nsincerly,\nYour Parltrack team" %
             (data['procedure']['reference'],
              data['procedure']['title'],
              ROOT_URL,
