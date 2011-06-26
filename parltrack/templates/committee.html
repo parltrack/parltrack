@@ -40,9 +40,14 @@
 {%for group in committee.agendas|groupby('meeting_date') if group.grouper >= today %}
   <h3>{{group.grouper|asdate}}</h3><ul>
     {% for meet in group.list %}
-      <li>{{meet.title}}
+      <li><a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{meet.comdossier}}&body={{meet.committee}}&language=EN">{{meet.comdossier}}</a> {{meet.title}}
         {%if meet.epdoc %}<a href="/dossier/{{meet.epdoc}}">{{meet.epdoc}}</a>{%else%}{{meet.comdoc}}{%endif%}
         {%if meet.tabling_deadline %}<div><strong>Tabling Deadline</strong> {{meet.tabling_deadline}}</div>{%endif%}
+        {%for line in meet.Misc if not line.startswith('Deadline for tabling amendments') %}
+           {%if loop.first %}<ul>{%endif%}
+           <li>{{line}}</li>
+           {%if loop.last %}</ul>{%endif%}
+        {%endfor%}
       </li>
     {%endfor%}
     </ul>
