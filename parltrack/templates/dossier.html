@@ -72,33 +72,40 @@
 {% if dossier.comeets %}
 <h3>Committees</h3>
   <div>Dossier of the Committee <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&body={{dossier.procedure.committee}}&language=EN">{{dossier.procedure.dossier_of_the_committee}}</a></div>
-  {% for committee in dossier.comeets%}
+  {% for committee in dossier.comeets|sort(attribute='resp',reverse=True) if committee.meeting_date > now_date %}
+    {%if loop.first %}<ul>{%endif%}
+    <li>
     {% if committee|length == 4 %}<a href="/committee/{{committee}}">{{committee.committee}}</a>
     {%elif committee_map[committee]|length == 4 %}<a href="/committee/{{committee_map[committee]}}">{{committee.committee}}</a>
     {%else%}{{committee.committee}}{%endif%}
     meets on {{ committee.meeting_date|asdate }}
-    <div>{{committee.title}}</div>
-    {%if 'tabling_deadline' in committee%}<div><strong>Tabling deadline</strong> {{committee.tabling_deadline}}</div>{%endif%}
+    {%if 'tabling_deadline' in committee and committee.tabling_deadline > now_date %}<div><strong>Tabling deadline</strong> {{committee.tabling_deadline}}</div>{%endif%}
     {%if 'Rapporteur' in committee%}
-    <dl><dt>Rapporteur</dt><dd>
+    <div>Rapporteur
       {% if committee|length == 4 %}<a href="/committee/{{committee}}">{{committee.committee}}</a>
       {%elif committee_map[committee]|length == 4 %}<a href="/committee/{{committee_map[committee]}}">{{committee.committee}}</a>
       {%else%}{{committee.committee}}{%endif%}
+      -
       {%for mep in committee.Rapporteur.rapporteurs%}
          <a href="/mep/{{mep.Name.full}}">{{mep.Name.full}}</a>
       {%endfor%}
-    </dd></dl>
+   </div>
     {%endif%}
     {%if 'Opinions' in committee%}
     <dl><dt>Opinions</dt><dd>
+       <ul>
       {% for com in committee.Opinions %}
+        <li>
         {% if com.committee|length == 4 %}<a href="/committee/{{com.committee}}">{{com.committee}}</a>
         {%elif committee_map[com.committee]|length == 4 %}<a href="/committee/{{committee_map[com.committee]}}">{{com.committee}}</a>
         {%else%}{{com.committee}}{%endif%}
+         - 
         {%for mep in com.rapporteurs%}
-          <a href="/mep/{{mep.Name.full}}">{{mep.Name.full}}</a>
+          <a href="/mep/{{mep.Name.full}}">{{mep.Name.full}}</a>{% if not loop.last %},{%endif%}
         {%endfor%}
+        </li>
       {%endfor%}
+       </ul>
     </dd></dl>
     {%endif%}
     {%if Misc in committee%}
@@ -108,6 +115,8 @@
       {%endfor%}
     </ul>
     {%endif%}
+    </li>
+    {%if loop.last %}</ul>{%endif%}
   {%endfor%}
 {% else %}
   {% if dossier.procedure.agents %}
@@ -151,7 +160,7 @@
 {% if dossier.activities %}
 <div id="activities">
 <h3>Activites</h3>
-<ul>{%for act in dossier.activities%}
+<ul>{%for act in dossier.activities|sort(attribute='date',reverse=True) if act.date > now_date.isoformat %}
    <li class='vevent'>
      {%if act.date%}<abbr class="dtstart" title="{{act.date|isodate}}">{{act.date}}</abbr>{%endif%}
      {%if act.title%}<span class='summary'>{{act.title}}</span>{%endif%}
