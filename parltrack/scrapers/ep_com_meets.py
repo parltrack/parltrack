@@ -30,8 +30,6 @@ from parltrack.environment import connect_db
 from bson.objectid import ObjectId
 
 DEBUG=False
-#DEBUG=True
-#DEBUG1=True
 DEBUG1=False
 
 db = connect_db()
@@ -158,15 +156,19 @@ def getdocs(issue):
             if m.group(2):
                 issue['reading']=m.group(2)
             if m.group(3):
-                dossier=db.dossiers.find_one({'procedure.reference': "%s/%s/%s" % (m.group(3)[9:13], m.group(3)[:3], m.group(3)[4:8])})
+                tmp="%s/%s/%s" % (m.group(3)[10:13], m.group(3)[:4], m.group(3)[5:9])
+                if DEBUG: print >>sys.stderr, 'epdoc', tmp
+                dossier=db.dossiers.find_one({'procedure.reference': tmp})
                 if dossier:
-                    issue['epdoc']="%s/%s/%s" % (m.group(3)[9:13], m.group(3)[:3], m.group(3)[4:8])
+                    if DEBUG: print >>sys.stderr, 'epdoc!', tmp
+                    issue['epdoc']=tmp
+                    issue['docref']=dossier['_id']
             if m.group(4):
                 dossier=db.dossiers.find_one({'activities.documents.title': m.group(4)})
                 if dossier:
-                    #issue['comref']=dossier['procedure']['reference']
                     if 'epdoc' in issue and not dossier['procedure']['reference'] == issue['epdoc']:
                         print >>sys.stderr, '[$] oops ep!=com', dossier['procedure']['reference'], issue['epdoc']
+                    issue['docref']=dossier['_id']
                     issue['comdoc']=m.group(4)
             if m.group(5):
                 issue['otherdoc']=m.group(5)
@@ -174,6 +176,7 @@ def getdocs(issue):
 
 def finalizeIssue(ax, issue):
     #print issue['seq_no'], ax[0].encode('utf8'), ax[1].encode('utf8')
+    if DEBUG1: print >>sys.stderr, 'finalize', ax
     if ax[0] in ['Opinions', 'Responsible']:
         tmp=scrapOp(ax[1])
         if tmp:
@@ -205,7 +208,13 @@ def scrape(comid, url, meeting_date):
     for (i,line) in enumerate(lines):
         if not len(line):
             inblock=False
-            if DEBUG: print 'blockend', line.encode('utf8')
+            if DEBUG: print >>sys.stderr, 'blockend', line.encode('utf8')
+            if issue:
+                issue['meeting_date']=meeting_date
+                getdocs(issue)
+                finalizeIssue(ax, issue)
+                res.append(issue)
+            issue=None
             continue
         line=line.decode('utf8')
         # start a new meeting agenda
@@ -213,7 +222,7 @@ def scrape(comid, url, meeting_date):
         if m and not inblock:
             #meeting_date=datetime.fromtimestamp(mktime(strptime(m.group(1),"%d %B %Y, %H.%M")))
             meeting_date=datetime.strptime(m.group(1),"%d %B %Y, %H.%M")
-            if DEBUG: print 'date', line.encode('utf8')
+            if DEBUG: print >>sys.stderr, 'date', line.encode('utf8')
             continue
         # start of a new agenda item
         m=block_start.match(line)
@@ -226,12 +235,12 @@ def scrape(comid, url, meeting_date):
                 res.append(issue)
             issue={'committee': comid,'seq_no': int(m.group(1)), 'src': url, 'title': m.group(2)}
             ax=['title', m.group(2)]
-            if DEBUG: print 'issue', line.encode('utf8')
+            if DEBUG: print >>sys.stderr, 'issue', line.encode('utf8')
             continue
         # ignore all lines not in agenda items
         if not line[0]==' ':
             inblock=False
-            if DEBUG: print 'blockend', line.encode('utf8')
+            if DEBUG: print >>sys.stderr, 'blockend', line.encode('utf8')
             continue
         # check for common fields
         newfield=False
@@ -248,7 +257,7 @@ def scrape(comid, url, meeting_date):
                 newfield=True
                 break
         if newfield:
-            if DEBUG: print 'newfield', line.encode('utf8')
+            if DEBUG: print >> sys.stderr, 'newfield', line.encode('utf8')
             continue
         # parse misc agenda items
         m=misc_block.match(line)
@@ -265,7 +274,7 @@ def scrape(comid, url, meeting_date):
                         issue['tabling_deadline']=datetime.fromtimestamp(mktime(strptime(m.group(2).split(':')[1].strip(),"%d.%m.%Y at %H.%M")))
                     except:
                         print >>sys.stderr, '[$] unknown tabling deadline format', m.group(2).split(':')[1].strip()
-            if DEBUG: print 'misc', line.encode('utf8')
+            if DEBUG: print >> sys.stderr, 'misc', line.encode('utf8')
             continue
 
         if inblock and len(line.strip()):
@@ -279,11 +288,11 @@ def scrape(comid, url, meeting_date):
                 issue['Misc'][-1]+=line
             elif line.strip().startswith("%s/7/" % comid) and len(line.strip())==12:
                 issue['comdossier']=line.strip()
-                if DEBUG: print 'comdossier', line.encode('utf8')
+                if DEBUG: print >> sys.stderr, 'comdossier', line.encode('utf8')
                 continue
             else:
                 ax[1]="%s\n%s" % (ax[1],line)
-            if DEBUG: print 'fall-through', line.encode('utf8')
+            if DEBUG: print >> sys.stderr, 'fall-through', line.encode('utf8')
     if issue:
         issue['meeting_date']=meeting_date
         getdocs(issue)
@@ -402,7 +411,7 @@ def getMep(text):
     #if mep:
     #    return mep['_id']
 
-comre=re.compile(u'([A-Z]{4})(?: \(AL\)|\*? –)(.*)')
+comre=re.compile(u'([A-Z]{4})(?: \(AL\)|\*?) –(.*)')
 comlistre=re.compile(u'[A-Z]{4}(?:(?: \u2013|,) [A-Z]{4})*$')
 def scrapOp(text):
     res=[]
@@ -411,18 +420,15 @@ def scrapOp(text):
     for line in text.split('\n'):
         if line.strip().startswith(u"opinion:"):
             line=line.strip()[8:].strip()
-        m=docre.search(line)
-        if m:
-            c['docs'].append(m.group(2).split(u' \u2013 '))
-            line=m.group(1).strip()
 
         if comlistre.match(line):
             c['committees']=[{'committee': x.strip()} for x in line.split(', ')]
             if DEBUG1: print >>sys.stderr, 'comlistre', line.encode('utf8')
             continue
+
         m=comre.search(line)
         if m:
-            #if DEBUG1: print >>sys.stderr, 'comre', line.encode('utf8')
+            if DEBUG1: print >>sys.stderr, 'comre', line.encode('utf8')
             #name=m.group(2)
             #mep=db.ep_meps.find_one({'Name.aliases': ''.join(name.split()).lower()})
             #if not mep and u'ß' in name:
@@ -440,6 +446,13 @@ def scrapOp(text):
                'docs':[],
                'rapporteurs': []}
             line=m.group(2).strip()
+
+        m=docre.search(line)
+        if m:
+            if DEBUG1: print >>sys.stderr, 'docs', m.group(2).encode('utf8')
+            c['docs'].append(m.group(2).split(u' \u2013 '))
+            line=m.group(1).strip()
+
         if not len(line.strip()):
             if DEBUG1: print >>sys.stderr, 'emptyline', line.encode('utf8')
             continue
@@ -462,7 +475,7 @@ def scrapOp(text):
             line=''
         if line.strip():
             tail=line.strip()
-    if 'committee' in c:
+    if 'committee' in c or 'committees' in c:
         if tail:
             name=tail.strip()
             mep=db.ep_meps.find_one({'Name.aliases': ''.join(name.split()).lower()})
@@ -477,8 +490,13 @@ def scrapOp(text):
 
 
 if __name__ == "__main__":
+    crawl(db)
+    #DEBUG=True
+    #DEBUG1=True
+    #print json.dumps(scrape('ECON','http://www.europarl.europa.eu/meetdocs/2009_2014/documents/econ/oj/871/871112/871112en.pdf', datetime(2011,6,21)),indent=1,default=dateJSONhandler)
+    #print json.dumps(scrape('JURI','http://www.europarl.europa.eu/meetdocs/2009_2014/documents/juri/oj/869/869993/869993en.pdf', datetime(2011,6,21)),indent=1,default=dateJSONhandler)
+
     #print json.dumps(scrape('BUDG','http://www.europarl.europa.eu/meetdocs/2009_2014/documents/cont/oj/869/869879/869879en.pdf', datetime(2011,6,21)),indent=1,default=dateJSONhandler)
     #print json.dumps(scrape('INTA','http://www.europarl.europa.eu/meetdocs/2009_2014/documents/inta/oj/869/869969/869969en.pdf', datetime(2011,6,21)),indent=1,default=dateJSONhandler)
-    crawl(db)
     #print json.dumps(scrape('LIBE','http://www.europarl.europa.eu/meetdocs/2009_2014/documents/libe/oj/867/867690/867690en.pdf'),indent=1,default=dateJSONhandler)
     # find some tabling dates: db.ep_com_meets.find({'tabling_deadline' : { $exists : true }}).sort({'tabling_deadline': -1})
