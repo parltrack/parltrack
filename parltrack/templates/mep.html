@@ -47,26 +47,25 @@
   {% endif %}
 {% endfor %}
 </ul>
-{% if mep.active %}
-  <div class="more" >Show earlier Constituencies...</div>
-  <ul class="hidden">
-{%else%}
-  <ul>
-{%endif%}
-{%for c in mep.Constituencies|sort(attribute='start',reverse=True) %}
-  {% if c.end<today%}
+{%for c in mep.Constituencies|sort(attribute='start',reverse=True) if c.end<today %}
+  {% if loop.first %}
+    {% if mep.active %}
+      <div class="more" >Show earlier Constituencies...</div>
+      <ul class="hidden">
+    {%else%}
+      <ul>
+    {%endif%}
+  {% endif %}
     <li>
     <img class="group_icon" title="icon: {{countries[c.country]}}" src="/static/images/{{countries[c.country]|lower}}.gif" /> {{c.country}}
     {{c.party}}
     {{c.start|asdate}} - {{c.end|asdate}}
     </li>
-  {% endif %}
+    {% if loop.last %}</ul>{%endif%}
 {% endfor %}
-</ul>
 <h3>Groups</h3>
-<ul>
-{%for c in mep.Groups|sort(attribute='start',reverse=True) %}
-  {% if c.end>today%}
+{%for c in mep.Groups|sort(attribute='start',reverse=True) if c.end>today %}
+  {% if loop.first %}<ul>{% endif %}
     <li>
     {% if c.groupid.__iter__ %}
       {% if c.start >= group_cutoff %}
@@ -85,18 +84,19 @@
     {%if c.group%}{{c.group}}{%else%}{{c.Organization}}{%endif%}
     {{c.start|asdate}} - ...
     </li>
+    {% if loop.last %}</ul>{%endif%}
     {% break %}
-  {% endif %}
 {% endfor %}
 </ul>
-{% if mep.active %}
-<div class="more">Show earlier groups...</div>
-<ul class="hidden">
-{%else%}
-  <ul>
-{%endif%}
-{%for c in mep.Groups|sort(attribute='start',reverse=True) %}
-  {% if c.end<=today%}
+{%for c in mep.Groups|sort(attribute='start',reverse=True) if c.end<=today %}
+   {% if loop.first %}
+      {% if mep.active %}
+      <div class="more">Show earlier groups...</div>
+      <ul class="hidden">
+      {%else%}
+        <ul>
+      {%endif%}
+   {%endif%}
    <li>
     <img class="group_icon" title="icon: {{countries[c.country]}}" src="/static/images/{{countries[c.country]|lower}}.gif" /> {{c.country}}
     {% if c.groupid %}
@@ -118,37 +118,35 @@
     {%if c.group%}{{c.group}}{%else%}{{c.Organization}}{%endif%}
     {{c.start|asdate}} - {{c.end|asdate}}
   </li>
-  {% endif %}
+  {% if loop.last %}</ul>{%endif%}
 {% endfor %}
-</ul>
 
 {% if 'Staff' in mep %}
 <h3>EP staff</h3>
 <ul>
-{%for c in mep.Staff|sort(attribute='start',reverse=True) %}
-   {% if c.end>today%}
+{%for c in mep.Staff|sort(attribute='start',reverse=True) if c.end>today %}
    <li>
     {{c.role}} of
     {{c.Organization}}
     {{c.start|asdate}} - ...
   </li>
-  {%endif%}
 {% endfor %}
 </ul>
-{% if mep.active %}
-<div class="more">Show earlier staff positions...</div>
-<ul class="hidden">
-{%else%}
-  <ul>
-{%endif%}
-{%for c in mep.Staff|sort(attribute='start',reverse=True) %}
-  {% if c.end<=today%}
+{%for c in mep.Staff|sort(attribute='start',reverse=True) if c.end<=today %}
+   {% if loop.first %}
+      {% if mep.active %}
+      <div class="more">Show earlier staff positions...</div>
+      <ul class="hidden">
+      {%else%}
+        <ul>
+      {%endif%}
+    {%endif%}
     <li>
     {{c.role}} of
     {{c.Organization}}
     {{c.start|asdate}} - {{c.end|asdate}}
   </li>
-  {% endif %}
+  {% if loop.last %}</ul>{%endif%}
 {% endfor %}
 </ul>
 {% endif %}
