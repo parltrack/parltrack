@@ -499,5 +499,8 @@ if __name__ == "__main__":
                 userid=dict([x.split('=') for x in data.xpath("a")[0].attrib['href'].split('?')[1].split('&')])['id']
                 if not userid in seen:
                     print >>sys.stderr,data.xpath('a/text()')[0].encode('utf8')
-                    scrape(userid,data.xpath('a/text()')[0])
+                    try:
+                        scrape(userid,data.xpath('a/text()')[0])
+                    except:
+                        print >>sys.stderr, "[!] failed to scrape", data.xpath('a/text()')[0]
                     seen.append(userid)
