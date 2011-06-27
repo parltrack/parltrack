@@ -56,7 +56,7 @@ def get_data_dir():
 
 @app.context_processor
 def inject_data():
-    return dict(now_date=datetime(*date.today().timetuple()[:3]),
+    return dict(now_date=datetime(*date.today().timetuple()[:3]+(23,59)),
                 committees=COMMITTEES,
                 committee_map=COMMITTEE_MAP,
                 countries=SEIRTNUOC,
@@ -122,21 +122,37 @@ def gen_notif_id():
 def listdossiers(d):
     db = connect_db()
     if 'agents' in d['procedure']:
-        d['rapporteur']=[dict(y) for y in set([(('name', x['name']), ('grp', x['group'])) for x in d['procedure']['agents'] if x.get('responsible') and x.get('name')])]
+        d['rapporteur']=[dict(y)
+                         for y
+                         in set([(('name', x['name']), ('grp', x['group']))
+                                 for x in d['procedure']['agents']
+                                 if x.get('responsible') and x.get('name')])]
     forecasts=[]
     for act in d['activities']:
         if act['type']=='Forecast':
             forecasts.append({'date':datetime.strptime(act['date'], "%Y-%m-%d"),
                               'title': ' '.join(act['title'].split())})
-        if act['type'] in ['Non-legislative initial document', 'Commission/Council: initial legislative document']:
+        if act['type'] in ['Non-legislative initial document',
+                           'Commission/Council: initial legislative document']:
             if 'comdoc' in d:
                 print 'WTF? there is already a comdoc'
                 raise
-            d['comdoc']={'title': act['documents'][0]['title'], 'url': act['documents'][0].get('url'), }
-    for item in db.ep_com_meets.find({'comref': d['_id']}):
+            d['comdoc']={'title': act['documents'][0]['title'],
+                         'url': act['documents'][0].get('url'), }
+    for item in db.ep_com_meets.find({'docref': d['_id']}):
+        d['activities'].insert(0,{'type': 'Forecast',
+                                  'body': 'EP',
+                                  'date': item['meeting_date'],
+                                  'title': 'EP: on %s agenda' % item['committee']})
+        forecasts.append({'date': item['meeting_date'],
+                          'title': 'EP: on %s agenda' % item['committee']})
         if 'tabling_deadline' in item and item['tabling_deadline']>=datetime.now():
-            dossier['activities'].insert(0,{'type': 'Forecast', 'body': 'EP', 'date': item['tabling_deadline'], 'title': 'EP (%s) Deadline for tabling ammendments' % item['committee']})
-            forecasts.append(item)
+            d['activities'].insert(0,{'type': 'Forecast',
+                                      'body': 'EP',
+                                      'date': item['tabling_deadline'],
+                                      'title': 'EP %s Deadline for tabling ammendments' % item['committee']})
+            forecasts.append({'date': item['tabling_deadline'],
+                              'title': 'EP: %s Deadline for tabling ammendments' % item['committee']})
     d['forecasts']=sorted(forecasts, key=itemgetter('date'))
     return d
 

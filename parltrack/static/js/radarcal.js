@@ -14,14 +14,22 @@ $(document).ready(function() {
     };
     var events=[];
     $('.vevent').each(function() {
-       var eventclass=$(this).find('span.summary').text();
+       var type=$(this).find('span.summary').text();
+       var eventclass;
+       if(/EP: on [A-Z]* agenda/.test(type)) {
+          eventclass="committee-agenda";
+       } else if(/EP: [A-Z]* Deadline for tabling ammendments/.test(type)) {
+          eventclass="tabling-deadline";
+       } else {
+          eventclass=eventclasses[type]
+       }
        events.push( {
           title : $(this).parent().prev().text(),
           summary : $(this).parent().next().next().next().text(),
-          type  : eventclass,
+          type  : type,
           url   : $(this).parent().prev().find("a").attr('href'),
           start : $(this).find(".dtstart").text(),
-          className: eventclasses[eventclass]
+          className: eventclass
        });
     });
     $('#categories').hide();
@@ -33,7 +41,7 @@ $(document).ready(function() {
         contentHeight: 500,
         defaultView: "month",
         eventRender: function(event, element) {
-          element.qtip({content: '<div class="'+eventclasses[event.type]+'">'+event.type+"</div><div>"+event.summary+"</div>",
+          element.qtip({content: '<div class="'+event.className+'">'+event.type+"</div><div>"+event.summary+"</div>",
                         tip: 'bottomLeft',
                         style: {
                           padding: 2,
