@@ -34,7 +34,6 @@ from parltrack.scrapers.ep_com_meets import COMMITTEES, COMMITTEE_MAP
 from parltrack.scrapers.mappings import ALL_STAGES, STAGES
 from bson.code import Code
 from operator import itemgetter
-from parltrack.utils import dateJSONhandler
 
 Flask.jinja_options = ImmutableDict({'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_', 'jinja2.ext.loopcontrols']})
 app = Flask(__name__)
