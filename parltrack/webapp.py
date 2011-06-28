@@ -93,10 +93,9 @@ def search():
     if request.args.get('s_dossiers'):
         print q
         ret.extend(db.dossiers.find({'procedure.title': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
-    '''
-    if request.headers.get('X-Requested-With'):
+    #if request.headers.get('X-Requested-With'):
+    if request.GET.get('format')=='json':
         return json.dumps(ret)
-    '''
     if len(ret)==1:
         if 'procedure' in ret[0]:
             return view_dossier(ret[0]['procedure']['reference'])
