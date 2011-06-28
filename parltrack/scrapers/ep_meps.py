@@ -22,6 +22,7 @@ from datetime import datetime
 from string import strip, uppercase
 from lxml.html.soupparser import parse
 from parltrack.environment import connect_db
+from mappings import COMMITTEE_MAP
 import unicodedata
 
 BASE_URL = 'http://www.europarl.europa.eu'
@@ -202,6 +203,8 @@ def parseRoles(c, data):
             if item['Organization'].startswith(start):
                 if not field in data:
                     data[field]=[]
+                if field=='Committees' and item['Organization'] in COMMITTEE_MAP:
+                    item['committee_id']=COMMITTEE_MAP[item['Organization']]
                 data[field].append(item)
                 found=True
                 break
@@ -499,8 +502,9 @@ if __name__ == "__main__":
                 userid=dict([x.split('=') for x in data.xpath("a")[0].attrib['href'].split('?')[1].split('&')])['id']
                 if not userid in seen:
                     print >>sys.stderr,data.xpath('a/text()')[0].encode('utf8')
-                    try:
-                        scrape(userid,data.xpath('a/text()')[0])
-                    except:
-                        print >>sys.stderr, "[!] failed to scrape", data.xpath('a/text()')[0]
+                    scrape(userid,data.xpath('a/text()')[0])
+                    #try:
+                    #    scrape(userid,data.xpath('a/text()')[0])
+                    #except:
+                    #    print >>sys.stderr, "[!] failed to scrape", data.xpath('a/text()')[0]
                     seen.append(userid)

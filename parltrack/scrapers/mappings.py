@@ -1,3 +1,96 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#    This file is part of parltrack
+
+#    parltrack is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Affero General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+
+#    parltrack is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Affero General Public License for more details.
+
+#    You should have received a copy of the GNU Affero General Public License
+#    along with parltrack  If not, see <http://www.gnu.org/licenses/>.
+
+# (C) 2011 by Stefan Marsiske, <stefan.marsiske@gmail.com>, Asciimoo
+
+COMMITTEE_MAP={'AFET': "Foreign Affairs",
+               'DROI': "Human Rights",
+               'SEDE': "Security and Defence",
+               'DEVE': "Development",
+               'INTA': "International Trade",
+               'BUDG': "Budgets",
+               'CONT': "Budgetary Control",
+               'ECON': "Economic and Monetary Affairs",
+               'EMPL': "Employment and Social Affairs",
+               'ENVI': "Environment, Public Health and Food Safety",
+               'ITRE': "Industry, Research and Energy",
+               'IMCO': "Internal Market and Consumer Protection",
+               'TRAN': "Transport and Tourism",
+               'REGI': "Regional Development",
+               'AGRI': "Agriculture and Rural Development",
+               'PECH': "Fisheries",
+               'CULT': "Culture and Education",
+               'JURI': "Legal Affairs",
+               'LIBE': "Civil Liberties, Justice and Home Affairs",
+               'AFCO': "Constitutional Affairs",
+               'FEMM': "Women's Rights and Gender Equality",
+               'PETI': "Petitions",
+               'CRIS': "Financial, Economic and Social Crisis",
+               'SURE': "Policy Challenges Committee",
+               'Foreign Affairs': 'AFET',
+               'Human Rights': 'DROI',
+               'Security and Defence': 'SEDE',
+               'Development': 'DEVE',
+               'International Trade': 'INTA',
+               'Budgets': 'BUDG',
+               'Budgetary Control': 'CONT',
+               'Economic and Monetary Affairs': 'ECON',
+               'Employment and Social Affairs': 'EMPL',
+               'Environment, Public Health and Food Safety': 'ENVI',
+               'Industry, Research and Energy': 'ITRE',
+               'Internal Market and Consumer Protection': 'IMCO',
+               'Transport and Tourism': 'TRAN',
+               'Regional Development': 'REGI',
+               'Agriculture and Rural Development': 'AGRI',
+               'Fisheries': 'PECH',
+               'Culture and Education': 'CULT',
+               'Legal Affairs': 'JURI',
+               'Civil Liberties, Justice and Home Affairs': 'LIBE',
+               'Constitutional Affairs': 'AFCO',
+               "Women's Rights and Gender Equality": 'FEMM',
+               u"Women’s Rights and Gender Equality": 'FEMM',
+               'Petitions': 'PETI',
+               'Financial, Economic and Social Crisis': 'CRIS',
+               'Policy Challenges Committee': 'SURE',
+               'Committee on Foreign Affairs': 'AFET',
+               'Committee on Human Rights': 'DROI',
+               'Committee on Security and Defence': 'SEDE',
+               'Committee on Development': 'DEVE',
+               'Committee on International Trade': 'INTA',
+               'Committee on Budgets': 'BUDG',
+               'Committee on Budgetary Control': 'CONT',
+               'Committee on Economic and Monetary Affairs': 'ECON',
+               'Committee on Employment and Social Affairs': 'EMPL',
+               'Committee on Environment, Public Health and Food Safety': 'ENVI',
+               'Committee on Industry, Research and Energy': 'ITRE',
+               'Committee on Internal Market and Consumer Protection': 'IMCO',
+               'Committee on the Internal Market and Consumer Protection': 'IMCO',
+               'Committee on Transport and Tourism': 'TRAN',
+               'Committee on Regional Development': 'REGI',
+               'Committee on Agriculture and Rural Development': 'AGRI',
+               'Committee on Fisheries': 'PECH',
+               'Committee on Culture and Education': 'CULT',
+               'Committee on Legal Affairs': 'JURI',
+               'Committee on Civil Liberties, Justice and Home Affairs': 'LIBE',
+               'Committee on Constitutional Affairs': 'AFCO',
+               "Committee on Women's Rights and Gender Equality": 'FEMM',
+               'Committee on Petitions': 'PETI',
+               'Committee on Financial, Economic and Social Crisis': 'CRIS',
+               'Committee on Policy Challenges Committee': 'SURE'}
 
 STAGES = ['Preparatory phase in Parliament',
           'Awaiting Parliament 1st reading / single reading / budget 1st stage',
