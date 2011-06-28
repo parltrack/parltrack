@@ -34,6 +34,7 @@ from parltrack.scrapers.ep_com_meets import COMMITTEES, COMMITTEE_MAP
 from parltrack.scrapers.mappings import ALL_STAGES, STAGES
 from bson.code import Code
 from operator import itemgetter
+from parltrack.utils import dateJSONhandler
 
 Flask.jinja_options = ImmutableDict({'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_', 'jinja2.ext.loopcontrols']})
 app = Flask(__name__)
@@ -94,8 +95,8 @@ def search():
         print q
         ret.extend(db.dossiers.find({'procedure.title': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
     #if request.headers.get('X-Requested-With'):
-    if request.GET.get('format')=='json':
-        return json.dumps(ret)
+    if request.args.get('format')=='json':
+        return jsonify(count=len(ret), items=tojson(ret))
     if len(ret)==1:
         if 'procedure' in ret[0]:
             return view_dossier(ret[0]['procedure']['reference'])

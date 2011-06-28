@@ -65,3 +65,11 @@ def test_diff():
 
 if __name__ == "__main__":
     test_diff()
+
+def dateJSONhandler(obj):
+    if hasattr(obj, 'isoformat'):
+        return obj.isoformat()
+    elif type(obj)==ObjectId:
+        return str(obj)
+    else:
+        raise TypeError, 'Object of type %s with value of %s is not JSON serializable' % (type(obj), repr(obj))
