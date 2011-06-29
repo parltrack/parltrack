@@ -23,7 +23,8 @@ from string import strip, uppercase
 from lxml.html.soupparser import parse
 from parltrack.environment import connect_db
 from mappings import COMMITTEE_MAP, buildings
-import unicodedata
+import unicodedata, traceback
+
 
 BASE_URL = 'http://www.europarl.europa.eu'
 db = connect_db()
@@ -504,9 +505,11 @@ if __name__ == "__main__":
                 userid=dict([x.split('=') for x in data.xpath("a")[0].attrib['href'].split('?')[1].split('&')])['id']
                 if not userid in seen:
                     print >>sys.stderr,data.xpath('a/text()')[0].encode('utf8')
-                    scrape(userid,data.xpath('a/text()')[0])
-                    #try:
-                    #    scrape(userid,data.xpath('a/text()')[0])
-                    #except:
-                    #    print >>sys.stderr, "[!] failed to scrape", data.xpath('a/text()')[0]
+                    try:
+                        scrape(userid,data.xpath('a/text()')[0])
+                    except:
+                        print >>sys.stderr, "[!] failed to scrape", data.xpath('a/text()')[0]
+                        exc_type, exc_value, exc_traceback = sys.exc_info()
+                        traceback.print_tb(exc_traceback, file=sys.stderr)
+                        traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stderr)
                     seen.append(userid)
