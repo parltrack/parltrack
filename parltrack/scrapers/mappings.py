@@ -137,3 +137,10 @@ ALL_STAGES= [ "Preparatory phase in Parliament",
               "Procedure rejected",
               "Procedure lapsed or withdrawn"]
 
+buildings={ u"Bât. Altiero Spinelli": 'ASP',
+            u"Bât. Willy Brandt": 'WIB',
+            u"Bât. Paul-Henri Spaak": 'PHS',
+            u"Bât. Atrium": "ATR",
+            u"Bât. Louise Weiss": 'LOW',
+            u"Bât. Winston Churchill": 'WIC',
+            }

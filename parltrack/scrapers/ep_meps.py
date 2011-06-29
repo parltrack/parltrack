@@ -22,7 +22,7 @@ from datetime import datetime
 from string import strip, uppercase
 from lxml.html.soupparser import parse
 from parltrack.environment import connect_db
-from mappings import COMMITTEE_MAP
+from mappings import COMMITTEE_MAP, buildings
 import unicodedata
 
 BASE_URL = 'http://www.europarl.europa.eu'
@@ -75,6 +75,8 @@ def getAddress(txts):
         ret['Address']=dict(zip(['Organization','Building','Office','Street','Zip1', 'Zip2', 'City'],ret['Address']))
     else:
         ret['Address']=dict(zip(['Organization','Building','Office','Street','Zip','City'],ret['Address']))
+    if ret['Address']['Building'] in buildings:
+        ret['Address']['building_code']=buildings[ret['Address']['Building']]
     return ret
 
 def unws(txt):
