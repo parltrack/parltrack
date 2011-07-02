@@ -37,6 +37,7 @@ var colormap={
    'ALDE': '#FFD700',
    'NI': '#fff',
    'NA': '#fff',
+   'ITS': '#000',
    'IND/DEM': '#F7AF20',
    'UEN': '#5d4fa5',
    'EFD': '#2ca8be',
