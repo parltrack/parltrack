@@ -123,6 +123,8 @@ def dossier(id):
                 print 'WTF? there is already a comdoc'
                 raise
             dossier['comdoc']={'title': act['documents'][0]['title'], 'url': act['documents'][0].get('url'), }
+        if act['type']=='Final legislative act':
+            dossier['celexid']="CELEX:%s:EN" % act['documents'][0].get('title','')
     # find related votes
     votes=list(db.ep_votes.find({'dossierid': dossier['_id']}))
     for vote in votes:
