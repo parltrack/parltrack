@@ -29,6 +29,9 @@ except:
     db=pymongo.Connection().parltrack
 from operator import itemgetter
 
+SHORTCUTMAP={'L': 'Directive',
+             'R': 'Regulation',
+             'D': 'Decision'}
 group_positions={u'Chair': 10,
                  u'Co-Chair': 8,
                  u'Vice-Chair': 6,
@@ -124,7 +127,16 @@ def dossier(id):
                 raise
             dossier['comdoc']={'title': act['documents'][0]['title'], 'url': act['documents'][0].get('url'), }
         if act['type']=='Final legislative act':
-            dossier['celexid']="CELEX:%s:EN" % act['documents'][0].get('title','')
+            cid=act['documents'][0].get('title','')
+            dossier['celexid']="CELEX:%s:EN" % cid
+            st=7 if cid[6].isalpha() else 6
+            doctype = cid[5:st]
+            doctypename=SHORTCUTMAP.get(doctype)
+            print doctype, doctypename
+            if doctypename:
+                dossier['finalref']="%s %s/%s/EC" % (doctypename,
+                                                     cid[1:5],
+                                                     cid[st:])
     # find related votes
     votes=list(db.ep_votes.find({'dossierid': dossier['_id']}))
     for vote in votes:

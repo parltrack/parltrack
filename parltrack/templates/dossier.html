@@ -51,6 +51,7 @@
     </div>
 </div>
 <h2>{{ dossier.procedure.reference }}</h2>
+{% if dossier.finalref %}<p>{{dossier.finalref}}</p>{% endif %}
 <p>{{dossier.procedure.title}}</p>
 <p><strong>{{dossier.procedure.stage_reached}}</strong></p>
 <div id="tabs">
