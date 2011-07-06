@@ -188,7 +188,7 @@ def scrape(comid, url, meeting_date):
             continue
         # parse misc agenda items
         m=misc_block.match(line)
-        if m:
+        if m and inblock:
             issue['Misc']=issue.get('Misc',[])
             issue['Misc'].append(m.group(2))
             finalizeIssue(ax, issue)
@@ -420,7 +420,7 @@ if __name__ == "__main__":
     crawl(db)
     #DEBUG=True
     #DEBUG1=True
-    #print json.dumps(scrape('ECON','http://www.europarl.europa.eu/meetdocs/2009_2014/documents/econ/oj/871/871112/871112en.pdf', datetime(2011,6,21)),indent=1,default=dateJSONhandler)
+    #print json.dumps(scrape('ECON','http://www.europarl.europa.eu/meetdocs/2009_2014/documents/empl/oj/871/871514/871514en.pdf', datetime(2011,6,21)),indent=1,default=dateJSONhandler)
     #print json.dumps(scrape('JURI','http://www.europarl.europa.eu/meetdocs/2009_2014/documents/juri/oj/869/869993/869993en.pdf', datetime(2011,6,21)),indent=1,default=dateJSONhandler)
 
     #print json.dumps(scrape('BUDG','http://www.europarl.europa.eu/meetdocs/2009_2014/documents/cont/oj/869/869879/869879en.pdf', datetime(2011,6,21)),indent=1,default=dateJSONhandler)
