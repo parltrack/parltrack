@@ -104,6 +104,7 @@ def getdocs(issue):
 def finalizeIssue(ax, issue):
     #print issue['seq_no'], ax[0].encode('utf8'), ax[1].encode('utf8')
     if DEBUG1: print >>sys.stderr, 'finalize', ax
+    if not issue: return
     if ax[0] in ['Opinions', 'Responsible']:
         tmp=scrapOp(ax[1])
         if tmp:
@@ -420,7 +421,7 @@ if __name__ == "__main__":
     crawl(db)
     #DEBUG=True
     #DEBUG1=True
-    #print json.dumps(scrape('ECON','http://www.europarl.europa.eu/meetdocs/2009_2014/documents/empl/oj/871/871514/871514en.pdf', datetime(2011,6,21)),indent=1,default=dateJSONhandler)
+    #print json.dumps(scrape('ASDF','http://www.europarl.europa.eu/meetdocs/2009_2014/documents/juri/oj/872/872316/872316en.pdf', datetime(2011,6,21)),indent=1,default=dateJSONhandler)
     #print json.dumps(scrape('JURI','http://www.europarl.europa.eu/meetdocs/2009_2014/documents/juri/oj/869/869993/869993en.pdf', datetime(2011,6,21)),indent=1,default=dateJSONhandler)
 
     #print json.dumps(scrape('BUDG','http://www.europarl.europa.eu/meetdocs/2009_2014/documents/cont/oj/869/869879/869879en.pdf', datetime(2011,6,21)),indent=1,default=dateJSONhandler)
