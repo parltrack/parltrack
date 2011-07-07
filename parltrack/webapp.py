@@ -81,6 +81,7 @@ def index():
 #               Search
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 
+celexre=re.compile(r'(directive\s+)?(19[89][0-9]|20[01][0-9])/([0-9]{1,4})/EC\s*$',re.I)
 @app.route('/search')
 def search():
     db = connect_db()
@@ -91,16 +92,20 @@ def search():
     if request.args.get('s_meps'):
         ret.extend(db.ep_meps.find({'Name.full': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
     if request.args.get('s_dossiers'):
-        print q
+        m=celexre.match(q)
+        if m:
+            ret.extend(db.dossiers.find({'activities.documents.title': "3%sL%04d" % (m.group(2),int(m.group(3)))}))
         ret.extend(db.dossiers.find({'procedure.title': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
     #if request.headers.get('X-Requested-With'):
     if request.args.get('format')=='json':
         return jsonify(count=len(ret), items=tojson(ret))
     if len(ret)==1:
         if 'procedure' in ret[0]:
-            return view_dossier(ret[0]['procedure']['reference'])
+            return redirect('/dossier/%s' % ret[0]['procedure']['reference'])
+            #return view_dossier(ret[0]['procedure']['reference'])
         if 'Name' in ret[0]:
-            return view_mep(ret[0]['Name']['full'])
+            return redirect('/mep/%s' % (ret[0]['Name']['full']))
+            #return view_mep(ret[0]['Name']['full'])
     return render_template('search_results.html', query=q,
                            results=ret)
 

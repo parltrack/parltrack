@@ -134,9 +134,9 @@ def dossier(id):
             doctypename=SHORTCUTMAP.get(doctype)
             print doctype, doctypename
             if doctypename:
-                dossier['finalref']="%s %s/%s/EC" % (doctypename,
+                dossier['finalref']="%s %s/%d/EC" % (doctypename,
                                                      cid[1:5],
-                                                     cid[st:])
+                                                     int(cid[st:]))
     # find related votes
     votes=list(db.ep_votes.find({'dossierid': dossier['_id']}))
     for vote in votes:
