@@ -124,10 +124,10 @@
   {% endif %}
 <div>Links
 <ul>
+  {% if dossier.celexid %}<li>The final text on <a href="http://pippi.euwiki.org/doc/{{dossier.celexid}}">Pippi Longstrings</a></li>{% endif %}
   <li><a href="{{dossier.meta.source}}">OEIL</a></li>
   <li><a href="http://www.google.com/search?q={{dossier.procedure.title}}+-europarl.europa.eu">Google</a></li>
   <li><a href="http://www.europarl.europa.eu/RegistreWeb/search/simple.htm?fulltext={{dossier.procedure.eprodid}}">Eprod</a></li>
-  {% if dossier.celexid %}<li><a href="http://pippi.euwiki.org/doc/{{dossier.celexid}}">Pippi Longstrings</a></li>{% endif %}
 </ul></div>
 </div>
 {% if dossier.activities %}
@@ -190,6 +190,7 @@
   <div id="documents">
   <h3>Documents</h3>
   <ul>
+  {% if dossier.celexid %}<li>The final text on <a href="http://pippi.euwiki.org/doc/{{dossier.celexid}}">Pippi Longstrings</a></li>{% endif %}
   {%for doc in dossier.docs%}
     {%if doc.url %}
       <li>
