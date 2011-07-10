@@ -350,7 +350,7 @@ def scrapOp(text):
             line=line.strip()[8:].strip()
 
         if comlistre.match(line):
-            c['committees']=[{'committee': x.strip()} for x in line.split(', ')]
+            res.extend([{'committee': x.strip(), 'docs':[], 'rapporteurs': []} for x in line.split(', ')])
             if DEBUG1: print >>sys.stderr, 'comlistre', line.encode('utf8')
             continue
 
