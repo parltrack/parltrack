@@ -615,10 +615,8 @@ def summaries(table):
         if 'url' in item:
             try:
                 tree=fetch(item['url'])
-            except urllib2.URLError, e:
-                if e.code>=400:
-                    print >>sys.stderr, "[!] %d %s" % (e.code, url)
-                    continue
+            except:
+                continue
             text=[tostring(x) for x in tree.xpath('//table[@class="box_content_txt"]//td/*')]
             item['text']=text
     return tmp
