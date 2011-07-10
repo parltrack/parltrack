@@ -21,7 +21,7 @@ $(document).ready(function() {
        } else if(/EP: [A-Z]* Deadline for tabling ammendments/.test(type)) {
           eventclass="tabling-deadline";
        } else {
-          eventclass=eventclasses[type]
+          eventclass=eventclasses[type];
        }
        events.push( {
           title : $(this).parent().prev().text(),
