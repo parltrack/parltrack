@@ -58,7 +58,7 @@
   <ul>
     <li><a href="#general">General</a></li>
     {% if dossier.activities %}<li><a href="#activities">Activities</a></li>{% endif %}
-    {% if dossier.docs|length %}<li><a href="#documents">Documents</a></li>{%endif%}
+    <li><a href="#documents">Documents</a></li>
     {% if dossier.votes %}<li><a href="#votes">Votes</a></li>{%endif%}
   </ul>
 <div id="general">
@@ -94,7 +94,7 @@
   {%endfor%}
   {% if dossier.procedure.agents %}
   <h3>Committees</h3>
-  <div>Dossier of the Committee <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&body={{dossier.procedure.committee}}&language=EN">{{dossier.procedure.dossier_of_the_committee}}</a></div>
+  {% if dossier.procedure.dossier_of_the_committee %}<div>Dossier of the Committee <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&body={{dossier.procedure.committee}}&language=EN">{{dossier.procedure.dossier_of_the_committee}}</a></div>{%endif%}
   <ul>{%for agent in dossier.procedure.agents%}
        {% if agent.commitee %}
        <li>
@@ -139,6 +139,23 @@
      {%if act.title%}<span class='summary'>{{act.title}}</span>{%endif%}
      {%if act.type%}{{act.type}}{%endif%}
      <ul>
+     {%for doc in act.documents%}
+        {%if doc.celexid %}
+          <a href="http://pippi.euwiki.org/doc/{{doc.celexid}}">{{doc.title}}</a>
+        {%elif doc.url %}
+          <a href="{{doc.url}}">{{doc.title}}</a>
+        {%else%}
+        {{doc.title}}
+        {%endif%}
+        {%if doc.summary%}
+           <a class="has_summary">[summary]</a>
+           <div class="hidden" id="{{doc.title}}-summary">
+             {%for line in doc.summary %}
+             {{line|striptags}}
+             {%endfor%}
+           </div>
+        {%endif%}
+     {%endfor%}
      {%for agent in act.actors%}
         {%if agent.function == "MEP" %}
            <li class='agent'>
@@ -165,53 +182,50 @@
      {%endfor%}
      </ul>
      <div>
-     {%for doc in act.documents%}
-        {%if doc.url %}
-          {%if doc.summary%}
-             <a class="has_summary">{{doc.title}}</a>
-             <div class="hidden" id="{{doc.title}}-summary">
-               {%for line in doc.summary %}
-               {{line|striptags}}
-               {%endfor%}
-             </div>
-          {%else%}
-             {{doc.title}}
-          {%endif%}
-        <a href="{{doc.url}}">[↓]</a>
-        {%endif%}
-     {%endfor%}
      </div>
    </li>
   {%endfor%}
 </ul>
 </div>
 {% endif %}
-{% if dossier.docs|length %}
-  <div id="documents">
-  <h3>Documents</h3>
-  <ul>
-  {% if dossier.celexid %}<li>The final text on <a href="http://pippi.euwiki.org/doc/{{dossier.celexid}}">Pippi Longstrings</a></li>{% endif %}
-  {%for doc in dossier.docs%}
-    {%if doc.url %}
-      <li>
-      {%if doc.summary%}
-         <a class="has_summary">{{doc.title}}</a>
-         {{doc.type}}
-         <div class="hidden" id="{{doc.title}}-summary">
-           {%for line in doc.summary %}
-           {{line|striptags}}
-           {%endfor%}
-         </div>
-      {%else%}
-         {{doc.title}} {{doc.type}}
+<div id="documents">
+<h3>Documents</h3>
+<ul>
+{% for act in dossier.activities %}
+   {%for doc in act.documents%}
+      {%if doc.celexid %}
+      <li>{{doc.type}}: <a href='http://pippi.euwiki.org/doc/{{doc.celexid}}'>{{doc.title}}</a>
+        {%if doc.summary%}
+           [<a class="has_summary">summary</a>]
+           <div class="hidden" id="{{doc.title}}-summary">
+             {%for line in doc.summary %}
+             {{line|striptags}}
+             {%endfor%}
+           </div>
+        {%endif%}
       {%endif%}
-      <a href="{{doc.url}}">[↓]</a>
-      </li>
-    {%endif%}
-  {%endfor%}
-  </ul>
-  </div>
-{%endif%}
+   {%endfor%}
+{%endfor%}
+{%for doc in dossier.docs%}
+  <li>
+  {{doc.type}}
+  {% if doc.celexid %}
+    <a href="http://pippi.euwiki.org/doc/{{doc.celexid}}">{{doc.title}}</a>
+    {% elif doc.url  %}<a href="{{doc.url}}">{{doc.title}}</a>
+  {%else%}{{doc.title}}{% endif %}
+
+  {%if doc.summary%}
+     [<a class="has_summary">summary</a>]
+     <div class="hidden" id="{{doc.title}}-summary">
+       {%for line in doc.summary %}
+       {{line|striptags}}
+       {%endfor%}
+     </div>
+  {%endif%}
+  </li>
+{%endfor%}
+</ul>
+</div>
 {% if dossier.votes %}
 <div id="votes">
 <h3>Votes</h3>

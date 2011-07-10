@@ -108,6 +108,11 @@ def makeActivities(data):
                     if n in item and (k not in ['date', 'body'] or doc):
                         doc[k]=item[n]
                 if doc:
+                    if (doc.get('title') and
+                        candre.match(doc.get('title'))):
+                        celexid=tocelex(doc.get('title') ,doc.get('type'))
+                        if (celexid and checkUrl("http://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=%s:HTML" % celexid)):
+                            doc['celexid']=celexid
                     data['docs'].append(doc)
                 continue
             # handle normal new stage
@@ -135,6 +140,13 @@ def makeActivities(data):
                     doc[k]=item[n]
                     if d:
                         del stage[n]
+            if (doc and
+                doc.get('title') and
+                candre.match(doc.get('title'))):
+                celexid=tocelex(doc.get('title') ,doc.get('type'))
+                if (celexid and checkUrl("http://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=%s:HTML" % celexid)):
+                    doc['celexid']=celexid
+
             if 'url' in doc or 'title' in doc or 'summary_url' in doc or 'oj_ref' in doc:
                 dictapp(stage, 'documents',doc)
         # handle actors
@@ -254,6 +266,54 @@ def dictext(d,k,v):
     if not k in d:
         d[k]=[]
     d[k].extend([x for x in v if not x in d[k]])
+
+comre=re.compile(r'COM\(([0-9]{4})\)([0-9]{4})')
+secre=re.compile(r'SEC\(([0-9]{4})\)([0-9]{4})')
+cesre=re.compile(r'CES([0-9]{4})/([0-9]{4})')
+ecbre=re.compile(r'CON/([0-9]{4})/([0-9]{4})')
+cdrre=re.compile(r'CDR([0-9]{4})/([0-9]{4})')
+care=re.compile(r'RCC([0-9]{4})/([0-9]{4})')
+celexre=re.compile(r'[0-9]{5}[A-Z]{1,2}[0-9]{4}(?:R\([0-9]{2}\))?')
+candre=re.compile(r'(?:[0-9]+)?[^0-9]+[0-9]{4}(?:[0-9]+)?')
+def tocelex(title, type):
+    m=celexre.match(title)
+    if m:
+        return "CELEX:%s:EN" % (title)
+    m=cdrre.match(title)
+    if m:
+        return "CELEX:5%sAR%s:EN" % (m.group(2),m.group(1))
+    m=care.match(title)
+    if m:
+        return "CELEX:5%sAA%s:EN" % (m.group(2),m.group(1))
+    m=cesre.match(title)
+    if m:
+        if checkUrl("http://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=CELEX:5%sAE%s:EN:HTML" % (m.group(2),m.group(1))):
+            return "CELEX:5%sAE%s:EN" % (m.group(2),m.group(1))
+        elif checkUrl("http://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=CELEX:5%sIE%s:EN:HTML" % (m.group(2),m.group(1))):
+            return "CELEX:5%sIE%s:EN" % (m.group(2),m.group(1))
+        return
+    m=ecbre.match(title)
+    if m:
+        return "CELEX:5%sAB%s:EN" % (m.group(1),m.group(2))
+    m=comre.match(title)
+    if m:
+        for u in ["CELEX:5%sPC%s:EN" % (m.group(1),m.group(2)),
+                  "CELEX:5%sDC%s:EN" % (m.group(1),m.group(2)),
+                  "CELEX:5%sPC%s(02):EN" % (m.group(1),m.group(2)),
+                  "CELEX:5%sPC%s(01):EN" % (m.group(1),m.group(2)),
+                  "CELEX:5%sDC%s(02):EN" % (m.group(1),m.group(2)),
+                  "CELEX:5%sDC%s(01):EN" % (m.group(1),m.group(2))]:
+            if checkUrl("http://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=%s:HTML" % u):
+                return u
+        return
+    m=secre.match(title)
+    if m:
+        return "CELEX:5%sSC%s:EN" % (m.group(1),m.group(2))
+
+def checkUrl(url):
+    if not url: return False
+    res=fetch(url)
+    return res.xpath('//h1/text()')[0]!="Not available in English."
 
 def fetch(url):
     # url to etree
