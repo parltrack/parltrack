@@ -103,6 +103,7 @@ def makeActivities(data):
                               ('summary_url','stage_document'),
                               ('oj_ref','oj_ref'),
                               ('type','type'),
+                              ('summary','text'),
                               ('body','body'),
                               ('date','date')]:
                     if n in item and (k not in ['date', 'body'] or doc):
