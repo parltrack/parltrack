@@ -275,6 +275,7 @@ cdrre=re.compile(r'CDR([0-9]{4})/([0-9]{4})')
 care=re.compile(r'RCC([0-9]{4})/([0-9]{4})')
 celexre=re.compile(r'[0-9]{5}[A-Z]{1,2}[0-9]{4}(?:R\([0-9]{2}\))?')
 candre=re.compile(r'(?:[0-9]+)?[^0-9]+[0-9]{4}(?:[0-9]+)?')
+epre=re.compile(r'T[0-9]-([0-9]{4})/([0-9]{4})')
 def tocelex(title, type):
     m=celexre.match(title)
     if m:
@@ -285,6 +286,11 @@ def tocelex(title, type):
     m=care.match(title)
     if m:
         return "CELEX:5%sAA%s:EN" % (m.group(2),m.group(1))
+    m=epre.match(title)
+    if m:
+        if checkUrl("http://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=CELEX:5%sAP%s:EN:HTML" % (m.group(2),m.group(1))):
+            print >>sys.stderr, "CELEX:5%sAP%s:EN" % (m.group(2),m.group(1))
+            return "CELEX:5%sAP%s:EN" % (m.group(2),m.group(1))
     m=cesre.match(title)
     if m:
         if checkUrl("http://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=CELEX:5%sAE%s:EN:HTML" % (m.group(2),m.group(1))):
