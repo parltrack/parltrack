@@ -132,7 +132,7 @@ def dossier(id):
             st=7 if cid[6].isalpha() else 6
             doctype = cid[5:st]
             doctypename=SHORTCUTMAP.get(doctype)
-            print doctype, doctypename
+            #print doctype, doctypename
             if doctypename:
                 dossier['finalref']="%s %s/%d/EC" % (doctypename,
                                                      cid[1:5],
