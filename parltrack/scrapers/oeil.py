@@ -186,6 +186,12 @@ def makeActivities(data):
         dictext(data['procedure'],'agents',actors['EP'])
     if stage:
         res.append(stage)
+    tmp=tocelex(data['procedure']['reference'],'')
+    if tmp and len([True for d in data['docs'] if d['title']==data['procedure']['reference']])==0:
+        data['docs'].append({'celexid': tmp,
+                             'title': data['procedure']['reference'],
+                             'type': "Initial Legislative Document",
+                             'date': data['procedure']['date']})
     return list(reversed(res))
 
 def save(data):
@@ -269,7 +275,9 @@ def dictext(d,k,v):
     d[k].extend([x for x in v if not x in d[k]])
 
 comre=re.compile(r'COM\(([0-9]{4})\)([0-9]{4})')
+comepre=re.compile(r'COM/([0-9]{4})/([0-9]{4})')
 secre=re.compile(r'SEC\(([0-9]{4})\)([0-9]{4})')
+secepre=re.compile(r'SEC/([0-9]{4})/([0-9]{4})')
 cesre=re.compile(r'CES([0-9]{4})/([0-9]{4})')
 ecbre=re.compile(r'CON/([0-9]{4})/([0-9]{4})')
 cdrre=re.compile(r'CDR([0-9]{4})/([0-9]{4})')
@@ -302,7 +310,7 @@ def tocelex(title, type):
     m=ecbre.match(title)
     if m:
         return "CELEX:5%sAB%s:EN" % (m.group(1),m.group(2))
-    m=comre.match(title)
+    m=comre.match(title) or comepre.match(title)
     if m:
         for u in ["CELEX:5%sPC%s:EN" % (m.group(1),m.group(2)),
                   "CELEX:5%sDC%s:EN" % (m.group(1),m.group(2)),
@@ -313,7 +321,7 @@ def tocelex(title, type):
             if checkUrl("http://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=%s:HTML" % u):
                 return u
         return
-    m=secre.match(title)
+    m=secre.match(title) or secepre.match(title)
     if m:
         return "CELEX:5%sSC%s:EN" % (m.group(1),m.group(2))
 
@@ -426,6 +434,12 @@ def identification(table):
             value=[x.replace(u'\u00a0',' ').strip() for x in items[1].xpath('text()')]
         else:
             value=items[1].xpath("string()").replace(u"\u00A0",' ').strip()
+            if key.lower()=='reference' and len(items)==3:
+                tmp=items[2].xpath("string()").replace(u"\u00A0",' ').strip()
+                if tmp.startswith('Date of publication'):
+                    tmp=tmp.split(' ')[-1]
+                    tmp=[int(x) for x in tmp.split('/') if len(x)]
+                    res['date']=datetime.date(tmp[2], tmp[1], tmp[0]).isoformat()
         if key.lower()==u'legal basis':
             value=[x.strip() for x in value.split(';')]
         if key and value:
@@ -751,7 +765,8 @@ if __name__ == "__main__":
     if platform.machine() in ['i386', 'i686']:
         import psyco
         psyco.full()
-    crawl(fast=(False if len(sys.argv)>1 and sys.argv[1]=='full' else True))
+    #crawl(fast=(False if len(sys.argv)>1 and sys.argv[1]=='full' else True))
+    scrape("http://www.europarl.europa.eu/oeil/file.jsp?id=10001243")
     #import pprint
     #print '['
     #scrape("http://www.europarl.europa.eu/oeil/file.jsp?id=5882862")
