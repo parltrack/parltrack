@@ -765,8 +765,7 @@ if __name__ == "__main__":
     if platform.machine() in ['i386', 'i686']:
         import psyco
         psyco.full()
-    #crawl(fast=(False if len(sys.argv)>1 and sys.argv[1]=='full' else True))
-    scrape("http://www.europarl.europa.eu/oeil/file.jsp?id=10001243")
+    crawl(fast=(False if len(sys.argv)>1 and sys.argv[1]=='full' else True))
     #import pprint
     #print '['
     #scrape("http://www.europarl.europa.eu/oeil/file.jsp?id=5882862")
