@@ -401,6 +401,18 @@ def changed():
     #if request.args.get('format','')=='atom':
     return render_template('atom.xml', dossiers=list(d), path="changed")
 
+@app.route('/rss/<path:nid>')
+def rss(nid):
+    db = connect_db()
+    ng=db.notifications.find_one({'id': nid})
+    if not ng:
+        abort(404)
+    d=db.dossiers.find({'procedure.reference': { '$in': ng['dossiers']}}).sort([('meta.updated', -1)]).limit(30)
+    if request.args.get('format','')=='json':
+        return jsonify(tojson(d))
+    #if request.args.get('format','')=='atom':
+    return render_template('atom.xml', dossiers=list(d), path="changed")
+
 @app.route('/dossiers')
 def active_dossiers():
     db = connect_db()
@@ -487,6 +499,35 @@ def tojson(data):
     if hasattr(data, 'isoformat'):
         return data.isoformat()
     return data
+
+def printdict(d):
+    if type(d)==type(list()):
+        return u'<ul>%s</ul>' % '\n'.join(["<li>%s</li>" % printdict(v) for v in d])
+    if not type(d)==type(dict()):
+        return "%s" % unicode(d)
+    res=['']
+    for k,v in [(k,v) for k,v in d.items() if k not in ['mepref','comref']]:
+        res.append(u"<dl><dt>%s</dt><dd>%s</dd></dl>" % (k,printdict(v)))
+    return '%s' % u'\n'.join(res)
+
+@app.template_filter()
+def formatdiff(dossier):
+    if not dossier['changes']:
+        return
+    res=[]
+    for di in sorted(sorted(dossier['changes'].items())[-1][1],key=itemgetter('path')):
+        if 'text' in di['path'] or 'summary' in di['path']:
+            res.append(u'<tr><td>summary changed</td><td>%s</td></tr>' % '/'.join([str(x) for x in di['path']]))
+            continue
+        if di['type']=='changed':
+            res.append(u'<tr><td>change</td><td>%s</td><td>%s</td><td>%s</td></tr>' % ('/'.join([str(x) for x in di['path']]),printdict(di['data'][1]),printdict(di['data'][0])))
+            continue
+        if di['type']=='deleted':
+            res.append(u"<tr><td>%s</td><td>%s</td><td></td><td>%s</td></tr>" % (di['type'], '/'.join([str(x) for x in di['path']]), printdict(di['data'])))
+        if di['type']=='added':
+            res.append(u"<tr><td>%s</td><td>%s</td><td>%s</td><td></td></tr>" % (di['type'], '/'.join([str(x) for x in di['path']]), printdict(di['data'])))
+
+    return "<table><thead><tr width='90%%'><th>type</th><th>change in</th><th>new</th><th>old</th></tr></thead><tbody>%s</tbody></table>" % '\n'.join(res)
 
 if __name__ == '__main__':
     app.run(debug=True)
