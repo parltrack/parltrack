@@ -3,7 +3,7 @@
 	<title>Parltrack watcher Feed - {{path}}</title>
 	<link rel="alternate" type="text/html" href="{{path}}"/>
 	<link rel="self" type="application/atom+xml" href="{{path}}?format=atom"/>
-	<updated>{% if dossiers.0.updated %}{{dossiers.0.updated}}{%else%}{{dossiers.0.created}}{%endif%}</updated>
+	<updated>{% if dossiers.0.meta.updated %}{{dossiers.0.meta.updated}}{%else%}{{dossiers.0.meta.created}}{%endif%}</updated>
    <generator uri="http://github.org/pudo/parltrack">parltrack</generator>
    <id>{{request.url}}</id>
    {% for d in dossiers %}
@@ -13,10 +13,11 @@
       {% if d.updated %}<updated>{{d.updated}}</updated>{%else%}<created>{{d.created}}</created>{%endif%}
       <id>{{d.meta.source}}</id>
 		<content type="html" xml:lang="en"><![CDATA[
+         {% if d.meta.updated %}<abbr title={{d.meta.updated}}>{{d.meta.updated|asdate}}</abbr>{%endif%}
          {% if d.activities and d.activities[-1].documents and d.activities[-1].documents.0.url %}
            <a href="{{d.activities[-1].documents.0.url}}">{{d.activities[-1].documents.0.title}}</a><br />
          {%endif%}
-           Stage Reached: {{d.procedure['stage_reached']}}
+         Stage Reached: {{d.procedure['stage_reached']}}
          {{d|formatdiff|safe}}
 ]]></content>
 	</entry>

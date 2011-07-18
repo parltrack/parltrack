@@ -18,13 +18,13 @@
 
 # (C) 2011 by Adam Tauber, <asciimoo@gmail.com>
 
-import os, re
+import os, re, copy
 from pymongo import Connection
 from flaskext.mail import Mail, Message
 from flaskext.cache import Cache
 from flask import Flask, render_template, request, jsonify, abort, redirect
 from parltrack import default_settings
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from random import randint, choice, shuffle, randrange
 from hashlib import sha1
 from werkzeug import ImmutableDict
@@ -407,11 +407,21 @@ def rss(nid):
     ng=db.notifications.find_one({'id': nid})
     if not ng:
         abort(404)
-    d=db.dossiers.find({'procedure.reference': { '$in': ng['dossiers']}}).sort([('meta.updated', -1)]).limit(30)
+    timelimit=datetime.now()-timedelta(weeks=3)
+    d=db.dossiers.find({'procedure.reference': { '$in': ng['dossiers']},
+                        'meta.updated' : {'$gt': timelimit}}).sort([('meta.updated', -1)])
+    res=[]
+    for doc in d:
+        for k,c in doc['changes'].items():
+            k=datetime.strptime(k, "%Y-%m-%dT%H:%M:%S")
+            if k>timelimit:
+               d=copy.deepcopy(doc)
+               d['changes']={k:c}
+               res.append((k,d))
+    res=[x[1] for x in sorted(res,reverse=True)]
     if request.args.get('format','')=='json':
-        return jsonify(tojson(d))
-    #if request.args.get('format','')=='atom':
-    return render_template('atom.xml', dossiers=list(d), path="changed")
+        return jsonify(tojson(res))
+    return render_template('atom.xml', dossiers=res, path="changed")
 
 @app.route('/dossiers')
 def active_dossiers():
