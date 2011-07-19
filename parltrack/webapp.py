@@ -455,6 +455,8 @@ def view_committee(c_id):
 
 @app.template_filter()
 def asdate(value):
+    if type(value)==type(int()):
+        value=datetime.fromtimestamp(value)
     date=value.strftime('%Y/%m/%d %H:%M')
     if not date.endswith(" 00:00"):
         return date
@@ -462,6 +464,8 @@ def asdate(value):
 
 @app.template_filter()
 def isodate(value):
+    if type(value)==type(datetime(1,1,1)):
+        return value.isoformat()
     return datetime.strptime(value,'%Y-%m-%d').isoformat()
 
 @app.template_filter()
