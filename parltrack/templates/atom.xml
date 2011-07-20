@@ -10,8 +10,8 @@
 	<entry>
 		<title>{{d.procedure.reference}} {{d.procedure.title}}</title>
 		<link rel="alternate" type="text/html" href="{{request.url_root}}dossier/{{d.procedure.reference}}"/>
-      <id>{{request.url_root}}dossier/{{d.procedure.reference}}{% if d.changes %}?date={{d.changes.keys()[0]|isodate}}{%endif%}</id>
-      {% if d.changes %}<updated>{{d.changes.keys()[0]|isodate}}</updated>{%else%}<created>{{d.meta.created}}</created>{%endif%}
+      <id>{{request.url_root}}dossier/{{d.procedure.reference}}{% if d.changes %}?date={{d.changes.keys()[0]}}{%endif%}</id>
+      {% if d.changes %}<updated>{{d.changes.keys()[0]}}</updated>{%else%}<created>{{d.meta.created}}</created>{%endif%}
 		<content type="html" xml:lang="en"><![CDATA[
          {% if not d.meta.updated and d.activities and d.activities[-1].documents and d.activities[-1].documents.0.url %}
            <a href="{{d.activities[-1].documents.0.url}}">{{d.activities[-1].documents.0.title}}</a><br />
