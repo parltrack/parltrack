@@ -165,7 +165,7 @@ def dossier(id):
     dossier['forecasts']=sorted(forecasts, key=itemgetter('date'))
     return dossier
 
-def getMep(text,date=None):
+def getMep(text, date=datetime.now()):
     name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(',','').strip())).encode('ascii','ignore').split()).lower()
 
     if not name: return
