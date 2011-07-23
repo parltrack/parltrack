@@ -165,22 +165,30 @@ def dossier(id):
     dossier['forecasts']=sorted(forecasts, key=itemgetter('date'))
     return dossier
 
-def getMep(text):
+def getMep(text,date=None):
     name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(',','').strip())).encode('ascii','ignore').split()).lower()
 
     if not name: return
     # TODO add date constraints based on groups.start/end
-    mep=db.ep_meps.find_one({'Name.aliases': name})
+    if date:
+        query={'Name.aliases': name,
+               "Constituencies": {'$elemMatch' :
+                                  {'start' : {'$lte': date},
+                                   "end" : {'$gte': date},
+                                   }}}
+    else:
+        query={'Name.aliases': name}
+    mep=db.ep_meps.find_one(query)
     if not mep and u'ß' in text:
         name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(u'ß','ss').strip())).encode('ascii','ignore').split()).lower()
-        mep=db.ep_meps.find_one({'Name.aliases': name})
+        mep=db.ep_meps.find_one(query)
     if not mep:
         print >>sys.stderr, '[$] lookup oops:', text.encode('utf8')
     else:
         return mep
 
-def mep(id):
-    mep=getMep(id)
+def mep(id,date):
+    mep=getMep(id,date)
     if not mep:
         return None
 

@@ -353,7 +353,8 @@ def ranking():
 @app.route('/mep/<string:d_id>')
 def view_mep(d_id):
     from parltrack.views.views import mep
-    m=mep(d_id)
+    date=getDate()
+    m=mep(d_id,date)
     if not m:
         abort(404)
     if request.args.get('format','')=='json':
