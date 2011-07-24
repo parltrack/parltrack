@@ -264,7 +264,7 @@ def immunity():
         if not mep:
             print '[0] not found', d['procedure']['reference'].split('/')[1], m.group(1).encode('utf8')
         year=d['procedure']['reference'].split('/')[1]
-        for c in mep['Constituencies']:
+        for c in mep.get('Constituencies',[]):
             if c['start'].year<=int(year) and c['end'].year>=int(year):
                 country=c['country']
                 party=c['party']
