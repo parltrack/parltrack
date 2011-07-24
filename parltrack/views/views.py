@@ -165,11 +165,10 @@ def dossier(id):
     dossier['forecasts']=sorted(forecasts, key=itemgetter('date'))
     return dossier
 
-def getMep(text, date=datetime.now()):
+def getMep(text, date):
     name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(',','').strip())).encode('ascii','ignore').split()).lower()
 
     if not name: return
-    # TODO add date constraints based on groups.start/end
     if date:
         query={'Name.aliases': name,
                "Constituencies": {'$elemMatch' :
@@ -186,6 +185,7 @@ def getMep(text, date=datetime.now()):
         print >>sys.stderr, '[$] lookup oops:', text.encode('utf8')
     else:
         return mep
+    print query, '\n', mep
 
 def mep(id,date):
     mep=getMep(id,date)
