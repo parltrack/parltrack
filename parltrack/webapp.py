@@ -16,13 +16,13 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with parltrack.  If not, see <http://www.gnu.org/licenses/>.
 
-# (C) 2011 by Adam Tauber, <asciimoo@gmail.com>
+# (C) 2011 by Adam Tauber, <asciimoo@gmail.com>, Stefan Marsiske <stefan.marsiske@gmail.com>
 
-import os, re, copy
+import os, re, copy, csv, cStringIO
 from pymongo import Connection
 from flaskext.mail import Mail, Message
 from flaskext.cache import Cache
-from flask import Flask, render_template, request, jsonify, abort, redirect
+from flask import Flask, render_template, request, jsonify, abort, redirect, Response
 from parltrack import default_settings
 from datetime import datetime, date, timedelta
 from random import randint, choice, shuffle, randrange
@@ -364,6 +364,50 @@ def view_mep(d_id):
                            d=d_id,
                            group_cutoff=datetime(2004,7,20),
                            today=datetime.now(),
+                           url=request.base_url)
+
+def toJit(tree, name):
+    if type(tree)==type(dict()):
+        res=[toJit(v,k) for k, v in tree.items()]
+    if type(tree)==type(list()):
+        return {"name": name,
+                "id": name,
+                "data": {"$area": len(tree), 'cases': len(tree), 'meta': tree },
+                "children": []}
+    w=sum([x['data']['$area'] for x in res])
+    return {"id": name,
+            "name": name,
+            "data": { "$area": w, 'color': w },
+            "children": res}
+
+@app.route('/datasets/imm/')
+def immunity_view():
+    from parltrack.views.views import immunity
+    res=immunity()
+    if request.args.get('format','')=='json':
+        return jsonify(tojson({'count': len(res), 'data': res}))
+    if request.args.get('format','')=='csv':
+        fd = cStringIO.StringIO()
+        writer = csv.writer(fd,dialect='excel')
+        writer.writerow(['status', 'procedure','country','name','year','party'])
+        writer.writerows([[v.encode('utf8') for k,v in row.items()] for row in sorted(res,key=itemgetter('year'),reverse=True)])
+        fd.seek(0)
+        return Response( response=fd.read(), mimetype="text/csv" )
+    if request.args.get('format','')=='tree':
+        tree={}
+        for item in res:
+            if item['country'] not in tree:
+                tree[item['country']]={}
+            if item['party'] not in tree[item['country']]:
+                tree[item['country']][item['party']]={}
+            if item['mep'] not in tree[item['country']][item['party']]:
+                tree[item['country']][item['party']][item['mep']]=[]
+            tree[item['country']][item['party']][item['mep']].append({'year': item['year'],
+                                                                      'status': item['status'],
+                                                                      'dossier': item['dossier']})
+        return jsonify(tojson(toJit(tree,'root')))
+    return render_template('immunity.html',
+                           data=res,
                            url=request.base_url)
 
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|

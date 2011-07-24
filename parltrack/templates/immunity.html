@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block styles %}
+<link type="text/css" href="/static/js/css/jit/Treemap.css" rel="stylesheet" />
+{% endblock %}
+{% block scripts %}
+    <script language="javascript" type="text/javascript" src="/static/js/jit.js"></script>
+    <!--[if IE]><script language="javascript" type="text/javascript" src="/static/js/excanvas.js"></script><![endif]-->
+    <script language="javascript" type="text/javascript" src="/static/js/immtm.js"></script>
+    <script type="text/javascript" src="/static/js/jquery.tablesorter.min.js"> </script>
+    <script type="text/javascript" src="/static/js/picnet.table.filter.min.js"></script>
+    <script type="text/javascript">
+     $(document).ready(function() {
+        $("#sortedlist").tablesorter({
+            sortList: [[0,0],[2,1],[3,0],[1,0]],
+         });
+        $('#sortedlist').tableFilter();
+        $.getJSON("{{url}}?format=tree", function(json) {
+           initTM(json);
+           });
+     });
+    </script>
+{% endblock %}
+{% block content %}
+<a class="asjson" href="{{url}}?format=json">download as json</a><br />
+<a class="asjson" href="{{url}}?format=csv">download as csv</a>
+<h2>Members of the European Parliament, having their parlamentary immunity contested</h2>
+<div id='immunity-treemap' class="jit-container"> </div>
+<table id='sortedlist' class="tablesorter">
+   <thead>
+      <tr>
+         <th filter-type='ddl'>Status</th>
+         <th filter-type='ddl'>Name</th>
+         <th filter-type='ddl'>Year</th>
+         <th filter-type='ddl'>Country</th>
+         <th filter-type='ddl'>Party</th>
+         <th filter='false'>Dossier</th>
+      </tr>
+   </thead>
+   <tbody>
+      {% for item in data %}
+      <tr>
+         <td>{{ item.status }}</a></td>
+         <td><a href="/mep/{{ item.mep }}">{{ item.mep }}</a></td>
+         <td>{{ item.year }}</td>
+         <td><img class="group_icon" title="icon: {{countries[item.country]}}" src="/static/images/{{countries[item.country]|lower}}.gif" />{{ item.country }}</td>
+         <td>{{ item.party }}</td>
+         <td><a href="/dossier/{{ item.dossier }}">{{ item.dossier }}</a></td>
+      </tr>
+      {% endfor %}
+   </tbody>
+</table>
+{% endblock %}
+

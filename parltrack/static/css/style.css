@@ -1,4 +1,4 @@
-body, div, h1 { padding: 0; margin: 0; color: #777777; }
+body, h1 { padding: 0; margin: 0; color: #777777; }
 
 body { background: #EFEFEF; }
 
@@ -85,6 +85,57 @@ div.qtip { font-family:Trebuchet MS,Tahoma,Verdana,Arial,sans-serif; font-size: 
 .votes-graph {
     width: 600px;
     height: 100px;
+}
+.jit-container {
+   position:relative;
+   width: 60%;
+   height:300px;
+   margin:auto;
+   overflow:hidden;
+   background-color:#1D1D20;
+}
+
+.jit-container div {
+  position:absolute;
+  overflow:hidden;
+}
+
+.jit-container .content {
+  background-color:#333;
+  border:0px solid #111;
+}
+
+.jit-container .head {
+  color:white;
+  background-color:#444;
+}
+
+.jit-container .head.in-path {
+  background-color:#655;
+}
+
+.jit-container .body {
+  background-color:black;
+}
+
+.jit-container .leaf {
+  color:white;
+  background-color:#111;
+  display:table-cell;
+  vertical-align:middle;
+}
+
+.jit-container .over-leaf {
+  border:1px solid #9FD4FF;
+}
+
+.jit-container .over-content {
+  background-color: #9FD4FF;
+}
+
+.jit-container .over-head { /* ...boy i'm funny */
+  background-color:#A4D9FF;
+  color:black;
 }
 /* JIT TOOLTIPS*/
 .tip {

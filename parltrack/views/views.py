@@ -247,6 +247,42 @@ def committee(id):
             'dossiers': dossiers,
             'agendas': agendas}
 
+def immunity():
+    immre=re.compile(r'IMM/.*')
+    mepre=re.compile(r"(?:.*Mr.? |.* of |)(.*?)(?:'[s]? .*(?:immunity|mandate|testimony)| to be waived|$)")
+    res=[]
+    for d in db.dossiers.find({'procedure.reference': immre}):
+        m=mepre.match(d['procedure']['title'])
+        if not m:
+            print 'pls improve mepre to handle', d['procedure']['title'].encode('utf8')
+            continue
+        name=''.join(unicodedata.normalize('NFKD', unicode(m.group(1).strip())).encode('ascii','ignore').split()).lower()
+        mep=db.ep_meps.find_one({'Name.aliases': name })
+        if not mep and u'ß' in m.group(1):
+            name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(u'ß','ss').strip())).encode('ascii','ignore').split()).lower()
+            mep=db.ep_meps.find_one({'Name.aliases': name })
+        if not mep:
+            print '[0] not found', d['procedure']['reference'].split('/')[1], m.group(1).encode('utf8')
+        year=d['procedure']['reference'].split('/')[1]
+        for c in mep['Constituencies']:
+            if c['start'].year<=int(year) and c['end'].year>=int(year):
+                country=c['country']
+                party=c['party']
+                break
+        if d['procedure']['stage_reached']=='Awaiting Parliament 1st reading / single reading / budget 1st stage':
+            state='[1] in progress'
+        elif d['procedure']['stage_reached']=='Procedure completed':
+            state='[2] finished'
+        else:
+            state='[3] aborted'
+        res.append({'status': state,
+                    'year': year,
+                    'mep': mep['Name']['full'],
+                    'country': country,
+                    'party': party,
+                    'dossier': d['procedure']['reference']})
+    return res
+
 if __name__ == "__main__":
     dossier('COD/2007/0247')
     date='24/11/2010'
