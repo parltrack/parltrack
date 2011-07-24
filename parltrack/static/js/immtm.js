@@ -26,6 +26,7 @@ var initTM=function(json) {
      animate: animate,
      //box offsets  
      offset: 1,  
+     cushion: useGradients,
      constrained: true,
      levelsToShow: 1,
      //Attach left and right click events  
