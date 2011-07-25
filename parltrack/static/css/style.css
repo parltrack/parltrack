@@ -92,7 +92,7 @@ div.qtip { font-family:Trebuchet MS,Tahoma,Verdana,Arial,sans-serif; font-size: 
    height:300px;
    margin:auto;
    overflow:hidden;
-   background-color:#1D1D20;
+   background-color:#E6EEEE;
 }
 
 .jit-container div {
@@ -136,6 +136,14 @@ div.qtip { font-family:Trebuchet MS,Tahoma,Verdana,Arial,sans-serif; font-size: 
 .jit-container .over-head { /* ...boy i'm funny */
   background-color:#A4D9FF;
   color:black;
+}
+.jit-container .node {
+   font-family: sans-serif;
+}
+#visu-back {
+   display: block;
+   margin: auto;
+   width: 8em;
 }
 /* JIT TOOLTIPS*/
 .tip {

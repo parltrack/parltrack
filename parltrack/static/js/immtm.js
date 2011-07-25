@@ -23,7 +23,7 @@ var initTM=function(json) {
      //parent box title heights  
      titleHeight: 25,  
      //enable animations  
-     animate: animate,
+     animate: false,
      //box offsets  
      offset: 1,  
      cushion: useGradients,
@@ -39,6 +39,9 @@ var initTM=function(json) {
          tm.out();  
        }  
      },  
+     Node: {  
+      color: '#8DBDD8',  
+     },
      duration: 1000,  
      //Enable tips  
      Tips: {  
@@ -60,7 +63,16 @@ var initTM=function(json) {
      //Add the name of the node in the correponding label  
      //This method is called once, on label creation.  
      onCreateLabel: function(domElement, node){  
-         domElement.innerHTML = node.name;  
+         var data=node.data;
+         var html=node.name;  
+         if(data.meta) {
+            html += "<ul>";
+            for(var i=0;i<data.meta.length;i++) {
+               html += "<li>" + data.meta[i].dossier + " " + data.meta[i].status + "</li>";
+            }
+            html += "</ul>";
+         }
+         domElement.innerHTML = html;
          var style = domElement.style;  
          style.display = '';  
          style.border = '1px solid transparent';  
@@ -74,5 +86,9 @@ var initTM=function(json) {
    });  
    tm.loadJSON(json);  
    tm.refresh();  
+    var back = $jit.id('visu-back');
+    $jit.util.addEvent(back, 'click', function() {
+      tm.out();
+    });
 };
 

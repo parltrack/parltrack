@@ -374,12 +374,11 @@ def toJit(tree, name):
     if type(tree)==type(list()):
         return {"name": name,
                 "id": name,
-                "data": {"$area": len(tree), 'cases': len(tree), 'meta': tree },
-                "children": []}
+                "data": {"$area": len(tree), 'meta': tree}}
     w=sum([x['data']['$area'] for x in res])
     return {"id": name,
             "name": name,
-            "data": { "$area": w, 'color': w },
+            "data": { "$area": w},
             "children": res}
 
 @app.route('/datasets/imm/')
@@ -407,7 +406,7 @@ def immunity_view():
             tree[item['country']][item['party']][item['mep']].append({'year': item['year'],
                                                                       'status': item['status'],
                                                                       'dossier': item['dossier']})
-        return jsonify(tojson(toJit(tree,'root')))
+        return jsonify(tojson(toJit(tree,'Immunity Procedures by Country/Party')))
     return render_template('immunity.html',
                            data=res,
                            url=request.base_url)
