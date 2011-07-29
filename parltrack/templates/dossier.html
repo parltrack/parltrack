@@ -170,7 +170,7 @@
                 {%else%}{{agent.commitee}}{%endif%}
              {%endif%}
              {%if agent.name%}<a href="/mep/{{agent.name}}">{{agent.name}}</a>{%endif%}
-             {%if agent.group%}<a href="/meps/{{agent.group}}?date={{act.date}}">{{agent.group}}</a>{%endif%}
+             {%if agent.group%}<a href="/meps/{{agent.group}}?date={{act.date|asdate}}">{{agent.group}}</a>{%endif%}
            </li>
         {%endif%}
         {%if agent.body == "CSL" %}

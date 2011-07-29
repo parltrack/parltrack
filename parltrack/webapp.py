@@ -503,10 +503,11 @@ def view_committee(c_id):
 def asdate(value):
     if type(value)==type(int()):
         value=datetime.fromtimestamp(value)
-    date=value.strftime('%Y/%m/%d %H:%M')
-    if not date.endswith(" 00:00"):
-        return date
-    else: return date[:-len(" 00:00")]
+    if type(value) not in [type(str()), type(unicode())]:
+        value=value.strftime('%Y/%m/%d %H:%M')
+    if not value.endswith(" 00:00"):
+        return value
+    else: return value[:-len(" 00:00")]
 
 @app.template_filter()
 def isodate(value):
