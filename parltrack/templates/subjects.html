@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block scripts %}
+    <script type="text/javascript" src="/static/js/jquery.tablesorter.min.js"> </script>
+    <script type="text/javascript" src="/static/js/picnet.table.filter.min.js"></script>
+    <script type="text/javascript">
+     $(document).ready(function() {
+        $("#sortedlist").tablesorter({
+            sortList: [[0,1],[3,1],[4,0],[1,0]],
+         });
+        $('#sortedlist').tableFilter();
+     });
+    </script>
+{% endblock %}
+{% block content %}
+<a class="asjson" href="{{url}}?format=json">download as json</a><br />
+<a class="asjson" href="{{url}}?format=csv">download as csv</a>
+<h2>Subjects of dossiers</h2>
+<p>This is a table shows which subjects are taken on by which national parties. Group and country fields provide greater granularity for filtering. The data is available as <a href="?format=csv">csv</a> and as <a href="?format=json">json</a>. Please help in visualizing this, thank you!</p>
+<table id='sortedlist' class="tablesorter">
+   <thead>
+      <tr>
+         <th filter-type='ddl'>Count</th>
+         <th filter-type='ddl'>Subject ID</th>
+         <th filter-type='ddl'>Subject</th>
+         <th filter-type='ddl'>Party</th>
+         <th filter-type='ddl'>Group</th>
+         <th filter-type='ddl'>Country</th>
+      </tr>
+   </thead>
+   <tbody>
+      {% for item in data %}
+      <tr>
+         <td>{{ item.0 }}</a></td>
+         <td>{{ item.1 }}</td>
+         <td>{{ item.3 }}</td>
+         <td>{{ item.2 }}</td>
+         <td><img class="group_icon" title="icon: {{item.4}}" src="/{{item.4|group_icon}}" />{{item.4 }}</td>
+         <td><img class="group_icon" title="icon: {{countries[item.5]}}" src="/static/images/{{countries[item.5]|lower}}.gif" />{{ item.5 }}</td>
+      </tr>
+      {% endfor %}
+   </tbody>
+</table>
+{% endblock %}
+
