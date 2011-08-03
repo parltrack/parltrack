@@ -284,6 +284,62 @@ def immunity():
                     'dossier': d['procedure']['reference']})
     return res
 
+subjectscache={}
+def fetchsubj(subj):
+    (subject,title)=subj.split(' ',1)
+    subject=tuple(map(int,subject.split('.')))
+    if not subject in subjectscache:
+        subjectscache[subject]={'title': []}
+    if not title in subjectscache[subject]['title']:
+        subjectscache[subject]['title'].append(title)
+    return subject
+
+def inc(dct,fld,sfl):
+    if not fld in dct:
+        dct[fld]={sfl:0}
+    elif not sfl in dct[fld]:
+        dct[fld][sfl]=0
+    dct[fld][sfl]+=1
+
+def getCountry(mep,date):
+    date=datetime.strptime(date,"%Y-%m-%d")
+    for c in mep:
+        if c['end']>=date and c['start']<=date:
+            return (c['country'],c['party'])
+    if len(mep)==1:
+        return (mep[0]['country'],mep[0]['party'])
+
+def subjects():
+    all={}
+    fullmeps=dict([(x['_id'],(x['Constituencies'])) for x in db.ep_meps.find({},['Constituencies'])])
+    tree={}
+    for d in db.dossiers.find():
+        subs=[fetchsubj(x) for x in d['procedure'].get('subjects',[]) if x]
+        if not len(subs): continue
+        buck=[]
+        for actor in [a
+                      for action in d['activities'] if 'actors' in action
+                      for a in action['actors']
+                      if hasattr(a,'keys') and a.get('responsible') and a.get('mepref')!=None]:
+            if actor in buck: continue
+            buck.append(actor)
+            (country,party)=getCountry(fullmeps[actor['mepref']],actor.get('date',False))
+            [inc(all,(party, actor['group'], country),sub) for sub in subs]
+            inc(all,(party, actor['group'], country),'total')
+            group=actor['group']
+            if group not in tree:
+                tree[group]={}
+            if country not in tree[group]:
+                tree[group][country]={}
+            if party not in tree[group][country]:
+                tree[group][country][party]={}
+            [inc(tree[group][country],party,subjectscache[sub]['title'][0]) for sub in subs]
+    csv = [(count, '.'.join([str(x) for x in subj]), k[0], subjectscache[subj]['title'][0], k[1], k[2])
+           for k,v in all.items()
+           for subj,count in v.items() if subj!='total']
+    return (csv,tree)
+    #print u'\n'.join([u'\t'.join([unicode(y) for y in x]) for x in sorted(csv,reverse=True)]).encode('utf8')
+
 if __name__ == "__main__":
     dossier('COD/2007/0247')
     date='24/11/2010'
