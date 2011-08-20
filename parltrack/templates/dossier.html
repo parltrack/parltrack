@@ -170,7 +170,7 @@
                 {%else%}{{agent.commitee}}{%endif%}
              {%endif%}
              {%if agent.name%}<a href="/mep/{{agent.name}}">{{agent.name}}</a>{%endif%}
-             {%if agent.group%}<a href="/meps/{{agent.group}}?date={{act.date|asdate}}">{{agent.group}}</a>{%endif%}
+             {%if agent.group%}<a rel="nofollow" href="/meps/{{agent.group}}?date={{act.date|asdate}}">{{agent.group}}</a>{%endif%}
            </li>
         {%endif%}
         {%if agent.body == "CSL" %}
@@ -239,7 +239,7 @@
           <td>Position</td>
           <td>Total</td>
           {% for g in vote.groups|sort %}
-            <td><a href="/meps/{{g}}?date={{vote.ts|asdate}}">{{g}}</a></td>
+            <td><a rel="nofollow" href="/meps/{{g}}?date={{vote.ts|asdate}}">{{g}}</a></td>
           {%endfor%}
           <td>correctional</td>
         </tr>
