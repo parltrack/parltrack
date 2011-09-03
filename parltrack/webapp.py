@@ -522,10 +522,8 @@ def asdate(value):
     if type(value)==type(int()):
         value=datetime.fromtimestamp(value)
     if type(value) not in [type(str()), type(unicode())]:
-        value=value.strftime('%Y/%m/%d %H:%M')
-    if not value.endswith(" 00:00"):
-        return value
-    else: return value[:-len(" 00:00")]
+        return value.strftime('%Y/%m/%d')
+    return value.split(' ')[0]
 
 @app.template_filter()
 def isodate(value):
