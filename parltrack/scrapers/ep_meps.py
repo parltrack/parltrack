@@ -110,7 +110,7 @@ def parseMember(userid):
                       'place': p.strip() }
     data['Homepage'] = '' if not len(root.xpath("//td[@class='mepurl']/a/text()")) else root.xpath("//td[@class='mepurl']/a/text()")[0].strip()
     # LOL at HTML source - class="mepmail" -> obfuscation?! =))
-    data['Mail'] = unws(''.join(root.xpath("//td[@class='mepmail']//text()")))
+    data['Mail'] = unws(''.join(root.xpath("//td[@class='mepmail']//text()"))).split()
     data['Addresses'] = { 'Brussels': getAddress(map(strip, root.xpath("//td[@style='width: 225px; white-space: nowrap;']//text()"))),
                           'Strasbourg': getAddress(map(strip, root.xpath("//td[@style='width: 193px; white-space: nowrap;']//text()"))),
                           'Postal': [' '.join(x.split()) for x in root.xpath("//span[@class='txtmep']//text()") if x.strip()][1:]
