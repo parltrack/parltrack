@@ -327,7 +327,11 @@ def tocelex(title, type):
 
 def checkUrl(url):
     if not url: return False
-    res=fetch(url)
+    try:
+        res=fetch(url)
+    except Exception, e:
+        print >>sys.stderr, "[!] checkurl failed in %s" % (e.code, url)
+        return False
     return res.xpath('//h1/text()')[0]!="Not available in English."
 
 def fetch(url):
