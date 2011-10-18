@@ -142,6 +142,14 @@ def dossier(id):
     for vote in votes:
         groups=[x['group'] for new in ['For','Against','Abstain'] if new in vote for x in vote[new]['groups']]
         vote['groups']=sorted(set(groups))
+        t,r=vote.get('title'),vote.get('report')
+        if t and r:
+            i=t.index(r)
+            if i>=0:
+                tmp=r.replace('/','-').split('-')
+                rid='-'.join((tmp[0],tmp[2],tmp[1]))
+                vote['linkedtitle']='%s<a href="http://www.europarl.europa.eu/sides/getDoc.do?type=REPORT&mode=XML&reference=%s&language=EN">%s</a>%s' \
+                                     % (t[:i], rid, r, t[i+len(r):])
         for dec in [x for x in ['For','Against','Abstain'] if x in vote]:
             for g in groups:
                 if g not in [x['group'] for x in vote[dec]['groups']]:

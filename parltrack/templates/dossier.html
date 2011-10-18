@@ -230,7 +230,7 @@
 <div id="votes">
 <h3>Votes</h3>
 {%for vote in dossier.votes|sort(attribute='ts')%}
-<h4>{{vote.title}}</h4>
+<h4>{{vote.linkedtitle|safe}}</h4>
   <div>{{vote.ts|asdate}}</div>
   <div class='votes-graph'> </div>
   <table class="votes">
