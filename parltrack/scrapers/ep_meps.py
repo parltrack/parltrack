@@ -30,22 +30,23 @@ BASE_URL = 'http://www.europarl.europa.eu'
 db = connect_db()
 #proxy_handler = urllib2.ProxyHandler({'http': 'http://localhost:8123/'})
 #opener = urllib2.build_opener(proxy_handler)
+opener = urllib2.build_opener()
 #("User-agent", "Mozilla/5.0 (Macintosh; U; PPC Mac OS X; en) AppleWebKit/125.2 (KHTML, like Gecko) Safari/125.8"),
-#opener.addheaders = [('User-agent', 'parltrack/0.7')]
-#urllib2.install_opener(opener)
+opener.addheaders = [('User-agent', 'parltrack/0.7')]
+urllib2.install_opener(opener)
 
-def fetch(url):
+def fetch(url, retries=3):
     # url to etree
     try:
-        f=urllib2.urlopen(url)
-    except (urllib2.HTTPError, urllib2.URLError):
-        try:
-            f=urllib2.urlopen(url)
-        except (urllib2.HTTPError, urllib2.URLError):
-            try:
-                f=urllib2.urlopen(url)
-            except (urllib2.HTTPError, urllib2.URLError):
-                return ''
+        f=urllib2.urlopen(url, timeout=32)
+    except (urllib2.HTTPError, urllib2.URLError), e:
+        if hasattr(e, 'code') and e.code>=400:
+            print >>sys.stderr, "[!] %d %s" % (e.code, url)
+            return ''
+        if retries>0:
+            f=fetch(url,retries-1)
+        else:
+            return ''
     return parse(f)
 
 def dateJSONhandler(obj):
@@ -53,6 +54,12 @@ def dateJSONhandler(obj):
         return obj.isoformat()
     else:
         raise TypeError, 'Object of type %s with value of %s is not JSON serializable' % (type(Obj), repr(Obj))
+
+def cleanPhone(no):
+   i=no.find('(0)')
+   if i:
+      no=no[:i]+no[i+3:]
+   return no
 
 def getAddress(txts):
     flag = 0
@@ -67,9 +74,9 @@ def getAddress(txts):
             flag = 2
             continue
         if flag == 1:
-            ret['Phone'] = addr[1:].strip()
+            ret['Phone'] = cleanPhone(addr[1:].strip())
         elif flag == 2:
-            ret['Fax'] = addr[1:].strip()
+            ret['Fax'] = cleanPhone(addr[1:].strip())
         else:
             ret['Address'].append(addr)
     if len(ret['Address'])==7:
@@ -79,6 +86,20 @@ def getAddress(txts):
     if ret['Address']['Building'] in buildings:
         ret['Address']['building_code']=buildings[ret['Address']['Building']]
     return ret
+
+def getMEPGender(userid):
+    mepurl='http://www.europarl.europa.eu/members/archive/alphaOrder/view.do?language=FR&id='
+    try:
+        mepraw=fetch("%s%s" % (mepurl, userid))
+    except Exception, e:
+        print >>sys.stderr, e
+        return
+    hint=mepraw.xpath('//td[@class="mep_CVtext"]/text()')[-1].replace(u"\u00A0",' ').split()[0]
+    if hint==u"Née":
+        return "F"
+    elif hint==u"Né":
+        return "M"
+    return 'n/a'
 
 def unws(txt):
     return ' '.join(strip(txt).split())
@@ -230,6 +251,7 @@ def scrape(userid, name):
     data = { 'Constituencies': [],
              'Name' : mangleName(name),
              'Groups': [],
+             'Gender': getMEPGender(userid),
              'UserID': userid }
     # retrieve supplemental info for currently active meps
     data.update(parseMember(userid))
@@ -497,10 +519,10 @@ SEIRTNUOC = {'Belgium': 'BE',
              }
 
 if __name__ == "__main__":
-    import platform
-    if platform.machine() in ['i386', 'i686']:
-        import psyco
-        psyco.full()
+    #import platform
+    #if platform.machine() in ['i386', 'i686']:
+    #    import psyco
+    #    psyco.full()
     seen=[]
     for letter in uppercase:
         for term in [3, 4, 5, 6, 7]:
