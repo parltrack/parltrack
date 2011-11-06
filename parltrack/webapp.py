@@ -19,29 +19,6 @@
 # (C) 2011 by Adam Tauber, <asciimoo@gmail.com>, Stefan Marsiske <stefan.marsiske@gmail.com>
 
 import os, re, copy, csv, cStringIO, json
-from pymongo import Connection
-from flaskext.mail import Mail, Message
-from flaskext.cache import Cache
-from flask import Flask, render_template, request, jsonify, abort, redirect, Response
-from parltrack import default_settings
-from datetime import datetime, date, timedelta
-from random import randint, choice, shuffle, randrange
-from hashlib import sha1
-from werkzeug import ImmutableDict
-from bson.objectid import ObjectId
-from parltrack.scrapers.ep_meps import groupids, COUNTRIES, SEIRTNUOC
-from parltrack.scrapers.ep_com_meets import COMMITTEES, COMMITTEE_MAP
-from parltrack.scrapers.mappings import ALL_STAGES, STAGES
-from bson.code import Code
-from operator import itemgetter
-from parltrack.views.views import mepRanking, mep, immunity, committee, subjects, dossier
-
-Flask.jinja_options = ImmutableDict({'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_', 'jinja2.ext.loopcontrols']})
-app = Flask(__name__)
-app.config.from_object(default_settings)
-app.config.from_envvar('PARLTRACK_SETTINGS', silent=True)
-cache = Cache(app)
-mail = Mail(app)
 
 #@app.context_processor
 
@@ -608,6 +585,30 @@ def formatdiff(dossier):
             res.append(u"<tr><td>%s</td><td>%s</td><td>%s</td><td></td></tr>" % (di['type'], '/'.join([str(x) for x in di['path']]), printdict(di['data'])))
 
     return "<table><thead><tr width='90%%'><th>type</th><th>change in</th><th>new</th><th>old</th></tr></thead><tbody>%s</tbody></table>" % '\n'.join(res)
+
+from pymongo import Connection
+from flaskext.mail import Mail, Message
+from flaskext.cache import Cache
+from flask import Flask, render_template, request, jsonify, abort, redirect, Response
+from parltrack import default_settings
+from datetime import datetime, date, timedelta
+from random import randint, choice, shuffle, randrange
+from hashlib import sha1
+from werkzeug import ImmutableDict
+from bson.objectid import ObjectId
+from parltrack.scrapers.ep_meps import groupids, COUNTRIES, SEIRTNUOC
+from parltrack.scrapers.ep_com_meets import COMMITTEES, COMMITTEE_MAP
+from parltrack.scrapers.mappings import ALL_STAGES, STAGES
+from bson.code import Code
+from operator import itemgetter
+from parltrack.views.views import mepRanking, mep, immunity, committee, subjects, dossier
+
+Flask.jinja_options = ImmutableDict({'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_', 'jinja2.ext.loopcontrols']})
+app = Flask(__name__)
+app.config.from_object(default_settings)
+app.config.from_envvar('PARLTRACK_SETTINGS', silent=True)
+cache = Cache(app)
+mail = Mail(app)
 
 if __name__ == '__main__':
     app.run(debug=True)
