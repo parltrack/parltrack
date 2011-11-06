@@ -34,6 +34,7 @@ from parltrack.scrapers.ep_com_meets import COMMITTEES, COMMITTEE_MAP
 from parltrack.scrapers.mappings import ALL_STAGES, STAGES
 from bson.code import Code
 from operator import itemgetter
+from parltrack.views.views import mepRanking, mep, immunity, committee, subjects, dossier
 
 Flask.jinja_options = ImmutableDict({'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_', 'jinja2.ext.loopcontrols']})
 app = Flask(__name__)
@@ -280,7 +281,6 @@ def getDate():
     return date
 
 def render_meps(query={},kwargs={}):
-    from parltrack.views.views import mepRanking
     date=getDate()
     rankings=mepRanking(date,query)
     if not rankings:
@@ -352,7 +352,6 @@ def ranking():
 
 @app.route('/mep/<string:d_id>')
 def view_mep(d_id):
-    from parltrack.views.views import mep
     date=None
     if request.args.get('date'):
         date=getDate()
@@ -383,7 +382,6 @@ def toJit(tree, name):
 
 @app.route('/datasets/imm/')
 def immunity_view():
-    from parltrack.views.views import immunity
     res=immunity()
     if request.args.get('format','')=='json':
         return jsonify(tojson({'count': len(res), 'data': res}))
@@ -413,7 +411,6 @@ def immunity_view():
 
 @app.route('/datasets/subjects/')
 def subjects_view():
-    from parltrack.views.views import subjects
     (res,tree)=subjects() or ([],{})
     if request.args.get('format','')=='json':
         return jsonify(tojson({'count': len(res), 'data': res}))
@@ -428,7 +425,6 @@ def subjects_view():
         return jsonify(tojson(tree))
     return render_template('subjects.html',
                            data=res,
-                           json=json.dumps([x[:1]+x[2:4]+x[5:] for x in res]),
                            url=request.base_url)
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 #               Dossiers
@@ -436,7 +432,6 @@ def subjects_view():
 
 @app.route('/dossier/<path:d_id>')
 def view_dossier(d_id):
-    from parltrack.views.views import dossier
     d=dossier(d_id)
     if not d:
         abort(404)
@@ -511,7 +506,6 @@ def active_dossiers():
 
 @app.route('/committee/<string:c_id>')
 def view_committee(c_id):
-    from parltrack.views.views import committee
     c=committee(c_id)
     c['dossiers']=[listdossiers(d) for d in c['dossiers']]
     if not c:
