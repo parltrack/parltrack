@@ -492,8 +492,7 @@ def rss(nid):
 def active_dossiers():
     db = connect_db()
     query={'procedure.stage_reached': { "$in": STAGES } }
-    #ds=[listdossiers(d) for d in db.dossiers.find(query)]
-    ds=[]
+    ds=[listdossiers(d) for d in db.dossiers.find(query)]
     dstat=[(d['procedure']['reference'][:3],
             d['procedure']['stage_reached'],
             d['procedure']['dossier_of_the_committee'].split('/')[0] if 'dossier_of_the_committee' in d['procedure'] else None,
