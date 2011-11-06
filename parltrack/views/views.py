@@ -17,18 +17,6 @@
 
 # (C) 2011 by Stefan Marsiske, <stefan.marsiske@gmail.com>
 
-import sys, unicodedata
-from datetime import datetime
-import pymongo, re
-from parltrack.scrapers.ep_com_meets import COMMITTEE_MAP
-from parltrack.scrapers.new_dossiers import STAGES
-try:
-    from parltrack.webapp import connect_db
-    db = connect_db()
-except:
-    db=pymongo.Connection().parltrack
-from operator import itemgetter
-
 SHORTCUTMAP={'L': 'Directive',
              'R': 'Regulation',
              'D': 'Decision'}
@@ -347,6 +335,18 @@ def subjects():
            for subj,count in v.items() if subj!='total']
     return (csv,tree)
     #print u'\n'.join([u'\t'.join([unicode(y) for y in x]) for x in sorted(csv,reverse=True)]).encode('utf8')
+
+import sys, unicodedata
+from datetime import datetime
+import pymongo, re
+from parltrack.scrapers.ep_com_meets import COMMITTEE_MAP
+from parltrack.scrapers.new_dossiers import STAGES
+try:
+    from parltrack.webapp import connect_db
+    db = connect_db()
+except:
+    db=pymongo.Connection().parltrack
+from operator import itemgetter
 
 if __name__ == "__main__":
     dossier('COD/2007/0247')
