@@ -18,7 +18,7 @@
 
 # (C) 2011 by Adam Tauber, <asciimoo@gmail.com>, Stefan Marsiske <stefan.marsiske@gmail.com>
 
-import os, re, copy, csv, cStringIO, json
+import os, re, copy, csv, cStringIO, json, sys
 from pymongo import Connection
 from flaskext.mail import Mail, Message
 from flaskext.cache import Cache
@@ -157,6 +157,7 @@ def listdossiers(d):
     d['forecasts']=sorted(forecasts, key=itemgetter('date'))
     return d
 
+@cache.cached()
 @app.route('/notification/<string:g_id>')
 def notification_view_or_create(g_id):
     db = connect_db()
@@ -290,6 +291,7 @@ def render_meps(query={},kwargs={}):
                            url=request.base_url,
                            **kwargs)
 
+@cache.cached()
 @app.route('/meps/<string:country>/<path:group>')
 def mepfilter(country, group):
     query={}
@@ -316,6 +318,7 @@ def mepfilter(country, group):
         abort(404)
     return render_meps(query, args)
 
+@cache.cached()
 @app.route('/meps/<path:p1>')
 def mepsbygroup(p1):
     query={}
@@ -337,6 +340,7 @@ def mepsbygroup(p1):
         abort(404)
     return render_meps(query, args)
 
+@cache.cached()
 @app.route('/meps/')
 def ranking():
     query={}
@@ -346,6 +350,7 @@ def ranking():
                               'end' : {'$gte': date},}}}
     return render_meps(query)
 
+@cache.cached()
 @app.route('/mep/<string:d_id>')
 def view_mep(d_id):
     date=None
@@ -376,6 +381,7 @@ def toJit(tree, name):
             "data": { "$area": w},
             "children": res}
 
+@cache.cached()
 @app.route('/datasets/imm/')
 def immunity_view():
     res=immunity()
@@ -405,6 +411,7 @@ def immunity_view():
                            data=res,
                            url=request.base_url)
 
+@cache.cached()
 @app.route('/datasets/subjects/')
 def subjects_view():
     (res,tree)=subjects() or ([],{})
@@ -426,6 +433,7 @@ def subjects_view():
 #               Dossiers
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 
+@cache.cached()
 @app.route('/dossier/<path:d_id>')
 def view_dossier(d_id):
     d=dossier(d_id)
@@ -479,18 +487,21 @@ def rss(nid):
         return jsonify(tojson(res))
     return render_template('atom.xml', dossiers=res, path="changed")
 
+@cache.cached()
 @app.route('/dossiers')
 def active_dossiers():
     db = connect_db()
     query={'procedure.stage_reached': { "$in": STAGES } }
-    ds=[listdossiers(d) for d in db.dossiers.find(query)]
-    dstat=[(d['procedure']['reference'][:3],
-            d['procedure']['stage_reached'],
-            d['procedure']['dossier_of_the_committee'].split('/')[0] if 'dossier_of_the_committee' in d['procedure'] else None,
-            )+tuple(max([x.get('date') for x in d['activities']]).split('-'))
-           for d in db.dossiers.find(query)
-           if d['procedure']['reference'][:3] in ['APP', 'COD', 'CNS']]
-    print dstat
+    ds=[]
+    dstat=[]
+    for d in db.dossiers.find(query):
+        ds.append(listdossiers(d))
+        if d['procedure']['reference'][:3] in ['APP', 'COD', 'CNS'] and 'stage_reached' in d['procedure']:
+            dstat.append((d['procedure']['reference'][:3],
+                          d['procedure']['stage_reached'],
+                          d['procedure']['dossier_of_the_committee'].split('/')[0] if 'dossier_of_the_committee' in d['procedure'] else "",
+                          )+tuple(max([x.get('date').strftime("%Y-%m-%d") if type(x.get('date'))==type(datetime.now()) else x.get('date')
+                                       for x in d['activities']]).split('-')))
     return render_template('active_dossiers.html',
                            stats=json.dumps(dstat),
                            dossiers=ds,
@@ -500,6 +511,7 @@ def active_dossiers():
 #              Committees
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 
+@cache.cached()
 @app.route('/committee/<string:c_id>')
 def view_committee(c_id):
     c=committee(c_id)
@@ -604,6 +616,7 @@ def formatdiff(dossier):
             res.append(u"<tr><td>%s</td><td>%s</td><td>%s</td><td></td></tr>" % (di['type'], '/'.join([str(x) for x in di['path']]), printdict(di['data'])))
 
     return "<table><thead><tr width='90%%'><th>type</th><th>change in</th><th>new</th><th>old</th></tr></thead><tbody>%s</tbody></table>" % '\n'.join(res)
+
 
 from parltrack.scrapers.ep_meps import groupids, COUNTRIES, SEIRTNUOC
 from parltrack.scrapers.ep_com_meets import COMMITTEES, COMMITTEE_MAP
