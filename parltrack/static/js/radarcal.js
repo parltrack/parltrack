@@ -1,4 +1,4 @@
-$(document).ready(function() {
+jQuery(document).ready(function() {
     var eventclasses={
       'Council: debate or examination expected' : 'council-debate-expected',
       'Council: final act scheduled' : 'council-final',
@@ -13,8 +13,8 @@ $(document).ready(function() {
       'Plenary sitting agenda, vote' :  'ep-vote'
     };
     var events=[];
-    $('.vevent').each(function() {
-       var type=$(this).find('span.summary').text();
+    jQuery('.vevent').each(function() {
+       var type=jQuery(this).find('span.summary').text();
        var eventclass;
        if(/EP: on [A-Z]* agenda/.test(type)) {
           eventclass="committee-agenda";
@@ -24,17 +24,17 @@ $(document).ready(function() {
           eventclass=eventclasses[type];
        }
        events.push( {
-          title : $(this).parent().prev().text(),
-          summary : $(this).parent().next().next().next().text(),
+          title : jQuery(this).parent().prev().text(),
+          summary : jQuery(this).parent().next().next().next().text(),
           type  : type,
-          url   : $(this).parent().prev().find("a").attr('href'),
-          start : $(this).find(".dtstart").text(),
+          url   : jQuery(this).parent().prev().find("a").attr('href'),
+          start : jQuery(this).find(".dtstart").text(),
           className: eventclass
        });
     });
-    $('#categories').hide();
-    $('#legend').show();
-    $('#calendar').fullCalendar({
+    jQuery('#categories').hide();
+    jQuery('#legend').show();
+    jQuery('#calendar').fullCalendar({
         events : events,
         weekends: false,
         weekMode: 'liquid',

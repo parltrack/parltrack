@@ -13,9 +13,9 @@
     <script type="text/javascript" src="/static/js/jquery.js"> </script>
     <script type="text/javascript" src="/static/js/jquery-ui.js"> </script>
     <script type="text/javascript">
-     $(document).ready(function() {
-       $('#search_input').click(function() {
-        if($(this).attr('value') == '//search') $(this).attr('value', '');
+     jQuery(document).ready(function() {
+       jQuery('#search_input').click(function() {
+        if(jQuery(this).attr('value') == '//search') jQuery(this).attr('value', '');
        });
        /*
        $('#search_input').autocomplete({
@@ -35,11 +35,11 @@
           }
        });
        */
-       $('#ranking_date').click(function() {
-        if($(this).attr('value') == 'DD/MM/YYYY') $(this).attr('value', '');
+       jQuery('#ranking_date').click(function() {
+        if(jQuery(this).attr('value') == 'DD/MM/YYYY') jQuery(this).attr('value', '');
        });
-       $('#ranking_form').submit(function() {
-        window.location = '/meps/?date='+$('#ranking_date').attr('value');
+       jQuery('#ranking_form').submit(function() {
+        window.location = '/meps/?date='+jQuery('#ranking_date').attr('value');
         return false;
        });
      });

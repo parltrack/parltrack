@@ -201,3 +201,6 @@ table.tablesorter thead tr .headerSortDown {
 table.tablesorter thead tr .headerSortDown, table.tablesorter thead tr .headerSortUp {
 background-color: #8dbdd8;
 }
+.pivot_row_chart,
+.pivot_col_chart,
+.pivot_chart { max-width: 99%; overflow: auto; }

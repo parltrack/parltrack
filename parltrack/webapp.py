@@ -18,7 +18,7 @@
 
 # (C) 2011 by Adam Tauber, <asciimoo@gmail.com>, Stefan Marsiske <stefan.marsiske@gmail.com>
 
-import os, re, copy, csv, cStringIO
+import os, re, copy, csv, cStringIO, json
 from pymongo import Connection
 from flaskext.mail import Mail, Message
 from flaskext.cache import Cache
@@ -428,6 +428,7 @@ def subjects_view():
         return jsonify(tojson(tree))
     return render_template('subjects.html',
                            data=res,
+                           json=json.dumps([x[:1]+x[2:4]+x[5:] for x in res]),
                            url=request.base_url)
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 #               Dossiers
@@ -491,8 +492,17 @@ def rss(nid):
 def active_dossiers():
     db = connect_db()
     query={'procedure.stage_reached': { "$in": STAGES } }
-    ds=[listdossiers(d) for d in db.dossiers.find(query)]
+    #ds=[listdossiers(d) for d in db.dossiers.find(query)]
+    ds=[]
+    dstat=[(d['procedure']['reference'][:3],
+            d['procedure']['stage_reached'],
+            d['procedure']['dossier_of_the_committee'].split('/')[0] if 'dossier_of_the_committee' in d['procedure'] else None,
+            )+tuple(max([x.get('date') for x in d['activities']]).split('-'))
+           for d in db.dossiers.find(query)
+           if d['procedure']['reference'][:3] in ['APP', 'COD', 'CNS']]
+    print dstat
     return render_template('active_dossiers.html',
+                           stats=json.dumps(dstat),
                            dossiers=ds,
                            date=datetime.now())
 
