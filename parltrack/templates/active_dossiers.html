@@ -19,29 +19,9 @@
      var header = ["Type","Stage","Committe","Year","Month","Day"];
      var data = {{stats|safe}};
      function cb() {
-        var pivot = new OAT.Pivot("pivot_content",null,"pivot_page",header,data,[2,0],[1],[],4,{agg: 0});
-        var aggRef = function() {
-           pivot.options.agg = parseInt($v("pivot_agg"));
-           pivot.go();
-        }
-        var aggRefTotals = function() {
-           pivot.options.aggTotals = parseInt($v("pivot_agg_totals"));
-           pivot.go();
-        }
-        /* create agg function list */
-        OAT.Dom.clear("pivot_agg");
-        OAT.Dom.clear("pivot_agg_totals");
-        for (var i=0;i<OAT.Statistics.list.length;i++) {
-           var item = OAT.Statistics.list[i];
-           OAT.Dom.option(item.shortDesc,i,"pivot_agg");
-           OAT.Dom.option(item.shortDesc,i,"pivot_agg_totals");
-           if (pivot.options.agg == i) { $("pivot_agg").selectedIndex = i; }
-           if (pivot.options.aggTotals == i) { $("pivot_agg_totals").selectedIndex = i; }
-        }
-        OAT.Dom.attach("pivot_agg","change",aggRef);
-        OAT.Dom.attach("pivot_agg_totals","change",aggRefTotals);
+        var pivot = new
+           OAT.Pivot("pivot_content",null,"pivot_page",header,data,[0,2],[1],[],4,{agg: 0, showEmpty: 0, type: 4});
      }
-
      function init() {
         OAT.Loader.loadFeatures(['pivot','statistics'], cb);
      }
@@ -86,15 +66,10 @@
 	<div id="pivot">
 		<div id="pivot_chart"></div>
 		<ul id="pivot_help">
-			<li>Use select-boxes below to select a desired aggregate function</li>
 			<li>Click the main heading (left top corner) to change numerical type and </li>
 			<li>Click any aggregate heading to change the order, filter values and toggle subtotals</li>
 			<li>Drag any aggregate heading to any place that becomes red</li>
 		</ul>
-		Aggregate function:
-		<select id="pivot_agg"></select><br/>
-		Subtotals aggregate function:
-		<select id="pivot_agg_totals"></select><br/>
 		<div id="pivot_page"></div>
 		<div id="pivot_content"></div>
 	</div>
