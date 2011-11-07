@@ -92,6 +92,20 @@ COMMITTEE_MAP={'AFET': "Foreign Affairs",
                'Committee on Financial, Economic and Social Crisis': 'CRIS',
                'Committee on Policy Challenges Committee': 'SURE'}
 
+STAGEMAP = {'Preparatory phase in Parliament': '01. Preparatory phase in EP',
+            'Awaiting Parliament 1st reading / single reading / budget 1st stage': '02. EP 1st reading',
+            'Awaiting Council 1st reading position / budgetary conciliation convocation': '03. EC 1st reading position',
+            'Awaiting reconsultation': '04. Awaiting reconsultation',
+            'Awaiting Parliament decision after Council rejection of joint text': '05. EP decision after EC rejection of joint text',
+            'Awaiting Council decision, blocked at 1st reading': '06. EC decision, blocked at 1st reading',
+            'Awaiting Parliament 2nd reading': '07. EP 2nd reading',
+            'Awaiting Council decision, 2nd reading': '08. EC decision, 2nd reading',
+            'Awaiting Parliament and Council decision, 3rd reading': '09. EP and EC decision, 3rd reading',
+            'Conciliation ongoing': '10. Conciliation ongoing',
+            'Political agreement on final act': '11. Political agreement on final act',
+            'Awaiting signature': '12. Awaiting signature',
+            'Awaiting final decision': '13. Awaiting final decision',}
+
 STAGES = ['Preparatory phase in Parliament',
           'Awaiting Parliament 1st reading / single reading / budget 1st stage',
           'Awaiting reconsultation',

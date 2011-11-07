@@ -30,6 +30,7 @@ from werkzeug import ImmutableDict
 from bson.objectid import ObjectId
 from bson.code import Code
 from operator import itemgetter
+from collections import defaultdict
 from parltrack import default_settings
 
 Flask.jinja_options = ImmutableDict({'extensions': ['jinja2.ext.autoescape', 'jinja2.ext.with_', 'jinja2.ext.loopcontrols']})
@@ -494,6 +495,7 @@ def active_dossiers():
     query={'procedure.stage_reached': { "$in": STAGES } }
     ds=[]
     dstat=[]
+    stages=defaultdict(lambda: defaultdict(int))
     for d in db.dossiers.find(query):
         ds.append(listdossiers(d))
         if d['procedure']['reference'][:3] in ['APP', 'COD', 'CNS'] and 'stage_reached' in d['procedure']:
@@ -502,9 +504,20 @@ def active_dossiers():
                           d['procedure']['dossier_of_the_committee'].split('/')[0] if 'dossier_of_the_committee' in d['procedure'] else "",
                           )+tuple(max([x.get('date').strftime("%Y-%m-%d") if type(x.get('date'))==type(datetime.now()) else x.get('date')
                                        for x in d['activities']]).split('-')))
+            stages[d['procedure']['stage_reached']][d['procedure']['reference'][:3]]+=1
+    stages={ 'label': ['APP', 'COD', 'CNS'],
+             'values': [x[1] for x in
+                        sorted([(STAGEMAP[stage][:3],
+                                 {'label': STAGEMAP[stage][3:],
+                                  'values': [types.get(t,0)
+                                             for t in ['APP', 'COD', 'CNS']]})
+                                for stage, types
+                                in sorted(stages.items())
+                                if stage in STAGEMAP])]}
     return render_template('active_dossiers.html',
                            stats=json.dumps(dstat),
                            dossiers=ds,
+                           stages=json.dumps(stages),
                            date=datetime.now())
 
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
@@ -620,7 +633,7 @@ def formatdiff(dossier):
 
 from parltrack.scrapers.ep_meps import groupids, COUNTRIES, SEIRTNUOC
 from parltrack.scrapers.ep_com_meets import COMMITTEES, COMMITTEE_MAP
-from parltrack.scrapers.mappings import ALL_STAGES, STAGES
+from parltrack.scrapers.mappings import ALL_STAGES, STAGES, STAGEMAP
 from parltrack.views.views import mepRanking, mep, immunity, committee, subjects, dossier
 
 if __name__ == '__main__':

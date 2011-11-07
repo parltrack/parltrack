@@ -1,15 +1,19 @@
 {% extends "base.html" %}
 {% block scripts %}
-	 <script type="text/javascript" src="/static/js/oat/loader.js"></script>
     <script type="text/javascript" src="/static/js/jquery.tablesorter.min.js"> </script>
     <script type='text/javascript' src='/static/js/fullcalendar.min.js'></script>
     <script type='text/javascript' src='/static/js/jquery.qtip.min.js'></script>
     <script type='text/javascript' src='/static/js/radarcal.js'></script>
+    <script language="javascript" type="text/javascript" src="/static/js/jit.js"></script>
+    <!--[if IE]><script language="javascript" type="text/javascript" src="/static/js/excanvas.js"></script><![endif]-->
+    <script type='text/javascript' src='/static/js/stages.js'></script>
+	 <script type="text/javascript" src="/static/js/oat/loader.js"></script>
     <script type="text/javascript">
 	  var featureList=["pivot","statistics"];
+     var json = {{stages|safe}} ;
      jQuery(document).ready(function() {
        jQuery( "#tabs" ).tabs();
-     jQuery("#sortedlist").tablesorter({
+       jQuery("#sortedlist").tablesorter({
          sortList: [[1,1],[0,0]],
          textExtraction: function(node) {
             return jQuery(node).text();
@@ -63,6 +67,8 @@
 </div>
 {% endif %}
 <div id="stats">
+   <div id="stages-graph"> </div>
+   <hr />
 	<div id="pivot">
 		<div id="pivot_chart"></div>
 		<ul id="pivot_help">

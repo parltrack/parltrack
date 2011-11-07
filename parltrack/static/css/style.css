@@ -1,7 +1,5 @@
 body, h1 { padding: 0; margin: 0; color: #777777; }
 
-body { background: #EFEFEF; }
-
 a { color: #1A67B8; text-decoration: none; }
 a:hover { text-decoration: underline; }
 input { border: 1px solid #CDCDCD; color: #777777;}
@@ -52,6 +50,7 @@ li .has_summary, .more { cursor: pointer; padding-left: 0px; font-size: 1em; col
 #footer a, #footer a:visited { color: white; }
 
 .ui-widget-header { background: #EFEFEF !important; border: 0 !important; }
+.ui-widget-content { background: #fff !important; }
 .ui-widget-content a { color: #1A67B8 !important; text-decoration: none; }
 .ui-widget-content a:hover { color: #1A67B8 !important; text-decoration: underline; }
 .ui-state-hover { background: url(images/ui-bg_glass_100_f6f6f6_1x400.png) repeat-x scroll 50% 50% !important; border: 1px solid #f6f6f6 !important;}
@@ -79,12 +78,17 @@ li .has_summary, .more { cursor: pointer; padding-left: 0px; font-size: 1em; col
 div.qtip { font-family:Trebuchet MS,Tahoma,Verdana,Arial,sans-serif; font-size: .8em; }
 
 #dossiers-graph {
-    width: 600px;
-    height: 300px;
+   width: 600px;
+   height: 300px;
+}
+#stages-graph {
+   margin: 0 auto 3em auto;
+   width: 600px;
+   height: 300px;
 }
 .votes-graph {
-    width: 600px;
-    height: 100px;
+   width: 600px;
+   height: 100px;
 }
 .jit-container {
    position:relative;
@@ -133,7 +137,7 @@ div.qtip { font-family:Trebuchet MS,Tahoma,Verdana,Arial,sans-serif; font-size: 
   background-color: #9FD4FF;
 }
 
-.jit-container .over-head { /* ...boy i'm funny */
+.jit-container .over-head {
   background-color:#A4D9FF;
   color:black;
 }
