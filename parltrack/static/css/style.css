@@ -62,6 +62,7 @@ li .has_summary, .more { cursor: pointer; padding-left: 0px; font-size: 1em; col
 .council-debate-expected, .council-debate-expected a { background-color: green !important; border-color: green !important; color: white !important }
 .council-final, .council-final a{ background-color: green !important; border-color: green !important; color: yellow !important; }
 .council-agree, .council-agree a{ background-color: green !important; border-color: green !important; color: #ffcc00 !important; }
+.council-pos, .council-pos a{ background-color: green !important; border-color: green !important; color: #cc9900 !important; }
 .ep-sitting, .ep-sitting a{ background-color: #214478 !important; border-color: #214478 !important; color: #ccc !important; }
 .ep-2ndsitting, .ep-2ndsitting a{ background-color: #315488 !important; border-color: #315488 !important; color: #ccc !important; }
 .ep-3rdsitting, .ep-3rdsitting a{ background-color: #416488 !important; border-color: #416498 !important; color: white !important; }

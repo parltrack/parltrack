@@ -3,6 +3,7 @@ jQuery(document).ready(function() {
       'Council: debate or examination expected' : 'council-debate-expected',
       'Council: final act scheduled' : 'council-final',
       'Council: political agreement on final act expected' : 'council-agree',
+      'Council: political agreement on position expected' : 'council-pos',
       'EP plenary sitting (indicative date)' : 'ep-sitting',
       'EP plenary sitting, 2nd reading (indicative date)' : 'ep-2ndsitting',
       'EP plenary sitting, 3rd reading (indicative date)' : 'ep-3rdsitting',
