@@ -493,6 +493,8 @@ def rss(nid):
 def active_dossiers():
     db = connect_db()
     query={'procedure.stage_reached': { "$in": STAGES } }
+    if request.args.get('sub'):
+        query['procedure.subjects']=re.compile(request.args.get('sub'),re.I)
     ds=[]
     dstat=[]
     stages=defaultdict(lambda: defaultdict(int))
