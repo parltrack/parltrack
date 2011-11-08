@@ -3,28 +3,51 @@
 <script type="text/javascript" src="/static/js/jquery.tablesorter.min.js"> </script>
 <script type="text/javascript" src="/static/js/picnet.table.filter.min.js"></script>
 <script>
-   if(typeof(String.prototype.trim) === "undefined")
-   {
-      String.prototype.trim = function()
-      {
-         return String(this).replace(/^\s+|\s+$/g, '').replace(/\s+/,' ');
-      };
-   }
-
 	$(function() {
 		$( "#tabs" ).tabs();
       $("#sortedlist").tablesorter();
       $('#sortedlist').tableFilter();
       $("#sortedlist2").tablesorter({
-         sortList: [[3,1],[0,1]],
+         sortList: [[3,0],[0,1]],
          textExtraction: function(node) {
-            var d=$(node).find('abbr').eq(0).text();
-            if(d) { return d.trim(); }
-            return $(node).text().trim();
+            var max='2020/12/31'
+            var tmp=null;
+            var d=$(node).find('abbr');
+            if(d.length==0) {
+               if($(node).text().trim()=='') {
+                  return '99999999';
+               }
+               return $(node).text().trim();
+            }
+            var now=new Date();
+            now=now.getFullYear()+'/'+zeroPad((1+now.getMonth()),2)+'/'+zeroPad(now.getDate(),2);
+            for(var i=0; i<d.length; i++) {
+               tmp=$(d[i]).text().trim();
+               //console.log([d, now,tmp,max]);
+               if(tmp.split('/').length==3) {
+                  if(now<tmp && tmp<max) {
+                     //console.log('adf '+tmp);
+                     max=tmp;
+                  }
+               }
+            }
+            //console.log(max.split('/').join(''));
+            return max.split('/').join('');
          }
       });
       $('#sortedlist2').tableFilter();
 	});
+   if(typeof(String.prototype.trim) === "undefined") { String.prototype.trim = function() {
+         return String(this).replace(/^\s+|\s+$/g, '').replace(/\s+/,' ');
+      };
+   }
+   function zeroPad(num,count) {
+      var numZeropad = num + '';
+      while(numZeropad.length < count) {
+         numZeropad = "0" + numZeropad;
+      }
+      return numZeropad;
+   }
 </script>
 {% endblock %}
 {% block content %}
@@ -62,7 +85,7 @@
         <th filter-type='ddl'>Role</th>
         <th filter='false'>Dossier</th>
         <th filter='false'>Name</th>
-        <th filter='false' class="{sorter: 'text'}">Forecasts</th>
+        <th filter='false'>Forecasts</th>
         <th filter-type='ddl'>Stage Reached</th>
         <th filter='false'>Legal Basis</th>
         <th filter='false'>Committee Dossier</th>
@@ -79,7 +102,6 @@
         <td class='forecasts'>{% for fc in dossier.forecasts|sort if fc.date >= now_date %}
            <div class="vevent"><abbr title="{{fc.date.isoformat()}}" class="dtstart">{{ fc.date|asdate }}</abbr> -
               <span class="summary">{{ fc.title }}</span></div>
-          {% else %}-
           {% endfor %}</td>
         <td>{{ dossier.procedure.stage_reached }}</td>
         <td>{% for sub in dossier.procedure.legal_basis %}{% if not loop.first %}, {% endif %}{{ sub }}{% endfor %}</td>
