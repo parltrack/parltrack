@@ -3,51 +3,27 @@
 <link type="text/css" href="/static/js/css/jit/BarChart.css" rel="stylesheet" />
 {% endblock %}
 {% block scripts %}
-<script language="javascript" type="text/javascript" src="/static/js/jit-yc.js"></script>
+<script type="text/javascript" src="/static/js/jit-yc.js"></script>
 <!--[if IE]><script language="javascript" type="text/javascript" src="/static/js/excanvas.js"></script><![endif]-->
-<script language="javascript" type="text/javascript" src="/static/js/jitchart.js"></script>
-<script type="text/javascript">
-     $(document).ready(function() {
-       $('.has_summary').click(function() {
-        $(this).next('div').toggleClass('hidden');
-       });
-       $( "#tabs" ).tabs();
-       $('#notif_form').submit(function() {
-           var group = $(this).children('input:eq(1)').attr('value');
-            if(!group) {
-                $.ajax({url: '/notification', success: function(data) { group = data;
-                    $.ajax({url: group, success: function(data) {
-                        $.ajax({url: group+'/add/emails/'+$('#notif_form').children('input:first').attr('value'), success: function(data) { $('#notif_subscr h3').html(data); }});
-                        $.ajax({url: group+'/add/dossiers/'+$('#content > h2:first').html()});
-                    }});
-                }});
-            } else {
-            $.ajax({url: '/notification/'+group, success: function(data) {
-                $.ajax({url: '/notification/'+group+'/add/emails/'+$('#notif_form').children('input:first').attr('value')});
-                $.ajax({url: '/notification/'+group+'/add/dossiers/'+$('#content > h2:first').html(), success: function(data) {
-                    $('#notif_subscr h3').html(data);
-                    }});
-                }});
-            }
-            return false;
-       });
-     });
-    </script>
+<script type="text/javascript" src="/static/js/jitchart.js"></script>
+<script type="text/javascript" src="/static/js/dossier.js"></script>
 {% endblock %}
 {% block content %}
 <a class="asjson" href="{{url}}?format=json">download as json</a><br />
 <div id="track_dossier"><a class="asjson" href="/notification">Track this dossier</a>
     <div class="hidden right" id="notif_subscr">
     <h3>Notification subscription</h3>
-    <p>
-        <form method="get" action="" name="notif_form" id="notif_form">
-        E-mail: <input type="text" name="address" /><br />
-        //required<br />
-        Notification group: <input type="text" name="group" /><br />
-        //generated if empty<br />
-        <input type="submit" value="subscribe" />
+    <div>
+        <form method="get" action="" id="notif_form">
+           <div>
+              E-mail: <input type="text" name="address" /><br />
+              //required<br />
+              Notification group: <input type="text" name="group" /><br />
+              //generated if empty<br />
+              <input type="submit" value="subscribe" />
+           </div>
         </form>
-    </p>
+    </div>
     </div>
 </div>
 <h2>{{ dossier.procedure.reference }}</h2>
@@ -61,6 +37,7 @@
     <li><a href="#documents">Documents</a></li>
     {% if dossier.votes %}<li><a href="#votes">Votes</a></li>{%endif%}
   </ul>
+</div>
 <div id="general">
   {% if dossier.forecasts %} 
   <h3>Forecasts</h3>
@@ -94,7 +71,7 @@
   {%endfor%}
   {% if dossier.procedure.agents %}
   <h3>Committees</h3>
-  {% if dossier.procedure.dossier_of_the_committee %}<div>Dossier of the Committee <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&body={{dossier.procedure.committee}}&language=EN">{{dossier.procedure.dossier_of_the_committee}}</a></div>{%endif%}
+  {% if dossier.procedure.dossier_of_the_committee %}<div>Dossier of the Committee <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&amp;body={{dossier.procedure.committee}}&amp;language=EN">{{dossier.procedure.dossier_of_the_committee}}</a></div>{%endif%}
   <ul>{%for agent in dossier.procedure.agents%}
        {% if agent.commitee %}
        <li>
@@ -102,7 +79,7 @@
           <strong>{% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
             {%elif committee_map[agent.commitee]|length == 4 %}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>
             {%else%}{{agent.commitee}}{%endif%}</strong>
-          {%if dossier.procedure.dossier_of_the_committee %}<a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&body={{dossier.procedure.committee}}&language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
+          {%if dossier.procedure.dossier_of_the_committee %}<a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&amp;body={{dossier.procedure.committee}}&amp;language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
        {%else%}
           {% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
           {%elif committee_map[agent.commitee]|length == 4 %}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>
@@ -140,6 +117,7 @@
      {%if act.type%}{{act.type}}{%endif%}
      <ul>
      {%for doc in act.documents%}
+        <li>
         {%if doc.celexid %}
           <a href="http://pippi.euwiki.org/doc/{{doc.celexid}}">{{doc.title}}</a>
         {%elif doc.url %}
@@ -149,12 +127,13 @@
         {%endif%}
         {%if doc.summary%}
            <a class="has_summary">[summary]</a>
-           <div class="hidden" id="{{doc.title}}-summary">
+           <div class="hidden">
              {%for line in doc.summary %}
-             {{line|striptags}}
+             <p>{{line|striptags|urlize}}</p>
              {%endfor%}
            </div>
         {%endif%}
+        </li>
      {%endfor%}
      {%for agent in act.actors%}
         {%if agent.function == "MEP" %}
@@ -163,7 +142,7 @@
                 <strong>{% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
                   {%elif committee_map[agent.commitee]|length == 4 %}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>
                   {%else%}{{agent.commitee}}{%endif%}</strong>
-                {%if dossier.procedure.dossier_of_the_committee %}<a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&body={{dossier.procedure.committee}}&language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
+                {%if dossier.procedure.dossier_of_the_committee %}<a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&amp;body={{dossier.procedure.committee}}&amp;language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
              {%else%}
                 {% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
                 {%elif committee_map[agent.commitee]|length == 4 %}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>
@@ -197,7 +176,7 @@
       <li>{{doc.type}}: <a href='http://pippi.euwiki.org/doc/{{doc.celexid}}'>{{doc.title}}</a>
         {%if doc.summary%}
            [<a class="has_summary">summary</a>]
-           <div class="hidden" id="{{doc.title}}-summary">
+           <div class="hidden">
              {%for line in doc.summary %}
              {{line|striptags}}
              {%endfor%}
@@ -216,7 +195,7 @@
 
   {%if doc.summary%}
      [<a class="has_summary">summary</a>]
-     <div class="hidden" id="{{doc.title}}-summary">
+     <div class="hidden">
        {%for line in doc.summary %}
        {{line|striptags}}
        {%endfor%}

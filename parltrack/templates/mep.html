@@ -31,9 +31,10 @@
     {% if mep.term7 or mep.term6 %}<li><a href="#activities">Activities</a></li>{%endif%}
     <li><a href="#links">Links</a></li>
   </ul>
+</div>
 <div id="general">
 <div class="mepshot">
-<img src="http://www.europarl.europa.eu/mepphoto/{{mep.UserID}}.jpg">
+<img src="http://www.europarl.europa.eu/mepphoto/{{mep.UserID}}.jpg" />
   <br />
 </div>
 <h3>Constituencies</h3>
@@ -88,7 +89,6 @@
     {% if loop.last %}</ul>{%endif%}
     {% break %}
 {% endfor %}
-</ul>
 {%for c in mep.Groups|sort(attribute='start',reverse=True) if c.end<=today %}
    {% if loop.first %}
       {% if mep.active %}
@@ -223,18 +223,18 @@
    <li><dl><dt>Fax</dt><dd>{{mep.Addresses.Strasbourg.Fax}}</dd></dl></li>
    <li><dl><dt>Office</dt><dd>{{mep.Addresses.Strasbourg.Address.Building}} {{mep.Addresses.Strasbourg.Address.Office}}</dd></dl></li>
    <li><dl><dt class='more'>Address</dt><dd class='hidden'>
-   <ul>
-      <li><dl><dt>City</dt><dd>{{mep.Addresses.Strasbourg.Address.City}}</dd></dl></li>
-      <li><dl><dt>Zip</dt><dd>{{mep.Addresses.Strasbourg.Address.Zip1}} - {{mep.Addresses.Strasbourg.Address.Zip2}}</dd></dl></li>
-      <li><dl><dt>Street</dt><dd>{{mep.Addresses.Strasbourg.Address.Street}}</dd></dl></li>
-   </ul>
+      <ul>
+         <li><dl><dt>City</dt><dd>{{mep.Addresses.Strasbourg.Address.City}}</dd></dl></li>
+         <li><dl><dt>Zip</dt><dd>{{mep.Addresses.Strasbourg.Address.Zip1}} - {{mep.Addresses.Strasbourg.Address.Zip2}}</dd></dl></li>
+         <li><dl><dt>Street</dt><dd>{{mep.Addresses.Strasbourg.Address.Street}}</dd></dl></li>
+      </ul>
+   </dd></dl></li>
 </ul>
 <h4>Postal</h4>
 <ul>
   {%for a in mep.Addresses.Postal%}
   <li>{{a}}</li>
   {%endfor%}
-  </ul>
 </ul>
 </div>
 {%endif%}
@@ -299,19 +299,19 @@
     {% if mep.term7%}
     <h4>Term 7 14.07.2009 / ...</h4>
     <ul>
-    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=QP&language=EN&term=7&author={{mep.UserID}}">Questions</a></li>
-    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=MOTION&language=EN&term=7&author={{mep.UserID}}">Motions for resolutions</a></li>
-    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=CRE&language=EN&term=7&author={{mep.UserID}}">Speeches in plenary</a></li>
-    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=WDECL&language=EN&term=7&author={{mep.UserID}}">Written declarations</a></li>
+    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=QP&amp;language=EN&amp;term=7&amp;author={{mep.UserID}}">Questions</a></li>
+    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=MOTION&amp;language=EN&amp;term=7&amp;author={{mep.UserID}}">Motions for resolutions</a></li>
+    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=CRE&amp;language=EN&amp;term=7&amp;author={{mep.UserID}}">Speeches in plenary</a></li>
+    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=WDECL&amp;language=EN&amp;term=7&amp;author={{mep.UserID}}">Written declarations</a></li>
     </ul>
     {%endif%}
     {% if mep.term6%}
     <h4>Term 6 20.07.2004 - 13.07.2009</h4>
     <ul>
-    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=QP&language=EN&term=6&author={{mep.UserID}}">Questions</a></li>
-    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=MOTION&language=EN&term=6&author={{mep.UserID}}">Motions for resolutions</a></li>
-    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=CRE&language=EN&term=6&author={{mep.UserID}}">Speeches in plenary</a></li>
-    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=WDECL&language=EN&term=6&author={{mep.UserID}}">Written declarations</a></li>
+    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=QP&amp;language=EN&amp;term=6&amp;author={{mep.UserID}}">Questions</a></li>
+    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=MOTION&amp;language=EN&amp;term=6&amp;author={{mep.UserID}}">Motions for resolutions</a></li>
+    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=CRE&amp;language=EN&amp;term=6&amp;author={{mep.UserID}}">Speeches in plenary</a></li>
+    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=WDECL&amp;language=EN&amp;term=6&amp;author={{mep.UserID}}">Written declarations</a></li>
     <li><a href="http://www.europarl.europa.eu/mepatt/leg6/{{mep.UserID}}.pdf">Attendance List</a> (pdf)</li>
     </ul>
     {%endif%}

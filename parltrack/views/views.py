@@ -136,7 +136,7 @@ def dossier(id):
             if i>=0:
                 tmp=r.replace('/','-').split('-')
                 rid='-'.join((tmp[0],tmp[2],tmp[1]))
-                vote['linkedtitle']='%s<a href="http://www.europarl.europa.eu/sides/getDoc.do?type=REPORT&mode=XML&reference=%s&language=EN">%s</a>%s' \
+                vote['linkedtitle']='%s<a href="http://www.europarl.europa.eu/sides/getDoc.do?type=REPORT&amp;mode=XML&amp;reference=%s&amp;language=EN">%s</a>%s' \
                                      % (t[:i], rid, r, t[i+len(r):])
         for dec in [x for x in ['For','Against','Abstain'] if x in vote]:
             for g in groups:

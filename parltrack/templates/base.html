@@ -6,8 +6,8 @@
     <meta name="description" content="" />
     <meta name="keywords" content="" />
     <title>[!] ParlTrack {% block title %}{% endblock %}</title>
-    <link rel="alternate" type="application/atom+xml" title="New Dossiers feed" href="{{request.url_root}}new/?format=atom">
-    <link rel="alternate" type="application/atom+xml" title="Changed Dossiers feed" href="{{request.url_root}}changed/?format=atom">
+    <link rel="alternate" type="application/atom+xml" title="New Dossiers feed" href="{{request.url_root}}new/?format=atom" />
+    <link rel="alternate" type="application/atom+xml" title="Changed Dossiers feed" href="{{request.url_root}}changed/?format=atom" />
     {% block rss %}
     {% endblock %}
     <script type="text/javascript" src="/static/js/jquery.js"> </script>
@@ -85,10 +85,10 @@
        </div>
      </li>
      <li><a>Search</a>
-     <div id="search"><form action="/search" method="get">MEPs:<input type="checkbox" checked="checked" name="s_meps"/> Dossiers:<input type="checkbox" checked="checked" name="s_dossiers"/><br /><input type="text" value="//search" id="search_input" name="q"/></form></div>
+     <div id="search"><form action="/search" method="get"><p>MEPs:<input type="checkbox" checked="checked" name="s_meps"/> Dossiers:<input type="checkbox" checked="checked" name="s_dossiers"/><br /><input type="text" value="//search" id="search_input" name="q"/></p></form></div>
      </li>
     </ul>
-    <a style="float: right" href="http://flattr.com/thing/308984/Parltrack" target="_blank"><img style="vertical-align: middle" src="/static/images/flattr-badge-large.png" alt="Flattr this" title="Flattr this" border="0" /></a>
+    <a style="float: right" href="http://flattr.com/thing/308984/Parltrack"><img style="vertical-align: middle" src="/static/images/flattr-badge-large.png" alt="Flattr this" title="Flattr this"/></a>
    {% block menu %}
    {% endblock %}
    </div>

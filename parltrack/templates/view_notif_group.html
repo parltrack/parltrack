@@ -4,75 +4,26 @@
     <script type='text/javascript' src='/static/js/fullcalendar.min.js'></script>
     <script type='text/javascript' src='/static/js/jquery.qtip.min.js'></script>
     <script type='text/javascript' src='/static/js/radarcal.js'></script>
-    <script type="text/javascript">
-     $(document).ready(function() {
-       $( "#tabs" ).tabs();
-       $('#notif_form').submit(function() {
-            $.ajax({url: '{{group.id}}', success: function(data) {
-                $.ajax({url: '{{group.id}}/add/emails/'+$('#notif_form').children('input:first').attr('value'), success: function(data) { $('#notif_subscr h3').html(data); }});
-                $.ajax({url: '{{group.id}}/add/dossiers/'+$('#content > h2:first').html()});
-            }});
-            return false;
-       });
-     $("#sortedlist").tablesorter({
-         sortList: [[1,0],[0,0]],
-         textExtraction: function(node) {
-            var max='2020/12/31'
-            var tmp=null;
-            var d=$(node).find('abbr');
-            if(d.length==0) {
-               if($(node).text().trim()=='') {
-                  return '99999999';
-               }
-               return $(node).text().trim();
-            }
-            var now=new Date();
-            now=now.getFullYear()+'/'+zeroPad((1+now.getMonth()),2)+'/'+zeroPad(now.getDate(),2);
-            for(var i=0; i<d.length; i++) {
-               tmp=$(d[i]).text().trim();
-               //console.log([d, now,tmp,max]);
-               if(tmp.split('/').length==3) {
-                  if(now<tmp && tmp<max) {
-                     //console.log('adf '+tmp);
-                     max=tmp;
-                  }
-               }
-            }
-            //console.log(max.split('/').join(''));
-            return max.split('/').join('');
-         }
-       });
-     });
-     if(typeof(String.prototype.trim) === "undefined") { String.prototype.trim = function() {
-           return String(this).replace(/^\s+|\s+$/g, '').replace(/\s+/,' ');
-        };
-     }
-     function zeroPad(num,count) {
-        var numZeropad = num + '';
-        while(numZeropad.length < count) {
-           numZeropad = "0" + numZeropad;
-        }
-        return numZeropad;
-     }
-    </script>
+    <script type="text/javascript" src="/static/js/view_notif.js"></script>
 {% endblock %}
 {% block styles %}
 <link rel='stylesheet' type='text/css' href='/static/css/fullcalendar.css' />
 {%endblock%}
 
-
 {% block content %}
 <div id="track_dossier"><a class="asjson" href="/notification">Join this notification group</a><br />
     <div class="hidden right" id="notif_subscr">
-    <h3>Notification subscription</h3>
-    <p>
-        <form method="get" action="" name="notif_form" id="notif_form">
-        E-mail: <input type="text" name="address" /><br />
-        //required<br />
-        <input type="hidden" name="group" value="{{group.id}}" />
-        <input type="submit" value="subscribe" />
-        </form>
-    </p>
+       <h3>Notification subscription</h3>
+       <div>
+           <form method="get" action="" id="notif_form">
+              <div>
+                 E-mail: <input type="text" name="address" /><br />
+                 //required<br />
+                 <input type="hidden" name="group" value="{{group.id}}" />
+                 <input type="submit" value="subscribe" />
+              </div>
+           </form>
+       </div>
     </div>
 </div>
 <h2>{{ group.id }} notification group</h2>
@@ -81,6 +32,7 @@
     <li><a href="#general">General</a></li>
     <li><a href="#calendar-tab">Calendar</a></li>
   </ul>
+</div>
 {% if dossiers %}
 <div id='calendar-tab'>
   <div id="calendar_legend">
@@ -147,7 +99,6 @@
       {% endfor %}
     </tbody>
   </table>
-<div>
 </div>
 {% endif %}
 {% endblock %}

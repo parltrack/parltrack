@@ -3,9 +3,9 @@
 <link type="text/css" href="/static/js/css/jit/Treemap.css" rel="stylesheet" />
 {% endblock %}
 {% block scripts %}
-    <script language="javascript" type="text/javascript" src="/static/js/jit-yc.js"></script>
+    <script type="text/javascript" src="/static/js/jit-yc.js"></script>
     <!--[if IE]><script language="javascript" type="text/javascript" src="/static/js/excanvas.js"></script><![endif]-->
-    <script language="javascript" type="text/javascript" src="/static/js/immtm.js"></script>
+    <script type="text/javascript" src="/static/js/immtm.js"></script>
     <script type="text/javascript" src="/static/js/jquery.tablesorter.min.js"> </script>
     <script type="text/javascript" src="/static/js/picnet.table.filter.min.js"></script>
     <script type="text/javascript">
@@ -41,7 +41,7 @@ This is an example visualization of the immunity waiver procedures against Membe
    <tbody>
       {% for item in data %}
       <tr>
-         <td>{{ item.status }}</a></td>
+         <td>{{ item.status }}</td>
          <td><a href="/mep/{{ item.mep }}">{{ item.mep }}</a></td>
          <td>{{ item.year }}</td>
          <td><img class="group_icon" title="icon: {{countries[item.country]}}" src="/static/images/{{countries[item.country]|lower}}.gif" />{{ item.country }}</td>
