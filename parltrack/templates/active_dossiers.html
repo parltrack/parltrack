@@ -27,74 +27,74 @@
     <li><a href="#stats">Stats</a></li>
     <li><a href="#calendar-tab">Calendar</a></li>
   </ul>
-</div>
-{% if dossiers %}
-<div id='calendar-tab'>
-  <div id="calendar_legend">
-    <ul id='legend'>
-      <li class='ep-vote'>Plenary sitting agenda, vote</li>
-      <li class='ep-debate'>Plenary sitting agenda, debate</li>
-      <li class='ep-sitting'>EP plenary sitting (indicative date)</li>
-      <li class='ep-2ndsitting'>'EP plenary sitting, 2nd reading'</li>
-      <li class='ep-3rdsitting'>EP plenary sitting, 3rd reading'</li>
-      <li class='ep-1streading'>EP: report scheduled for adoption in committee, 1st or single reading</li>
-      <li class='ep-2ndreading'>'EP: report scheduled for adoption in committee, 2nd reading'</li>
-      <li class='tabling-deadline'>'EP: Deadline for committee ammendments'</li>
-      <li class='committee-agenda'>'EP: on committee agenda'</li>
-      <li class='council-debate-expected'>Council: debate or examination expected</li>
-      <li class='council-final'>Council: final act scheduled</li>
-      <li class='council-agree'>Council: political agreement on final act expected</li>
-      <li class='council-pos'>Council: political agreement on position expected</li>
-    </ul>
-  </div>
-  <div id='calendar'></div>
-</div>
-{% endif %}
-<div id="stats">
-   <div id="stages-graph"> </div>
-   <hr />
-	<div id="pivot">
-		<div id="pivot_chart"></div>
-		<ul id="pivot_help">
-			<li>Click the main heading (left top corner) to change numerical type and </li>
-			<li>Click any aggregate heading to change the order, filter values and toggle subtotals</li>
-			<li>Drag any aggregate heading to any place that becomes red</li>
-		</ul>
-		<div id="pivot_page"></div>
-		<div id="pivot_content"></div>
-	</div>
-</div>
-<div id="dossiers">
-<table id='sortedlist' class="tablesorter">
-    <thead>
-      <tr>
-        <th>Dossier</th>
-        <th class="{sorter: 'text'}">Forecasts</th>
-        <th>Stage Reached</th>
-        <th>Legal Basis</th>
-        <th>Name</th>
-        <th>Committee Dossier</th>
-        <th>Rapporteur</th>
-        <th>Commission Doc</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for dossier in dossiers %}
-      <tr>
-        <td><a href="/dossier/{{ dossier.procedure.reference }}">{{ dossier.procedure.reference }}</a></td>
-        <td class='forecasts'>{% for fc in dossier.forecasts|sort if fc.date >= now_date %}
-           <div class="vevent"><abbr title="{{fc.date.isoformat()}}" class="dtstart">{{ fc.date|asdate }}</abbr> -
-              <span class="summary">{{ fc.title }}</span></div>
-          {% endfor %}</td>
-        <td>{{ dossier.procedure.stage_reached }}</td>
-        <td>{% for sub in dossier.procedure.legal_basis %}{% if not loop.first %}, {% endif %}{{ sub }}{% endfor %}</td>
-        <td>{{ dossier.procedure.title }}</td>
-        <td>{{ dossier.procedure.dossier_of_the_committee }}</td>
-        <td>{% for r in dossier.rapporteur %}{% if not loop.first %}, {% endif %}<a href="/mep/{{r.name}}">{{ r.name }}</a> ({{r.grp}}){% endfor %}</td>
-        <td>{% if dossier.comdoc %}<a href="{{dossier.comdoc.url}}">{{ dossier.comdoc.title }}</a>{% endif %}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+   {% if dossiers %}
+   <div id='calendar-tab'>
+     <div id="calendar_legend">
+       <ul id='legend'>
+         <li class='ep-vote'>Plenary sitting agenda, vote</li>
+         <li class='ep-debate'>Plenary sitting agenda, debate</li>
+         <li class='ep-sitting'>EP plenary sitting (indicative date)</li>
+         <li class='ep-2ndsitting'>'EP plenary sitting, 2nd reading'</li>
+         <li class='ep-3rdsitting'>EP plenary sitting, 3rd reading'</li>
+         <li class='ep-1streading'>EP: report scheduled for adoption in committee, 1st or single reading</li>
+         <li class='ep-2ndreading'>'EP: report scheduled for adoption in committee, 2nd reading'</li>
+         <li class='tabling-deadline'>'EP: Deadline for committee ammendments'</li>
+         <li class='committee-agenda'>'EP: on committee agenda'</li>
+         <li class='council-debate-expected'>Council: debate or examination expected</li>
+         <li class='council-final'>Council: final act scheduled</li>
+         <li class='council-agree'>Council: political agreement on final act expected</li>
+         <li class='council-pos'>Council: political agreement on position expected</li>
+       </ul>
+     </div>
+     <div id='calendar'></div>
+   </div>
+   {% endif %}
+   <div id="stats">
+      <div id="stages-graph"> </div>
+      <hr />
+      <div id="pivot">
+         <div id="pivot_chart"></div>
+         <ul id="pivot_help">
+            <li>Click the main heading (left top corner) to change numerical type and </li>
+            <li>Click any aggregate heading to change the order, filter values and toggle subtotals</li>
+            <li>Drag any aggregate heading to any place that becomes red</li>
+         </ul>
+         <div id="pivot_page"></div>
+         <div id="pivot_content"></div>
+      </div>
+   </div>
+   <div id="dossiers">
+   <table id='sortedlist' class="tablesorter">
+       <thead>
+         <tr>
+           <th>Dossier</th>
+           <th class="{sorter: 'text'}">Forecasts</th>
+           <th>Stage Reached</th>
+           <th>Legal Basis</th>
+           <th>Name</th>
+           <th>Committee Dossier</th>
+           <th>Rapporteur</th>
+           <th>Commission Doc</th>
+         </tr>
+       </thead>
+       <tbody>
+         {% for dossier in dossiers %}
+         <tr>
+           <td><a href="/dossier/{{ dossier.procedure.reference }}">{{ dossier.procedure.reference }}</a></td>
+           <td class='forecasts'>{% for fc in dossier.forecasts|sort if fc.date >= now_date %}
+              <div class="vevent"><abbr title="{{fc.date.isoformat()}}" class="dtstart">{{ fc.date|asdate }}</abbr> -
+                 <span class="summary">{{ fc.title }}</span></div>
+             {% endfor %}</td>
+           <td>{{ dossier.procedure.stage_reached }}</td>
+           <td>{% for sub in dossier.procedure.legal_basis %}{% if not loop.first %}, {% endif %}{{ sub }}{% endfor %}</td>
+           <td>{{ dossier.procedure.title }}</td>
+           <td>{{ dossier.procedure.dossier_of_the_committee }}</td>
+           <td>{% for r in dossier.rapporteur %}{% if not loop.first %}, {% endif %}<a href="/mep/{{r.name}}">{{ r.name }}</a> ({{r.grp}}){% endfor %}</td>
+           <td>{% if dossier.comdoc %}<a href="{{dossier.comdoc.url}}">{{ dossier.comdoc.title }}</a>{% endif %}</td>
+         </tr>
+         {% endfor %}
+       </tbody>
+     </table>
+   </div>
 </div>
 {% endblock %}
