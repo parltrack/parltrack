@@ -342,11 +342,11 @@ def fetch(url, retries=5):
     except (urllib2.HTTPError, urllib2.URLError), e:
         if hasattr(e, 'code') and e.code>=400:
             print >>sys.stderr, "[!] %d %s" % (e.code, url)
-            return None
+            raise
         if retries>0:
             f=fetch(url,retries-1)
         else:
-            return None
+            raise
     return parse(f)
 
 def toDate(node):
@@ -628,7 +628,6 @@ def summaries(table):
                 tree=fetch(item['url'])
             except:
                 continue
-            if not tree: continue
             text=[tostring(x) for x in tree.xpath('//table[@class="box_content_txt"]//td/*')]
             item['text']=text
     return tmp
