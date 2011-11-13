@@ -331,7 +331,7 @@ def checkUrl(url):
     try:
         res=fetch(url)
     except Exception, e:
-        print >>sys.stderr, "[!] checkurl failed in %s\n" % (url, e)
+        print >>sys.stderr, "[!] checkurl failed in %s\n%s" % (url, e)
         return False
     return res.xpath('//h1/text()')[0]!="Not available in English."
 
