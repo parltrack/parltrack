@@ -50,6 +50,7 @@ opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar())
 opener.addheaders = [('User-agent', 'weurstchen/0.5')]
 # connect to  mongo
 stats=[0,0]
+stage_threshold=5
 commitee_actorre=re.compile(r'^EP:.*(by|of) the committee responsible')
 
 def getMEPRef(name):
@@ -334,26 +335,18 @@ def checkUrl(url):
         return False
     return res.xpath('//h1/text()')[0]!="Not available in English."
 
-def fetch(url):
+def fetch(url, retries=5):
     # url to etree
     try:
         f=urllib2.urlopen(url)
-    except urllib2.URLError, e:
+    except (urllib2.HTTPError, urllib2.URLError), e:
         if hasattr(e, 'code') and e.code>=400:
             print >>sys.stderr, "[!] %d %s" % (e.code, url)
-            raise
-        try:
-            # 1st retry
-            f=urllib2.urlopen(url)
-        except urllib2.URLError:
-            if hasattr(e, 'code') and e.code>=400:
-                print >>sys.stderr, "[!] %d %s" % (e.code, url)
-                raise
-            try:
-                # 2nd retry
-                f=urllib2.urlopen(url)
-            except urllib2.URLError:
-                raise
+            return None
+        if retries>0:
+            f=fetch(url,retries-1)
+        else:
+            return None
     return parse(f)
 
 def toDate(node):
@@ -635,6 +628,7 @@ def summaries(table):
                 tree=fetch(item['url'])
             except:
                 continue
+            if not tree: continue
             text=[tostring(x) for x in tree.xpath('//table[@class="box_content_txt"]//td/*')]
             item['text']=text
     return tmp
@@ -741,14 +735,11 @@ def nextPage(req):
 
     img=tree.xpath('//a/img[@src="img/cont/activities/navigation/navi_next_activities.gif"]')
     if len(img):
-        next='http://www.europarl.europa.eu/'+img[0].xpath('..')[0].get('href')
-        print >> sys.stderr, ('retrieving next page')
-        nextPage(next)
+        return 'http://www.europarl.europa.eu/'+img[0].xpath('..')[0].get('href')
 
 def crawl(fast=True):
-    result=[]
     stages=getStages()
-    if fast: stages=[x for x in stages if x[1] != 'Procedure completed']
+    if fast: stages=[(n,x) for n,x in stages if int(n)<=800 ]
     for (stageid, stage) in stages:
         print >> sys.stderr, ( 'crawling: '+ stage)
         data={'xpath': '/oeil/search/procstage/stage',
@@ -760,15 +751,22 @@ def crawl(fast=True):
               'pageSize': 50}
         req = urllib2.Request('http://www.europarl.europa.eu/oeil/FindByStage.do',
                               urllib.urlencode(data))
-        nextPage(req)
-        #result.extend(nextPage(req))
-    return result
+        ostat=[stats, 0]
+        next=nextPage(req)
+        while next:
+            if fast:
+                # we check if there was any updated document in the
+                # last few pages, if not we abort scraping this stage
+                if ostat[0]==stats:
+                    ostat[1]+=1
+                    if ostat[1]>stage_threshold:
+                        break
+                else:
+                    ostat=[stats,0]
+            print >> sys.stderr, ('retrieving next page')
+            next=nextPage(next)
 
 if __name__ == "__main__":
-    import platform
-    if platform.machine() in ['i386', 'i686']:
-        import psyco
-        psyco.full()
     crawl(fast=(False if len(sys.argv)>1 and sys.argv[1]=='full' else True))
     #import pprint
     #print '['
