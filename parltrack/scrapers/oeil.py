@@ -331,7 +331,7 @@ def checkUrl(url):
     try:
         res=fetch(url)
     except Exception, e:
-        print >>sys.stderr, "[!] checkurl failed in %s\n%s" % (url, e)
+        #print >>sys.stderr, "[!] checkurl failed in %s\n%s" % (url, e)
         return False
     return res.xpath('//h1/text()')[0]!="Not available in English."
 
@@ -340,7 +340,7 @@ def fetch(url, retries=5):
     try:
         f=urllib2.urlopen(url)
     except (urllib2.HTTPError, urllib2.URLError), e:
-        if hasattr(e, 'code') and e.code>=400:
+        if hasattr(e, 'code') and e.code>=400 and e.code not in [504]:
             print >>sys.stderr, "[!] %d %s" % (e.code, url)
             raise
         if retries>0:
