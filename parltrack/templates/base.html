@@ -35,13 +35,6 @@
           }
        });
        */
-       jQuery('#ranking_date').click(function() {
-        if(jQuery(this).attr('value') == 'DD/MM/YYYY') jQuery(this).attr('value', '');
-       });
-       jQuery('#ranking_form').submit(function() {
-        window.location = '/meps/?date='+jQuery('#ranking_date').attr('value');
-        return false;
-       });
      });
     </script>
     {% block scripts %}
@@ -57,14 +50,7 @@
     <ul class="dropdown dropdown-horizontal">
      <li><a href="/">Home</a></li>
      <li><a href="/dossiers">Dossiers</a></li>
-     <li><a href="/meps/?date={{ now_date.strftime('%d/%m/%Y') }}">MEPs</a>
-      <div>
-       <p>Click for list of current MEPs</p>
-       <form method="get" action="/meps/" id="ranking_form">
-        <p>Custom date:<input type="text" value="DD/MM/YYYY" name="ranking_date" id="ranking_date"/></p>
-       </form>
-      </div>
-     </li>
+     <li><a href="/meps/?date={{ now_date.strftime('%d/%m/%Y') }}">MEPs</a></li>
      <li><a>Committees</a>
        <div style="min-width:320px;">
           <ul>{%for c in committees|sort%}<li>
