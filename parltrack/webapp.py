@@ -64,14 +64,17 @@ def inject_data():
 @app.route('/')
 def index():
     db = connect_db()
-    tmp=dict([(x[u'procedure.stage_reached'],int(x['count'])) for x in db.dossiers.group({'procedure.stage_reached': True},
-                                                                                  {},
-                                                                                  {'count': 0},
-                                                                                  Code('function(doc, out){ out.count++ }'))])
-    stages=[(k,tmp[k]) for k in ALL_STAGES if tmp.get(k)]
+    #tmp=dict([(x[u'procedure.stage_reached'],int(x['count'])) for x in db.dossiers.group({'procedure.stage_reached': True},
+    #                                                                              {},
+    #                                                                              {'count': 0},
+    #                                                                              Code('function(doc, out){ out.count++ }'))])
+    #stages=[(k,tmp[k]) for k in ALL_STAGES if tmp.get(k)]
+    cutoff=datetime.now()-timedelta(days=3)
+    d=db.dossiers.find({'meta.created': {'$gt': cutoff}}).sort([('meta.created', -1)])
     return render_template('index.html',
-                           stages=stages,
+                           #stages=stages,
                            dossiers_num=db.dossiers.find().count(),
+                           latest=d,
                            votes_num=db.ep_votes.find().count(),
                            meps_num=db.ep_meps.find().count())
 
