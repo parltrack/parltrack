@@ -134,7 +134,7 @@ def listdossiers(d):
                                  if x.get('responsible') and x.get('name')])]
     forecasts=[]
     for act in d['activities']:
-        if act.get('type')=='Forecast':
+        if act.get('type') in ['Forecast', 'Event']:
             forecasts.append({'date':datetime.strptime(act['date'], "%Y-%m-%d"),
                               'title': ' '.join(act['title'].split())})
         if act.get('type') in ['Non-legislative initial document',
