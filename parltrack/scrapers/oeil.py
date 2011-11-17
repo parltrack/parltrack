@@ -36,6 +36,7 @@ except:
     import pymongo
     db=pymongo.Connection().parltrack
 from bson.objectid import ObjectId
+from parltrack.scrapers.ipex import IPEXMAP
 
 db.oeil.ensure_index([('procedure.reference', 1)])
 db.oeil.ensure_index([('procedure.title', 1)])
@@ -78,6 +79,7 @@ def makeActivities(data):
                 data['procedure'].get('actors',[])+
                 data.get('stages',[])+
                 data.get('docs',[])+
+                data.get('ipex',{'Dates':[]}).get('Dates',[])+
                 data['procedure'].get('forecasts',[])
                 if 'date' in x],
                key=itemgetter('date'))
@@ -89,6 +91,8 @@ def makeActivities(data):
         del data['procedure']['actors']
     if 'forecasts' in data['procedure']:
         del data['procedure']['forecasts']
+    if 'ipex' in data and 'Dates' in data['ipex']:
+        del data['ipex']['Dates']
     stage={}
     res=[]
     # merge items into Activities
@@ -196,6 +200,9 @@ def makeActivities(data):
     return list(reversed(res))
 
 def save(data):
+    ipex=IPEXMAP[data['procedure']['reference']]
+    if ipex:
+        data['ipex']=ipex
     data['activities']=makeActivities(data)
     #print json.dumps(data,default=dateJSONhandler)
     #pprint.pprint(data)
@@ -229,7 +236,7 @@ def save(data):
                           sender = "parltrack@parltrack.euwiki.org",
                           bcc = g['active_emails'])
             msg.body = makemsg(data,d)
-            mail.send(msg)
+            #mail.send(msg)
         data['changes']=res.get('changes',{})
         data['changes'][now]=d
         db.dossiers.save(data)

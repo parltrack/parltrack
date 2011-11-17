@@ -106,7 +106,7 @@ def dossier(id):
     if 'changes' in dossier: del dossier['changes']
     forecasts=[]
     for act in dossier['activities']:
-        if act['type']=='Forecast':
+        if act['type'] in ['Forecast', 'Event']:
             forecasts.append({'date':datetime.strptime(act['date'], "%Y-%m-%d"),
                               'title': ' '.join(act['title'].split())})
         if act['type'] in ['Non-legislative initial document', 'Commission/Council: initial legislative document']:
@@ -125,6 +125,9 @@ def dossier(id):
                 dossier['finalref']="%s %s/%d/EC" % (doctypename,
                                                      cid[1:5],
                                                      int(cid[st:]))
+    if 'ipex' in dossier:
+        dossier['ipex']['Rapporteur']=[[db.ep_meps.find_one({'_id': x}),y] for x,y in dossier['ipex'].get('Rapporteur',[])]
+        dossier['ipex']['Shadows']=[[db.ep_meps.find_one({'_id': x}),y] for x,y in dossier['ipex'].get('Shadows',[])]
     # find related votes
     votes=list(db.ep_votes.find({'dossierid': dossier['_id']}))
     for vote in votes:

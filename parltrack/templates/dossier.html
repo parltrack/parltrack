@@ -38,13 +38,15 @@
     {% if dossier.votes %}<li><a href="#votes">Votes</a></li>{%endif%}
   </ul>
 <div id="general">
-  {% if dossier.forecasts %} 
+  {% if dossier.forecasts|length or dossier.comeets|length %}
   <h3>Forecasts</h3>
-  <ul>
-    {% for fc in dossier.forecasts %}
-    <li><abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr> {{fc.title}}</li>
-    {% endfor %}
-  </ul>
+  {% endif %}
+  {% if dossier.forecasts %}
+     <ul>
+       {% for fc in dossier.forecasts %}
+       {% if fc.date>now_date %}<li><abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr> {{fc.title}}</li>{% endif %}
+       {% endfor %}
+     </ul>
   {% endif %}
   {% for committee in dossier.comeets|sort(attribute='resp',reverse=True) if committee.meeting_date > now_date %}
     {%if loop.first %}<ul>{%endif%}
@@ -86,6 +88,12 @@
        {%endif%}
        {%if agent.name%}<a href="/mep/{{agent.name}}">{{agent.name}}</a>{%endif%}
        {%if agent.group%}<a href="/meps/{{agent.group}}">{{agent.group}}</a>{%endif%}
+       {%if agent.responsible%}
+          {% for a in dossier.ipex.Shadows %}
+             {%if loop.first %}Shadows:{%endif%}
+             <a href="/mep/{{a[0].Name.full}}">{{a[0].Name.full}}</a> (<a href="/meps/{{a[1]}}">{{a[1]}}</a>)
+          {% endfor %}
+       {%endif%}
      </li>
      {%endif%}
     {%endfor%}
@@ -104,6 +112,7 @@
   <li><a href="{{dossier.meta.source}}">OEIL</a></li>
   <li><a href="http://www.google.com/search?q={{dossier.procedure.title}}+-europarl.europa.eu">Google</a></li>
   <li><a href="http://www.europarl.europa.eu/RegistreWeb/search/simple.htm?fulltext={{dossier.procedure.eprodid}}">Eprod</a></li>
+  {% if dossier.ipex and dossier.ipex.Scrutiny %}<li><a href="{{dossier.ipex.Scrutiny}}">IPEX National Scrutiny</a></li>{% endif %}
 </ul></div>
 </div>
 {% if dossier.activities %}
