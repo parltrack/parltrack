@@ -12,7 +12,7 @@
       <h4>Newest Dossiers</h4>
       <ul style="overflow-x: auto; max-height: 30em; list-style-type: none; margin: ; padding: 0;">
          {% for i in latest %}
-            <li style="margin-bottom: .6em;">{{i.meta.created|asdate}} <a href="/doc/{{i.procedure.reference}}" title="{{i.procedure.title}}">{{i.procedure.reference}}</a> {{i.procedure.title}}</li>
+            <li style="margin-bottom: .6em;">{{i.meta.created|asdate}} <a href="/dossier/{{i.procedure.reference}}" title="{{i.procedure.title}}">{{i.procedure.reference}}</a> {{i.procedure.title}}</li>
          {% endfor %}
       </ul>
    </div>
