@@ -663,21 +663,9 @@ summaryFields=( ('URL', urlFromJS),
 def scrape(url):
     try:
         tree=fetch(url)
-    except urllib2.URLError, e:
-        if e.code>=400:
-            print >>sys.stderr, "[!] %d %s" % (e.code, url)
-            return
-
+    except:
+        return
     sections=tree.xpath('//h2')
-    if not len(sections):
-        # retry once
-        try:
-            tree=fetch(url)
-        except urllib2.URLError, e:
-            if e.code>=400:
-                print >>sys.stderr, "[!] %d %s" % (e.code, url)
-                return []
-        sections=tree.xpath('//h2')
     if not len(sections):
         # even retry failed :(
         print >> sys.stderr, ('[!] ERROR no title in: %s\nSkipping' % k)
