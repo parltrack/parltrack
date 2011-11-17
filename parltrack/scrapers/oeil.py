@@ -28,6 +28,7 @@ from flaskext.mail import Message
 from parltrack.webapp import mail
 from parltrack.utils import diff
 from parltrack.default_settings import ROOT_URL
+from parltrack.scrapers.mappings import ipexevents
 import unicodedata
 try:
     from parltrack.environment import connect_db
@@ -75,11 +76,22 @@ def makeActivities(data):
             'CJEC': ['Court of Justice of the European Communities'],
             'CJEU': ['Court of Justice of the European Union'],
             'CSL/EP': ['Council of the European Union', 'European Parlament'],}
+    #filter ipex for duplicates in oeil
+    ipext=[]
+    for ipexd in data.get('ipex',{'Dates':[]}).get('Dates',[]):
+        skip=False
+        for event in data.get('stages',[])+data['procedure'].get('forecasts',[]):
+            if event['type']==ipexevents.get(ipexd['title'],{}).get('oeil','asdf') and event['date']==ipexd['date']:
+                skip=True
+                break
+        if skip: continue
+        ipext.append(ipexd)
     tmp=sorted([x for x in
                 data['procedure'].get('actors',[])+
                 data.get('stages',[])+
                 data.get('docs',[])+
-                data.get('ipex',{'Dates':[]}).get('Dates',[])+
+                ipext+
+                #data.get('ipex',{'Dates':[]}).get('Dates',[])+
                 data['procedure'].get('forecasts',[])
                 if 'date' in x],
                key=itemgetter('date'))
@@ -777,7 +789,7 @@ if __name__ == "__main__":
     #print ','
     #scrape("http://www.europarl.europa.eu/oeil/file.jsp?id=5840492")
     #print ','
-    #scrape("http://www.europarl.europa.eu/oeil/file.jsp?id=5563972")
+    #scrape("http://www.europarl.europa.eu/oeil/file.jsp?id=5563972") # telecoms package
     #print ','
     #scrape("http://www.europarl.europa.eu/oeil/file.jsp?id=5563642")
     #print ','

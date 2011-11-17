@@ -20,6 +20,7 @@
 from lxml.html.soupparser import parse
 from operator import itemgetter
 import urllib2, cookielib, sys, csv, datetime, re, collections, unicodedata
+from parltrack.scrapers.mappings import ipexevents as dates
 
 try:
     from parltrack.environment import connect_db
@@ -94,25 +95,6 @@ def getMEPGroup(mep,date=None):
                 return group['groupid'][0]
             return group['groupid']
 
-dates={u'CSL 1R Agreement': 'CSL',
-       u'CSL Common Position': 'CSL',
-       u'CSL Final Adoption': 'CSL',
-       u'CSL Final Agreement': 'CSL',
-       u'CSL Non Acceptance': 'CSL',
-       u'Date': 'EP',
-       u'Deadline Amendments': 'EP',
-       u'EP 1R Committee': 'EP',
-       u'EP 1R Plenary': 'EP',
-       u'EP 2R Committee': 'EP',
-       u'EP 2R Plenary': 'EP',
-       u'EP 3R Plenary': 'EP',
-       u'EP Conciliation Committee': 'EP',
-       u'EP officialisation': 'EP',
-       u'End Date': 'EP',
-       u'Foreseen CSL Activities': 'CSL',
-       u'Prev Adopt in Cte': 'EP',
-       u'Prev DG PRES': 'EC'}
-
 cdates=[u'Date', u'EP officialisation', u'Deadline Amendments', u'EP 1R Committee']
 
 refre=re.compile(r'([0-9/]*)[(]([A-Z]{3})')
@@ -140,7 +122,7 @@ def getIpexData():
         item['Dates']=[]
         for k in dates.keys():
             tmp=item[k].split(' ')
-            body=dates[k]
+            body=dates[k]['body']
             if len(tmp)==1:
                 try:
                     tmp1=toDate(tmp[0])
