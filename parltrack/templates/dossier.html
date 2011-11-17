@@ -100,11 +100,11 @@
   </ul>
   {%endif%}
 <div>Subjects
-<ul>{%for sub in dossier.procedure.subjects%}<li>{{sub}}</li>{%endfor%}</ul>
+<ul>{%for sub in dossier.procedure.subjects%}<li><a href="/dossiers?sub={{sub.split(' ')[0]}}&subtitle={{sub}}">{{sub}}</a></li>{%endfor%}</ul>
 </div>
   {% if dossier.procedure.legal_basis %}
   <div>Legal Basis
-  <ul>{%for sub in dossier.procedure.legal_basis%}<li>{{sub}}</li>{%endfor%}</ul></div>
+     <ul>{%for sub in dossier.procedure.legal_basis%}<li>{{sub}}</li>{%endfor%}</ul></div>
   {% endif %}
 <div>Links
 <ul>

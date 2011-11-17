@@ -497,8 +497,15 @@ def rss(nid):
 def active_dossiers():
     db = connect_db()
     query={'procedure.stage_reached': { "$in": STAGES } }
-    if request.args.get('sub'):
-        query['procedure.subjects']=re.compile(request.args.get('sub'),re.I)
+    sub=request.args.get('sub')
+    filterby=None
+    if sub:
+        query['procedure.subjects']=re.compile(sub,re.I)
+        subtitle=request.args.get('subtitle')
+        if request.args.get('subtitle'):
+            filterby="Subtitle: %s" % subtitle
+        else:
+            filterby="Subtitle: %s" % sub
     ds=[]
     dstat=[]
     stages=defaultdict(lambda: defaultdict(int))
@@ -524,6 +531,7 @@ def active_dossiers():
                            stats=json.dumps(dstat),
                            dossiers=ds,
                            stages=json.dumps(stages),
+                           filterby=filterby,
                            date=datetime.now())
 
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|

@@ -21,6 +21,7 @@
 
 {% block content %}
 <h2>Active Dossiers</h2>
+{% if filterby %}Filtered by {{filterby}}{% endif %}
 <div id="tabs">
   <ul>
     <li><a href="#dossiers">Dossiers</a></li>
