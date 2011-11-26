@@ -88,10 +88,10 @@ def mepRanking(date,query={}):
         rankedMeps.append((score,sorted(ranks, reverse=True),mep))
     return [x for x in sorted(rankedMeps,reverse=True)]
 
-def dossier(id):
+def dossier(id, without_changes=True):
     dossier_idqueries=[{'procedure.reference': id },
-                       {'procedure.docs.title': id },
                        {'activites.documents.title': id },
+                       {'procedure.docs.title': id },
                        ]
     for query in dossier_idqueries:
         dossier=db.dossiers.find_one(query)
@@ -103,7 +103,7 @@ def dossier(id):
         dossier['procedure']['committee']=dossier['procedure']['dossier_of_the_committee'].split('/')[0]
     tmp=dossier['procedure']['reference'].split('/')
     dossier['procedure']['eprodid']="%s/%s(%s)" % (tmp[1],tmp[2],tmp[0])
-    if 'changes' in dossier: del dossier['changes']
+    if 'changes' in dossier and without_changes: del dossier['changes']
     forecasts=[]
     for act in dossier['activities']:
         if act['type'] in ['Forecast', 'Event']:
@@ -126,8 +126,8 @@ def dossier(id):
                                                      cid[1:5],
                                                      int(cid[st:]))
     if 'ipex' in dossier:
-        dossier['ipex']['Rapporteur']=[[db.ep_meps.find_one({'_id': x}),y] for x,y in dossier['ipex'].get('Rapporteur',[])]
-        dossier['ipex']['Shadows']=[[db.ep_meps.find_one({'_id': x}),y] for x,y in dossier['ipex'].get('Shadows',[])]
+        dossier['ipex']['Rapporteur']=[[db.ep_meps.find_one({'_id': id}),group] for id,group,name in dossier['ipex'].get('Rapporteur',[])]
+        dossier['ipex']['Shadows']=[[db.ep_meps.find_one({'_id': id}), group] for id,group,name in dossier['ipex'].get('Shadows',[])]
     # find related votes
     votes=list(db.ep_votes.find({'dossierid': dossier['_id']}))
     for vote in votes:
@@ -154,8 +154,13 @@ def dossier(id):
             item['Rapporteur']['rapporteurs']=[db.ep_meps.find_one({'_id': x}) for x in item['Rapporteur']['rapporteurs']]
             item['Committees'][item['committee']]=item['Rapporteur']['rapporteurs']
         for com in item.get('Opinions',[]):
-            com['rapporteurs']=[db.ep_meps.find_one({'_id': x}) for x in com['rapporteurs']]
-            item['Committees'][com['committee']]=com['rapporteurs']
+            if 'committees' in com and 'committee' not in com:
+                for c in com['committees']:
+                    c['rapporteurs']=[]
+                    item['Committees'][c['committee']]=c
+            else:
+                com['rapporteurs']=[db.ep_meps.find_one({'_id': x}) for x in com['rapporteurs']]
+                item['Committees'][com['committee']]=com['rapporteurs']
         if 'tabling_deadline' in item and item['tabling_deadline']>=datetime.now():
             dossier['activities'].insert(0,{'type': 'Forecast', 'body': 'EP', 'date': item['tabling_deadline'].isoformat()[:10], 'title': 'Deadline for tabling ammendments (%s)' % item['committee']})
             forecasts.append({'type': 'Forecast', 'body': 'EP', 'date': item['tabling_deadline'], 'title': 'Deadline for tabling ammendments (%s)' % item['committee']})
