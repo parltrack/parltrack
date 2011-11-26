@@ -46,6 +46,8 @@ fields=[(re.compile(r'^ {4,}Rapporteur:? +(.*)'),"Rapporteur"),
         ]
 misc_block=re.compile(u'^ {3,}(:?\uf0b7 +|\u2022 +)(.*)')
 opinion_junk=re.compile(r'^ {3,}opinion: {3,}(.*)')
+
+db.ep_com_meets.ensure_index([('docref', 1)])
 COMMITTEES=[x for x in db.ep_com_meets.distinct('committee') if x not in ['Security and Defence', 'SURE'] ]
 
 def fetch(url):
