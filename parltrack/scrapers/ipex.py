@@ -71,11 +71,13 @@ def toDate(text):
 
 def getMEPRef(name):
     if not name: return
-    mep=db.ep_meps.find_one({'Name.aliases': ''.join(name.split()).lower()},['_id', 'Groups'])
+    mep=db.ep_meps.find_one({'Name.aliases': ''.join(name.split()).lower()},['_id', 'Groups', 'Name.full'])
     if not mep and u'ß' in name:
-        mep=db.ep_meps.find_one({'Name.aliases': ''.join(name.replace(u'ß','ss').split()).lower()},['_id', 'Groups'])
+        mep=db.ep_meps.find_one({'Name.aliases': ''.join(name.replace(u'ß','ss').split()).lower()},['_id', 'Groups', 'Name.full'])
     if not mep and unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore')!=name:
-        mep=db.ep_meps.find_one({'Name.aliases': ''.join(unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore').split()).lower()},['_id', 'Groups'])
+        mep=db.ep_meps.find_one({'Name.aliases': ''.join(unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore').split()).lower()},['_id', 'Groups', 'Name.full'])
+    if not mep:
+        mep=db.ep_meps.find_one({'Name.aliases': re.compile(''.join([x if x<128 else '.' for x in name]),re.I)},['_id', 'Groups', 'Name.full'])
     if mep:
         return mep
     else:
@@ -117,8 +119,8 @@ def getIpexData():
             if item[k]:
                 date=item[k]
                 break
-        item['Rapporteur']=[[x['_id'],getMEPGroup(x,date)] for x in filter(None,[getMEPRef(mep) for mep in item['Rapporteur'].decode('raw_unicode_escape').split(', ')])]
-        item['Shadows']=[[x['_id'],getMEPGroup(x,date)] for x in filter(None,[getMEPRef(mep) for mep in item['Shadows'].decode('raw_unicode_escape').split(', ')])]
+        item['Rapporteur']=[[x['_id'],getMEPGroup(x,date), x['Name']['full']] for x in filter(None,[getMEPRef(mep) for mep in item['Rapporteur'].decode('raw_unicode_escape').split(', ')])]
+        item['Shadows']=[[x['_id'],getMEPGroup(x,date), x['Name']['full']] for x in filter(None,[getMEPRef(mep) for mep in item['Shadows'].decode('raw_unicode_escape').split(', ')])]
         item['Dates']=[]
         for k in dates.keys():
             tmp=item[k].split(' ')
