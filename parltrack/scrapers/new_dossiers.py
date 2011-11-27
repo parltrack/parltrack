@@ -20,7 +20,7 @@
 
 
 from lxml.html.soupparser import parse
-from urllib2 import urlopen
+import urllib2, urllib, cookielib
 from string import strip
 from parltrack.environment import connect_db
 from parltrack.scrapers.oeil import scrape as oeil_scrape
@@ -33,17 +33,28 @@ db = connect_db()
 URL = 'http://www.europarl.europa.eu/oeil/'
 LAST_UPDATED_CACHE = "%s/.dossiers_last_updated" % dirname(realpath(__file__))
 
-def fetch(url):
+opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
+#opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()),
+#                              urllib2.ProxyHandler({'http': 'http://localhost:8123/'}))
+opener.addheaders = [('User-agent', 'weurstchen/0.5')]
+
+def fetch(url, retries=5):
     # url to etree
     try:
-        f=urlopen(url)
-    except:
-        return '[!] unable to open %s' % url
+        f=urllib2.urlopen(url)
+    except (urllib2.HTTPError, urllib2.URLError), e:
+        if hasattr(e, 'code') and e.code>=400 and e.code not in [504]:
+            print >>sys.stderr, "[!] %d %s" % (e.code, url)
+            raise
+        if retries>0:
+            f=fetch(url,retries-1)
+        else:
+            raise
     return parse(f)
 
 def getNewItems(root):
     for d in root.xpath('//td[@class="listlevelthree"]/../td/a'):
-        dossier = fetch(URL+d.attrib['href'])
+        dossier = fetch((URL+d.attrib['href']).encode('utf8'))
         for e in  dossier.xpath('//a[@class="com_acronym"]'):
             d_url = e.attrib['href']
             if not db.dossiers.find_one({'meta.source': URL+d_url}):
