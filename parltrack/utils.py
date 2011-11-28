@@ -62,16 +62,68 @@ def diff(old, new, path=[]):
                 res.extend(r)
         return res
     elif hasattr(old,'__iter__'):
-        res=[]
-        for item in filter(None,[diff(a,b,path+[(len(old) if len(old)<len(new) else len(new))-(i+1)]) for i,(a,b) in enumerate(izip_longest(reversed(old),reversed(new)))]):
-            if type(item)==type(list()):
-                res.extend(item)
-            else:
-                res.append(item)
-        return res
-    elif old != new:
+        return difflist(old, new, path)
+    elif (([type(x) for x in [old, new]] == [ unicode, unicode ] and
+           ''.join(old.split()).lower() != ''.join(new.split()).lower()) or
+          old != new):
         return [{'type': 'changed', 'data': (old, new), 'path': path}]
     return
+
+class hashabledict(dict):
+    def __hash__(self):
+        return hash(str(sorted(self.iteritems())))
+
+def difflist(old, new, path):
+    if not old:
+        oldset=set()
+        oldorder=dict()
+    elif type(old[0])==type(dict()):
+        oldset=set([hashabledict(x) for x in old])
+        oldorder=dict([(hashabledict(e),i) for i, e in enumerate(old)])
+    elif type(old[0])==type(list()):
+        oldset=set([tuple(x) for x in old])
+        oldorder=dict([(tuple(e),i) for i, e in enumerate(old)])
+    else:
+        oldset=set(old)
+        oldorder=dict([(e,i) for i, e in enumerate(old)])
+    if not new:
+        newset=set()
+        neworder=dict()
+    elif type(new[0])==type(dict()):
+        newset=set([hashabledict(x) for x in new])
+        neworder=dict([(hashabledict(e),i) for i, e in enumerate(new)])
+    elif type(new[0])==type(list()):
+        newset=set([tuple(x) for x in new])
+        neworder=dict([(tuple(e),i) for i, e in enumerate(new)])
+    else:
+        newset=set(new)
+        neworder=dict([(e,i) for i, e in enumerate(new)])
+    oldunique=set(oldset) - set(newset)
+    newunique=set(newset) - set(oldset)
+    # all the same
+    if not (oldunique or newunique): return
+    #import code; code.interact(local=locals());
+    ret=[]
+    for oe in list(oldunique):
+        for ne in list(newunique):
+            if type(ne)==type(list()):
+                pos=neworder[tuple(ne)]
+            else:
+                pos=neworder[ne]
+            diffs=diff(oe, ne, path + [pos])
+            shorter=min([len(oe),len(ne)])
+            if shorter-len(diffs)>=3 and len(diffs)*2<shorter:
+                ret.extend(diffs)
+                oldunique.remove(oe)
+                newunique.remove(ne)
+                break
+    # handle added
+    if newunique:
+        ret.extend(sorted([{'type': 'added', 'data': e, 'path': path + [neworder[e]]} for e in newunique], key=itemgetter('path')))
+    # handle deleted
+    if oldunique:
+        ret.extend(sorted([{'type': 'deleted', 'data': e, 'path': path + [oldorder[e]]} for e in oldunique], key=itemgetter('path')))
+    return ret
 
 def dateJSONhandler(obj):
     if hasattr(obj, 'isoformat'):
@@ -84,7 +136,7 @@ def dateJSONhandler(obj):
 def printdict(d,i=0):
     if type(d)==type(list()):
         return (u'\n\t%s' % ('  '*i)).join([printdict(v,i+1 ) for v in d])
-    if not type(d)==type(dict()):
+    if not type(d) in [dict, hashabledict]:
         return unicode(d)
     suppress=['mepref','comref', 'text']
     res=['']
@@ -94,43 +146,16 @@ def printdict(d,i=0):
 
 def showdiff(item,diffs):
     if debug: pprint.pprint(diffs)
+    #pprint.pprint(diffs)
     if debug: print
-    item=deepcopy(item)
-    # calculate offset for lists with newly added elements
-    offsetd = defaultdict(int)
-    for p in [tuple(change['path'][:-1])
-              for change in diffs
-              if type(change['path'][-1])==type(int()) and change['type']=='added']:
-        offsetd[p]+=1
-    # readd temporarily (deepcopied object, remember?)
-    # the deleted elements of lists and dicts
-    for change in sorted(diffs,cmp=lambda x,y: (cmp(len(x['path']),
-                                                   len(y['path'])) or
-                                                cmp(y['path'][-1],
-                                                    x['path'][-1]))):
-        if change['type']=='deleted':
-            elem=item
-            cp=[]
-            for k in change['path'][:-1]:
-                if tuple(cp) in offsetd.keys():
-                    try:
-                        k=int(k)+offsetd[tuple(cp)]
-                    except:
-                        pass
-                cp.append(k)
-                elem=elem[k]
-            if type(change['path'][-1])==type(int()):
-                elem.insert(change['path'][-1],change['data'])
-            elif type(change['path'][-1])in [type(str()),type(unicode())]:
-                elem[change['path'][-1]]=change['data']
-    res={}
     if debug: pprint.pprint(item)
     if debug: print
     if debug: pprint.pprint(offsetd)
+    res={}
     for change in diffs:
         if debug: pprint.pprint( change )
         # added dicts should be terminal
-        if change['type']=='added' and type(change['data'])==type(dict()):
+        if change['type'] in ['added', 'deleted'] and type(change['data'])==type(dict()):
             if len(change['path'])>1:
                 tmpk=tuple(change['path'][:-1])
             else:
@@ -142,23 +167,16 @@ def showdiff(item,diffs):
             continue
         elem=item
         deleted=False
-        cp=[]
         # find the parent element of the changed one
         for k in change['path'][:-1]:
-            # adjust for all newly added dicts in a list (activities, e.g.)
-            # the diff does not count for those in the index of lists
-            if tuple(cp) in offsetd.keys():
-                try:
-                    k=int(k)+offsetd[tuple(cp)]
-                except:
-                    pass
-            cp.append(k)
             try:
                 elem=elem[k]
-            except KeyError, IndexError:
+            except (KeyError, IndexError):
                 # whoops, should not happen, really.
                 deleted=True
-                print "!!!Deleted", k, elem
+                print "!!!Deleted", k
+                print change
+                print elem
                 break
         if debug: pprint.pprint( elem )
         if not deleted:
@@ -179,13 +197,18 @@ def showdiff(item,diffs):
                     skip=True
                     continue
                 else:
-                    result.append( '+\t%s: <strong>%s</strong>' % (c['path'][-1],printdict(c['data'])))
+                    result.append( '+\t%s: <strong>%s</strong>' % (c['path'][-1],"\n+\t".join(printdict(c['data']).split('\n'))))
             elif c['type']=='deleted':
-                #import code; code.interact(local=locals());
-                if debug: pprint.pprint(c['data'])
-                result.append( '-\t%s: <del>%s</del>' % (c['path'][-1],printdict(c['data'])))
+                if type(c['data'])==type(dict()):
+                    result.append( "-\t%s" % "\n-\t".join(printdict(c['data']).split('\n')))
+                    skip=True
+                    continue
+                else:
+                    #import code; code.interact(local=locals());
+                    if debug: pprint.pprint(c['data'])
+                    result.append( '-\t%s: <del>%s</del>' % (c['path'][-1],"\n-\t".join(printdict(c['data']).split('\n'))))
             elif c['type']=='changed':
-                result.append( '!\t%s: <strong>%s</strong><del>%s</del>' % (c['path'][-1],printdict(c['data'][1]),printdict(c['data'][0])))
+                result.append( '!\t%s: <strong>%s</strong><del>%s</del>' % (c['path'][-1],"\n!\t".join(printdict(c['data'][1]).split('\n')),"\n!\t".join(printdict(c['data'][0]).split('\n'))))
             else:
                 continue # ignore/suppress unknown types
             if type(elem)==type(dict()) and c['path'][-1] in elem:
@@ -194,35 +217,145 @@ def showdiff(item,diffs):
             result.append( printdict(elem))
     return '\n'.join(result)
 
+def getorder(d):
+    keys=set(d.keys())
+    if 'reference' in keys:
+        return ['reference', 'title', 'committee', 'legal_basis', 'stage_reached', 'dossier_of_the_committee', 'subjects']
+    elif 'responsible' in keys:
+        return ['committee', 'responsible', 'name', 'group', 'date']
+    elif 'documents' in keys:
+        return ['type', 'date', 'body', 'documents', 'actors']
+    elif keys >= set(['title', 'type', 'actors']):
+        return ['title', 'type', 'url', 'date']
+    elif keys >= set(['title', 'type']):
+        return ['title', 'url']
+    return list(keys)
+
+def htmldict(d):
+    if type(d)==type(list()):
+        return (u'<ul style="list-style-type: none;"">%s</ul>' % ''.join(["<li>%s</li>" % htmldict(v) for v in d]))
+    if not type(d) in [dict, hashabledict]:
+        return unicode(d)
+    suppress=['mepref','comref']
+    res=['<dl>']
+    for k,v in [(k,d[k]) for k in getorder(d) if k not in suppress and d.get(k)!=None]:
+    #for k,v in [(k,d[k]) for k in d.keys() if k not in suppress and d.get(k)!=None]:
+        res.append(u"<li style='list-style-type: none;'><dt style='display: inline-block; width: 10em; text-transform: capitalize;'>%s</dt><dd style='display: inline'>%s</dd></li>" % (k,htmldict(v)))
+    res.append('</dl>')
+    return u''.join(res)
+
+def htmldiff(item,diffs):
+    res={}
+    for change in diffs:
+        if debug: pprint.pprint( change )
+        # added dicts should be terminal
+        if change['type'] in ['added', 'deleted'] and type(change['data'])==type(dict()):
+            if len(change['path'])>1:
+                tmpk=tuple(change['path'][:-1])
+            else:
+                tmpk=tuple(change['path'])
+            if not tmpk in res:
+                res[tmpk]=(change['data'], [change])
+            else:
+                res[tmpk][1].append(change)
+            continue
+        elem=item
+        deleted=False
+        # find the parent element of the changed one
+        for k in change['path'][:-1]:
+            try:
+                elem=elem[k]
+            except (KeyError, IndexError):
+                # whoops, should not happen, really.
+                deleted=True
+                print "!!!Deleted", k
+                print change
+                print elem
+                break
+        if not deleted:
+            if not tuple(change['path'][:-1]) in res:
+                res[tuple(change['path'][:-1])]=(elem, [])
+            res[tuple(change['path'][:-1])][1].append(change)
+            if debug: pprint.pprint(elem[change['path'][-1]])
+        if debug: print
+    # generate html result
+    result=['<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">\n<head>\n<title></title></head><body><p>Parltrack has detected a change in %s %s on OEIL.\n\nPlease follow this URL: %s/dossier/%s to see the dossier.\n\nsincerly,\nYour Parltrack team"</p><dl style="font-family:Trebuchet MS,Tahoma,Verdana,Arial,sans-serif; font-size: .8em;">' %
+            (item['procedure']['reference'],
+             item['procedure']['title'],
+             ROOT_URL,
+             item['procedure']['reference'],)
+            ]
+    for path, (elem, changes) in sorted(res.items()):
+        result.append('<dt style="margin-top: 1em; text-transform: capitalize;">%s<dt><dd>' % '/'.join(map(str,path)))
+        skip=False
+        for c in changes:
+            if c['type']=='added':
+                result.append( '<li style="list-style-type: none;"><strong><dt style="display: inline-block; width: 10em; text-transform: capitalize;">%s</dt><dd style="display: inline">%s</dd></strong></li>' % (c['path'][-1],htmldict(c['data'])))
+                if type(c['data'])==type(dict()):
+                    skip=True
+                    continue
+            elif c['type']=='deleted':
+                result.append( "<li style='list-style-type: none;'><dt style='display: inline-block; width: 10em; text-transform: capitalize;'><del style='text-decoration: line-through;'>%s</del></dt><dd style='display: inline'><del style='text-decoration: line-through;'>%s</del></dd></li>" % (c['path'][-1], htmldict(c['data'])))
+                if type(c['data'])==type(dict()):
+                    skip=True
+                    continue
+            elif c['type']=='changed':
+                result.append( '<li style="list-style-type: none;"><dt style="display: inline-block; width: 10em; text-transform: capitalize;">%s</dt><dd style="display: inline"><strong>%s</strong><del>%s</del></dd></li>' % (c['path'][-1],htmldict(c['data'][1]),htmldict(c['data'][0])))
+            else:
+                continue # ignore/suppress unknown types
+            if type(elem)==type(dict()) and c['path'][-1] in elem:
+                del elem[c['path'][-1]]
+        if not skip and not type(elem)==type(list()):
+            result.append("%s" % htmldict(elem))
+    return "%s</dd></dl></body></html>" % ''.join(result)
+
 def test_diff():
-    d1={ 'a': [ { 'aa': 1, 'bb':3 }, {'AA': 1, 'BB': { 'asdf': '2'}}, {'Mm': [ 'a','b','c','d'] } ],
-         'b': { 'z': 9, 'x': 8 },
-         'c': [ 1,2,3,4]}
-    d2={ 'a': [ {'aa': 2, 'bb': 3 }, { 'aa': 1, 'bb':3 }, {'AA': 1, 'BB': { 'asdf': { 'asdf': 'qwer'}}}, {'Mm': [ 'a','b','c','d'] } ],
-         'c': [ 0,1,2,3,4]}
-    import pprint
+    from a1 import a1 as d1, a2 as d3
+    from a2 import a2 as d2
+    #pprint.pprint(diff(d3,d1))
+    #pprint.pprint(diff(d3,d2))
     pprint.pprint(diff(d1,d2))
+    #d1={ 'a': [ { 'aa': 1, 'bb':3 }, {'AA': 1, 'BB': { 'asdf': '2'}}, {'Mm': [ 'a','b','c','d'] } ],
+    #     'b': { 'z': 9, 'x': 8 },
+    #     'c': [ 1,2,3,4]}
+    #d2={ 'a': [ {'aa': 2, 'bb': 3 }, { 'aa': 1, 'bb':3 }, {'AA': 1, 'BB': { 'asdf': { 'asdf': 'qwer'}}}, {'Mm': [ 'a','b','c','d'] } ],
+    #     'c': [ 0,1,2,3,4]}
+    #import pprint
+    #pprint.pprint(diff(d1,d2))
 
 from BeautifulSoup import BeautifulSoup, Comment
 from itertools import izip_longest
 from copy import deepcopy
 from collections import defaultdict
 from views.views import dossier
+from operator import itemgetter
+from parltrack.default_settings import ROOT_URL
+import pprint
 
 if __name__ == "__main__":
+    ## import pymongo, datetime
+    ## db=pymongo.Connection().parltrack
+    ## docs=db.dossiers.find({'meta.updated': { '$gt': datetime.datetime(2011,11,24,0,0)}})
+    ## print docs.count()
+    ## for d in docs:
+    ##     print '\n', d['procedure']['reference'], d['procedure']['title']
+    ##     print showdiff(d,sorted(d['changes'].items(),reverse=True)[0][1]).encode('utf8')
+
     #test_diff()
 
     #d=dossier('COD/2007/0247',without_changes=False)
     #print '\n', d['procedure']['reference'], d['procedure']['title']
     #showdiff(d,sorted(d['changes'].items(),reverse=True)[0][1])
 
-    import pprint
     #d=dossier('CNS/2011/0094',without_changes=False)
     #d=dossier('NLE/2011/0097',without_changes=False)
-    d=dossier('NLE/2010/0084',without_changes=False)
-    print '\n', d['procedure']['reference'], d['procedure']['title']
-    #print sorted(d['changes'].keys(),reverse=True)
-    print showdiff(d,sorted(d['changes'].items(),reverse=True)[0][1]).encode('utf8')
+    #d=dossier('NLE/2010/0084',without_changes=False)
+    #d=dossier('CNS/2010/0276',without_changes=False)
+    #print '\n', d['procedure']['reference'], d['procedure']['title']
+    ###print sorted(d['changes'].keys(),reverse=True)
+    #pprint.pprint(sorted(d['changes'].keys(),reverse=True))
+    #pprint.pprint(sorted(d['changes'].items(),reverse=True)[0][1])
+    #print showdiff(d,sorted(d['changes'].items(),reverse=True)[0][1]).encode('utf8')
 
     #d=dossier('COD/2011/0129',without_changes=False)
     #print '\n', d['procedure']['reference'], d['procedure']['title']
@@ -234,10 +367,11 @@ if __name__ == "__main__":
     ##print sorted(d['changes'].keys(),reverse=True)
     #print showdiff(d,sorted(d['changes'].items(),reverse=True)[0][1]).encode('utf8')
 
-    #d=dossier('CNS/2011/0111',without_changes=False)
+    d=dossier('CNS/2011/0111',without_changes=False)
+    #d=dossier('NLE/2008/0137',without_changes=False)
     #print '\n', d['procedure']['reference'], d['procedure']['title']
-    #print sorted(d['changes'].keys(),reverse=True)
-    #print showdiff(d,sorted(d['changes'].items(),reverse=True)[0][1]).encode('utf8')
+    ##print sorted(d['changes'].keys(),reverse=True)
+    print htmldiff(d,sorted(d['changes'].items(),reverse=True)[0][1]).encode('utf8')
 
     #print d['procedure']['reference'], d['procedure']['title']
     #d=dossier('NLE/2011/0102',without_changes=False)
@@ -245,3 +379,11 @@ if __name__ == "__main__":
     #print 'x'*80
     #pprint.pprint(sorted(d.items(),reverse=True))
     #print showdiff(d,sorted(d['changes'].items(),reverse=True)[0][1])
+
+
+    ## import pymongo
+    ## db=pymongo.Connection().parltrack
+    ## d=db.dossiers.find_one({'procedure.reference': 'CNS/2010/0276'})
+    ## del d['changes']
+    ## pprint.pprint(d)
+    ## sys.exit(0)

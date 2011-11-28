@@ -26,7 +26,7 @@ import urllib2, urllib, cookielib, datetime, sys, json, logging, re
 from operator import itemgetter
 from flaskext.mail import Message
 from parltrack.webapp import mail
-from parltrack.utils import diff
+from parltrack.utils import diff, htmldiff
 from parltrack.default_settings import ROOT_URL
 from parltrack.scrapers.mappings import ipexevents
 import unicodedata
@@ -49,6 +49,8 @@ db.oeil.ensure_index([('meta.updated', -1)])
 # and some global objects
 base = 'http://www.europarl.europa.eu/oeil/file.jsp'
 opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
+#opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()),
+#                              urllib2.ProxyHandler({'http': 'http://localhost:8123/'}))
 opener.addheaders = [('User-agent', 'weurstchen/0.5')]
 # connect to  mongo
 stats=[0,0]
@@ -62,6 +64,8 @@ def getMEPRef(name):
         mep=db.ep_meps.find_one({'Name.aliases': ''.join(name.replace(u'ß','ss').split()).lower()},['_id'])
     if not mep and unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore')!=name:
         mep=db.ep_meps.find_one({'Name.aliases': ''.join(unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore').split()).lower()},['_id'])
+    if not mep:
+        mep=db.ep_meps.find_one({'Name.aliases': re.compile(''.join([x if x<128 else '.' for x in name]),re.I)},['_id'])
     if mep:
         return mep['_id']
     else:
@@ -183,7 +187,7 @@ def makeActivities(data):
                            'date': item['date'],
                            'actors': [item]}
                 continue
-            dictext(actors,item['body'],item if type(item)==list else [item])
+            dictext(actors,item['body'],[item])
         # handle documents
         elif 'text' in item:
             newDoc=True
@@ -244,11 +248,13 @@ def save(data):
         for g in m:
             if len(g['active_emails'])==0:
                 continue
-            msg = Message("Parltrack Notification for %s %s" % (data['procedure']['reference'],data['procedure']['title']),
+            msg = Message("[PT] %s %s" % (data['procedure']['reference'],data['procedure']['title']),
                           sender = "parltrack@parltrack.euwiki.org",
-                          bcc = g['active_emails'])
+                          #bcc = g['active_emails'])
+                          bcc = ['stef@ctrlc.hu'])
+            msg.html = htmldiff(data,d)
             msg.body = makemsg(data,d)
-            #mail.send(msg)
+            mail.send(msg)
         data['changes']=res.get('changes',{})
         data['changes'][now]=d
         db.dossiers.save(data)
@@ -513,9 +519,6 @@ def prevagents(table):
         items=row.xpath('td')
         value=convertRow(items,agentFields)
         if type(value['rapporteur'])==list:
-            if not len(value['rapporteur'])==len(value['rapporteur'])==len(value['rapporteur']):
-                print >>sys.stderr, 'wrong multi-agent', value
-                continue
             for (i, a) in enumerate(value['rapporteur']):
                 res.append({'rapporteur': value['rapporteur'][i],
                             'appointed': value['appointed'][i],
@@ -773,6 +776,7 @@ def crawl(fast=True):
             next=nextPage(next)
 
 if __name__ == "__main__":
+    #scrape("http://www.europarl.europa.eu/oeil/file.jsp?id=5876752")
     crawl(fast=(False if len(sys.argv)>1 and sys.argv[1]=='full' else True))
     #import pprint
     #print '['
