@@ -363,7 +363,7 @@ def scrape(url):
                     break
         return res
     except:
-        logger.error(traceback.format_exc())
+        logger.error("%s\n%s" % (url,traceback.format_exc()))
         return
 
 def scrape_basic(tree):
