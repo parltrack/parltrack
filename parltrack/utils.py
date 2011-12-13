@@ -46,12 +46,12 @@ def sanitizeHtml(value, base_url=None):
     return soup.renderContents().decode('utf8')
 
 def diff(old, new, path=[]):
+    if type(old) == type(str()): old=unicode(old,'utf8')
+    if type(new) == type(str()): new=unicode(new,'utf8')
     if old==None and new!=None:
         return [{'type': 'added', 'data': new, 'path': path}]
     elif new==None and old!=None:
         return [{'type': 'deleted', 'data': old, 'path': path}]
-    if type(old) == str: old=unicode(old,'utf8')
-    if type(new) == str: new=unicode(new,'utf8')
     if not type(old)==type(new):
         return [{'type': 'changed', 'data': (old, new), 'path': path}]
     elif hasattr(old,'keys'):
@@ -66,7 +66,7 @@ def diff(old, new, path=[]):
     elif (([type(x) for x in [old, new]] == [ unicode, unicode ] and
            ''.join(old.split()).lower() != ''.join(new.split()).lower()) or
           old != new):
-        return [{'type': 'changed', 'data': (old, new), 'path': path}]
+        return [{'type': u'changed', 'data': (old, new), 'path': path}]
     return
 
 class hashabledict(dict):
@@ -119,17 +119,17 @@ def difflist(old, new, path):
                 break
     # handle added
     if newunique:
-        ret.extend(sorted([{'type': 'added', 'data': e, 'path': path + [neworder[e]]} for e in newunique], key=itemgetter('path')))
+        ret.extend(sorted([{'type': u'added', 'data': e, 'path': path + [neworder[e]]} for e in newunique], key=itemgetter('path')))
     # handle deleted
     if oldunique:
-        ret.extend(sorted([{'type': 'deleted', 'data': e, 'path': path + [oldorder[e]]} for e in oldunique], key=itemgetter('path')))
+        ret.extend(sorted([{'type': u'deleted', 'data': e, 'path': path + [oldorder[e]]} for e in oldunique], key=itemgetter('path')))
     return ret
 
 def dateJSONhandler(obj):
     if hasattr(obj, 'isoformat'):
-        return obj.isoformat()
+        return unicode(obj.isoformat())
     elif type(obj)==ObjectId:
-        return str(obj)
+        return unicode(obj)
     else:
         raise TypeError, 'Object of type %s with value of %s is not JSON serializable' % (type(obj), repr(obj))
 
