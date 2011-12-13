@@ -29,7 +29,6 @@ from parltrack.webapp import mail
 from parltrack.utils import diff, htmldiff
 from parltrack.default_settings import ROOT_URL
 from parltrack.scrapers.mappings import ipexevents, COMMITTEE_MAP
-from saver import save_dossier
 
 import unicodedata
 try:
@@ -351,8 +350,8 @@ def scrape(url):
                 if not 'docs' in final: final['docs']=[]
                 final['docs'].append({'title': link.xpath('text()')[0].strip(),
                                      'url': link.get('href')})
-        if final:
-            res[u'procedure'][u'final']=final['docs'][0]
+        if final and final.get('docs'):
+            res[u'procedure'][u'final']=final.get('docs',[{}])[0]
             for item in res['activities']:
                 if item.get('type')==u'Final act published in Official Journal':
                     if final.get('text'):
@@ -699,8 +698,7 @@ def save(data, stats):
                 continue
             msg = Message("[PT] %s %s" % (data['procedure']['reference'],data['procedure']['title']),
                           sender = "parltrack@parltrack.euwiki.org",
-                          #bcc = g['active_emails'])
-                          bcc = ['stef@ctrlc.hu'])
+                          bcc = g['active_emails'])
             msg.html = htmldiff(data,d)
             msg.body = makemsg(data,d)
             mail.send(msg)
