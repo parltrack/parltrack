@@ -370,7 +370,7 @@ def scrape(url):
 def scrape_basic(tree):
     res=form2obj(tree.xpath('//table[@id="technicalInformations"]')[0],detailsheaders)
     table=(tree.xpath('//table[@id="basic_information"]') or [None])[0]
-    if table is not None: return
+    if table is None: return
     res.update({ 'stage_reached': (table.xpath('.//p[@class="pf_stage"]/text()') or [''])[0].strip(),
                  'reference': (table.xpath('.//span[@class="basic_reference"]/text()') or [''])[0].strip(),
                  'type': (table.xpath('.//p[@class="basic_procedurefile"]/text()') or [''])[0].strip(),
@@ -740,12 +740,13 @@ def makemsg(data, d):
 
 if __name__ == "__main__":
     #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=587675")
-    crawl(get_all_dossiers(), threads=8)
+    crawl(get_all_dossiers(), threads=4)
     #crawl(get_new_dossiers())
     #crawlseq(get_new_dossiers())
     sys.exit(0)
-    pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=593187")) # with shadow rapporteurs
     pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397")) # telecoms package
+    pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397")) # telecoms package
+    pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=593187")) # with shadow rapporteurs
     pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=584049")) # two rapporteurs in one committee
     pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=593435")) # with forecast
     #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=588286")
