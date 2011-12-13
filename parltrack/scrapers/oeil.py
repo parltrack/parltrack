@@ -357,7 +357,7 @@ def scrape(url):
                 if item.get('type')==u'Final act published in Official Journal':
                     if final.get('text'):
                         item[u'text']=final['text']
-                    if not 'docs' in item:
+                    if not 'docs' in item and final.get('docs'):
                         item[u'docs']=[final['docs'][1]]
                     else:
                         item[u'docs'].append(final['docs'][1])
