@@ -5,7 +5,7 @@
 
 # install non-pythonic dependencies dependencies
 
- apt-get install wv poppler-utils mongodb-server mongodb-clients ksh bzip2
+ apt-get install wv poppler-utils mongodb-server mongodb-clients ksh bzip2 python-dev libxml2-dev libxslt-dev
 
 # create a virtual environment
 
