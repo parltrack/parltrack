@@ -53,7 +53,7 @@ def UnicodeDictReader(utf8_data, **kwargs):
 def fetch(url, retries=3):
     # url to etree
     try:
-        f=urllib2.urlopen(url, timeout=32)
+        f=opener.open(url, timeout=32)
     except (urllib2.HTTPError, urllib2.URLError), e:
         if hasattr(e, 'code') and e.code>=400:
             print >>sys.stderr, "[!] %d %s" % (e.code, url)
@@ -129,20 +129,18 @@ def getIpexData():
                 try:
                     tmp1=toDate(tmp[0])
                     if tmp1:
-                        item['Dates'].append({'type': 'Event', 'body': body, 'date': tmp1, 'title': k})
+                        item['Dates'].append({'type': 'Event', 'body': body, 'date': tmp1, 'type': k})
                 except:
                     print k, tmp[0]
                     raise
             elif len(tmp)>1:
                 tmp1=toDate(tmp[-1])
                 if tmp1:
-                    item['Dates'].append({'type': 'Event', 'body': body, 'date': tmp1, 'title': k})
+                    item['Dates'].append({'type': 'Event', 'body': body, 'date': tmp1, 'type': k})
             else:
                 print >>sys.stderr, "[!]", k, item[k]
             del item[k]
         item['Dates']=sorted(item['Dates'])
-        tmp=refre.match(item['ProcRef'])
-        if tmp: item['ProcRef']=u'/'.join(tmp.groups()[::-1])
         tmp=basre.match(item['Bas Doc'])
         if tmp:
             item['Base Doc']=u"%s/%s/%s" % tmp.groups()
