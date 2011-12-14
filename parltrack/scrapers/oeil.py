@@ -545,7 +545,7 @@ def get_all_dossiers():
                    % (count,year))
         links=tree.xpath('//a[@class="reference rssEntry_id rssEntry_title rssEntry_updated"]')
         for link in links:
-            yield (urljoin(base,link.get('href')),
+            yield (urljoin(BASE_URL,link.get('href')),
                    (link.xpath('text()') or [''])[0])
 
 def crawl(urls, threads=4):
