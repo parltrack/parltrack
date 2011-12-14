@@ -17,18 +17,18 @@
 
 # (C) 2009-2011 by Stefan Marsiske, <stefan.marsiske@gmail.com>
 import pprint
-
-from lxml.html.soupparser import parse
 from lxml.etree import tostring
 from urlparse import urljoin
 from itertools import izip, izip_longest
-import urllib2, urllib, cookielib, datetime, sys, re, feedparser
+import datetime, sys, re, feedparser
 from operator import itemgetter
 from flaskext.mail import Message
 from parltrack.webapp import mail
-from parltrack.utils import diff, htmldiff
+from parltrack.utils import diff, htmldiff, fetch, unws
 from parltrack.default_settings import ROOT_URL
 from parltrack.scrapers.mappings import ipexevents, COMMITTEE_MAP
+
+BASE_URL = 'http://www.europarl.europa.eu'
 
 import unicodedata
 try:
@@ -47,13 +47,6 @@ db.dossiers2.ensure_index([('activities.actors.commitee', 1)])
 db.dossiers2.ensure_index([('meta.created', -1)])
 db.dossiers2.ensure_index([('meta.updated', -1)])
 
-# and some global objects
-base = 'http://www.europarl.europa.eu/oeil/file.jsp'
-opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
-#opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()),
-#                              urllib2.ProxyHandler({'http': 'http://localhost:8123/'}))
-opener.addheaders = [('User-agent', 'weurstchen/0.6')]
-
 def getMEPRef(name, retfields=['_id']):
     if not name: return
     mep=db.ep_meps.find_one({'Name.aliases': ''.join(name.split()).lower()},retfields)
@@ -67,20 +60,6 @@ def getMEPRef(name, retfields=['_id']):
         return mep['_id']
     else:
         print >>sys.stderr, '[!] lookup oops', name.encode('utf8')
-
-def fetch(url, retries=5):
-    # url to etree
-    try:
-        f=opener.open(url)
-    except (urllib2.HTTPError, urllib2.URLError), e:
-        if hasattr(e, 'code') and e.code>=400 and e.code not in [504]:
-            print >>sys.stderr, "[!] %d %s" % (e.code, url)
-            raise
-        if retries>0:
-            f=fetch(url,retries-1)
-        else:
-            raise
-    return parse(f)
 
 def toDate(node):
     for br in node.xpath("br"):
@@ -101,14 +80,28 @@ def toDate(node):
     return None
 
 def toText(node):
+    if node is None: return ''
     for br in node.xpath("br"):
         br.text="\n"
-    if node is None: return ''
     text=u' '.join(u' '.join([x.strip() for x in node.xpath(".//text()") if x.strip()]).replace(u"\u00A0",' ').split())
 
     links=node.xpath('a')
     if not links: return text
-    return {'title': text, 'url': unicode(urljoin(base,links[0].get('href')),'utf8')}
+    return {u'title': text, u'url': unicode(urljoin(BASE_URL,links[0].get('href')),'utf8')}
+
+def toLinks(node):
+    if node is None: return
+    for br in node.xpath("br"):
+        br.text="\n"
+    ret=[]
+    for line in node.xpath(".//text()"):
+        if len(unws(line))<1:
+            continue
+        if line.getparent().tag=='a':
+            ret.append({u'title': unws(line), 'url': unicode(urljoin(BASE_URL,line.getparent().get('href')),'utf8')})
+        else:
+            ret.append({u'title': unws(line)})
+    return ret
 
 def toLines(node):
     return [toText(p) for p in node.xpath("p")]
@@ -148,7 +141,7 @@ eventFields=( (u'date', toDate),
 forecastFields=( (u'date', toDate),
                  (u'type', toText))
 docFields=( (u'type', toText),
-            (u'doc', toText),
+            (u'doc', toLinks),
             (u'date', toDate),
             (u'text', toText),
             )
@@ -243,28 +236,29 @@ def merge_events(events,committees):
                 # new body for this date
                 actors[item['body']]=item
                 if 'doc' in actors[item['body']]:
-                    doc=merge_new_doc(actors[item['body']]['doc'], item)
+                    docs=merge_new_docs(actors[item['body']]['doc'], item)
                     del actors[item['body']]['doc']
-                    actors[item['body']][u'docs']=[doc]
+                    actors[item['body']][u'docs']=docs
                 cmts=getCommittee(item,committees)
                 if cmts:
                     actors[item['body']][u'committees']=cmts
                 continue
             # merge any docs
             if 'doc' in item:
-                doc=merge_new_doc(item['doc'], item)
-                skip=False
-                # update docs, that are already in there, but with a different 'type'
-                for cdoc in actors[item['body']].get('docs',[]):
-                    if cdoc.get('url')==doc.get('url') or cdoc.get('title')==doc.get('title'):
-                        cdoc.update(doc)
-                        skip=True
-                        break
-                if skip: continue
-                try:
-                    actors[item['body']][u'docs'].append(doc)
-                except KeyError:
-                    actors[item['body']][u'docs']=[doc]
+                docs=merge_new_docs(item['doc'], item)
+                for doc in docs:
+                    skip=False
+                    # update docs, that are already in there, but with a different 'type'
+                    for cdoc in actors[item['body']].get('docs',[]):
+                        if cdoc.get('url')==doc.get('url') or cdoc.get('title')==doc.get('title'):
+                            cdoc.update(doc)
+                            skip=True
+                            break
+                    if skip: continue
+                    try:
+                        actors[item['body']][u'docs'].append(doc)
+                    except KeyError:
+                        actors[item['body']][u'docs']=[doc]
                 del item['doc']
             # merge any fields not yet in the actor
             actors[item['body']].update([(k,v) for k,v in item.items() if k not in actors[item['body']]])
@@ -272,6 +266,12 @@ def merge_events(events,committees):
     #pprint.pprint(sorted(res, key=itemgetter('date')))
     #pprint.pprint(sorted([dict([(k1,v1) for k1,v1 in v.items() if k1!='text']) for v in res], key=itemgetter('date')))
     return res
+
+def merge_new_docs(doc, item):
+    if type(doc)==type(list()):
+        return [merge_new_doc(d, item) for d in doc]
+    else:
+        return [merge_new_doc(doc, item)]
 
 def merge_new_doc(doc, item):
     if type(doc)!=type(dict()):
@@ -285,6 +285,10 @@ def merge_new_doc(doc, item):
     if not doc['title']:
         doc[u'title']=doc['type']
     # add celex id
+    doc=addCelex(doc)
+    return doc
+
+def addCelex(doc):
     if (doc.get('title') and
         candre.match(doc.get('title'))):
         celexid=tocelex(doc.get('title'))
@@ -349,17 +353,18 @@ def scrape(url):
             else:
                 if not 'docs' in final: final['docs']=[]
                 final['docs'].append({'title': link.xpath('text()')[0].strip(),
-                                     'url': link.get('href')})
+                                               'url': link.get('href')})
         if final and final.get('docs'):
             res[u'procedure'][u'final']=final.get('docs',[{}])[0]
             for item in res['activities']:
                 if item.get('type')==u'Final act published in Official Journal':
                     if final.get('text'):
                         item[u'text']=final['text']
-                    if not 'docs' in item and final.get('docs'):
-                        item[u'docs']=[final['docs'][1]]
-                    else:
-                        item[u'docs'].append(final['docs'][1])
+                    if  len(final.get('docs'))>1:
+                       if not 'docs' in item:
+                           item[u'docs']=final['docs']
+                       else:
+                           item[u'docs'].extend(final['docs'])
                     break
         return res
     except:
@@ -737,7 +742,7 @@ def makemsg(data, d):
              dt))
 
 if __name__ == "__main__":
-    #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=587675")
+    #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=16542"))
     crawl(get_all_dossiers(), threads=4)
     #crawl(get_new_dossiers())
     #crawlseq(get_new_dossiers())
