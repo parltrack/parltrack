@@ -20,6 +20,9 @@
 
 debug=False
 
+def unws(txt):
+    return u' '.join(txt.split())
+
 def sanitizeHtml(value, base_url=None):
     rjs = r'[\s]*(&#x.{1,7})?'.join(list('javascript:'))
     rvb = r'[\s]*(&#x.{1,7})?'.join(list('vbscript:'))
@@ -323,6 +326,20 @@ def test_diff():
     #import pprint
     #pprint.pprint(diff(d1,d2))
 
+def fetch(url, retries=5):
+    # url to etree
+    try:
+        f=opener.open(url)
+    except (urllib2.HTTPError, urllib2.URLError), e:
+        if hasattr(e, 'code') and e.code>=400 and e.code not in [504, 502]:
+            print >>sys.stderr, "[!] %d %s" % (e.code, url)
+            raise
+        if retries>0:
+            f=fetch(url,retries-1)
+        else:
+            raise
+    return parse(f)
+
 from BeautifulSoup import BeautifulSoup, Comment
 from itertools import izip_longest
 from copy import deepcopy
@@ -330,7 +347,15 @@ from collections import defaultdict
 from views.views import dossier
 from operator import itemgetter
 from parltrack.default_settings import ROOT_URL
+from lxml.html.soupparser import parse
 import pprint
+import urllib2, cookielib, sys
+
+base = 'http://www.europarl.europa.eu/oeil/file.jsp'
+#opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
+opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()),
+                              urllib2.ProxyHandler({'http': 'http://localhost:8123/'}))
+opener.addheaders = [('User-agent', 'parltrack/0.6')]
 
 if __name__ == "__main__":
     ## import pymongo, datetime
