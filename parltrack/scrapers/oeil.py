@@ -548,6 +548,13 @@ def get_all_dossiers():
             yield (urljoin(BASE_URL,link.get('href')),
                    (link.xpath('text()') or [''])[0])
 
+def get_active_dossiers():
+    for doc in db.dossiers2.find({ 'procedure.stage_reached' : { '$not' : { '$in': [ "Procedure completed",
+                                                                                          "Procedure rejected",
+                                                                                          "Procedure lapsed or withdrawn"
+                                                                                          ] }} }):
+        yield (doc['meta']['source'],doc['procedure']['title'])
+
 def crawl(urls, threads=4):
     m=Multiplexer(scrape,save, threads=threads)
     m.start()
@@ -684,13 +691,13 @@ def save(data, stats):
     if d:
         now=datetime.datetime.utcnow().replace(microsecond=0).isoformat()
         if not res:
-            print ('\tadding %s - %s' % (data['procedure']['reference'],data['procedure']['title'])).encode('utf8')
+            logger.info(('\tadding %s - %s' % (data['procedure']['reference'],data['procedure']['title'])).encode('utf8'))
             data['meta']['created']=data['meta']['timestamp']
             del data['meta']['timestamp']
             sys.stdout.flush()
             stats[0]+=1
         else:
-            print ('\tupdating  %s - %s' % (data['procedure']['reference'],data['procedure']['title'])).encode('utf8')
+            logger.info(('\tupdating  %s - %s' % (data['procedure']['reference'],data['procedure']['title'])).encode('utf8'))
             data['meta']['updated']=data['meta']['timestamp']
             del data['meta']['timestamp']
             sys.stdout.flush()
@@ -742,23 +749,30 @@ def makemsg(data, d):
              dt))
 
 if __name__ == "__main__":
-    #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=16542"))
-    crawl(get_all_dossiers(), threads=4)
-    #crawl(get_new_dossiers())
-    #crawlseq(get_new_dossiers())
-    sys.exit(0)
-    pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397")) # telecoms package
-    pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397")) # telecoms package
-    pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=593187")) # with shadow rapporteurs
-    pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=584049")) # two rapporteurs in one committee
-    pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=593435")) # with forecast
-    #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=588286")
-    scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=590715")
-    scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=584049")
-    scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=590612")
-    scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=591258")
-    scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=584049")
-    scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397") # telecoms package
-    scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556364") # telecoms package
-    scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556398") # telecoms package
-    scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=589181") # .hu media law
+    if len(sys.argv)!=2:
+        print "%s full|fullseq|new|update|test" % (sys.argv[0])
+    if sys.argv[1]=="full":
+        crawl(get_all_dossiers(), threads=4)
+    elif sys.argv[1]=="fullseq":
+        crawlseq(get_new_dossiers())
+    elif sys.argv[1]=="new":
+        crawl(get_new_dossiers())
+    elif sys.argv[1]=="update":
+        crawl(get_active_dossiers())
+    elif sys.argv[1]=="test":
+        pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=16542"))
+        pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397")) # telecoms package
+        pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397")) # telecoms package
+        pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=593187")) # with shadow rapporteurs
+        pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=584049")) # two rapporteurs in one committee
+        pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=593435")) # with forecast
+        #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=588286")
+        #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=590715")
+        #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=584049")
+        #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=590612")
+        #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=591258")
+        #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=584049")
+        #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397") # telecoms package
+        #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556364") # telecoms package
+        #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556398") # telecoms package
+        #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=589181") # .hu media law
