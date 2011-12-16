@@ -340,6 +340,63 @@ def fetch(url, retries=5):
             raise
     return parse(f)
 
+from multiprocessing import Pool, Process, JoinableQueue, log_to_stderr
+from multiprocessing.sharedctypes import Value
+from ctypes import c_bool
+from Queue import Empty
+from logging import DEBUG, WARN, INFO
+import traceback
+logger = log_to_stderr()
+logger.setLevel(INFO)
+
+class Multiplexer(object):
+    def __init__(self, worker, writer, threads=4):
+        self.worker=worker
+        self.writer=writer
+        self.q=JoinableQueue()
+        self.done = Value(c_bool,False)
+        self.consumer=Process(target=self.consume)
+        self.pool = Pool(threads)
+
+    def start(self):
+        self.done.value=False
+        self.consumer.start()
+
+    def addjob(self, url):
+        try:
+           return self.pool.apply_async(self.worker,[url],callback=self.q.put)
+        except:
+            logger.error('[!] failed to scrape '+ url)
+            logger.error(traceback.format_exc())
+            raise
+
+    def finish(self):
+        self.pool.close()
+        logger.info('closed pool')
+        self.pool.join()
+        logger.info('joined pool')
+        self.done.value=True
+        self.consumer.join()
+        logger.info('joined consumer')
+        self.q.close()
+        logger.info('closed q')
+        self.q.join()
+        logger.info('joined q')
+
+    def consume(self):
+        param=[0,0]
+        while True:
+            job=None
+            try:
+                job=self.q.get(True, timeout=1)
+            except Empty:
+                if self.done.value==True: break
+            if job:
+                param = self.writer(job, param)
+                self.q.task_done()
+        logger.info('added/updated: %s' % param)
+
+
 from BeautifulSoup import BeautifulSoup, Comment
 from itertools import izip_longest
 from copy import deepcopy

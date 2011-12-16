@@ -24,7 +24,7 @@ import datetime, sys, re, feedparser
 from operator import itemgetter
 from flaskext.mail import Message
 from parltrack.webapp import mail
-from parltrack.utils import diff, htmldiff, fetch, unws
+from parltrack.utils import diff, htmldiff, fetch, unws, Multiplexer, logger
 from parltrack.default_settings import ROOT_URL
 from parltrack.scrapers.mappings import ipexevents, COMMITTEE_MAP
 
@@ -566,62 +566,6 @@ def crawlseq(urls):
     [save(scrape(url),[0,0]) for url, title in urls]
     logger.info('end of crawl')
 
-from multiprocessing import Pool, Process, JoinableQueue, log_to_stderr
-from multiprocessing.sharedctypes import Value
-from ctypes import c_bool
-from Queue import Empty
-from logging import DEBUG, WARN, INFO
-import traceback
-logger = log_to_stderr()
-logger.setLevel(INFO)
-
-class Multiplexer(object):
-    def __init__(self, worker, writer, threads=4):
-        self.worker=worker
-        self.writer=writer
-        self.q=JoinableQueue()
-        self.done = Value(c_bool,False)
-        self.consumer=Process(target=self.consume)
-        self.pool = Pool(threads)
-
-    def start(self):
-        self.done.value=False
-        self.consumer.start()
-
-    def addjob(self, url):
-        try:
-           return self.pool.apply_async(self.worker,[url],callback=self.q.put)
-        except:
-            logger.error('[!] failed to scrape '+ url)
-            logger.error(traceback.format_exc())
-            raise
-
-    def finish(self):
-        self.pool.close()
-        logger.info('closed pool')
-        self.pool.join()
-        logger.info('joined pool')
-        self.done.value=True
-        self.consumer.join()
-        logger.info('joined consumer')
-        self.q.close()
-        logger.info('closed q')
-        self.q.join()
-        logger.info('joined q')
-
-    def consume(self):
-        param=[0,0]
-        while True:
-            job=None
-            try:
-                job=self.q.get(True, timeout=1)
-            except Empty:
-                if self.done.value==True: break
-            if job:
-                param = self.writer(job, param)
-                self.q.task_done()
-        logger.info('added/updated: %s' % param)
-
 comre=re.compile(r'COM\(([0-9]{4})\)([0-9]{4})')
 comepre=re.compile(r'COM/([0-9]{4})/([0-9]{4})')
 secre=re.compile(r'SEC\(([0-9]{4})\)([0-9]{4})')
@@ -691,13 +635,13 @@ def save(data, stats):
     if d:
         now=datetime.datetime.utcnow().replace(microsecond=0).isoformat()
         if not res:
-            logger.info(('\tadding %s - %s' % (data['procedure']['reference'],data['procedure']['title'])).encode('utf8'))
+            logger.info(('adding %s - %s' % (data['procedure']['reference'],data['procedure']['title'])).encode('utf8'))
             data['meta']['created']=data['meta']['timestamp']
             del data['meta']['timestamp']
             sys.stdout.flush()
             stats[0]+=1
         else:
-            logger.info(('\tupdating  %s - %s' % (data['procedure']['reference'],data['procedure']['title'])).encode('utf8'))
+            logger.info(('updating  %s - %s' % (data['procedure']['reference'],data['procedure']['title'])).encode('utf8'))
             data['meta']['updated']=data['meta']['timestamp']
             del data['meta']['timestamp']
             sys.stdout.flush()
