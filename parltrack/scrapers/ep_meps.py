@@ -17,152 +17,147 @@
 
 # (C) 2011 by Stefan Marsiske, <stefan.marsiske@gmail.com>, Asciimoo
 
-import json, urllib2,sys
+
 from datetime import datetime
-from string import strip, uppercase
-from lxml.html.soupparser import parse
 from parltrack.environment import connect_db
 from mappings import COMMITTEE_MAP, buildings
-import unicodedata, traceback
-
+from urlparse import urlparse, urljoin
+import unicodedata, traceback, json, urllib2, sys
+from parltrack.utils import diff, htmldiff, fetch, dateJSONhandler, unws, Multiplexer, logger
 
 BASE_URL = 'http://www.europarl.europa.eu'
 db = connect_db()
-#proxy_handler = urllib2.ProxyHandler({'http': 'http://localhost:8123/'})
-#opener = urllib2.build_opener(proxy_handler)
-opener = urllib2.build_opener()
-#("User-agent", "Mozilla/5.0 (Macintosh; U; PPC Mac OS X; en) AppleWebKit/125.2 (KHTML, like Gecko) Safari/125.8"),
-opener.addheaders = [('User-agent', 'parltrack/0.7')]
-urllib2.install_opener(opener)
+db.ep_meps2.ensure_index([('UserID', 1)])
+db.ep_meps2.ensure_index([('Name.full', 1)])
+db.ep_meps2.ensure_index([('Name.aliases', 1)])
 
-def fetch(url, retries=3):
-    # url to etree
-    try:
-        f=urllib2.urlopen(url, timeout=32)
-    except (urllib2.HTTPError, urllib2.URLError), e:
-        if hasattr(e, 'code') and e.code>=400:
-            print >>sys.stderr, "[!] %d %s" % (e.code, url)
-            return ''
-        if retries>0:
-            f=fetch(url,retries-1)
+def getAddress(root):
+    res={}
+    for div in root.xpath('//div[@id="contextzone"]//div[@class="ep_title"]'):
+        # getAddress(map(strip, div.xpath("../..//div[@class='ep_elementcontact']/ul")))
+        key=unws(''.join(div.xpath('.//text()')))
+        if key not in ['Bruxelles', 'Strasbourg', 'Postal address', 'Luxembourg']:
+            continue
+        res[key]={}
+        if key in ['Bruxelles', 'Strasbourg', 'Luxembourg']:
+            res[key]['Phone'] = unws(div.xpath('../..//li[@class="ep_phone"]/div/text()')[0]).replace('(0)','')
+            res[key]['Fax'] = unws(div.xpath('../..//li[@class="ep_fax"]/div/text()')[0]).replace('(0)','')
+        tmp=[unws(x) for x in div.xpath('../..//li[@class="ep_address"]/div/text()') if len(unws(x))]
+        if key=='Strasbourg':
+            res[key].update(dict(zip(['Organization','Street','Zip1', 'Zip2'],tmp)))
+            res[key]['City']=res[key]['Zip2'].split()[1]
+            res[key]['Zip2']=res[key]['Zip2'].split()[0]
+        elif key=='Bruxelles':
+            res[key].update(dict(zip(['Organization','Street','Zip'],tmp)))
+            res[key]['City']=res[key]['Zip'].split()[1]
+            res[key]['Zip']=res[key]['Zip'].split()[0]
+        elif key=='Luxembourg':
+            res[key].update(dict(zip(['Organization','Zip'],tmp)))
+            res[key]['City']=res[key]['Zip'].split()[1]
+            res[key]['Zip']=res[key]['Zip'].split()[0]
+        elif key=='Postal address':
+            res[key].update(dict(zip(['Organization','Street','Building', 'Zip'],tmp)))
+            res[key]['City']=res[key]['Zip'].split()[1]
+            res[key]['Zip']=res[key]['Zip'].split()[0]
+            res[key]['Office']=res[key]['Building'].split()[-1]
+            res[key]['Building']=' '.join(res[key]['Building'].split()[:-1])
+            res[key]['building_code']=buildings[res[key]['Building']]
         else:
-            return ''
-    return parse(f)
+            logger.error("wtf %s" % key)
+    if 'Bruxelles' in res and 'Postal address' in res:
+        res['Bruxelles']['Office']=res['Postal address']['Office']
+        res['Bruxelles']['Building']=res['Postal address']['Building']
+        res['Bruxelles']['building_code']=res['Postal address']['building_code']
+    return res
 
-def dateJSONhandler(obj):
-    if hasattr(obj, 'isoformat'):
-        return obj.isoformat()
-    else:
-        raise TypeError, 'Object of type %s with value of %s is not JSON serializable' % (type(Obj), repr(Obj))
-
-def cleanPhone(no):
-   i=no.find('(0)')
-   if i:
-      no=no[:i]+no[i+3:]
-   return no
-
-def getAddress(txts):
-    flag = 0
-    ret = {'Address': [], 'Phone': '', 'Fax': ''}
-    for addr in txts:
-        if not addr:
-            continue
-        if addr == 'Tel.':
-            flag = 1
-            continue
-        elif addr == 'Fax':
-            flag = 2
-            continue
-        if flag == 1:
-            ret['Phone'] = cleanPhone(addr[1:].strip())
-        elif flag == 2:
-            ret['Fax'] = cleanPhone(addr[1:].strip())
-        else:
-            ret['Address'].append(addr)
-    if len(ret['Address'])==7:
-        ret['Address']=dict(zip(['Organization','Building','Office','Street','Zip1', 'Zip2', 'City'],ret['Address']))
-    else:
-        ret['Address']=dict(zip(['Organization','Building','Office','Street','Zip','City'],ret['Address']))
-    if ret['Address']['Building'] in buildings:
-        ret['Address']['building_code']=buildings[ret['Address']['Building']]
-    return ret
-
-def getMEPGender(userid):
-    mepurl='http://www.europarl.europa.eu/members/archive/alphaOrder/view.do?language=FR&id='
+def getMEPGender(name, id):
     try:
-        mepraw=fetch("%s%s" % (mepurl, userid))
+        mepraw=fetch("http://www.europarl.europa.eu/meps/fr/%s/%s.html" % (id, name.replace(' ', '_')))
     except Exception, e:
-        print >>sys.stderr, e
+        logger.error("mepgender %s" % e)
         return
-    hint=mepraw.xpath('//td[@class="mep_CVtext"]/text()')[-1].replace(u"\u00A0",' ').split()[0]
+    hint=mepraw.xpath('//div[@class="ep_elementtext"]/p/text()')[0].replace(u"\u00A0",' ').split()[0]
     if hint==u"Née":
         return "F"
     elif hint==u"Né":
         return "M"
     return 'n/a'
 
-def unws(txt):
-    return ' '.join(strip(txt).split())
-
-def splitDatedInfo(text,title):
-    (period, text)=text.split(' : ',1)
-    (start, end)=period.split(' / ',1)
-    if end == '...':
-        end='31.12.9999' # end of time
-    item={title: text,
-          'start': datetime.strptime(start,"%d.%m.%Y"),
-          'end': datetime.strptime(end,"%d.%m.%Y")}
-    return item
-
-def parseMember(userid):
-    url='http://www.europarl.europa.eu/members/expert/alphaOrder/view.do?language=EN&id=%s' % userid
+def parseMember(url):
+    logger.debug("scraping %s" % url)
     root = fetch(url)
-    data = {'active': True}
-    if not root or root.xpath('head/title/text()')=='The requested page does not exist.':
-        return {'active': False}
-    group=unws(''.join(root.xpath("//td[@style='width: 94%;']/span[@class='titlemep']/text()")))
-    #data['Groups'] = [{ 'role':  unws(''.join(root.xpath("//td[@style='width: 94%;']/span[@class='titlemep2']/text()"))),
-    #                    'group': group,
-    #                    'groupid': group_map[group]}]
-    data['Photo'] = '' if not len(root.xpath("//img[@class='photoframe']")) else BASE_URL + root.xpath("//img[@class='photoframe']")[0].attrib['src']
-    tmp = map(unws, root.xpath("//td[@class='mep_CVtext']/text()"))
-    (d,p)=tmp[-1].split(',',1)
-    data['Birth'] = { 'date': datetime.strptime(d, "Born on %d %B %Y"),
-                      'place': p.strip() }
-    data['Homepage'] = '' if not len(root.xpath("//td[@class='mepurl']/a/text()")) else root.xpath("//td[@class='mepurl']/a/text()")[0].strip()
-    # LOL at HTML source - class="mepmail" -> obfuscation?! =))
-    data['Mail'] = unws(''.join(root.xpath("//td[@class='mepmail']//text()"))).split()
-    data['Addresses'] = { 'Brussels': getAddress(map(strip, root.xpath("//td[@style='width: 225px; white-space: nowrap;']//text()"))),
-                          'Strasbourg': getAddress(map(strip, root.xpath("//td[@style='width: 193px; white-space: nowrap;']//text()"))),
-                          'Postal': [' '.join(x.split()) for x in root.xpath("//span[@class='txtmep']//text()") if x.strip()][1:]
-                          }
-    for c in root.xpath("//td[@class='mepcountry']"):
-        key=unws(c.text)
-        if (key in ['Member',
-                    'Substitute',
-                     'Chair',
-                     'Vice-Chair',
-                     'Co-President',
-                     'President',
-                     'Vice-President',
-                     'Parliamentary activities'] or
-            key.startswith('Parliamentary activities in plenary')):
-            continue # all urls can be recreated from the UserID
-        if key!='Curriculum vitae':
-            print >>sys.stderr, '[!] unknown field', key
+    data = {u'active': True, 'meta': {}} # return {'active': False}
+    mepdiv=root.xpath('//div[@class="ep_elementpeople2"]')
+    if len(mepdiv)==1:
+        mepdiv=mepdiv[0]
+    else:
+        logger.error("mepdiv not 1: %s" % str(list(mepdiv)))
+    data[u'Name']=mangleName(unws(mepdiv.xpath('.//span[@class="ep_title"]/text()')[0]))
+    data[u'Photo']=unicode(urljoin(BASE_URL,mepdiv.xpath('.//span[@class="ep_img"]/img')[0].get('src')),'utf8')
+    (d,p)=mepdiv.xpath('.//div[@class="ep_elementtext"]/p/text()')[0].split(',',1)
+    data[u'Birth'] = { u'date': datetime.strptime(unws(d), "Born on %d %B %Y"),
+                       u'place': unws(p) }
+    const={u'country': unws(mepdiv.xpath('.//span[@class="ep_country"]/text()')[0])}
+    data[u'Constituencies']=[const]
+    try:
+        const[u'party']=unws(mepdiv.xpath('.//span[@class="ep_group"]/text()')[1]),
+    except IndexError:
+        data[u'active']=False
+    else:
+        group=unws(mepdiv.xpath('.//span[@class="ep_group"]/text()')[0])
+        data[u'Groups'] = [{ u'role': unws(mepdiv.xpath('.//span[@class="ep_title"]/text()')[1]),
+                             u'group': group,
+                             u'groupid': group_map[group]}]
+    cdiv=root.xpath('//div[@class="ep_elementcontact"]')
+    if len(cdiv):
+        addif(data,u'RSS',[unicode(urljoin(BASE_URL,x.get('href')),'utf8') for x in cdiv[0].xpath('.//li[@class="ep_rss"]//a')])
+        addif(data,u'Homepage',[unicode(x.get('href'),'utf8') for x in cdiv[0].xpath('.//li[@class="ep_website"]//a')])
+        addif(data,u'Mail',[decodemail(unws(unicode(x,'utf8'))) for x in cdiv[0].xpath('.//li[@class="ep_email"]//text()') if len(unws(x))])
+    for span in root.xpath('//div[@id="contextzone"]//span[@class="ep_title"]'):
+        if unws(''.join(span.xpath('.//text()')))=='Assistants':
+            addif(data,'Assistants',[unws(x) for x in span.xpath('../../..//li/div/text()')])
+    addif(data,u'Addresses',getAddress(root))
+    for div in root.xpath('//div[@class="ep_content"]'):
+        key=unws(u''.join(div.xpath('.//span[@class="ep_title"]/text()')))
+        if not len(key):
+            continue
+        elif key=='Curriculum vitae':
+            data[u'CV'] = [unws(x) for x in div.xpath('.//div[@class="ep_elementtext"]//li/div/text()')]
+        elif key in ['Member', 'Substitute', 'Chair', 'Vice-Chair', 'Co-President', 'President', 'Vice-President']:
+            for span in div.xpath('.//span[@class="commission_label"]'):
+                item={u'role': key,
+                      u'abbr': unws(''.join(span.xpath('text()'))),
+                      u'Organization': unws(span.tail)}
+                for start, field in orgmaps:
+                    if item['Organization'].startswith(start):
+                        if not field in data: data[field]=[]
+                        if field=='Committees' and item['Organization'] in COMMITTEE_MAP:
+                            item[u'committee_id']=COMMITTEE_MAP[item['Organization']]
+                        data[field].append(item)
+                        break
         else:
-            key='CV'
-        data[key] = [cc.text if not len(cc.xpath('a')) else (cc.text.strip(), BASE_URL+cc.xpath('a')[0].attrib['href'])
-                     for cc in c.xpath("../../tr[@class='mep_CVtext']/td[2]")
-                     if cc]
+            logger.error('[!] unknown field %s' % key)
     return data
 
+def addif(target, key, val):
+    if val:
+        target[key]=val
+
+def decodemail(txt):
+    return txt.replace('[dot]','.').replace('[at]','@')[::-1]
+
 def mangleName(name):
-    family=name.split(', ')[0]
-    try:
-        sur=name.split(', ')[1]
-    except:
-        sur=''
+    sur=[]
+    family=[]
+    tmp=name.split(' ')
+    for i,token in enumerate(tmp):
+        if token.isupper():
+            family=tmp[i:]
+            break
+        else:
+            sur.append(token)
+    sur=' '.join(sur)
+    family=' '.join(family)
     title=None
     for t in Titles:
         if family.startswith(t):
@@ -212,114 +207,17 @@ def mangleName(name):
            res['aliases'].extend(meps_aliases[name])
     return res
 
-def parseRoles(c, data):
-    key=unws(c.text)
-    if key.startswith('Parliamentary activities'):
-        return data # all urls can be recreated from the UserID
-    for cc in c.xpath("../../tr[@class='mep_CVtext']/td[2]"):
-        name=' '.join(cc.xpath('string()').split())
-        item=splitDatedInfo(name,'Organization')
-        item['role']=key
-        if len(cc.xpath('a')):
-            item['url']=BASE_URL+cc.xpath('a')[0].attrib['href']
-        found=False
-        for start, field in orgmaps:
-            if item['Organization'].startswith(start):
-                if not field in data:
-                    data[field]=[]
-                if field=='Committees' and item['Organization'] in COMMITTEE_MAP:
-                    item['committee_id']=COMMITTEE_MAP[item['Organization']]
-                data[field].append(item)
-                found=True
-                break
-        if found:
-            continue
-        if item['Organization'] in GROUPS or item['Organization'] in group_map:
-                if not 'Groups' in data:
-                    data['Groups']=[]
-                if item['Organization'] in group_map:
-                    item['groupid']=group_map[item['Organization']]
-                # TODO find out exact date of when the 2001 term started
-                #elif item['start']>datetime.strptime("30092001","%d%m%Y"):
-                #    print >>sys.stderr, '[!] unrecognized group', key, item
-                data['Groups'].append(item)
-                continue
-        print >>sys.stderr, '[!] unrecognized data', key, item
-    return data
-
-def scrape(userid, name):
+def scrape(url):
+    urlseq=urlparse(url)
+    userid=int(urlseq.path.split('/')[3])
+    name=urlseq.path.split('/')[4][:-5].replace('_',' ')
     data = { 'Constituencies': [],
-             'Name' : mangleName(name),
              'Groups': [],
-             'Gender': getMEPGender(userid),
+             'Gender': getMEPGender(name, userid),
              'UserID': userid }
     # retrieve supplemental info for currently active meps
-    data.update(parseMember(userid))
-
-    # process also historical data
-    #root=fetch("http://www.europarl.europa.eu/members/public/inOut/viewOutgoing.do?language=EN&id=%s" % data['UserID'])
-    root=fetch("http://www.europarl.europa.eu/members/archive/alphaOrder/view.do?language=EN&id=%s" % data['UserID'])
-    # process info of Constituencies
-    for line in root.xpath("//table[@class='titlemep']/tr"):
-        tmp=[' '.join(x.split()).strip() for x in line.xpath('td/text()') if ' '.join(x.split()).strip()]
-        (period, group)=tmp[1].split(' : ',1)
-        try:
-            (start, end)=period.split(' / ',1)
-        except:
-            start=period.split()[0]
-            end='31.12.9999' # end of time
-            #data['Groups'][0].update({'start':datetime.strptime(start,"%d.%m.%Y"), 'end': datetime.strptime(end,"%d.%m.%Y")})
-        start=datetime.strptime(start,"%d.%m.%Y")
-        end=datetime.strptime(end,"%d.%m.%Y")
-        data['Constituencies'].append({
-            'start': start,
-            'end': end,
-            'country': tmp[0],
-            'party': group})
-    # process other historical data
-    for c in root.xpath("//td[@class='mepcountry']"):
-        data=parseRoles(c, data)
-    q={'UserID': data['UserID']}
-    db.ep_meps.update(q, {"$set": data}, upsert=True)
-    print json.dumps(data, indent=1, default=dateJSONhandler, ensure_ascii=False).encode('utf-8')
-
-group_map={ "Confederal Group of the European United Left - Nordic Green Left": 'GUE/NGL',
-            "Confederal Group of the European United Left-Nordic Green Left": 'GUE/NGL',
-            'Confederal Group of the European United Left / Nordic Green Left': 'GUE/NGL',
-            'Confederal Group of the European United Left/Nordic Green Left': 'GUE/NGL',
-            "European Conservatives and Reformists": 'ECR',
-            'European Conservatives and Reformists Group': 'ECR',
-            "Europe of freedom and democracy Group": 'EFD',
-            'Europe of Freedom and Democracy Group': 'EFD',
-            "Group of the Alliance of Liberals and Democrats for Europe": 'ALDE',
-            "Group of the Greens/European Free Alliance": "Verts/ALE",
-            "Group of the Progressive Alliance of Socialists and Democrats in the European Parliament": "S&D",
-            'Group for a Europe of Democracies and Diversities': 'EDD',
-            'Group of the European Liberal Democrat and Reform Party': 'ELDR',
-            'Group of the European Liberal, Democrat and Reform Party': 'ELDR',
-            'Group indépendence/Démocratie': ['ID','INDDEM', 'IND/DEM'],
-            'Independence/Democracy Group': ['ID', 'INDDEM', 'IND/DEM'],
-            'Non-attached Members': ['NA','NI'],
-            'Non-attached': ['NA','NI'],
-            'Identity, Tradition and Sovereignty Group': 'ITS',
-            "Group of the European People's Party (Christian Democrats) and European Democrats": 'PPE-DE',
-            "Group of the European People's Party (Christian Democrats)": 'PPE',
-            "Group of the European People's Party (Christian-Democratic Group)": "PPE",
-            'Group of the Party of European Socialists': 'PSE',
-            'Socialist Group in the European Parliament': 'PSE',
-            'Technical Group of Independent Members': 'TDI',
-            'Group indépendence/Démocratie': 'UEN',
-            'Union for a Europe of Nations Group': 'UEN',
-            'Union for Europe of the Nations Group': 'UEN',
-            'Group of the Greens / European Free Alliance': 'Verts/ALE',
-            'Greens/EFA': 'Verts/ALE',
-            }
-groupids=[]
-for item in group_map.values():
-    if type(item)==list:
-        groupids.extend(item)
-    else:
-        groupids.append(item)
+    data.update(parseMember(url))
+    return data
 
 orgmaps=[('Committee o', 'Committees'),
         ('Temporary committee ', 'Committees'),
@@ -336,54 +234,6 @@ orgmaps=[('Committee o', 'Committees'),
         ("Parliament's Bureau", 'Staff'),
         ('European Parliament', 'Staff'),
         ('Quaestors', 'Staff'),]
-
-GROUPS=[
-   'Communist and Allies Group',
-   'European Conservative Group',
-   'European Conservatives and Reformists',
-   'European Democratic Group',
-   'Europe of freedom and democracy Group',
-   'Europe of Nations Group (Coordination Group)',
-   'Forza Europa Group',
-   'Confederal Group of the European United Left',
-   'Confederal Group of the European United Left/Nordic Green Left',
-   'Confederal Group of the European United Left - Nordic Green Left',
-   'Christian-Democratic Group',
-   "Christian-Democratic Group (Group of the European People's Party)",
-   "Group of the European People's Party ",
-   'Group for a Europe of Democracies and Diversities',
-   'Group for the European United Left',
-   'Group for the Technical Coordination and Defence of Indipendent Groups and Members',
-   'Group of Independents for a Europe of Nations',
-   'Group of the Alliance of Liberals and Democrats for Europe',
-   'Group of the European Democratic Alliance',
-   'Group of the European Liberal, Democrat and Reform Party',
-   'Group of the European Radical Alliance',
-   'Group of the European Right',
-   'Group of the Greens/European Free Alliance',
-   'Group of the Party of European Socialists',
-   'Group of the Progressive Alliance of Socialists and Democrats in the European Parliament',
-   'European Democratic Union Group',
-   'Group of European Progressive Democrats',
-   "Group of the European People's Party (Christian Democrats) and European Democrats",
-   "Group of the European People's Party (Christian Democrats)",
-   'Group Union for Europe',
-   'Identity, Tradition and Sovereignty Group',
-   'Independence/Democracy Group',
-   'Left Unity',
-   'Liberal and Democratic Group',
-   'Liberal and Democratic Reformist Group',
-   'Non-attached',
-   'Non-attached Members',
-   "Rainbow Group: Federation of the Green Alternative European Links, Agelev-Ecolo, the Danish People's Movement against Membership of the European Community and the European Free Alliance in the European Parliament",
-   'Rainbow Group in the European Parliament',
-   'Socialist Group',
-   'Socialist Group in the European Parliament',
-   'Technical Coordination and Defence of Independent Groups and Members',
-   'Technical Group of Independent Members - mixed group',
-   'Technical Group of the European Right',
-   'The Green Group in the European Parliament',
-   'Union for Europe of the Nations Group', ]
 
 meps_aliases={
     u"GRÈZE, Catherine": ['GREZE', 'greze', 'Catherine Greze', 'catherine greze', u'Grčze', u'grcze'],
@@ -450,94 +300,90 @@ meps_aliases={
     }
 
 Titles=['Sir',
-       'Lady',
-       'Baroness',
-       'Baron',
-       'Lord',
-       'Earl',
-       'Duke',
-       'The Earl of',
-       'The Lord',
-       'Professor Sir']
+        'Lady',
+        'Baroness',
+        'Baron',
+        'Lord',
+        'Earl',
+        'Duke',
+        'The Earl of',
+        'The Lord',
+        'Professor Sir']
 
-COUNTRIES = {'BE': 'Belgium',
-             'BG': 'Bulgaria',
-             'CZ': 'Czech Republic',
-             'DK': 'Denmark',
-             'DE': 'Germany',
-             'EE': 'Estonia',
-             'IE': 'Ireland',
-             'EL': 'Greece',
-             'ES': 'Spain',
-             'FR': 'France',
-             'IT': 'Italy',
-             'CY': 'Cyprus',
-             'LV': 'Latvia',
-             'LT': 'Lithuania',
-             'LU': 'Luxembourg',
-             'HU': 'Hungary',
-             'MT': 'Malta',
-             'NL': 'Netherlands',
-             'AT': 'Austria',
-             'PL': 'Poland',
-             'PT': 'Portugal',
-             'RO': 'Romania',
-             'SI': 'Slovenia',
-             'SK': 'Slovakia',
-             'FI': 'Finland',
-             'SE': 'Sweden',
-             'UK': 'United Kingdom',
-             }
+def get_meps(term='7'):
+    i=0
+    page=fetch("http://www.europarl.europa.eu/meps/en/performsearch.html?webCountry=&webTermId=%s&name=&politicalGroup=&bodyType=ALL&bodyValue=&type=&filter=&search=Show+result" % (term))
+    last=None
+    while True:
+        meps=[(x.get('href'), unws(x.xpath('text()')[0])) for x in page.xpath('//div[@class="ep_elementpeople1"]//a[@class="ep_title"]')]
+        if meps==last:
+            break
+        for url,name in meps:
+            yield (urljoin(urljoin(BASE_URL,url),'get.html'), name)
+        last=meps
+        i+=1
+        page=fetch("http://www.europarl.europa.eu/meps/en/performsearch.html?action=%s&webCountry=&webTermId=%s&name=&politicalGroup=&bodyType=ALL&bodyValue=&type=&filter=" % (i, term))
 
-SEIRTNUOC = {'Belgium': 'BE',
-             'Bulgaria': 'BG',
-             'Czech Republic':'CZ',
-             'Denmark': 'DK',
-             'Germany': 'DE',
-             'Estonia': 'EE',
-             'Ireland': 'IE',
-             'Greece': 'EL',
-             'Spain': 'ES',
-             'France': 'FR',
-             'Italy': 'IT',
-             'Cyprus': 'CY',
-             'Latvia': 'LV',
-             'Lithuania': 'LT',
-             'Luxembourg': 'LU',
-             'Hungary': 'HU',
-             'Malta': 'MT',
-             'Netherlands': 'NL',
-             'Austria': 'AT',
-             'Poland': 'PL',
-             'Portugal': 'PT',
-             'Romania': 'RO',
-             'Slovenia': 'SI',
-             'Slovakia': 'SK',
-             'Finland': 'FI',
-             'Sweden': 'SE',
-             'United Kingdom':'GB',
-             }
+def jdump(d, tmp):
+    logger.info(json.dumps(d, indent=1, default=dateJSONhandler, ensure_ascii=False).encode('utf-8'))
+
+def save(data, stats):
+    res=db.ep_meps2.find_one({ 'UserID' : data['UserID'] }) or {}
+    d=diff(dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes']]),
+           dict([(k,v) for k,v in data.items() if not k in ['_id', 'meta', 'changes',]]))
+    if d:
+        now=unicode(datetime.utcnow().replace(microsecond=0).isoformat())
+        if not res:
+            logger.info(('adding %s' % (data['Name']['full'])).encode('utf8'))
+            data['meta']['created']=now
+            stats[0]+=1
+        else:
+            logger.info(('updateing %s' % (data['Name']['full'])).encode('utf8'))
+            logger.warn(d)
+            data['meta']['updated']=now
+            stats[1]+=1
+            data['_id']=res['_id']
+        data['changes']=res.get('changes',{})
+        data['changes'][now]=d
+        db.ep_meps2.save(data)
+    return stats
+
+def crawlseq(term='7',saver=jdump):
+    for url, name in get_meps(term=term):
+        saver(scrape(url))
+
+def crawl_all(saver=jdump,threads=4):
+    m=Multiplexer(scrape,saver,threads=threads)
+    m.start()
+    seen=[]
+    for term in xrange(1,8):
+        for url, name in get_meps(term=term):
+            if not url in seen:
+                m.addjob(url)
+                seen.append(url)
+    m.finish()
+    logger.info('end of crawl')
+
+def crawl(saver=jdump,threads=4):
+    m=Multiplexer(scrape,saver,threads=threads)
+    m.start()
+    [m.addjob(url) for url, name in get_meps()]
+    m.finish()
+    logger.info('end of crawl')
 
 if __name__ == "__main__":
-    #import platform
-    #if platform.machine() in ['i386', 'i686']:
-    #    import psyco
-    #    psyco.full()
-    seen=[]
-    for letter in uppercase:
-        for term in [3, 4, 5, 6, 7]:
-            root = fetch("http://www.europarl.europa.eu/members/archive/term%d.do?letter=%s&language=EN" % (
-                term,
-                letter))
-            for data in  root.xpath("//td[@class='box_content_mep']/table/tr/td[2]"):
-                userid=dict([x.split('=') for x in data.xpath("a")[0].attrib['href'].split('?')[1].split('&')])['id']
-                if not userid in seen:
-                    print >>sys.stderr,data.xpath('a/text()')[0].encode('utf8')
-                    try:
-                        scrape(userid,data.xpath('a/text()')[0])
-                    except:
-                        print >>sys.stderr, "[!] failed to scrape", data.xpath('a/text()')[0]
-                        exc_type, exc_value, exc_traceback = sys.exc_info()
-                        traceback.print_tb(exc_traceback, file=sys.stderr)
-                        traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stderr)
-                    seen.append(userid)
+    if len(sys.argv)!=2:
+        print "%s full|current|currentseq|test" % (sys.argv[0])
+    if sys.argv[1]=="full":
+        crawl_all(saver=save,threads=4)
+    elif sys.argv[1]=="currentseq":
+        crawlseq(saver=save)
+    elif sys.argv[1]=="current":
+        crawl(saver=save)
+    elif sys.argv[1]=="test":
+        jdump(scrape("http://www.europarl.europa.eu/meps/en/1934/get.html"),None)
+        jdump(scrape("http://www.europarl.europa.eu/meps/en/28576/get.html"), None)
+        jdump(scrape("http://www.europarl.europa.eu/meps/en/1263/Elmar_BROK.html"), None)
+        jdump(scrape("http://www.europarl.europa.eu/meps/en/96739/Reinhard_B%C3%9CTIKOFER.html"), None)
+        jdump(scrape("http://www.europarl.europa.eu/meps/en/28269/Jerzy_BUZEK.html"), None)
+        jdump(scrape("http://www.europarl.europa.eu/meps/en/1186/Astrid_LULLING.html"), None)
