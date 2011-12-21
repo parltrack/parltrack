@@ -63,7 +63,7 @@ def getAddress(root):
 
 def getMEPGender(name, id):
     try:
-        mepraw=fetch("http://www.europarl.europa.eu/meps/fr/%s/%s.html" % (id, name.replace(' ', '_')))
+        mepraw=fetch("http://www.europarl.europa.eu/meps/fr/%s/get.html" % (id))
     except Exception, e:
         logger.error("mepgender %s" % e)
         return
@@ -79,18 +79,18 @@ def parseMember(url):
     root = fetch(url)
     data = {u'active': True, 'meta': {u'url': url}} # return {'active': False}
     mepdiv=root.xpath('//div[@class="ep_elementpeople2"]')
-    if len(mepdiv)==1:
-        mepdiv=mepdiv[0]
+    if len(mepdiv) == 1:
+        mepdiv = mepdiv[0]
     else:
         logger.error("mepdiv not 1: %s" % str(list(mepdiv)))
-    data[u'Name']=mangleName(unws(mepdiv.xpath('.//span[@class="ep_title"]/text()')[0]))
-    data[u'Photo']=unicode(urljoin(BASE_URL,mepdiv.xpath('.//span[@class="ep_img"]/img')[0].get('src')),'utf8')
-    (d,p)=mepdiv.xpath('.//div[@class="ep_elementtext"]/p/text()')[0].split(',',1)
+    data[u'Name'] = mangleName(unws(mepdiv.xpath('.//span[@class="ep_title"]/text()')[0]))
+    data[u'Photo'] = unicode(urljoin(BASE_URL,mepdiv.xpath('.//span[@class="ep_img"]/img')[0].get('src')),'utf8')
+    (d, p) = mepdiv.xpath('.//div[@class="ep_elementtext"]/p/text()')[0].split(',', 1)
     try:
-        data[u'Birth'] = { u'date': datetime.strptime(unws(d), "Born on %d %B %Y"),
+        data[u'Birth'] = { u'date': datetime.strptime(' '.join(unws(d).split()[2:]), "%d %B %Y"),
                            u'place': unws(p) }
-    except ValueError:
-        logger.warn('[!] failed to scrape birth data'+ url)
+    except:
+        logger.warn('[!] failed to scrape birth data %s' % url)
         logger.warn(traceback.format_exc())
     const={u'country': unws(mepdiv.xpath('.//span[@class="ep_country"]/text()')[0])}
     data[u'Constituencies']=[const]
@@ -116,7 +116,7 @@ def parseMember(url):
         key=unws(u''.join(div.xpath('.//span[@class="ep_title"]/text()')))
         if not len(key):
             continue
-        elif key=='Curriculum vitae':
+        elif key.lower()=='curriculum vitae':
             data[u'CV'] = [unws(x) for x in div.xpath('.//div[@class="ep_elementtext"]//li/div/text()')]
         elif key in ['Member', 'Substitute', 'Chair', 'Vice-Chair', 'Co-President', 'President', 'Vice-President']:
             for span in div.xpath('.//span[@class="commission_label"]'):
@@ -434,6 +434,15 @@ def crawl_all(saver=jdump,threads=4):
     m.finish()
     logger.info('end of crawl')
 
+def crawl_allseq(saver=jdump):
+    seen=[]
+    stats=[0,0]
+    for term in xrange(1,8):
+        for url, name in get_meps(term=term):
+            if not url in seen:
+                saver(scrape(url),stats)
+    logger.info('end of crawl')
+
 def crawl(saver=jdump,threads=4):
     m=Multiplexer(scrape,saver,threads=threads)
     m.start()
@@ -454,12 +463,17 @@ def seqcrawl(targets, term='7',saver=jdump, scraper=scrape):
 
 if __name__ == "__main__":
     if len(sys.argv)!=2:
-        print "%s full|current|currentdry|currentseq|currentdry|currentseqdry|outgoing|outgoingseq|outgoingdry|outgoingseqdry|test" % (sys.argv[0])
+        print "%s full|fullseq|current|currentdry|currentseq|currentdry|currentseqdry|outgoing|outgoingseq|outgoingdry|outgoingseqdry|test" % (sys.argv[0])
     if sys.argv[1]=="full":
         # outgoing and full (latest term, does not contain the
         # inactive meps, so outgoing is necessary to scrape as well
         crawler(getOutgoing, saver=save)
         crawl_all(saver=save,threads=8)
+    if sys.argv[1]=="fullseq":
+        # outgoing and full (latest term, does not contain the
+        # inactive meps, so outgoing is necessary to scrape as well
+        crawler(getOutgoing, saver=save)
+        crawl_allseq(saver=save)
 
     elif sys.argv[1]=="current":
         newbies=getIncomming()
@@ -485,11 +499,12 @@ if __name__ == "__main__":
 
     elif sys.argv[1]=="test":
         import pprint
-        d=getIncomming()
+        scrape('http://www.europarl.europa.eu/meps/en/950/get.html')
+        #d=getIncomming()
         #d=list(getActive())
         #import code; code.interact(local=locals());
-        print len(d)
-        pprint.pprint(d)
+        #print len(d)
+        #pprint.pprint(d)
         sys.exit(0)
         jdump(scrape("http://www.europarl.europa.eu/meps/en/1934/get.html"),None)
         jdump(scrape("http://www.europarl.europa.eu/meps/en/28576/get.html"), None)
