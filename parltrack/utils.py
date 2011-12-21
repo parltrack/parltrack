@@ -362,9 +362,11 @@ class Multiplexer(object):
         self.done.value=False
         self.consumer.start()
 
-    def addjob(self, url):
+    def addjob(self, url, data=None):
+        params=[url]
+        if data: params.append(data)
         try:
-           return self.pool.apply_async(self.worker,[url],callback=self.q.put)
+           return self.pool.apply_async(self.worker,params,callback=self.q.put)
         except:
             logger.error('[!] failed to scrape '+ url)
             logger.error(traceback.format_exc())
