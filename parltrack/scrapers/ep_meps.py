@@ -20,7 +20,7 @@
 
 from datetime import datetime
 from parltrack.environment import connect_db
-from mappings import COMMITTEE_MAP, buildings
+from mappings import COMMITTEE_MAP, buildings, group_map
 from urlparse import urlparse, urljoin
 import unicodedata, traceback, json, urllib2, sys
 from parltrack.utils import diff, htmldiff, fetch, dateJSONhandler, unws, Multiplexer, logger
@@ -44,30 +44,21 @@ def getAddress(root):
             res[key]['Fax'] = unws(div.xpath('../..//li[@class="ep_fax"]/div/text()')[0]).replace('(0)','')
         tmp=[unws(x) for x in div.xpath('../..//li[@class="ep_address"]/div/text()') if len(unws(x))]
         if key=='Strasbourg':
-            res[key].update(dict(zip(['Organization','Street','Zip1', 'Zip2'],tmp)))
+            res[key].update(dict(zip(['Organization','Building', 'Office', 'Street','Zip1', 'Zip2'],tmp)))
             res[key]['City']=res[key]['Zip2'].split()[1]
             res[key]['Zip2']=res[key]['Zip2'].split()[0]
-        elif key=='Bruxelles':
-            res[key].update(dict(zip(['Organization','Street','Zip'],tmp)))
-            res[key]['City']=res[key]['Zip'].split()[1]
-            res[key]['Zip']=res[key]['Zip'].split()[0]
-        elif key=='Luxembourg':
-            res[key].update(dict(zip(['Organization','Zip'],tmp)))
-            res[key]['City']=res[key]['Zip'].split()[1]
-            res[key]['Zip']=res[key]['Zip'].split()[0]
-        elif key=='Postal address':
-            res[key].update(dict(zip(['Organization','Street','Building', 'Zip'],tmp)))
-            res[key]['City']=res[key]['Zip'].split()[1]
-            res[key]['Zip']=res[key]['Zip'].split()[0]
-            res[key]['Office']=res[key]['Building'].split()[-1]
-            res[key]['Building']=' '.join(res[key]['Building'].split()[:-1])
             res[key]['building_code']=buildings[res[key]['Building']]
+        elif key=='Bruxelles':
+            res[key].update(dict(zip(['Organization','Building', 'Office', 'Street','Zip'],tmp)))
+            res[key]['City']=res[key]['Zip'].split()[1]
+            res[key]['Zip']=res[key]['Zip'].split()[0]
+            res[key]['building_code']=buildings[res[key]['Building']]
+        elif key=='Luxembourg':
+            res[key]['Address']=tmp
+        elif key=='Postal address':
+            res[key]=tmp
         else:
             logger.error("wtf %s" % key)
-    if 'Bruxelles' in res and 'Postal address' in res:
-        res['Bruxelles']['Office']=res['Postal address']['Office']
-        res['Bruxelles']['Building']=res['Postal address']['Building']
-        res['Bruxelles']['building_code']=res['Postal address']['building_code']
     return res
 
 def getMEPGender(name, id):
@@ -84,9 +75,9 @@ def getMEPGender(name, id):
     return 'n/a'
 
 def parseMember(url):
-    logger.debug("scraping %s" % url)
+    logger.info("scraping %s" % url)
     root = fetch(url)
-    data = {u'active': True, 'meta': {}} # return {'active': False}
+    data = {u'active': True, 'meta': {u'url': url}} # return {'active': False}
     mepdiv=root.xpath('//div[@class="ep_elementpeople2"]')
     if len(mepdiv)==1:
         mepdiv=mepdiv[0]
@@ -95,8 +86,12 @@ def parseMember(url):
     data[u'Name']=mangleName(unws(mepdiv.xpath('.//span[@class="ep_title"]/text()')[0]))
     data[u'Photo']=unicode(urljoin(BASE_URL,mepdiv.xpath('.//span[@class="ep_img"]/img')[0].get('src')),'utf8')
     (d,p)=mepdiv.xpath('.//div[@class="ep_elementtext"]/p/text()')[0].split(',',1)
-    data[u'Birth'] = { u'date': datetime.strptime(unws(d), "Born on %d %B %Y"),
-                       u'place': unws(p) }
+    try:
+        data[u'Birth'] = { u'date': datetime.strptime(unws(d), "Born on %d %B %Y"),
+                           u'place': unws(p) }
+    except ValueError:
+        logger.warn('[!] failed to scrape birth data'+ url)
+        logger.warn(traceback.format_exc())
     const={u'country': unws(mepdiv.xpath('.//span[@class="ep_country"]/text()')[0])}
     data[u'Constituencies']=[const]
     try:
@@ -164,59 +159,64 @@ def mangleName(name):
             family=family[len(t)+1:]
             title=t
             break
-    res= { 'full': name,
-           'sur': sur,
-           'family': family,
-           'familylc': family.lower(),
-           'aliases': [family,
+    res= { u'full': name,
+           u'sur': sur,
+           u'family': family,
+           u'familylc': family.lower(),
+           u'aliases': [family,
                        family.lower(),
-                       ''.join(family.split()).lower(),
-                       "%s %s" % (sur, family),
-                       "%s %s" % (family, sur),
-                       ("%s %s" % (family, sur)).lower(),
-                       ("%s %s" % (sur, family)).lower(),
-                       ''.join(("%s%s" % (sur, family)).split()),
-                       ''.join(("%s%s" % (family, sur)).split()),
-                       ''.join(("%s%s" % (family, sur)).split()).lower(),
-                       ''.join(("%s%s" % (sur, family)).split()).lower(),
+                       u''.join(family.split()).lower(),
+                       u"%s %s" % (sur, family),
+                       u"%s %s" % (family, sur),
+                       (u"%s %s" % (family, sur)).lower(),
+                       (u"%s %s" % (sur, family)).lower(),
+                       u''.join(("%s%s" % (sur, family)).split()),
+                       u''.join(("%s%s" % (family, sur)).split()),
+                       u''.join(("%s%s" % (family, sur)).split()).lower(),
+                       u''.join(("%s%s" % (sur, family)).split()).lower(),
                       ],}
     if title:
-        res['title']=title
-        res['aliases'].extend([("%s %s" % (title, family)).strip(),
-                               ("%s %s %s" % (title ,family, sur)).strip(),
-                               ("%s %s %s" % (title, sur, family)).strip(),
-                               ("%s %s %s" % (title, family, sur)).strip(),
-                               ("%s %s %s" % (title, sur, family)).lower().strip(),
-                               ("%s %s %s" % (title, family, sur)).lower().strip(),
-                               (''.join(("%s%s%s" % (title, family, sur)).split())).strip(),
-                               (''.join(("%s%s%s" % (title, sur, family)).split())).strip(),
-                               (''.join(("%s%s%s" % (sur, title, family)).split())).strip(),
-                               (''.join(("%s%s%s" % (sur, family, title)).split())).strip(),
-                               ''.join(("%s%s%s" % (family, sur, title)).split()).lower().strip(),
-                               ''.join(("%s%s%s" % (family, title, sur)).split()).lower().strip(),
-                               ''.join(("%s%s%s" % (title, family, sur)).split()).lower().strip(),
-                               ''.join(("%s%s%s" % (title, sur, family)).split()).lower().strip(),
-                               ])
+        res[u'title']=title
+        res[u'aliases'].extend([(u"%s %s" % (title, family)).strip(),
+                                (u"%s %s %s" % (title ,family, sur)).strip(),
+                                (u"%s %s %s" % (title, sur, family)).strip(),
+                                (u"%s %s %s" % (title, family, sur)).strip(),
+                                (u"%s %s %s" % (title, sur, family)).lower().strip(),
+                                (u"%s %s %s" % (title, family, sur)).lower().strip(),
+                                (u''.join(("%s%s%s" % (title, family, sur)).split())).strip(),
+                                (u''.join(("%s%s%s" % (title, sur, family)).split())).strip(),
+                                (u''.join(("%s%s%s" % (sur, title, family)).split())).strip(),
+                                (u''.join(("%s%s%s" % (sur, family, title)).split())).strip(),
+                                u''.join(("%s%s%s" % (family, sur, title)).split()).lower().strip(),
+                                u''.join(("%s%s%s" % (family, title, sur)).split()).lower().strip(),
+                                u''.join(("%s%s%s" % (title, family, sur)).split()).lower().strip(),
+                                u''.join(("%s%s%s" % (title, sur, family)).split()).lower().strip(),
+                                ])
     if  u'ß' in unicode(name):
-        res['aliases'].extend([x.replace(u'ß','ss') for x in res['aliases']])
+        res[u'aliases'].extend([x.replace(u'ß','ss') for x in res['aliases']])
     if unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore')!=name:
-        res['aliases'].extend([unicodedata.normalize('NFKD', x).encode('ascii','ignore') for x in res['aliases']])
+        res[u'aliases'].extend([unicodedata.normalize('NFKD', x).encode('ascii','ignore') for x in res['aliases']])
     if "'" in name:
-        res['aliases'].extend([x.replace("'","") for x in res['aliases']])
+        res[u'aliases'].extend([x.replace("'","") for x in res['aliases']])
     if name in meps_aliases:
-           res['aliases'].extend(meps_aliases[name])
+           res[u'aliases'].extend(meps_aliases[name])
     return res
 
-def scrape(url):
+newbies={}
+def scrape(url, data={}):
     urlseq=urlparse(url)
     userid=int(urlseq.path.split('/')[3])
+    if userid in newbies:
+        data=newbies[userid]
     name=urlseq.path.split('/')[4][:-5].replace('_',' ')
-    data = { 'Constituencies': [],
-             'Groups': [],
-             'Gender': getMEPGender(name, userid),
-             'UserID': userid }
-    # retrieve supplemental info for currently active meps
-    data.update(parseMember(url))
+    data.update({'Gender': getMEPGender(name, userid),
+                 'UserID': userid })
+    ret=parseMember(url)
+    for k in ['Constituencies', 'Groups']:
+        if k in ret and k in data:
+            # currently data is better than ret - might change later
+            del ret[k]
+    data.update(ret)
     return data
 
 orgmaps=[('Committee o', 'Committees'),
@@ -324,8 +324,78 @@ def get_meps(term='7'):
         i+=1
         page=fetch("http://www.europarl.europa.eu/meps/en/performsearch.html?action=%s&webCountry=&webTermId=%s&name=&politicalGroup=&bodyType=ALL&bodyValue=&type=&filter=" % (i, term))
 
-def jdump(d, tmp):
+def getActive():
+    for elem in db.ep_meps2.find({ 'active' : True},['meta.url']):
+        yield (elem['meta']['url'], elem['Name']['full'])
+
+def getIncomming(term=7):
+    # returns dict of new incoming meps. this is being checked when
+    # crawling, to set more accurate groups and constituency info
+    i=0
+    page=fetch('http://www.europarl.europa.eu/meps/en/incoming-outgoing.html?type=in')
+    last=None
+    res={}
+    while True:
+        meps=[((u'name', unws(x.xpath('text()')[0])),
+               (u'meta', {u'url': urljoin(urljoin(BASE_URL,x.get('href')),'get.html')}),
+               (u'Constituencies', {u'start': datetime.strptime(unws((x.xpath('../span[@class="meps_date_inout"]/text()') or [''])[0]), "%B %d, %Y"),
+                                    u'country': unws((x.xpath('..//span[@class="ep_country"]/text()') or [''])[0])}),
+               (u'Groups', {u'start': datetime.strptime(unws((x.xpath('../span[@class="meps_date_inout"]/text()') or [''])[0]), "%B %d, %Y"),
+                            u'group': unws((x.xpath('..//span[@class="ep_group"]/text()') or [''])[0]),
+                            u'groupid': group_map[unws((x.xpath('..//span[@class="ep_group"]/text()') or [''])[0])],
+                            u'role': unws((x.xpath('..//span[@class="ep_group"]/span[@class="ep_title"]/text()') or [''])[0])}),
+               )
+              for x in page.xpath('//div[@class="ep_elementpeople1"]//a[@class="ep_title"]')]
+        if meps==last:
+            break
+        last=meps
+        for mep in meps:
+            res[int(mep[1][1]['url'].split('/')[-2])]=dict(mep[1:])
+        i+=1
+        page=fetch('http://www.europarl.europa.eu/meps/en/incoming-outgoing.html?action=%s&webCountry=&webTermId=%s&name=&politicalGroup=&bodyType=&bodyValue=&type=in&filter=' % (i, term))
+    return res
+
+def getOutgoing(term=7):
+    # returns an iter over ex meps from the current term, these are
+    # missing from the get_meps result
+    i=0
+    page=fetch('http://www.europarl.europa.eu/meps/en/incoming-outgoing.html?type=out')
+    last=None
+    while True:
+        meps=[((u'url', urljoin(BASE_URL,x.get('href'))),
+               (u'name', unws(x.xpath('text()')[0])),
+               ('dates', unws((x.xpath('../span[@class="meps_date_inout"]/text()') or [''])[0])),
+               ('country', unws((x.xpath('../span[@class="ep_country"]/text()') or [''])[0])),
+               ('group', unws((x.xpath('..//span[@class="ep_group"]/text()') or [''])[0])),
+               ('role', unws((x.xpath('..//span[@class="ep_group"]/span[@class="ep_title"]/text()') or [''])[0])),
+               )
+              for x in page.xpath('//div[@class="ep_elementpeople1"]//a[@class="ep_title"]')]
+        if meps==last:
+            break
+        last=meps
+        for mep in meps:
+            mep=dict(mep)
+            tmp=mep['dates'].split(' - ')
+            if tmp:
+                mep[u'Constituencies']={u'start': datetime.strptime(tmp[0], "%B %d, %Y"),
+                                       u'end': datetime.strptime(tmp[1], "%B %d, %Y"),
+                                       u'country': mep['country']}
+                mep[u'Groups']={u'start': datetime.strptime(tmp[0], "%B %d, %Y"),
+                               u'end': datetime.strptime(tmp[1], "%B %d, %Y"),
+                               u'group': mep['group'],
+                               u'role': mep['role']}
+                del mep['dates']
+                del mep['country']
+                del mep['group']
+                del mep['role']
+                yield (urljoin(urljoin(BASE_URL,mep['url']),'get.html'), mep)
+        i+=1
+        page=fetch('http://www.europarl.europa.eu/meps/en/incoming-outgoing.html?action=%s&webCountry=&webTermId=%s&name=&politicalGroup=&bodyType=&bodyValue=&type=out&filter=' % (i, term))
+
+def jdump(d, tmp=None):
+    # simple json dumper default for saver (multiplexer related)
     logger.info(json.dumps(d, indent=1, default=dateJSONhandler, ensure_ascii=False).encode('utf-8'))
+    return json.dumps(d, indent=1, default=dateJSONhandler, ensure_ascii=False)
 
 def save(data, stats):
     res=db.ep_meps2.find_one({ 'UserID' : data['UserID'] }) or {}
@@ -338,7 +408,7 @@ def save(data, stats):
             data['meta']['created']=now
             stats[0]+=1
         else:
-            logger.info(('updateing %s' % (data['Name']['full'])).encode('utf8'))
+            logger.info(('updating %s' % (data['Name']['full'])).encode('utf8'))
             logger.warn(d)
             data['meta']['updated']=now
             stats[1]+=1
@@ -371,19 +441,62 @@ def crawl(saver=jdump,threads=4):
     m.finish()
     logger.info('end of crawl')
 
+def crawler(targets,saver=jdump,threads=4, term='7'):
+    m=Multiplexer(scrape,saver,threads=threads)
+    m.start()
+    [m.addjob(url, data) for url, data in targets(term=term)]
+    m.finish()
+    logger.info('end of crawl')
+
+def seqcrawl(targets, term='7',saver=jdump, scraper=scrape):
+    for url, data in targets(term=term):
+        saver(scraper(url, data))
+
 if __name__ == "__main__":
     if len(sys.argv)!=2:
-        print "%s full|current|currentseq|test" % (sys.argv[0])
+        print "%s full|current|currentdry|currentseq|currentdry|currentseqdry|outgoing|outgoingseq|outgoingdry|outgoingseqdry|test" % (sys.argv[0])
     if sys.argv[1]=="full":
-        crawl_all(saver=save,threads=4)
-    elif sys.argv[1]=="currentseq":
-        crawlseq(saver=save)
+        # outgoing and full (latest term, does not contain the
+        # inactive meps, so outgoing is necessary to scrape as well
+        crawler(getOutgoing, saver=save)
+        crawl_all(saver=save,threads=8)
+
     elif sys.argv[1]=="current":
+        newbies=getIncomming()
         crawl(saver=save)
+    elif sys.argv[1]=="currentseq":
+        newbies=getIncomming()
+        crawlseq(saver=save)
+    elif sys.argv[1]=="currentdry":
+        newbies=getIncomming()
+        crawl()
+    elif sys.argv[1]=="currentseqdry":
+        newbies=getIncomming()
+        crawlseq()
+
+    elif sys.argv[1]=="outgoing":
+        crawler(getOutgoing, saver=save)
+    elif sys.argv[1]=="outgoingseq":
+        seqcrawl(getOutgoing, saver=save)
+    elif sys.argv[1]=="outgoingdry":
+        crawler(getOutgoing)
+    elif sys.argv[1]=="outgoingseqdry":
+        seqcrawl(getOutgoing)
+
     elif sys.argv[1]=="test":
+        import pprint
+        d=getIncomming()
+        #d=list(getActive())
+        #import code; code.interact(local=locals());
+        print len(d)
+        pprint.pprint(d)
+        sys.exit(0)
         jdump(scrape("http://www.europarl.europa.eu/meps/en/1934/get.html"),None)
         jdump(scrape("http://www.europarl.europa.eu/meps/en/28576/get.html"), None)
         jdump(scrape("http://www.europarl.europa.eu/meps/en/1263/Elmar_BROK.html"), None)
         jdump(scrape("http://www.europarl.europa.eu/meps/en/96739/Reinhard_B%C3%9CTIKOFER.html"), None)
         jdump(scrape("http://www.europarl.europa.eu/meps/en/28269/Jerzy_BUZEK.html"), None)
         jdump(scrape("http://www.europarl.europa.eu/meps/en/1186/Astrid_LULLING.html"), None)
+        d=list(getOutgoing())
+        print len(d)
+        pprint.pprint(d)
