@@ -61,12 +61,12 @@ def getAddress(root):
             logger.error("wtf %s" % key)
     return res
 
-def getMEPGender(name, id):
+def getMEPGender(id):
     try:
         mepraw=fetch("http://www.europarl.europa.eu/meps/fr/%s/get.html" % (id))
     except Exception, e:
         logger.error("mepgender %s" % e)
-        return
+        return 'n/a'
     hint=mepraw.xpath('//div[@class="ep_elementtext"]/p/text()')[0].replace(u"\u00A0",' ').split()[0]
     if hint==u"Née":
         return "F"
@@ -85,11 +85,12 @@ def parseMember(url):
         logger.error("mepdiv not 1: %s" % str(list(mepdiv)))
     data[u'Name'] = mangleName(unws(mepdiv.xpath('.//span[@class="ep_title"]/text()')[0]))
     data[u'Photo'] = unicode(urljoin(BASE_URL,mepdiv.xpath('.//span[@class="ep_img"]/img')[0].get('src')),'utf8')
+    data['Gender']=getMEPGender(int(urlparse(url).path.split('/')[3]))
     (d, p) = mepdiv.xpath('.//div[@class="ep_elementtext"]/p/text()')[0].split(',', 1)
     try:
         data[u'Birth'] = { u'date': datetime.strptime(' '.join(unws(d).split()[2:]), "%d %B %Y"),
                            u'place': unws(p) }
-    except:
+    except ValueError:
         logger.warn('[!] failed to scrape birth data %s' % url)
         logger.warn(traceback.format_exc())
     const={u'country': unws(mepdiv.xpath('.//span[@class="ep_country"]/text()')[0])}
@@ -209,8 +210,7 @@ def scrape(url, data={}):
     if userid in newbies:
         data=newbies[userid]
     name=urlseq.path.split('/')[4][:-5].replace('_',' ')
-    data.update({'Gender': getMEPGender(name, userid),
-                 'UserID': userid })
+    data['UserID']=userid
     ret=parseMember(url)
     for k in ['Constituencies', 'Groups']:
         if k in ret and k in data:
