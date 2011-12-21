@@ -74,7 +74,8 @@ def getMEPGender(id):
         return "M"
     return 'n/a'
 
-def parseMember(url):
+def parseMember(userid):
+    url='http://www.europarl.europa.eu/meps/en/%s/get.html' % userid
     logger.info("scraping %s" % url)
     root = fetch(url)
     data = {u'active': True, 'meta': {u'url': url}} # return {'active': False}
@@ -85,10 +86,10 @@ def parseMember(url):
         logger.error("mepdiv not 1: %s" % str(list(mepdiv)))
     data[u'Name'] = mangleName(unws(mepdiv.xpath('.//span[@class="ep_title"]/text()')[0]))
     data[u'Photo'] = unicode(urljoin(BASE_URL,mepdiv.xpath('.//span[@class="ep_img"]/img')[0].get('src')),'utf8')
-    data['Gender']=getMEPGender(int(urlparse(url).path.split('/')[3]))
+    data['Gender']=getMEPGender(userid)
     (d, p) = mepdiv.xpath('.//div[@class="ep_elementtext"]/p/text()')[0].split(',', 1)
     try:
-        data[u'Birth'] = { u'date': datetime.strptime(' '.join(unws(d).split()[2:]), "%d %B %Y"),
+        data[u'Birth'] = { u'date': datetime.strptime(unws(d), "Born on %d %B %Y"),
                            u'place': unws(p) }
     except ValueError:
         logger.warn('[!] failed to scrape birth data %s' % url)
@@ -211,7 +212,7 @@ def scrape(url, data={}):
         data=newbies[userid]
     name=urlseq.path.split('/')[4][:-5].replace('_',' ')
     data['UserID']=userid
-    ret=parseMember(url)
+    ret=parseMember(userid)
     for k in ['Constituencies', 'Groups']:
         if k in ret and k in data:
             # currently data is better than ret - might change later
