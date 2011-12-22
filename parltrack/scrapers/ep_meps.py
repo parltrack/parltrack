@@ -201,11 +201,12 @@ def mangleName(name):
     if  u'ß' in unicode(name):
         res[u'aliases'].extend([x.replace(u'ß','ss') for x in res['aliases']])
     if unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore')!=name:
-        res[u'aliases'].extend([unicodedata.normalize('NFKD', x).encode('ascii','ignore') for x in res['aliases']])
+        res[u'aliases'].extend([unicodedata.normalize('NFKD', unicode(x)).encode('ascii','ignore') for x in res['aliases']])
     if "'" in name:
         res[u'aliases'].extend([x.replace("'","") for x in res['aliases']])
     if name in meps_aliases:
            res[u'aliases'].extend(meps_aliases[name])
+    res[u'aliases']=[x for x in set(res[u'aliases']) if x]
     return res
 
 newbies={}
@@ -505,7 +506,7 @@ if __name__ == "__main__":
 
     elif sys.argv[1]=="test":
         import pprint
-        jdump(scrape('http://www.europarl.europa.eu/meps/en/974/get.html'))
+        jdump(scrape('http://www.europarl.europa.eu/meps/en/992/get.html'))
         #d=getIncomming()
         #d=list(getActive())
         #import code; code.interact(local=locals());
