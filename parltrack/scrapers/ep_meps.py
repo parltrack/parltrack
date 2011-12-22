@@ -40,8 +40,12 @@ def getAddress(root):
             continue
         res[key]={}
         if key in ['Bruxelles', 'Strasbourg', 'Luxembourg']:
-            res[key]['Phone'] = unws(div.xpath('../..//li[@class="ep_phone"]/div/text()')[0]).replace('(0)','')
-            res[key]['Fax'] = unws(div.xpath('../..//li[@class="ep_fax"]/div/text()')[0]).replace('(0)','')
+            tmp=div.xpath('../..//li[@class="ep_phone"]/div/text()')
+            if tmp:
+                res[key]['Phone'] = unws(tmp[0]).replace('(0)','')
+            tmp=div.xpath('../..//li[@class="ep_fax"]/div/text()')
+            if tmp:
+                res[key]['Fax'] = unws(tmp[0]).replace('(0)','')
         tmp=[unws(x) for x in div.xpath('../..//li[@class="ep_address"]/div/text()') if len(unws(x))]
         if key=='Strasbourg':
             res[key].update(dict(zip(['Organization','Building', 'Office', 'Street','Zip1', 'Zip2'],tmp)))
