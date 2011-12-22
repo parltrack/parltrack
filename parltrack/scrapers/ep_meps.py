@@ -112,7 +112,7 @@ def parseMember(userid):
     if len(cdiv):
         addif(data,u'RSS',[unicode(urljoin(BASE_URL,x.get('href')),'utf8') for x in cdiv[0].xpath('.//li[@class="ep_rss"]//a')])
         addif(data,u'Homepage',[unicode(x.get('href'),'utf8') for x in cdiv[0].xpath('.//li[@class="ep_website"]//a')])
-        addif(data,u'Mail',[decodemail(unws(unicode(x,'utf8'))) for x in cdiv[0].xpath('.//li[@class="ep_email"]//text()') if len(unws(x))])
+        addif(data,u'Mail',[decodemail(unws(x)) for x in cdiv[0].xpath('.//li[@class="ep_email"]//text()') if len(unws(x))])
     for span in root.xpath('//div[@id="contextzone"]//span[@class="ep_title"]'):
         title=unws(''.join(span.xpath('.//text()')))
         if title in ['Accredited assistants', 'Local assistants']:
@@ -505,7 +505,7 @@ if __name__ == "__main__":
 
     elif sys.argv[1]=="test":
         import pprint
-        scrape('http://www.europarl.europa.eu/meps/en/950/get.html')
+        jdump(scrape('http://www.europarl.europa.eu/meps/en/974/get.html'))
         #d=getIncomming()
         #d=list(getActive())
         #import code; code.interact(local=locals());
