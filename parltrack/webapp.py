@@ -645,9 +645,8 @@ def formatdiff(dossier):
     return "<table><thead><tr width='90%%'><th>type</th><th>change in</th><th>new</th><th>old</th></tr></thead><tbody>%s</tbody></table>" % '\n'.join(res)
 
 
-from parltrack.scrapers.ep_meps import groupids, COUNTRIES, SEIRTNUOC
-from parltrack.scrapers.ep_com_meets import COMMITTEES, COMMITTEE_MAP
-from parltrack.scrapers.mappings import ALL_STAGES, STAGES, STAGEMAP
+from parltrack.scrapers.ep_com_meets import COMMITTEES
+from parltrack.scrapers.mappings import ALL_STAGES, STAGES, STAGEMAP, groupids, COUNTRIES, SEIRTNUOC, COMMITTEE_MAP
 from parltrack.views.views import mepRanking, mep, immunity, committee, subjects, dossier
 
 if __name__ == '__main__':
