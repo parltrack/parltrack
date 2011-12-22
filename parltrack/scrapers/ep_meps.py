@@ -473,13 +473,13 @@ if __name__ == "__main__":
     if sys.argv[1]=="full":
         # outgoing and full (latest term, does not contain the
         # inactive meps, so outgoing is necessary to scrape as well
-        crawler(getOutgoing, saver=save)
         crawl_all(saver=save,threads=8)
+        crawler(getOutgoing, saver=save)
     if sys.argv[1]=="fullseq":
         # outgoing and full (latest term, does not contain the
         # inactive meps, so outgoing is necessary to scrape as well
-        crawler(getOutgoing, saver=save)
         crawl_allseq(saver=save)
+        crawler(getOutgoing, saver=save)
 
     elif sys.argv[1]=="current":
         newbies=getIncomming()
