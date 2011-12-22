@@ -114,8 +114,9 @@ def parseMember(userid):
         addif(data,u'Homepage',[unicode(x.get('href'),'utf8') for x in cdiv[0].xpath('.//li[@class="ep_website"]//a')])
         addif(data,u'Mail',[decodemail(unws(unicode(x,'utf8'))) for x in cdiv[0].xpath('.//li[@class="ep_email"]//text()') if len(unws(x))])
     for span in root.xpath('//div[@id="contextzone"]//span[@class="ep_title"]'):
-        if unws(''.join(span.xpath('.//text()')))=='Assistants':
-            addif(data,'Assistants',[unws(x) for x in span.xpath('../../..//li/div/text()')])
+        title=unws(''.join(span.xpath('.//text()')))
+        if title in ['Accredited assistants', 'Local assistants']:
+            addif(data,title,[unws(x) for x in span.xpath('../../..//li/div/text()')])
     addif(data,u'Addresses',getAddress(root))
     for div in root.xpath('//div[@class="ep_content"]'):
         key=unws(u''.join(div.xpath('.//span[@class="ep_title"]/text()')))
