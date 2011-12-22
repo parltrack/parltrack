@@ -83,10 +83,9 @@ def parseMember(userid):
     if len(mepdiv) == 1:
         mepdiv = mepdiv[0]
     else:
-        logger.error("mepdiv not 1: %s" % str(list(mepdiv)))
+        logger.error("len(mepdiv) not 1: %s" % str(list(mepdiv)))
     data[u'Name'] = mangleName(unws(mepdiv.xpath('.//span[@class="ep_title"]/text()')[0]))
     data[u'Photo'] = unicode(urljoin(BASE_URL,mepdiv.xpath('.//span[@class="ep_img"]/img')[0].get('src')),'utf8')
-    data['Gender']=getMEPGender(userid)
     (d, p) = mepdiv.xpath('.//div[@class="ep_elementtext"]/p/text()')[0].split(',', 1)
     try:
         data[u'Birth'] = { u'date': datetime.strptime(unws(d), "Born on %d %B %Y"),
@@ -218,6 +217,7 @@ def scrape(url, data={}):
             # currently data is better than ret - might change later
             del ret[k]
     data.update(ret)
+    data['Gender'] = getMEPGender(userid)
     return data
 
 orgmaps=[('Committee o', 'Committees'),
