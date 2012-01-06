@@ -67,7 +67,7 @@ def getAddress(root):
 
 def getMEPGender(id):
     try:
-        mepraw=fetch("http://www.europarl.europa.eu/meps/fr/%s/get.html" % (id))
+        mepraw=fetch("http://www.europarl.europa.eu/meps/fr/%s/get.html" % (id), ignore=[500])
     except Exception, e:
         logger.error("mepgender %s" % e)
         return 'n/a'
@@ -81,7 +81,7 @@ def getMEPGender(id):
 def parseMember(userid):
     url='http://www.europarl.europa.eu/meps/en/%s/get.html' % userid
     logger.info("scraping %s" % url)
-    root = fetch(url)
+    root = fetch(url, ignore=[500])
     data = {u'active': True, 'meta': {u'url': url}} # return {'active': False}
     mepdiv=root.xpath('//div[@class="ep_elementpeople2"]')
     if len(mepdiv) == 1:
@@ -92,7 +92,7 @@ def parseMember(userid):
     data[u'Photo'] = unicode(urljoin(BASE_URL,mepdiv.xpath('.//span[@class="ep_img"]/img')[0].get('src')),'utf8')
     (d, p) = mepdiv.xpath('.//div[@class="ep_elementtext"]/p/text()')[0].split(',', 1)
     try:
-        data[u'Birth'] = { u'date': datetime.strptime(unws(d), "Born on %d %B %Y"),
+        data[u'Birth'] = { u'date': datetime.strptime(unws(d), u"Born on %d %B %Y"),
                            u'place': unws(p) }
     except ValueError:
         logger.warn('[!] failed to scrape birth data %s' % url)
@@ -105,7 +105,11 @@ def parseMember(userid):
         data[u'active']=False
     else:
         group=unws(mepdiv.xpath('.//span[@class="ep_group"]/text()')[0])
-        data[u'Groups'] = [{ u'role': unws(mepdiv.xpath('.//span[@class="ep_title"]/text()')[1]),
+        try:
+            role=unws(mepdiv.xpath('.//span[@class="ep_title"]/text()')[1])
+        except IndexError:
+            role=u"Member"
+        data[u'Groups'] = [{ u'role': role,
                              u'group': group,
                              u'groupid': group_map[group]}]
     cdiv=root.xpath('//div[@class="ep_elementcontact"]')
@@ -319,27 +323,39 @@ Titles=['Sir',
 
 def get_meps(term='7'):
     i=0
-    page=fetch("http://www.europarl.europa.eu/meps/en/performsearch.html?webCountry=&webTermId=%s&name=&politicalGroup=&bodyType=ALL&bodyValue=&type=&filter=&search=Show+result" % (term))
+    page=fetch("http://www.europarl.europa.eu/meps/en/performsearch.html?webCountry=&webTermId=%s&name=&politicalGroup=&bodyType=ALL&bodyValue=&type=&filter=&search=Show+result" % (term), ignore=[500])
     last=None
     while True:
         meps=[(x.get('href'), unws(x.xpath('text()')[0])) for x in page.xpath('//div[@class="ep_elementpeople1"]//a[@class="ep_title"]')]
         if meps==last:
             break
         for url,name in meps:
-            yield (urljoin(urljoin(BASE_URL,url),'get.html'), name)
+            yield (urljoin(urljoin(BASE_URL,url),'get.html'), {})
         last=meps
         i+=1
-        page=fetch("http://www.europarl.europa.eu/meps/en/performsearch.html?action=%s&webCountry=&webTermId=%s&name=&politicalGroup=&bodyType=ALL&bodyValue=&type=&filter=" % (i, term))
+        page=fetch("http://www.europarl.europa.eu/meps/en/performsearch.html?action=%s&webCountry=&webTermId=%s&name=&politicalGroup=&bodyType=ALL&bodyValue=&type=&filter=" % (i, term), ignore=[500])
+
+def get_all(term=''):
+    seen=[]
+    for term in xrange(1,8):
+        for url, name in get_meps(term=term):
+            if not url in seen:
+                yield (urljoin(urljoin(BASE_URL,url),'get.html'), {})
+                seen.append(url)
 
 def getActive():
     for elem in db.ep_meps2.find({ 'active' : True},['meta.url']):
         yield (elem['meta']['url'], elem['Name']['full'])
 
+def get_new(term=''):
+    for mep in newbies.items():
+        yield (mep[1]['meta']['url'], None)
+
 def getIncomming(term=7):
     # returns dict of new incoming meps. this is being checked when
     # crawling, to set more accurate groups and constituency info
     i=0
-    page=fetch('http://www.europarl.europa.eu/meps/en/incoming-outgoing.html?type=in')
+    page=fetch('http://www.europarl.europa.eu/meps/en/incoming-outgoing.html?type=in', ignore=[500])
     last=None
     res={}
     while True:
@@ -359,14 +375,14 @@ def getIncomming(term=7):
         for mep in meps:
             res[int(mep[1][1]['url'].split('/')[-2])]=dict(mep[1:])
         i+=1
-        page=fetch('http://www.europarl.europa.eu/meps/en/incoming-outgoing.html?action=%s&webCountry=&webTermId=%s&name=&politicalGroup=&bodyType=&bodyValue=&type=in&filter=' % (i, term))
+        page=fetch('http://www.europarl.europa.eu/meps/en/incoming-outgoing.html?action=%s&webCountry=&webTermId=%s&name=&politicalGroup=&bodyType=&bodyValue=&type=in&filter=' % (i, term), ignore=[500])
     return res
 
 def getOutgoing(term=7):
     # returns an iter over ex meps from the current term, these are
     # missing from the get_meps result
     i=0
-    page=fetch('http://www.europarl.europa.eu/meps/en/incoming-outgoing.html?type=out')
+    page=fetch('http://www.europarl.europa.eu/meps/en/incoming-outgoing.html?type=out', ignore=[500])
     last=None
     while True:
         meps=[((u'url', urljoin(BASE_URL,x.get('href'))),
@@ -397,12 +413,17 @@ def getOutgoing(term=7):
                 del mep['role']
                 yield (urljoin(urljoin(BASE_URL,mep['url']),'get.html'), mep)
         i+=1
-        page=fetch('http://www.europarl.europa.eu/meps/en/incoming-outgoing.html?action=%s&webCountry=&webTermId=%s&name=&politicalGroup=&bodyType=&bodyValue=&type=out&filter=' % (i, term))
+        page=fetch('http://www.europarl.europa.eu/meps/en/incoming-outgoing.html?action=%s&webCountry=&webTermId=%s&name=&politicalGroup=&bodyType=&bodyValue=&type=out&filter=' % (i, term), ignore=[500])
 
-def jdump(d, tmp=None):
-    # simple json dumper default for saver (multiplexer related)
-    logger.info(json.dumps(d, indent=1, default=dateJSONhandler, ensure_ascii=False).encode('utf-8'))
-    return json.dumps(d, indent=1, default=dateJSONhandler, ensure_ascii=False)
+def jdump(d, stats=None):
+    # simple json dumper default for saver
+    res=json.dumps(d, indent=1, default=dateJSONhandler, ensure_ascii=False)
+    if stats:
+        print res.encode('utf-8')
+        stats[0]+=1
+        return stats
+    else:
+        return res
 
 def save(data, stats):
     res=db.ep_meps2.find_one({ 'UserID' : data['UserID'] }) or {}
@@ -413,105 +434,48 @@ def save(data, stats):
         if not res:
             logger.info(('adding %s' % (data['Name']['full'])).encode('utf8'))
             data['meta']['created']=now
-            stats[0]+=1
+            if stats: stats[0]+=1
         else:
             logger.info(('updating %s' % (data['Name']['full'])).encode('utf8'))
             logger.warn(d)
             data['meta']['updated']=now
-            stats[1]+=1
+            if stats: stats[1]+=1
             data['_id']=res['_id']
         data['changes']=res.get('changes',{})
         data['changes'][now]=d
         db.ep_meps2.save(data)
-    return stats
+    if stats: return stats
+    else: return data
 
-def crawlseq(term='7',saver=jdump):
-    for url, name in get_meps(term=term):
-        saver(scrape(url))
-
-def crawl_all(saver=jdump,threads=4):
+def crawler(meps,saver=jdump,threads=4, term='7'):
     m=Multiplexer(scrape,saver,threads=threads)
     m.start()
-    seen=[]
-    for term in xrange(1,8):
-        for url, name in get_meps(term=term):
-            if not url in seen:
-                m.addjob(url)
-                seen.append(url)
+    [m.addjob(url, data) for url, data in meps(term=term)]
     m.finish()
     logger.info('end of crawl')
 
-def crawl_allseq(saver=jdump):
-    seen=[]
-    stats=[0,0]
-    for term in xrange(1,8):
-        for url, name in get_meps(term=term):
-            if not url in seen:
-                saver(scrape(url),stats)
-    logger.info('end of crawl')
-
-def crawl(saver=jdump,threads=4):
-    m=Multiplexer(scrape,saver,threads=threads)
-    m.start()
-    [m.addjob(url) for url, name in get_meps()]
-    m.finish()
-    logger.info('end of crawl')
-
-def crawler(targets,saver=jdump,threads=4, term='7'):
-    m=Multiplexer(scrape,saver,threads=threads)
-    m.start()
-    [m.addjob(url, data) for url, data in targets(term=term)]
-    m.finish()
-    logger.info('end of crawl')
-
-def seqcrawl(targets, term='7',saver=jdump, scraper=scrape):
-    for url, data in targets(term=term):
-        saver(scraper(url, data))
+def seqcrawl(meps, term='7',saver=jdump, scraper=scrape):
+    return [saver(scraper(url, data),None) for url, data in meps(term=term)]
 
 if __name__ == "__main__":
-    if len(sys.argv)!=2:
+    if len(sys.argv)<2:
         print "%s full|fullseq|current|currentdry|currentseq|currentdry|currentseqdry|outgoing|outgoingseq|outgoingdry|outgoingseqdry|test" % (sys.argv[0])
     if sys.argv[1]=="full":
         # outgoing and full (latest term, does not contain the
         # inactive meps, so outgoing is necessary to scrape as well
-        crawl_all(saver=save,threads=8)
+        crawler(get_all,saver=save,threads=8)
         crawler(getOutgoing, saver=save)
-    if sys.argv[1]=="fullseq":
+        sys.exit(0)
+    elif sys.argv[1]=="fullseq":
         # outgoing and full (latest term, does not contain the
         # inactive meps, so outgoing is necessary to scrape as well
-        crawl_allseq(saver=save)
-        crawler(getOutgoing, saver=save)
-
-    elif sys.argv[1]=="current":
-        newbies=getIncomming()
-        crawl(saver=save)
-    elif sys.argv[1]=="currentseq":
-        newbies=getIncomming()
-        crawlseq(saver=save)
-    elif sys.argv[1]=="currentdry":
-        newbies=getIncomming()
-        crawl()
-    elif sys.argv[1]=="currentseqdry":
-        newbies=getIncomming()
-        crawlseq()
-
-    elif sys.argv[1]=="outgoing":
-        crawler(getOutgoing, saver=save)
-    elif sys.argv[1]=="outgoingseq":
+        seqcrawl(get_all, saver=save)
         seqcrawl(getOutgoing, saver=save)
-    elif sys.argv[1]=="outgoingdry":
-        crawler(getOutgoing)
-    elif sys.argv[1]=="outgoingseqdry":
-        seqcrawl(getOutgoing)
-
+        sys.exit(0)
     elif sys.argv[1]=="test":
         import pprint
-        jdump(scrape('http://www.europarl.europa.eu/meps/en/992/get.html'))
-        #d=getIncomming()
-        #d=list(getActive())
+        jdump(scrape('http://www.europarl.europa.eu/meps/en/96919/get.html'))
         #import code; code.interact(local=locals());
-        #print len(d)
-        #pprint.pprint(d)
         sys.exit(0)
         jdump(scrape("http://www.europarl.europa.eu/meps/en/1934/get.html"),None)
         jdump(scrape("http://www.europarl.europa.eu/meps/en/28576/get.html"), None)
@@ -519,6 +483,27 @@ if __name__ == "__main__":
         jdump(scrape("http://www.europarl.europa.eu/meps/en/96739/Reinhard_B%C3%9CTIKOFER.html"), None)
         jdump(scrape("http://www.europarl.europa.eu/meps/en/28269/Jerzy_BUZEK.html"), None)
         jdump(scrape("http://www.europarl.europa.eu/meps/en/1186/Astrid_LULLING.html"), None)
-        d=list(getOutgoing())
-        print len(d)
-        pprint.pprint(d)
+
+    # handle opts
+    args=set(sys.argv[1:])
+    saver=save
+    if 'dry' in args:
+        saver=jdump
+    if 'current' in args:
+        newbies=getIncomming()
+        meps=get_meps
+    elif 'outgoing' in args:
+        meps=getOutgoing
+    elif 'new' in args:
+        newbies=getIncomming()
+        meps=get_new
+    else:
+        logger.error('Need either <current|outgoing|new>')
+        sys.exit(0)
+    logger.info('\n\tsaver: %s\n\tmeps: %s\n\tseq: %s' % (saver, meps, 'seq' in args))
+    if 'seq' in args:
+        res=seqcrawl(meps,saver=saver)
+        if 'dry' in args:
+            print "[%s]" % ',\n'.join(res).encode('utf8')
+    else:
+        crawler(meps,saver=saver)
