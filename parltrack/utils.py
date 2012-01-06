@@ -128,6 +128,7 @@ def difflist(old, new, path):
         ret.extend(sorted([{'type': u'deleted', 'data': e, 'path': path + [oldorder[e]]} for e in oldunique], key=itemgetter('path')))
     return ret
 
+from bson.objectid import ObjectId
 def dateJSONhandler(obj):
     if hasattr(obj, 'isoformat'):
         return unicode(obj.isoformat())
@@ -326,13 +327,13 @@ def test_diff():
     #import pprint
     #pprint.pprint(diff(d1,d2))
 
-def fetch(url, retries=5):
+def fetch(url, retries=5, ignore=[]):
     # url to etree
     try:
         f=opener.open(url)
     except (urllib2.HTTPError, urllib2.URLError), e:
-        if hasattr(e, 'code') and e.code>=400 and e.code not in [504, 502]:
-            print >>sys.stderr, "[!] %d %s" % (e.code, url)
+        if hasattr(e, 'code') and e.code>=400 and e.code not in [504, 502]+ignore:
+            logger.warn("[!] %d %s" % (e.code, url))
             raise
         if retries>0:
             f=fetch(url,retries-1)
