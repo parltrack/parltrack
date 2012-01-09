@@ -194,7 +194,9 @@
 <h4>Online</h4>
 <ul>
 {% if mep.Homepage%}
-  <li><dl><dt>Homepage</dt><dd><a href="{{mep.Homepage}}">{{mep.Homepage}}</a></dd></dl></li>
+  {% for url in mep.Homepage %}
+      <li><dl><dt>Homepage</dt><dd><a href="{{url}}">{{url}}</a></dd></dl></li>
+  {% endfor %}
 {%endif%}
 {% if mep.Mail%}
   {% for mail in mep.Mail %}
@@ -208,7 +210,7 @@
    <li><dl><dt>Phone</dt><dd>{{mep.Addresses.Brussels.Phone}}</dd></dl></li>
    <li><dl><dt>Fax</dt><dd>{{mep.Addresses.Brussels.Fax}}</dd></dl></li>
    <li><dl><dt>Office</dt><dd>{{mep.Addresses.Brussels.Address.Building}} {{mep.Addresses.Brussels.Address.Office}}</dd></dl></li>
-   <li><dl><dt class='more'>Address</dt><dd class='hidden'>
+   <li><dl><dt class='more'><a>Full Address</a></dt><dd class='hidden'>
       <ul>
         <li><dl><dt>City</dt><dd>{{mep.Addresses.Brussels.Address.City}}</dd></dl></li>
         <li><dl><dt>Zip</dt><dd>{{mep.Addresses.Brussels.Address.Zip}}</dd></dl></li>
@@ -221,7 +223,7 @@
    <li><dl><dt>Phone</dt><dd>{{mep.Addresses.Strasbourg.Phone}}</dd></dl></li>
    <li><dl><dt>Fax</dt><dd>{{mep.Addresses.Strasbourg.Fax}}</dd></dl></li>
    <li><dl><dt>Office</dt><dd>{{mep.Addresses.Strasbourg.Address.Building}} {{mep.Addresses.Strasbourg.Address.Office}}</dd></dl></li>
-   <li><dl><dt class='more'>Address</dt><dd class='hidden'>
+   <li><dl><dt class='more'><a>Full Address</a></dt><dd class='hidden'>
       <ul>
          <li><dl><dt>City</dt><dd>{{mep.Addresses.Strasbourg.Address.City}}</dd></dl></li>
          <li><dl><dt>Zip</dt><dd>{{mep.Addresses.Strasbourg.Address.Zip1}} - {{mep.Addresses.Strasbourg.Address.Zip2}}</dd></dl></li>
