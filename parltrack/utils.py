@@ -114,12 +114,15 @@ def difflist(old, new, path):
             else:
                 pos=neworder[ne]
             diffs=diff(oe, ne, path + [pos])
-            shorter=min([len(oe),len(ne)])
-            if shorter-len(diffs)>=3 and len(diffs)*2<shorter:
-                ret.extend(diffs)
-                oldunique.remove(oe)
-                newunique.remove(ne)
-                break
+            if hasattr(oe,'__iter__') and hasattr(ne,'__iter__'):
+                shorter=min([len(oe),len(ne)])
+                if shorter-len(diffs)>=3 and len(diffs)*2<shorter:
+                    ret.extend(diffs)
+                    oldunique.remove(oe)
+                    newunique.remove(ne)
+                    break
+            #else:
+            #    logger.info((old,new))
     # handle added
     if newunique:
         ret.extend(sorted([{'type': u'added', 'data': e, 'path': path + [neworder[e]]} for e in newunique], key=itemgetter('path')))
@@ -328,6 +331,8 @@ def test_diff():
     #pprint.pprint(diff(d1,d2))
 
 def fetch(url, retries=5, ignore=[]):
+    if not opener:
+        init_opener()
     # url to etree
     try:
         f=opener.open(url)
@@ -336,7 +341,8 @@ def fetch(url, retries=5, ignore=[]):
             logger.warn("[!] %d %s" % (e.code, url))
             raise
         if retries>0:
-            f=fetch(url,retries-1)
+            time.sleep(4*(6-retries))
+            f=fetch(url,retries-1, ignore=ignore)
         else:
             raise
     return parse(f)
@@ -357,7 +363,7 @@ class Multiplexer(object):
         self.q=JoinableQueue()
         self.done = Value(c_bool,False)
         self.consumer=Process(target=self.consume)
-        self.pool = Pool(threads)
+        self.pool = Pool(threads, init_opener)
 
     def start(self):
         self.done.value=False
@@ -379,10 +385,10 @@ class Multiplexer(object):
         self.pool.join()
         logger.info('joined pool')
         self.done.value=True
-        self.consumer.join()
-        logger.info('joined consumer')
         self.q.close()
         logger.info('closed q')
+        self.consumer.join()
+        logger.info('joined consumer')
         self.q.join()
         logger.info('joined q')
 
@@ -409,13 +415,16 @@ from operator import itemgetter
 from parltrack.default_settings import ROOT_URL
 from lxml.html.soupparser import parse
 import pprint
-import urllib2, cookielib, sys
+import urllib2, cookielib, sys, time
 
 base = 'http://www.europarl.europa.eu/oeil/file.jsp'
-#opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
-opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()),
-                              urllib2.ProxyHandler({'http': 'http://localhost:8123/'}))
-opener.addheaders = [('User-agent', 'parltrack/0.6')]
+opener=None
+def init_opener():
+    global opener
+    #opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
+    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()),
+                                  urllib2.ProxyHandler({'http': 'http://localhost:8123/'}))
+    opener.addheaders = [('User-agent', 'parltrack/0.6')]
 
 if __name__ == "__main__":
     ## import pymongo, datetime
