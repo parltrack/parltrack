@@ -100,7 +100,7 @@
   </ul>
   {%endif%}
 <div>Subjects
-<ul>{%for sub in dossier.procedure.subjects%}<li><a href="/dossiers?sub={{sub.split(' ')[0]}}&subtitle={{sub}}">{{sub}}</a></li>{%endfor%}</ul>
+<ul>{%for sub in dossier.procedure.subject%}<li><a href="/dossiers?sub={{sub.split(' ')[0]}}&subtitle={{sub}}">{{sub}}</a></li>{%endfor%}</ul>
 </div>
   {% if dossier.procedure.legal_basis %}
   <div>Legal Basis
@@ -111,7 +111,7 @@
   {% if dossier.celexid %}<li>The final text on <a href="http://pippi.euwiki.org/doc/{{dossier.celexid}}">Pippi Longstrings</a></li>{% endif %}
   <li><a href="{{dossier.meta.source}}">OEIL</a></li>
   <li><a href="http://www.google.com/search?q={{dossier.procedure.title}}+-europarl.europa.eu">Google</a></li>
-  <li><a href="http://www.europarl.europa.eu/RegistreWeb/search/simple.htm?fulltext={{dossier.procedure.eprodid}}">Eprod</a></li>
+  <li><a href="http://www.europarl.europa.eu/RegistreWeb/search/simple.htm?fulltext={{dossier.procedure.reference}}">EP Register of documents</a></li>
   {% if dossier.ipex and dossier.ipex.Scrutiny %}<li><a href="{{dossier.ipex.Scrutiny}}">IPEX National Scrutiny</a></li>{% endif %}
 </ul></div>
 </div>
