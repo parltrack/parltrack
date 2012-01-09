@@ -67,7 +67,7 @@ def fetch(url, retries=3):
 def toDate(text):
     if not len(text): return None
     value=[int(x) for x in text.split('/') if len(x)]
-    return datetime.date(value[2], value[1], value[0]).isoformat()
+    return datetime.datetime(value[2], value[1], value[0])
 
 def getMEPRef(name):
     if not name: return
@@ -86,7 +86,7 @@ def getMEPRef(name):
 def getMEPGroup(mep,date=None):
     if not date:
         date=datetime.datetime.now()
-    else:
+    elif type(date) in [type(''),type(u'')]:
         value=[int(x) for x in date.split('/') if len(x)]
         date=datetime.datetime(value[2], value[1], value[0])
     for group in mep['Groups']:
