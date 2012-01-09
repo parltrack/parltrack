@@ -43,8 +43,8 @@ dd { display: inline-block; }
 .right { text-align: right; }
 
 .votes thead td { width: 5em; }
-.has_summary, .more { cursor: pointer; padding-left: 40px; font-size: .7em; color: #454545; }
-li .has_summary, .more { cursor: pointer; padding-left: 0px; font-size: 1em; color: #454545; }
+.has_summary, .more { cursor: pointer; padding-left: 40px; font-size: .7em; color: #1C94C4; }
+li .has_summary, .more { cursor: pointer; padding-left: 0px; font-size: 1em; color: #1C94C4; }
 .asjson { font-size: .7em; float: right; }
 .centered { width: 100%; text-align: center; color: black; }
 #footer a, #footer a:visited { color: white; }
