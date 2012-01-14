@@ -20,7 +20,7 @@ import pprint
 from lxml.etree import tostring
 from urlparse import urljoin
 from itertools import izip, izip_longest
-import datetime, sys, re, feedparser
+import datetime, sys, re, feedparser, traceback
 from operator import itemgetter
 from flaskext.mail import Message
 from parltrack.webapp import mail
@@ -42,6 +42,7 @@ from parltrack.scrapers.ipex import IPEXMAP
 
 db.dossiers2.ensure_index([('procedure.reference', 1)])
 db.dossiers2.ensure_index([('procedure.title', 1)])
+db.dossiers2.ensure_index([('procedure.stage_reached', 1)])
 db.dossiers2.ensure_index([('activities.actors.mepref', 1)])
 db.dossiers2.ensure_index([('activities.actors.commitee', 1)])
 db.dossiers2.ensure_index([('meta.created', -1)])
@@ -70,13 +71,13 @@ def toDate(node):
         for text in lines:
             if not len(text): continue
             value=[int(x) for x in text.split('/') if len(x)]
-            result.append(unicode(datetime.date(value[2], value[1], value[0]).isoformat()))
+            result.append(datetime.datetime(value[2], value[1], value[0]))
         return result
     elif len(lines)==1:
         text=lines[0]
         if not len(text): return None
         value=[int(x) for x in text.split('/') if len(x)]
-        return unicode(datetime.date(value[2], value[1], value[0]).isoformat())
+        return datetime.datetime(value[2], value[1], value[0])
     return None
 
 def toText(node):
@@ -88,6 +89,19 @@ def toText(node):
     links=node.xpath('a')
     if not links: return text
     return {u'title': text, u'url': unicode(urljoin(BASE_URL,links[0].get('href')),'utf8')}
+
+groupurlmap={'http://www.guengl.eu/?request_locale=en': u"GUE/NGL",
+             'http://www.eppgroup.eu/home/en/default.asp?lg1=en': u"EPP",
+             'http://www.alde.eu/?request_locale=en': u'ALDE',
+             'http://www.greens-efa.org/cms/default/rubrik/6/6270.htm?request_locale=en': u'Verts/ALE',
+             'http://www.efdgroup.eu/?request_locale=en': u'EFD',
+             'http://www.ecrgroup.eu/?request_locale=en': u'ECR',
+             'http://www.socialistsanddemocrats.eu/gpes/index.jsp?request_locale=en': u'S&D'}
+def toMEP(node):
+    tips=[t.xpath('text()')[0] if len(t.xpath('text()'))>0 else groupurlmap[t.xpath("a")[0].get('href')]
+          for t in node.xpath('.//span[@class="tiptip"]')]
+    [tip.xpath('..')[0].remove(tip) for tip in node.xpath('.//span[@class="tiptip"]')]
+    return [{u'name': toText(p), u'group': group} for p, group in izip_longest(node.xpath("p"),tips)]
 
 def toLinks(node):
     if node is None: return
@@ -146,7 +160,7 @@ docFields=( (u'type', toText),
             (u'text', toText),
             )
 epagents=( (u'committee', toText),
-           (u'rapporteur', toLines),
+           (u'rapporteur', toMEP),
            (u'date', toDate),
            )
 cslagents=( (u'council', toText),
@@ -186,6 +200,7 @@ stage2inst={ 'Debate in Council': u'CSL',
              'Formal meeting of Conciliation Committee': u'EP/CSL',
              
              'Legislative proposal published': u'EC',
+             'Initial legislative proposal published': u'EC',
              'Modified legislative proposal published': u'EC',
              
              'Results of vote in Parliament': u'EP',
@@ -207,7 +222,7 @@ stage2inst={ 'Debate in Council': u'CSL',
              'End of procedure in Parliament': u'EP',
              }
 
-def merge_events(events,committees):
+def merge_events(events,committees,agents):
     bydate={}
     for event in events:
         if not event['date'] in bydate:
@@ -242,6 +257,8 @@ def merge_events(events,committees):
                 cmts=getCommittee(item,committees)
                 if cmts:
                     actors[item['body']][u'committees']=cmts
+                if item['body']=='EC':
+                    actors['EC']['commission']=[{u'DG': x['dg'], u'Commissioner': x['commissioner']} for x in agents if x['body']=='EC']
                 continue
             # merge any docs
             if 'doc' in item:
@@ -301,16 +318,16 @@ def getCommittee(item, committees):
     if item['type'] in ['Committee referral announced in Parliament, 1st reading/single reading',
                         'Committee report tabled for plenary, 1st reading/single reading',
                         'Vote in committee, 1st reading/single reading']:
-        return sorted([c for c in committees if c.get('committee')!="CODE"])
+        return sorted([c for c in committees if c.get('committee')!="CODE"],key=itemgetter('committee'))
     if item['type'] in ['Committee recommendation tabled for plenary, 2nd reading',
                         'Committee referral announced in Parliament, 2nd reading',
                         'Vote in committee, 2nd reading']:
-        return sorted([c for c in committees if c.get('committee')!="CODE" and c.get('responsible')==True])
+        return sorted([c for c in committees if c.get('committee')!="CODE" and c.get('responsible')==True],key=itemgetter('committee'))
     if item['type'] in ['Draft report by Parliament delegation to the Conciliation Committee',
                         'Joint text approved by Conciliation Committee co-chairs',
                         'Final decision by Conciliation Committee',
                         'Formal meeting of Conciliation Committee']:
-        return sorted([c for c in committees if c.get('committee')=="CODE"])
+        return sorted([c for c in committees if c.get('committee')=="CODE"],key=itemgetter('committee'))
 
 def scrape(url):
     try:
@@ -324,7 +341,7 @@ def scrape(url):
         for ipexd in (IPEXMAP[procedure['reference']] or {}).get('Dates',[]):
             skip=False
             for event in forecasts+events:
-                if event['type']==ipexevents.get(ipexd['type'],{}).get('oeil','asdf') and event['date']==ipexd['date']:
+                if event['type'] in ipexevents.get(ipexd['type'],{}).get('oeil',[]) and event['date']==ipexd['date']:
                     skip=True
                     break
             if skip: continue
@@ -332,9 +349,8 @@ def scrape(url):
         allevents=agents+scrape_docs(tree)+events+forecasts+ipext
         other=[x for x in allevents if not x.get('date')]
         allevents=sorted([x for x in allevents if x.get('date')],key=itemgetter('date'))
-        allevents=merge_events(allevents,committees)
+        allevents=merge_events(allevents,committees, agents)
         res={u'meta': {'source': url,
-                       'id': int(url.split('id=')[1]),
                        'timestamp': datetime.datetime.utcnow() },
              u'procedure': procedure,
              u'links': form2obj((tree.xpath('//table[@id="external_links"]') or [None])[0]),
@@ -342,6 +358,9 @@ def scrape(url):
              u'activities': sorted(allevents, key=itemgetter('date')),
              u'other': other,
              }
+        tmp=url.split('id=')
+        if len(tmp)>1:
+            res['meta']['id']=int(tmp[1])
         # check for "final act"
         finalas=tree.xpath('//div[@id="final_act"]//a')
         final={}
@@ -446,21 +465,24 @@ def scrape_actors(tree):
         inst_name=''.join([x.strip() for x in inst.xpath('.//text()')])
         for table in inst.xpath('following-sibling::td/table'):
             if inst_name == 'European Parliament':
-                #meps.extend([x for x in scrape_epagents(table) if x not in meps])
-                meps.extend(scrape_epagents(table))
+                meps.extend([x for x in scrape_epagents(table) if x not in meps])
+                #meps.extend(scrape_epagents(table))
             # Handle council
             elif inst_name == 'Council of the European Union':
                 for agent in lst2obj(table, cslagents, 1):
-                    agent['body']='CSL'
+                    agent['body']=u'CSL'
+                    agent['type']=u'Council Meeting'
                     agents.append(agent)
             # and commission
             elif inst_name == 'European Commission':
-                for agent in lst2obj(table, ecagents, 1):
-                    agent['body']='EC'
+                for p in table.xpath('.//p[@class="players_head"]'):
+                    p.getparent().remove(p)
+                for agent in lst2obj(table, ecagents, 0):
+                    agent['body']=u'EC'
                     agents.append(agent)
             else:
                 "[!] wrong institution name", inst_name
-    return (agents, sorted(meps))
+    return (agents, sorted(meps,key=itemgetter('committee')))
 
 def scrape_epagents(table):
     heading=''.join(table.xpath('.//td[@class="players_committee"]')[0].xpath(".//text()")).strip()
@@ -472,16 +494,16 @@ def scrape_epagents(table):
     else:
         print "[!] unknown committee heading", heading
 
-    # remove tooltips
-    [tip.xpath('..')[0].remove(tip) for tip in table.xpath('.//span[@class="tiptip"]')]
-
     # handle shadows
     shadowelems=table.xpath('//a[@id="shadowRapporteurHeader"]/../following-sibling::div/p//span[@class="players_rapporter_text"]/a')
+    tips=[t.xpath('text()')[0] if len(t.xpath('text()'))>0 else groupurlmap[t.xpath("a")[0].get('href')]
+          for t in table.xpath('//a[@id="shadowRapporteurHeader"]/../following-sibling::div//span[@class="tiptip"]')]
     shadows={}
-    for shadow in shadowelems:
+    for shadow, group in izip_longest(shadowelems, tips):
         committee=shadow.xpath('./ancestor::td/preceding-sibling::td//acronym/text()')[0]
         if not committee in shadows: shadows[committee]=[]
-        mep={u'name': shadow.xpath('text()')[0] }
+        mep={u'name': shadow.xpath('text()')[0],
+             u'group': group}
         tmp=getMEPRef(shadow.xpath('text()')[0])
         if tmp:
            mep[u'mepref']=tmp
@@ -499,22 +521,24 @@ def scrape_epagents(table):
     for agent in lst2obj(table,epagents,1):
         agent[u'responsible']=responsible
         agent[u'body']='EP'
-
-        if agent.get('rapporteur',[''])[0].strip().startswith("The committee decided not to give an opinion"):
-            del agent['rapporteur']
-            agent[u'opinion']=None
-        elif agent.get('rapporteur'):
+        if agent.get('rapporteur'):
+            if agent['rapporteur'][0]['name'].strip().startswith("The committee decided not to give an opinion"):
+                del agent['rapporteur']
+                agent[u'opinion']=None
+                continue
             meps=[]
             for mep in agent['rapporteur']:
-                tmp=getMEPRef(mep)
+                tmp=getMEPRef(mep['name'])
                 if tmp:
                     meps.append({u'mepref': tmp,
-                                 u'name': mep})
+                                 u'group': mep['group'],
+                                 u'name': mep['name']})
                 else:
                     raise IndexError
             agent[u'rapporteur']=meps
 
         abbr=agent['committee'][:4]
+        if abbr=='BUDE': abbr='BUDG'
         if not abbr in COMMITTEE_MAP.keys():
             print "[!] uknown committee abbrev", abbr
             agent[u'committee_full']=agent['committee']
@@ -704,10 +728,15 @@ if __name__ == "__main__":
     elif sys.argv[1]=="update":
         crawl(get_active_dossiers())
     elif sys.argv[1]=="test":
+        save(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397"),[0,0]) # telecoms package
+        #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=575084"))
+        #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=589377"))
+        #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556208")) # with shadow rapporteurs
+        #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2011/0135(COD)")) # with shadow rapporteurs
+        #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=593187")) # with shadow rapporteur
+        #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397")) # telecoms package
+        sys.exit(0)
         pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=16542"))
-        pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397")) # telecoms package
-        pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397")) # telecoms package
-        pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=593187")) # with shadow rapporteurs
         pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=584049")) # two rapporteurs in one committee
         pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=593435")) # with forecast
         #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=588286")
