@@ -389,8 +389,8 @@ class Multiplexer(object):
         logger.info('closed q')
         self.consumer.join()
         logger.info('joined consumer')
-        self.q.join()
-        logger.info('joined q')
+        #self.q.join()
+        #logger.info('joined q')
 
     def consume(self):
         param=[0,0]
@@ -415,7 +415,7 @@ from operator import itemgetter
 from parltrack.default_settings import ROOT_URL
 from lxml.html.soupparser import parse
 import pprint
-import urllib2, cookielib, sys, time
+import urllib2, cookielib, sys, time, json
 
 base = 'http://www.europarl.europa.eu/oeil/file.jsp'
 opener=None
@@ -425,6 +425,16 @@ def init_opener():
     opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()),
                                   urllib2.ProxyHandler({'http': 'http://localhost:8123/'}))
     opener.addheaders = [('User-agent', 'parltrack/0.6')]
+
+def jdump(d, stats=None):
+    # simple json dumper default for saver
+    res=json.dumps(d, indent=1, default=dateJSONhandler, ensure_ascii=False)
+    if stats:
+        print res.encode('utf-8')
+        stats[0]+=1
+        return stats
+    else:
+        return res
 
 if __name__ == "__main__":
     ## import pymongo, datetime
