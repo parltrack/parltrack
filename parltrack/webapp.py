@@ -70,13 +70,13 @@ def index():
     #                                                                              Code('function(doc, out){ out.count++ }'))])
     #stages=[(k,tmp[k]) for k in ALL_STAGES if tmp.get(k)]
     cutoff=datetime.now()-timedelta(days=3)
-    d=db.dossiers.find({'meta.created': {'$gt': cutoff}}).sort([('meta.created', -1)])
+    d=db.dossiers2.find({'meta.created': {'$gt': cutoff}}).sort([('meta.created', -1)])
     return render_template('index.html',
                            #stages=stages,
-                           dossiers_num=db.dossiers.find().count(),
+                           dossiers_num=db.dossiers2.find().count(),
                            latest=d,
                            votes_num=db.ep_votes.find().count(),
-                           meps_num=db.ep_meps.find().count())
+                           meps_num=db.ep_meps2.find().count())
 
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 #               Search
@@ -91,12 +91,12 @@ def search():
     q = request.args.get('q')
     ret = []
     if request.args.get('s_meps'):
-        ret.extend(db.ep_meps.find({'Name.full': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
+        ret.extend(db.ep_meps2.find({'Name.full': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
     if request.args.get('s_dossiers'):
         m=celexre.match(q)
         if m:
-            ret.extend(db.dossiers.find({'activities.documents.title': "3%sL%04d" % (m.group(2),int(m.group(3)))}))
-        ret.extend(db.dossiers.find({'procedure.title': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
+            ret.extend(db.dossiers2.find({'activities.documents.title': "3%sL%04d" % (m.group(2),int(m.group(3)))}))
+        ret.extend(db.dossiers2.find({'procedure.title': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
     #if request.headers.get('X-Requested-With'):
     if request.args.get('format')=='json':
         return jsonify(count=len(ret), items=tojson(ret))
@@ -126,38 +126,17 @@ def gen_notif_id():
 
 def listdossiers(d):
     db = connect_db()
-    if 'agents' in d['procedure']:
-        d['rapporteur']=[dict(y)
-                         for y
-                         in set([(('name', x['name']), ('grp', x['group']))
-                                 for x in d['procedure']['agents']
-                                 if x.get('responsible') and x.get('name')])]
     forecasts=[]
     for act in d['activities']:
-        if act.get('type') in ['Forecast', 'Event']:
-            forecasts.append({'date':datetime.strptime(act['date'], "%Y-%m-%d"),
-                              'title': ' '.join(act['title'].split())})
         if act.get('type') in ['Non-legislative initial document',
-                           'Commission/Council: initial legislative document']:
-            if 'comdoc' in d:
-                print 'WTF? there is already a comdoc'
-                raise
-            d['comdoc']={'title': act['documents'][0]['title'],
-                         'url': act['documents'][0].get('url'), }
-    for item in db.ep_com_meets.find({'docref': d['_id']}):
-        d['activities'].insert(0,{'type': 'Forecast',
-                                  'body': 'EP',
-                                  'date': item['meeting_date'],
-                                  'title': 'EP: on %s agenda' % item['committee']})
-        forecasts.append({'date': item['meeting_date'],
-                          'title': 'EP: on %s agenda' % item['committee']})
+                               'Commission/Council: initial legislative document',
+                               "Legislative proposal",
+                               "Legislative proposal published"]:
+            d['comdoc']={'title': act['docs'][0]['title'],
+                         'url': act['docs'][0].get('url'), }
+    for item in db.ep_comagendas.find({'epdoc': d['procedure']['reference']}):
         if 'tabling_deadline' in item and item['tabling_deadline']>=datetime.now():
-            d['activities'].insert(0,{'type': 'Forecast',
-                                      'body': 'EP',
-                                      'date': item['tabling_deadline'],
-                                      'title': 'EP %s Deadline for tabling ammendments' % item['committee']})
-            forecasts.append({'date': item['tabling_deadline'],
-                              'title': 'EP: %s Deadline for tabling ammendments' % item['committee']})
+            d['activities'].insert(0,{'type': '(%s) Tabling Deadline' % item['committee'], 'body': 'EP', 'date': item['tabling_deadline']})
     d['forecasts']=sorted(forecasts, key=itemgetter('date'))
     return d
 
@@ -172,7 +151,7 @@ def notification_view_or_create(g_id):
         db.notifications.save(group)
     ds=[]
     if len(group['dossiers']):
-        ds=[listdossiers(d) for d in db.dossiers.find({'procedure.reference': { '$in' : group['dossiers'] } })]
+        ds=[listdossiers(d) for d in db.dossiers2.find({'procedure.reference': { '$in' : group['dossiers'] } })]
     return render_template('view_notif_group.html',
                            dossiers=ds,
                            date=datetime.now(),
@@ -206,7 +185,7 @@ def notification_add_detail(g_id, item, value):
     else:
         #if db.notifications.find({'dossiers': value}).count():
         #    return 'OK'
-        i = db.dossiers.find_one({'procedure.reference': value})
+        i = db.dossiers2.find_one({'procedure.reference': value})
         if not i:
             return 'unknown dossier - '+value
         i = i['procedure']['reference']
@@ -455,7 +434,7 @@ def view_dossier(d_id):
 @app.route('/new/')
 def new_docs():
     db = connect_db()
-    d=db.dossiers.find().sort([('meta.created', -1)]).limit(30)
+    d=db.dossiers2.find().sort([('meta.created', -1)]).limit(30)
     if request.args.get('format','')=='json':
         return jsonify(tojson(d))
     #if request.args.get('format','')=='atom':
@@ -464,7 +443,7 @@ def new_docs():
 @app.route('/changed/')
 def changed():
     db = connect_db()
-    d=db.dossiers.find().sort([('meta.updated', -1)]).limit(30)
+    d=db.dossiers2.find().sort([('meta.updated', -1)]).limit(30)
     if request.args.get('format','')=='json':
         return jsonify(tojson(d))
     #if request.args.get('format','')=='atom':
@@ -477,7 +456,7 @@ def rss(nid):
     if not ng:
         abort(404)
     timelimit=datetime.now()-timedelta(weeks=3)
-    d=db.dossiers.find({'procedure.reference': { '$in': ng['dossiers']},
+    d=db.dossiers2.find({'procedure.reference': { '$in': ng['dossiers']},
                         'meta.updated' : {'$gt': timelimit}}).sort([('meta.updated', -1)])
     res=[]
     for doc in d:
@@ -500,7 +479,7 @@ def active_dossiers():
     sub=request.args.get('sub')
     filterby=None
     if sub:
-        query['procedure.subjects']=re.compile(sub,re.I)
+        query['procedure.subject']=re.compile(sub,re.I)
         subtitle=request.args.get('subtitle')
         if request.args.get('subtitle'):
             filterby="Subtitle: %s" % subtitle
@@ -509,15 +488,15 @@ def active_dossiers():
     ds=[]
     dstat=[]
     stages=defaultdict(lambda: defaultdict(int))
-    for d in db.dossiers.find(query):
+    for d in db.dossiers2.find(query):
         ds.append(listdossiers(d))
-        if d['procedure']['reference'][:3] in ['APP', 'COD', 'CNS'] and 'stage_reached' in d['procedure']:
-            dstat.append((d['procedure']['reference'][:3],
+        if d['procedure']['reference'][-4:-1] in ['APP', 'COD', 'CNS'] and 'stage_reached' in d['procedure']:
+            dstat.append((d['procedure']['reference'][-4:-1],
                           d['procedure']['stage_reached'],
                           d['procedure']['dossier_of_the_committee'].split('/')[0] if 'dossier_of_the_committee' in d['procedure'] else "",
                           )+tuple(max([x.get('date').strftime("%Y-%m-%d") if type(x.get('date'))==type(datetime.now()) else x.get('date')
                                        for x in d['activities']]).split('-')))
-            stages[d['procedure']['stage_reached']][d['procedure']['reference'][:3]]+=1
+            stages[d['procedure']['stage_reached']][d['procedure']['reference'][-4:-1]]+=1
     stages={ 'label': ['APP', 'COD', 'CNS'],
              'values': [x[1] for x in
                         sorted([(STAGEMAP[stage][:3],

@@ -38,20 +38,21 @@
     {% if dossier.votes %}<li><a href="#votes">Votes</a></li>{%endif%}
   </ul>
 <div id="general">
-  {% if dossier.forecasts|length or dossier.comeets|length %}
-  <h3>Forecasts</h3>
-  {% endif %}
-  {% if dossier.forecasts %}
-     <ul>
-       {% for fc in dossier.forecasts %}
-       {% if fc.date>now_date %}<li><abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr> {{fc.title}}</li>{% endif %}
-       {% endfor %}
-     </ul>
-  {% endif %}
-  {% for committee in dossier.comeets|sort(attribute='resp',reverse=True) if committee.meeting_date > now_date %}
-    {%if loop.first %}<ul>{%endif%}
+  {% for fc in dossier.activities %}
+     {% if loop.first %}
+        <h3>Forecasts</h3>
+        <ul>
+     {%endif%}
+     {% if fc.date>now_date %}<li><abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr> {{fc.type}}</li>{% endif %}
+     {% if loop.last %}</ul>{% endif%}
+  {% endfor %}
+  {% for committee in dossier.comeets|sort(attribute='resp',reverse=True) if committee.date and committee.date > now_date %}
+    {%if loop.first %}
+      <h3>Upcomming Committee events</h3>
+      <ul>
+    {%endif%}
     <li>
-    {{ committee.meeting_date|asdate }}
+    {{ committee.date|asdate }}
     EP: On
     {% if committee.resp %}<b>{%endif%}
     {% if committee.committee|length == 4 %}<a href="/committee/{{committee.committee}}">{{committee.committee}}</a>
@@ -74,21 +75,20 @@
   <h3>Committees</h3>
   {% if dossier.procedure.dossier_of_the_committee %}<div>Dossier of the Committee <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&amp;body={{dossier.procedure.committee}}&amp;language=EN">{{dossier.procedure.dossier_of_the_committee}}</a></div>{%endif%}
   <ul>{%for agent in dossier.procedure.agents%}
-       {% if agent.commitee %}
+       {% if agent.committee %}
        <li>
        {%if agent.responsible%}
-          <strong>{% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
-            {%elif committee_map[agent.commitee]|length == 4 %}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>
-            {%else%}{{agent.commitee}}{%endif%}</strong>
-          {%if dossier.procedure.dossier_of_the_committee %}<a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&amp;body={{dossier.procedure.committee}}&amp;language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
+          <strong>{% if agent.committee|length == 4 %}<a href="/committee/{{agent.committee}}">{{agent.committee}}</a>
+            {%elif committee_map[agent.committee]|length == 4 %}<a href="/committee/{{committee_map[agent.committee]}}">{{agent.committee}}</a>
+            {%else%}{{agent.committee}}{%endif%}</strong>
+          {%if dossier.procedure.dossier_of_the_committee and dossier.procedure.dossier_of_the_committee[:4]==agent.committee %}<a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&amp;body={{dossier.procedure.committee}}&amp;language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
        {%else%}
-          {% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
-          {%elif committee_map[agent.commitee]|length == 4 %}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>
-          {%else%}{{agent.commitee}}{%endif%}
+          {% if agent.committee|length == 4 %}<a href="/committee/{{agent.committee}}">{{agent.committee}}</a>
+          {%elif committee_map[agent.committee]|length == 4 %}<a href="/committee/{{committee_map[agent.committee]}}">{{agent.committee}}</a>
+          {%else%}{{agent.committee}}{%endif%}
        {%endif%}
-       {%if agent.name%}<a href="/mep/{{agent.name}}">{{agent.name}}</a>{%endif%}
-       {%if agent.group%}<a href="/meps/{{agent.group}}">{{agent.group}}</a>{%endif%}
-       {%if agent.responsible%}
+          {%if agent.name%}<a href="/mep/{{agent.name}}">{{agent.name}}</a>{%endif%}{%if agent.group%} <a href="/meps/{{agent.group}}">{{agent.group}}</a>{%endif%}{% if not loop.first %},{%endif%}
+       {%if agent.responsible and dossier.ipex %}
           {% for a in dossier.ipex.Shadows %}
              {%if loop.first %}Shadows:{%endif%}
              <a href="/mep/{{a[0].Name.full}}">{{a[0].Name.full}}</a> (<a href="/meps/{{a[1]}}">{{a[1]}}</a>)
@@ -118,13 +118,15 @@
 {% if dossier.activities %}
 <div id="activities">
 <h3>Activites</h3>
-<ul>{%for act in dossier.activities|sort(attribute='date',reverse=True) if act.date > now_date.isoformat %}
+<ul>{%for act in dossier.activities|sort(attribute='date',reverse=True) %}
+  {%for agent in act.commission %}<li class='agent'>{{agent.DG}} {{agent.Ccommissioner}}</li>{%endfor%}
+  {%if act.meeting_id%}<li class='agent'>#{{act.meeting_id}}</li>{%endif%}
    <li class='vevent'>
-     {%if act.date%}<abbr class="dtstart" title="{{act.date|isodate}}">{{act.date}}</abbr>{%endif%}
+     {%if act.date%}<abbr class="dtstart" title="{{act.date|isodate}}">{{act.date|asdate}}</abbr>{%endif%}
      {%if act.title%}<span class='summary'>{{act.title}}</span>{%endif%}
      {%if act.type%}{{act.type}}{%endif%}
      <ul>
-     {%for doc in act.documents%}
+     {%for doc in act.docs%}
         <li>
         {%if doc.celexid %}
           <a href="http://pippi.euwiki.org/doc/{{doc.celexid}}">{{doc.title}}</a>
@@ -133,43 +135,34 @@
         {%else%}
         {{doc.title}}
         {%endif%}
-        {%if doc.summary%}
+        {%if doc.text%}
            <a class="has_summary">[summary]</a>
            <div class="hidden">
-             {%for line in doc.summary %}
+             {%for line in doc.text %}
              <p>{{line|striptags|urlize}}</p>
              {%endfor%}
            </div>
         {%endif%}
         </li>
      {%endfor%}
-     {%for agent in act.actors%}
-        {%if agent.function == "MEP" %}
-           <li class='agent'>
-             {%if agent.responsible%}
-                <strong>{% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
-                  {%elif committee_map[agent.commitee]|length == 4 %}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>
-                  {%else%}{{agent.commitee}}{%endif%}</strong>
-                {%if dossier.procedure.dossier_of_the_committee %}<a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&amp;body={{dossier.procedure.committee}}&amp;language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
-             {%else%}
-                {% if agent.commitee|length == 4 %}<a href="/committee/{{agent.commitee}}">{{agent.commitee}}</a>
-                {%elif committee_map[agent.commitee]|length == 4 %}<a href="/committee/{{committee_map[agent.commitee]}}">{{agent.commitee}}</a>
-                {%else%}{{agent.commitee}}{%endif%}
-             {%endif%}
-             {%if agent.name%}<a href="/mep/{{agent.name}}">{{agent.name}}</a>{%endif%}
-             {%if agent.group%}<a rel="nofollow" href="/meps/{{agent.group}}?date={{act.date|asdate}}">{{agent.group}}</a>{%endif%}
-           </li>
-        {%endif%}
-        {%if agent.body == "CSL" %}
-           <li class='agent'>
-             {%if agent.department%}{{agent.department}}{%endif%}
-             {%if agent.meeting_id%}#{{agent.meeting_id}}{%endif%}
-           </li>
-        {%endif%}
+     {%for agent in act.committees%}
+        <li class='agent'>
+          {%if agent.responsible%}
+             <strong>{% if agent.committee|length == 4 %}<a href="/committee/{{agent.committee}}">{{agent.committee}}</a>
+               {%elif committee_map[agent.committee]|length == 4 %}<a href="/committee/{{committee_map[agent.committee]}}">{{agent.committee}}</a>
+               {%else%}{{agent.committee}}{%endif%}</strong>
+             {%if dossier.procedure.dossier_of_the_committee and dossier.procedure.dossier_of_the_committee[:4]==agent.committee %}<a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&amp;body={{dossier.procedure.committee}}&amp;language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
+          {%else%}
+             {% if agent.committee|length == 4 %}<a href="/committee/{{agent.committee}}">{{agent.committee}}</a>
+             {%elif committee_map[agent.committee]|length == 4 %}<a href="/committee/{{committee_map[agent.committee]}}">{{agent.committee}}</a>
+             {%else%}{{agent.committee}}{%endif%}
+          {%endif%}
+          {% for mep in agent.rapporteur %}
+             {%if mep.name%}<a href="/mep/{{mep.name}}">{{mep.name}}</a>{%endif%}{%if mep.group%} <a href="/meps/{{mep.group}}">{{mep.group}}</a>{%endif%}{% if not loop.first %},{%endif%}
+          {% endfor %}
+        </li>
      {%endfor%}
      </ul>
-     <div>
-     </div>
    </li>
   {%endfor%}
 </ul>
@@ -179,17 +172,19 @@
 <h3>Documents</h3>
 <ul>
 {% for act in dossier.activities %}
-   {%for doc in act.documents%}
+   {%for doc in act.docs%}
       {%if doc.celexid %}
-      <li>{{doc.type}}: <a href='http://pippi.euwiki.org/doc/{{doc.celexid}}'>{{doc.title}}</a>
-        {%if doc.summary%}
-           [<a class="has_summary">summary</a>]
-           <div class="hidden">
-             {%for line in doc.summary %}
-             {{line|striptags}}
-             {%endfor%}
-           </div>
-        {%endif%}
+         <li>{{doc.type}}: <a href='http://pippi.euwiki.org/doc/{{doc.celexid}}'>{{doc.title}}</a>
+      {%else%}
+         <li>{{doc.type}}: {%if doc.url %}<a href='{{doc.url}}'>{%endif%}{{doc.title}}{%if doc.url %}</a>{%endif%}
+      {%endif%}
+      {%if doc.summary%}
+         [<a class="has_summary">summary</a>]
+         <div class="hidden">
+           {%for line in doc.summary %}
+           {{line|striptags}}
+           {%endfor%}
+         </div>
       {%endif%}
    {%endfor%}
 {%endfor%}

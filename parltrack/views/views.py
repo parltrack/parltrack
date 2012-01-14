@@ -45,7 +45,7 @@ staff_positions={"President": 7,
                  "Member": 4,
                  }
 def mepRanking(date,query={}):
-    meps=db.ep_meps.find(query)
+    meps=db.ep_meps2.find(query)
     # workaround for pre-1970 dates
     tmp=[]
     for m in meps:
@@ -94,27 +94,21 @@ def dossier(id, without_changes=True):
                        {'procedure.docs.title': id },
                        ]
     for query in dossier_idqueries:
-        dossier=db.dossiers.find_one(query)
+        dossier=db.dossiers2.find_one(query)
         if dossier:
             break
     if not dossier:
         return
     if 'dossier_of_the_committee' in dossier['procedure']:
         dossier['procedure']['committee']=dossier['procedure']['dossier_of_the_committee'].split('/')[0]
-    tmp=dossier['procedure']['reference'].split('/')
-    dossier['procedure']['eprodid']="%s/%s(%s)" % (tmp[1],tmp[2],tmp[0])
     if 'changes' in dossier and without_changes: del dossier['changes']
-    forecasts=[]
     for act in dossier['activities']:
-        if act['type'] in ['Forecast', 'Event']:
-            forecasts.append({'date':datetime.strptime(act['date'], "%Y-%m-%d"),
-                              'title': ' '.join(act['title'].split())})
-        if act['type'] in ['Non-legislative initial document', 'Commission/Council: initial legislative document']:
+        if act.get('type') in ['Non-legislative initial document', 'Commission/Council: initial legislative document']:
             if 'comdoc' in dossier:
                 print 'WTF? there is already a comdoc'
                 raise
             dossier['comdoc']={'title': act['documents'][0]['title'], 'url': act['documents'][0].get('url'), }
-        if act['type']=='Final legislative act':
+        if act.get('type')=='Final legislative act':
             cid=act['documents'][0].get('title','')
             dossier['celexid']="CELEX:%s:EN" % cid
             st=7 if cid[6].isalpha() else 6
@@ -126,10 +120,10 @@ def dossier(id, without_changes=True):
                                                      cid[1:5],
                                                      int(cid[st:]))
     if 'ipex' in dossier:
-        dossier['ipex']['Rapporteur']=[[db.ep_meps.find_one({'_id': id}),group] for id,group,name in dossier['ipex'].get('Rapporteur',[])]
-        dossier['ipex']['Shadows']=[[db.ep_meps.find_one({'_id': id}), group] for id,group,name in dossier['ipex'].get('Shadows',[])]
+        dossier['ipex']['Rapporteur']=[[db.ep_meps2.find_one({'_id': id}),group] for id,group,name in dossier['ipex'].get('Rapporteur',[])]
+        dossier['ipex']['Shadows']=[[db.ep_meps2.find_one({'_id': id}), group] for id,group,name in dossier['ipex'].get('Shadows',[])]
     # find related votes
-    votes=list(db.ep_votes.find({'dossierid': dossier['_id']}))
+    votes=list(db.ep_votes.find({'epref': dossier['procedure']['reference']}))
     for vote in votes:
         groups=[x['group'] for new in ['For','Against','Abstain'] if new in vote for x in vote[new]['groups']]
         vote['groups']=sorted(set(groups))
@@ -148,10 +142,10 @@ def dossier(id, without_changes=True):
             vote[dec]['groups'].sort(key=itemgetter('group'))
     dossier['votes']=votes
     dossier['comeets']=[]
-    for item in db.ep_com_meets.find({'docref': dossier['_id']}):
+    for item in db.ep_comagendas.find({'epdoc': dossier['procedure']['reference']}):
         item['Committees']={}
         if 'Rapporteur' in item:
-            item['Rapporteur']['rapporteurs']=[db.ep_meps.find_one({'_id': x}) for x in item['Rapporteur']['rapporteurs']]
+            item['Rapporteur']['rapporteurs']=[db.ep_meps2.find_one({'_id': x}) for x in item['Rapporteur']['rapporteurs']]
             item['Committees'][item['committee']]=item['Rapporteur']['rapporteurs']
         for com in item.get('Opinions',[]):
             if 'committees' in com and 'committee' not in com:
@@ -159,14 +153,21 @@ def dossier(id, without_changes=True):
                     c['rapporteurs']=[]
                     item['Committees'][c['committee']]=c
             else:
-                com['rapporteurs']=[db.ep_meps.find_one({'_id': x}) for x in com['rapporteurs']]
+                com['rapporteurs']=[db.ep_meps2.find_one({'_id': x}) for x in com['rapporteurs']]
                 item['Committees'][com['committee']]=com['rapporteurs']
         if 'tabling_deadline' in item and item['tabling_deadline']>=datetime.now():
-            dossier['activities'].insert(0,{'type': 'Forecast', 'body': 'EP', 'date': item['tabling_deadline'].isoformat()[:10], 'title': 'Deadline for tabling ammendments (%s)' % item['committee']})
-            forecasts.append({'type': 'Forecast', 'body': 'EP', 'date': item['tabling_deadline'], 'title': 'Deadline for tabling ammendments (%s)' % item['committee']})
+            dossier['activities'].insert(0,{'type': '(%s) Tabling Deadline' % item['committee'], 'body': 'EP', 'date': item['tabling_deadline']})
         item['resp']=item['committee'] in [x['committee'] for x in item.get('Responsible',[])]
         dossier['comeets'].append(item)
-    dossier['forecasts']=sorted(forecasts, key=itemgetter('date'))
+
+    agents=set()
+    for c in dossier.get('committees',[]):
+        agents.update([tuple(x.items()+
+                             [('responsible', c.get('responsible',False)),
+                              ('committee',c['committee'])])
+                       for x in c.get('rapporteur',[])])
+    dossier['procedure']['agents']=sorted([dict(x) for x in agents],key=itemgetter('name'))
+
     return dossier
 
 def getMep(text, date):
@@ -181,10 +182,10 @@ def getMep(text, date):
                                    }}}
     else:
         query={'Name.aliases': name}
-    mep=db.ep_meps.find_one(query)
+    mep=db.ep_meps2.find_one(query)
     if not mep and u'ß' in text:
         name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(u'ß','ss').strip())).encode('ascii','ignore').split()).lower()
-        mep=db.ep_meps.find_one(query)
+        mep=db.ep_meps2.find_one(query)
     if not mep:
         print >>sys.stderr, '[$] lookup oops:', text.encode('utf8')
     else:
@@ -197,8 +198,8 @@ def mep(id,date):
         return None
 
     # find related dossiers
-    docs=[(x, True) for x in db.dossiers.find({ 'activities.actors': { '$elemMatch': {'mepref': mep['_id'], 'responsible': True}}})]
-    docs.extend([(x, False) for x in db.dossiers.find({ 'activities.actors': { '$elemMatch': {'mepref': mep['_id'], 'responsible': False}}})])
+    docs=[(x, True) for x in db.dossiers2.find({ 'activities.committees': { '$elemMatch': {'rapporteur.name': "%s %s" % (mep['Name']['family'],mep['Name']['sur']), 'responsible': True}}})]
+    docs.extend([(x, False) for x in db.dossiers2.find({ 'activities.committees': { '$elemMatch': {'rapporteur.name': "%s %s" % (mep['Name']['family'],mep['Name']['sur']), 'responsible': False}}})])
     for c in mep['Constituencies']:
         # term 6 20.07.2004 / 13.07.2009
         if c['start']>=datetime(2004,07,20) and c['end']<=datetime(2009,07,13):
@@ -211,38 +212,39 @@ def mep(id,date):
 
 def committee(id):
     # get agendas
-    agendas=db.ep_com_meets.find({'committee': id, 'meeting_date': { '$gte': datetime.now()}}).sort([('meeting_date', pymongo.DESCENDING), ('seq_no', pymongo.ASCENDING)])
+    agendas=db.ep_comagendas.find({'committee': id, 'date': { '$gte': datetime.now()}}).sort([('date', pymongo.DESCENDING), ('seq_no', pymongo.ASCENDING)])
     # get dossiers
-    comre=re.compile(COMMITTEE_MAP[id],re.I)
+    #comre=re.compile(COMMITTEE_MAP[id],re.I)
     dossiers=[]
-    for d in db.dossiers.find({'activities.actors.commitee': comre, 'procedure.stage_reached': {'$in': STAGES}}):
-        for a in d['activities']:
-            for c in a.get('actors',{}):
-                if type(c)!=type(dict()):
-                    continue
-                if comre.search(c.get('commitee','')):
-                    d['crole']=0 if c.get('responsible',False) else 1
-                    if d not in dossiers: dossiers.append(d)
-                    break
+    for d in db.dossiers2.find({'committees.committee': id, 'procedure.stage_reached': {'$in': STAGES}}):
+        tmp=[c for c in d['committees'] if c['committee']==id]
+        if len(tmp)>0:
+            d['crole']=0 if tmp[0]['responsible'] else 1
+            d['rapporteur']=[m for c in d['committees'] if c['responsible'] for m in c.get('rapporteur',[])]
+            d['comdoc']=[act['docs'][0] for act in d['activities']
+                         if act.get('type') in ['Non-legislative initial document',
+                                                'Commission/Council: initial legislative document',
+                                                "Legislative proposal",
+                                                "Legislative proposal published"]]
+            if d not in dossiers: dossiers.append(d)
     # get members of committee
     date=datetime.now()
-    query={"Committees": {'$elemMatch' :
-                         {'start' : {'$lte': date},
-                          "end" : {'$gte': date},
-                          "Organization": comre,
-                          }}}
+    query={"Committees":
+           {'$elemMatch' :
+            {'start' : {'$lte': date},
+             "end" : {'$gte': date},
+             "abbr": id,
+             }}}
     rankedMeps=[]
-    for mep in db.ep_meps.find(query):
+    for mep in db.ep_meps2.find(query):
         for group in mep['Groups']:
             if group['start']<=date and group['end']>=date:
-                if not 'groupid' in group:
-                    group['groupid']=group['Organization']
-                elif type(group.get('groupid'))==list:
+                if type(group.get('groupid'))==list:
                     group['groupid']=group['groupid'][0]
                 mep['Groups']=[group]
                 break
         for c in mep['Committees']:
-            if c['start']<date and c['end']>date and comre.search(c['Organization']):
+            if c['start']<date and c['end']>date and c['abbr']==id:
                 score=com_positions[c['role']]
                 mep['crole']=c['role']
                 rankedMeps.append((score,mep))
@@ -255,16 +257,16 @@ def immunity():
     immre=re.compile(r'IMM/.*')
     mepre=re.compile(r"(?:.*Mr.? |.* of |)(.*?)(?:'[s]? .*(?:immunity|mandate|testimony)| to be waived|$)")
     res=[]
-    for d in db.dossiers.find({'procedure.reference': immre}):
+    for d in db.dossiers2.find({'procedure.reference': immre}):
         m=mepre.match(d['procedure']['title'])
         if not m:
             print 'pls improve mepre to handle', d['procedure']['title'].encode('utf8')
             continue
         name=''.join(unicodedata.normalize('NFKD', unicode(m.group(1).strip())).encode('ascii','ignore').split()).lower()
-        mep=db.ep_meps.find_one({'Name.aliases': name })
+        mep=db.ep_meps2.find_one({'Name.aliases': name })
         if not mep and u'ß' in m.group(1):
             name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(u'ß','ss').strip())).encode('ascii','ignore').split()).lower()
-            mep=db.ep_meps.find_one({'Name.aliases': name })
+            mep=db.ep_meps2.find_one({'Name.aliases': name })
         if not mep:
             print '[0] not found', d['procedure']['reference'].split('/')[1], m.group(1).encode('utf8')
             continue
@@ -315,10 +317,10 @@ def getCountry(mep,date):
 
 def subjects():
     all={}
-    fullmeps=dict([(x['_id'],(x['Constituencies'])) for x in db.ep_meps.find({},['Constituencies'])])
+    fullmeps=dict([(x['_id'],(x['Constituencies'])) for x in db.ep_meps2.find({},['Constituencies'])])
     tree={}
-    for d in db.dossiers.find():
-        subs=[fetchsubj(x) for x in d['procedure'].get('subjects',[]) if x]
+    for d in db.dossiers2.find():
+        subs=[fetchsubj(x) for x in d['procedure'].get('subject',[]) if x]
         if not len(subs): continue
         buck=[]
         for actor in [a

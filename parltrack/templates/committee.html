@@ -14,8 +14,8 @@
     <li><a href="#members">Members</a></li>
   </ul>
 <div id="meetings">
-{%for group in committee.agendas|groupby('meeting_date') if group.grouper >= today %}
-  <h3>{{group.grouper|asdate}}</h3><ul>
+{%for group in committee.agendas|groupby('date') if group.grouper >= today %}
+    <h3>{{group.grouper}} {% if group.end %} - {{group.end}}{% endif %}</h3><ul>
     {% for meet in group.list %}
       <li><a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{meet.comdossier}}&amp;body={{meet.committee}}&amp;language=EN">{{meet.comdossier}}</a> {{meet.title}}
         {%if meet.epdoc %}<a href="/dossier/{{meet.epdoc}}">{{meet.epdoc}}</a>{%else%}{{meet.comdoc}}{%endif%}
@@ -60,7 +60,7 @@
         <td>{{ dossier.procedure.stage_reached }}</td>
         <td>{% for sub in dossier.procedure.legal_basis %}{% if not loop.first %}, {% endif %}{{ sub }}{% endfor %}</td>
         <td>{{ dossier.procedure.dossier_of_the_committee }}</td>
-        <td>{% for r in dossier.rapporteur %}{% if not loop.first %}, {% endif %}<a href="/mep/{{r.name}}">{{ r.name }}</a> ({{r.grp}}){% endfor %}</td>
+        <td>{% for r in dossier.rapporteur %}{% if not loop.first %}, {% endif %}<a href="/mep/{{r.name}}">{{ r.name }}</a> ({{r.group}}){% endfor %}</td>
         <td>{% if dossier.comdoc %}<a href="{{dossier.comdoc.url}}">{{ dossier.comdoc.title }}</a>{% endif %}</td>
       </tr>
       {% endfor %}
