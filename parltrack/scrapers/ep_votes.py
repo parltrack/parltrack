@@ -30,9 +30,8 @@ from ep_meps import group_map, groupids as Groupids
 from bson.objectid import ObjectId
 
 db = connect_db()
-db.ep_meps.ensure_index([('Name.aliases', 1)])
-db.ep_meps.ensure_index([('Name.familylc', 1)])
-db.ep_meps.ensure_index([('Name.aliases', 1)])
+db.ep_votes.ensure_index([('epref', 1)])
+db.ep_votes.ensure_index([('dossierid', 1)])
 
 def fetchVotes(d):
     url="%s%s%s" % ("http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+PV+",
@@ -118,9 +117,10 @@ def votemeta(line, date):
         line=''.join([m.group(1),m.group(3)])
         doc=m.group(2).replace(' ', '')
         res['report']=doc
-        report=db.dossiers.find_one({"activities.documents.title": doc},['_id'])
+        report=db.dossiers.find_one({"activities.documents.title": doc},['_id', 'procedure.reference'])
         if report:
             res['dossierid']=report['_id']
+            res['epref']=report['procedure']['reference']
     m=tailre.match(line)
     if m:
         res['issue_type']=m.group(2).strip()
