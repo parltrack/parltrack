@@ -101,7 +101,7 @@
            <td>{% for sub in dossier.procedure.legal_basis %}{% if not loop.first %}, {% endif %}{{ sub }}{% endfor %}</td>
            <td>{{ dossier.procedure.title }}</td>
            <td>{{ dossier.procedure.dossier_of_the_committee }}</td>
-           <td>{% for c in dossier.committees %}{% if c.responsible %}{% for r in c.rapporteur %}{% if not loop.first %}, {% endif %}<a href="/mep/{{r.name}}">{{ r.name }}</a> ({{r.grp}}){% endfor %}{%endif%}{%endfor%}</td>
+           <td>{% for c in dossier.committees %}{% if c.responsible %}{% for r in c.rapporteur %}{% if not loop.first %}, {% endif %}<a href="/mep/{{r.name}}">{{ r.name }}</a> ({{r.group}}){% endfor %}{%endif%}{%endfor%}</td>
            <td>{% if dossier.comdoc %}<a href="{{dossier.comdoc.url}}">{{ dossier.comdoc.title }}</a>{% endif %}</td>
          </tr>
          {% endfor %}
