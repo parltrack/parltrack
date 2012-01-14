@@ -74,6 +74,11 @@ li .has_summary, .more { cursor: pointer; padding-left: 0px; font-size: 1em; col
 .tabling-deadline, .tabling-deadline a { background-color:#1A67B8 !important; color: orange !important; }
 #legend li { font-size:0.7em; list-style-type:none; margin-bottom:0.2em; margin-left:-2.5em; margin-right:1em; }
 .fc-content { clear:none !important; }
+.fc-event, .fc-agenda .fc-event-time, .fc-event a {
+    background-color: white !important;
+    border-color: grey !important;
+    border-style: solid !important;
+}
 #calendar a:hover { color: red !important; }
 
 div.qtip { font-family:Trebuchet MS,Tahoma,Verdana,Arial,sans-serif; font-size: .8em; }
