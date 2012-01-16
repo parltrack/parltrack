@@ -10,3 +10,4 @@ pymongo>=1.9
 python-dateutil>=1.2
 Flask-Mail>=0.6.1
 BeautifulSoup>=3.2.0
+feedparser>=5.1
