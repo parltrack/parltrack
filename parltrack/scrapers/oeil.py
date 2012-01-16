@@ -722,6 +722,8 @@ if __name__ == "__main__":
     if sys.argv[1]=="full":
         crawl(get_all_dossiers(), threads=4)
     elif sys.argv[1]=="fullseq":
+        crawlseq(get_all_dossiers())
+    elif sys.argv[1]=="newseq":
         crawlseq(get_new_dossiers())
     elif sys.argv[1]=="new":
         crawl(get_new_dossiers())
