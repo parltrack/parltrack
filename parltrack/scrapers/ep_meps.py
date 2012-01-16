@@ -352,12 +352,15 @@ def get_meps(term=current_term):
         page=fetch("http://www.europarl.europa.eu/meps/en/performsearch.html?action=%s&webCountry=&webTermId=%s&name=&politicalGroup=&bodyType=ALL&bodyValue=&type=&filter=" % (i, term), ignore=[500])
 
 def get_all(term=''):
-    seen=[]
     for term in xrange(1,current_term+1):
         for url, name in get_meps(term=term):
-            if not url in seen:
-                seen.append(url)
+            mep=db.ep_meps2.find_one({'Name.full': name})
+            if not mep:
                 yield (urljoin(urljoin(BASE_URL,url),'get.html'), {})
+            else:
+                mep['terms']=list(set(mep.get('terms',[]) + [term]))
+                db.ep_meps2.save(mep)
+                logger.info('updated %s' % name)
 
 def getActive():
     for elem in db.ep_meps2.find({ 'active' : True},['meta.url']):
