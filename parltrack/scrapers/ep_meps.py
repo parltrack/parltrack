@@ -31,6 +31,7 @@ db = connect_db()
 db.ep_meps2.ensure_index([('UserID', 1)])
 db.ep_meps2.ensure_index([('Name.full', 1)])
 db.ep_meps2.ensure_index([('Name.aliases', 1)])
+db.ep_meps2.ensure_index([('meta.url', 1)])
 
 def getAddress(root):
     res={}
@@ -465,12 +466,20 @@ def crawler(meps,saver=jdump,threads=4, term=current_term):
     m.finish()
     logger.info('end of crawl')
 
-def seqcrawl(meps, term=current_term,saver=jdump, scraper=scrape):
-    return [saver(scraper(url, data),None) for url, data in meps(term=term)]
+def seqcrawl(meps, term=current_term,saver=jdump, scraper=scrape, null=False):
+    return [saver(scraper(url, data),None)
+            for url, data in meps(term=term)
+            if null and db.ep_meps2.find_one({'meta.url': url},['_id'])==None]
 
 if __name__ == "__main__":
     if len(sys.argv)<2:
         print "%s full|fullseq|test| (current|outgoing|new [<seq>] [<dry>])" % (sys.argv[0])
+    args=set(sys.argv[1:])
+    saver=save
+    if 'dry' in args:
+        saver=jdump
+    if 'null' in args:
+        null=True
     if sys.argv[1]=="full":
         # outgoing and full (latest term, does not contain the
         # inactive meps, so outgoing is necessary to scrape as well
@@ -480,8 +489,8 @@ if __name__ == "__main__":
     elif sys.argv[1]=="fullseq":
         # outgoing and full (latest term, does not contain the
         # inactive meps, so outgoing is necessary to scrape as well
-        res=seqcrawl(get_all, saver=save)
-        res.extend(seqcrawl(getOutgoing, saver=save))
+        res=seqcrawl(get_all, saver=saver, null=null)
+        res.extend(seqcrawl(getOutgoing, saver=saver, null=null))
         sys.exit(0)
     elif sys.argv[1]=="test":
         import pprint
@@ -499,10 +508,6 @@ if __name__ == "__main__":
         sys.exit(0)
 
     # handle opts
-    args=set(sys.argv[1:])
-    saver=save
-    if 'dry' in args:
-        saver=jdump
     if 'current' in args:
         newbies=getIncomming()
         meps=get_meps
@@ -516,7 +521,7 @@ if __name__ == "__main__":
         sys.exit(0)
     logger.info('\n\tsaver: %s\n\tmeps: %s\n\tseq: %s' % (saver, meps, 'seq' in args))
     if 'seq' in args:
-        res=seqcrawl(meps,saver=saver)
+        res=seqcrawl(meps,saver=saver, null=null)
         if 'dry' in args:
             print "[%s]" % ',\n'.join(res).encode('utf8')
     else:
