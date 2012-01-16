@@ -1,6 +1,5 @@
 import os
 from pymongo import Connection
-from solr import SolrConnection
 from flask import Flask, g
 from flaskext.mail import Mail
 from parltrack import default_settings
