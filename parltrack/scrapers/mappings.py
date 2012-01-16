@@ -161,14 +161,14 @@ buildings={ u"Altiero Spinelli": 'ASP',
             u"Atrium": "ATR",
             u"Louise Weiss": 'LOW',
             u"Winston Churchill": 'WIC',
-            u'Salvador de Madariaga': "SDM"
+            u'Salvador de Madariaga': "SDM",
             u"Bât. Altiero Spinelli": 'ASP',
             u"Bât. Willy Brandt": 'WIB',
             u"Bât. Paul-Henri Spaak": 'PHS',
             u"Bât. Atrium": "ATR",
             u"Bât. Louise Weiss": 'LOW',
             u"Bât. Winston Churchill": 'WIC',
-            u'B\xe2t. Salvador de Madariaga': "SDM"
+            u'B\xe2t. Salvador de Madariaga': "SDM",
             }
 
 ipexevents={u'CSL 1R Agreement': {'body': 'CSL', 'oeil': ['Council meeting'], },
