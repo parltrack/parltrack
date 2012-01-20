@@ -469,7 +469,7 @@ def crawler(meps,saver=jdump,threads=4, term=current_term):
 def seqcrawl(meps, term=current_term,saver=jdump, scraper=scrape, null=False):
     return [saver(scraper(url, data),None)
             for url, data in meps(term=term)
-            if null and db.ep_meps2.find_one({'meta.url': url},['_id'])==None]
+            if (null and db.ep_meps2.find_one({'meta.url': url},['_id'])==None) or not null]
 
 if __name__ == "__main__":
     if len(sys.argv)<2:
