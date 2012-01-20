@@ -281,6 +281,7 @@ def getComAgendas():
 
 def save(data, stats):
     for item in data:
+        if not 'committee' in item: continue
         res=db.ep_comagendas.find_one({'committee': item['committee'],
                                        'src': item['src'],
                                        'seq_no': item['seq_no']}) or {}
