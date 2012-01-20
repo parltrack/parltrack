@@ -26,7 +26,7 @@ import urllib2, json, sys, subprocess, os, re, unicodedata
 from cStringIO import StringIO
 from parltrack.environment import connect_db
 from datetime import datetime
-from ep_meps import group_map, groupids as Groupids
+from mappings import group_map, groupids as Groupids
 from bson.objectid import ObjectId
 
 db = connect_db()
