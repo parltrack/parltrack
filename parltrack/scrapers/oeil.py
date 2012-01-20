@@ -718,7 +718,7 @@ def makemsg(data, d):
 
 if __name__ == "__main__":
     if len(sys.argv)!=2:
-        print "%s full|fullseq|new|update|test" % (sys.argv[0])
+        print "%s full|fullseq|new|update|updateseq|test" % (sys.argv[0])
     if sys.argv[1]=="full":
         crawl(get_all_dossiers(), threads=4)
     elif sys.argv[1]=="fullseq":
@@ -729,6 +729,8 @@ if __name__ == "__main__":
         crawl(get_new_dossiers())
     elif sys.argv[1]=="update":
         crawl(get_active_dossiers())
+    elif sys.argv[1]=="updateseq":
+        crawlseq(get_active_dossiers())
     elif sys.argv[1]=="test":
         save(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397"),[0,0]) # telecoms package
         #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=575084"))
