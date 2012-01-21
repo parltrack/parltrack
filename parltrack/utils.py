@@ -330,12 +330,12 @@ def test_diff():
     #import pprint
     #pprint.pprint(diff(d1,d2))
 
-def fetch(url, retries=5, ignore=[]):
+def fetch(url, retries=5, ignore=[], params=None):
     if not opener:
         init_opener()
     # url to etree
     try:
-        f=opener.open(url)
+        f=opener.open(url, params)
     except (urllib2.HTTPError, urllib2.URLError), e:
         if hasattr(e, 'code') and e.code>=400 and e.code not in [504, 502]+ignore:
             logger.warn("[!] %d %s" % (e.code, url))
@@ -417,7 +417,6 @@ from lxml.html.soupparser import parse
 import pprint
 import urllib2, cookielib, sys, time, json
 
-base = 'http://www.europarl.europa.eu/oeil/file.jsp'
 opener=None
 def init_opener():
     global opener
