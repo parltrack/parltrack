@@ -55,8 +55,8 @@ def getMEPRef(name, retfields=['_id']):
         mep=db.ep_meps.find_one({'Name.aliases': ''.join(name.replace(u'ß','ss').split()).lower()},retfields)
     if not mep and unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore')!=name:
         mep=db.ep_meps.find_one({'Name.aliases': ''.join(unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore').split()).lower()},retfields)
-    if not mep:
-        mep=db.ep_meps.find_one({'Name.aliases': re.compile(''.join([x if x<128 else '.' for x in name]),re.I)},retfields)
+    if not mep and len([x for x in name if ord(x)>128]):
+        mep=db.ep_meps.find_one({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in name]),re.I)},retfields)
     if mep:
         return mep['_id']
     else:
