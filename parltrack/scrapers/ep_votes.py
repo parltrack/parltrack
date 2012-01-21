@@ -25,6 +25,7 @@ from tempfile import mkdtemp, mkstemp
 import urllib2, json, sys, subprocess, os, re, unicodedata
 from cStringIO import StringIO
 from parltrack.environment import connect_db
+from parltrack.utils import dateJSONhandler
 from datetime import datetime
 from mappings import group_map, groupids as Groupids
 from bson.objectid import ObjectId
@@ -58,14 +59,6 @@ def fetchVotes(d):
     os.unlink(tmp[1])
     return parse(StringIO(res))
 
-def dateJSONhandler(obj):
-    if hasattr(obj, 'isoformat'):
-        return obj.isoformat()
-    elif type(obj)==ObjectId:
-        return str(obj)
-    else:
-        raise TypeError, 'Object of type %s with value of %s is not JSON serializable' % (type(obj), repr(obj))
-
 mepCache={}
 def getMep(text,date):
     name=''.join(unicodedata.normalize('NFKD', unicode(text.strip())).encode('ascii','ignore').split()).lower()
@@ -83,6 +76,8 @@ def getMep(text,date):
         mep=db.ep_meps.find_one({'Name.aliases': name,
                              "Constituencies.start" : {'$lt': date},
                              "Constituencies.end" : {'$gt': date}},['_id'])
+    if not mep and len([x for x in text if ord(x)>128]):
+        mep=db.ep_meps.find_one({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in text]),re.I)},['_id'])
     if not mep:
         print >>sys.stderr, '[$] lookup oops:', text.encode('utf8')
         mepCache['name']=None
@@ -198,6 +193,12 @@ def scrape(f):
                     vtmp=[]
                     for name in voters:
                         mep=None
+                        if name in mepCache:
+                            if mepCache[name]:
+                                vtmp.append({'id': mepCache[name], 'orig': name})
+                            else:
+                                vtmp.append(name)
+                            continue
                         try:
                             queries=[({'Name.familylc': name.lower(),
                                        "Groups.groupid": group,
@@ -238,8 +239,10 @@ def scrape(f):
                                    "Groups.end" : {'$gt': vote['ts']}},2),
                                  ({'Name.familylc': name.replace(u'ß','ss').lower()},3),
                                  ({'Name.aliases': re.compile(name.replace(u'ß','ss'),re.I)},4)])
+                        if len([x for x in name if ord(x)>128]):
+                            queries.append(({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in name]),re.I)},5))
                         for query,q in queries:
-                            mep=db.ep_meps.find_one(query)
+                            mep=db.ep_meps.find_one(query,['_id'])
                             if mep:
                                 vtmp.append({'id': mep['_id'], 'orig': name})
                                 if q>2: print >>sys.stderr, '[!] weak mep', q, vote['ts'], group, name.encode('utf8')
@@ -247,7 +250,7 @@ def scrape(f):
                         if not mep:
                             print >>sys.stderr, '[?] warning unknown MEP',vote['ts'] , group.encode('utf8'), name.encode('utf8')
                             vtmp.append(name)
-                    #vote[k][group]=vtmp
+                        mepCache['name']=mep or None
                     vote[k]['groups'].append({'group': group, 'votes': vtmp})
                 if cur.xpath('.//table'):
                     break
