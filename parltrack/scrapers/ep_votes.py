@@ -193,7 +193,7 @@ def scrape(f):
                     vtmp=[]
                     for name in voters:
                         mep=None
-                        if name in mepCache:
+                        if name in mepCache.keys():
                             if mepCache[name]:
                                 vtmp.append({'id': mepCache[name], 'orig': name})
                             else:
@@ -263,7 +263,8 @@ def scrape(f):
             res.append(vote)
             continue
         try:
-            has_corr=' '.join([x for x in cor.xpath('tr')[0].xpath('.//text()') if x.strip()]).find(u"ПОПРАВКИ В ПОДАДЕНИТЕ ГЛАСОВЕ И НАМЕРЕНИЯ ЗА ГЛАСУВАНЕ")!=-1
+            has_corr=' '.join([x for x in cor.xpath('tr')[0].xpath('.//text()')
+                               if x.strip()]).find(u"ПОПРАВКИ В ПОДАДЕНИТЕ ГЛАСОВЕ И НАМЕРЕНИЯ ЗА ГЛАСУВАНЕ")!=-1
         except IndexError:
             has_corr=None
         if not has_corr:
@@ -277,10 +278,14 @@ def scrape(f):
                 skip=False
                 continue
             try:
-                k,voters=[x.xpath('string()').strip() for x in row.xpath('td') if x.xpath('string()').find(u"ПОПРАВКИ В ПОДАДЕНИТЕ ГЛАСОВЕ И НАМЕРЕНИЯ ЗА ГЛАСУВАНЕ")==-1]
+                k,voters=[x.xpath('string()').strip()
+                          for x in row.xpath('td')
+                          if x.xpath('string()').find(u"ПОПРАВКИ В ПОДАДЕНИТЕ ГЛАСОВЕ И НАМЕРЕНИЯ ЗА ГЛАСУВАНЕ")==-1]
             except ValueError:
                 # votes between 2006 and 2007 have another correction table format with separate tr-s
-                vtype=''.join([x.xpath('string()').strip() for x in row.xpath('td') if x.xpath('string()').find(u"ПОПРАВКИ В ПОДАДЕНИТЕ ГЛАСОВЕ И НАМЕРЕНИЯ ЗА ГЛАСУВАНЕ")==-1])
+                vtype=''.join([x.xpath('string()').strip()
+                               for x in row.xpath('td')
+                               if x.xpath('string()').find(u"ПОПРАВКИ В ПОДАДЕНИТЕ ГЛАСОВЕ И НАМЕРЕНИЯ ЗА ГЛАСУВАНЕ")==-1])
                 if u'Υπέρ' in vtype or u'ΥΠΕΡ' in vtype:
                     k="+"
                 if u'Κατά' in vtype or u'ΚΑΤΑ' in vtype:
@@ -315,6 +320,8 @@ def scrape(f):
                          ({'Name.aliases': ' '.join(name.split()).replace(u'ß','ss').lower(),
                            "Constituencies.start" : {'$lt': vote['ts']},
                            "Constituencies.end" : {'$gt': vote['ts']} },2)])
+                if len([x for x in name if ord(x)>128]):
+                    queries.append(({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in name]),re.I)},5))
                 for query,q in queries:
                     mep=db.ep_meps.find_one(query)
                     if mep:
@@ -329,9 +336,5 @@ def scrape(f):
     return res
 
 if __name__ == "__main__":
-    import platform
-    if platform.machine() in ['i386', 'i686']:
-        import psyco
-        psyco.full()
     scrape(sys.argv[1])
     #print json.dumps(scrape(sys.argv[1]),indent=1, default=dateJSONhandler)

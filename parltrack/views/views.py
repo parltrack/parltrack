@@ -349,8 +349,7 @@ def subjects():
 import sys, unicodedata
 from datetime import datetime
 import pymongo, re
-from parltrack.scrapers.ep_com_meets import COMMITTEE_MAP
-from parltrack.scrapers.mappings import STAGES
+from parltrack.scrapers.mappings import STAGES, COMMITTEE_MAP
 try:
     from parltrack.webapp import connect_db
     db = connect_db()
