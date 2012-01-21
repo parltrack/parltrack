@@ -18,63 +18,43 @@
 
 # (C) 2011 by Adam Tauber, <asciimoo@gmail.com>
 
-
-from lxml.html.soupparser import parse
-from urllib2 import urlopen
-from string import strip
 from datetime import datetime
 from sys import argv, exit, stderr
 from parltrack.scrapers.ep_votes import scrape as scrape_votes
+from parltrack.utils import fetch
 
-URL = 'http://www.europarl.europa.eu/activities/plenary/pv/calendar.do'
+# 'http://www.europarl.europa.eu/plenary/en/minutes.html?clean=false&leg=7&refSittingDateStart=01/01/2011&refSittingDateEnd=31/12/2011&miType=title&miText=Roll-call+votes&tabActif=tabResult&startValue=10'
+URL = 'http://www.europarl.europa.eu/plenary/en/minutes.html'
+PARAMS = 'clean=false&leg=%s&refSittingDateStart=01/01/%s&refSittingDateEnd=31/12/%s&miType=title&miText=Roll-call+votes&tabActif=tabResult'
 
-def fetch(url):
-    # url to etree
-    try:
-        f=urlopen(url)
-    except:
-        return '[!] unable to open %s' % url
-    return parse(f)
+from lxml.etree import tostring
+def getDates(params):
+    root=fetch(URL, params=params)
+    #print tostring(root)
+    prevdates=None
+    dates=root.xpath('//span[@class="date"]/text()')
+    i=10
+    while dates and dates!=prevdates:
+        for date in dates:
+            yield datetime.strptime(date, "%d-%m-%Y").strftime("%Y%m%d")
 
-def getDates(root, future=False):
-    dates = []
-    # past
-    for d in root.xpath("//td[@class='session']/a"):
-        day = strip(d.text)
-        try:
-            day = int(day)
-        except:
-            continue
-        month, year = strip(d.getparent().getparent().getparent().xpath('tr[1]/td[1]/table/tr/td[5]/text()')[0]).split()
-        yield datetime.strptime('%s %s %d' % (year, month, day), "%Y %B %d").strftime("%Y%m%d")
-    if future:
-        for d in root.xpath("//td[@class='session_off']"):
-            day = strip(d.text)
-            try:
-                day = int(day)
-            except:
-                continue
-            month, year = strip(d.getparent().getparent().xpath('tr[1]/td[1]/table/tr/td[5]/text()')[0]).split()
-            yield datetime.strptime('%s %s %d' % (year, month, day), "%Y %B %d").strftime("%Y%m%d")
-
+        root=fetch(URL, params="%s&startValue=%s" % (params,i))
+        prevdates=dates
+        i+=10
+        dates=root.xpath('//span[@class="date"]/text()')
 
 if __name__ == '__main__':
-    # dirty but funky oneliner, handles multiple arguments =)
-    # if len(set(argv))-1 != len([map(scrape_votes, getDates(fetch(URL+'?language=EN&YEAR='+year))) for year in set(argv) if year.isdigit() and int(year) >= 2004 and int(year) <= 2014 and not stderr.write('[!] Scraping '+year+' votes\n')]): print '[!] usage: %s [years (2004-2014)]' % argv[0]
-    import platform
-    if platform.machine() in ['i386', 'i686']:
-        import psyco
-        psyco.full()
     try:
         year = int(argv[1])
     except:
         stderr.write('[!] usage: %s [year(2004-2014)]\n' % argv[0])
         exit(1)
-    url = '%s?language=EN&YEAR=%d' % (URL, year)
+    term=7
     if year >= 2004 and year < 2009:
-        url = url+'&LEG_ID=6'
+        term=6
+    params = PARAMS % (term, year, year)
     # !! important part: getDates(fetch(url)) -> returns: array of dates !!
-    map(scrape_votes, getDates(fetch(url)))
+    map(scrape_votes, getDates(params))
     if year==2009:
-        url = url+'&LEG_ID=6'
-        map(scrape_votes, getDates(fetch(url)))
+        params = PARAMS % (6, year, year)
+        map(scrape_votes, getDates(params))
