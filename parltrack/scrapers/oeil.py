@@ -62,7 +62,7 @@ def getMEPRef(name, retfields=['_id']):
     if mep:
         return mep['_id']
     else:
-        print >>sys.stderr, '[!] lookup oops', name.encode('utf8')
+        logger.warn('[!] lookup oops %s' % name.encode('utf8'))
 
 def toDate(node):
     for br in node.xpath("br"):
@@ -456,7 +456,7 @@ def scrape_docs(tree):
                     doc[u'text']=[tostring(x) for x in summary.xpath('//div[@id="summary"]')]
                 res.append(doc)
         elif inst != 'All documents':
-            print "[!] unrecognized tab in documents", inst
+            logger.warn(u"[!] unrecognized tab in documents %s" % inst)
     return res
 
 def scrape_actors(tree):
@@ -494,7 +494,7 @@ def scrape_epagents(table):
     elif heading in ["Committee for opinion", "Former committee for opinion"]:
         responsible=False
     else:
-        print "[!] unknown committee heading", heading
+        logger.warn(u"[!] unknown committee heading %s" % heading)
 
     # handle shadows
     shadowelems=table.xpath('//a[@id="shadowRapporteurHeader"]/../following-sibling::div/p//span[@class="players_rapporter_text"]/a')
@@ -542,7 +542,7 @@ def scrape_epagents(table):
         abbr=agent['committee'][:4]
         if abbr=='BUDE': abbr='BUDG'
         if not abbr in COMMITTEE_MAP.keys():
-            print "[!] uknown committee abbrev", abbr
+            logger.warn(u"[!] uknown committee abbrev %s" % abbr)
             agent[u'committee_full']=agent['committee']
             del agent['committee']
         else:
