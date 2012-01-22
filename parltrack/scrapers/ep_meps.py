@@ -479,7 +479,7 @@ def seqcrawl(meps, term=current_term,saver=jdump, scraper=scrape, null=False):
 
 if __name__ == "__main__":
     if len(sys.argv)<2:
-        print "%s full|fullseq|test| (current|outgoing|new [<seq>] [<dry>])" % (sys.argv[0])
+        print "%s full|fullseq|test|(url <url>) (current|outgoing|new [<seq>] [<dry>])" % (sys.argv[0])
     args=set(sys.argv[1:])
     saver=save
     null=False
