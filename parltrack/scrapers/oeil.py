@@ -24,7 +24,7 @@ import datetime, sys, re, feedparser, traceback
 from operator import itemgetter
 from flaskext.mail import Message
 from parltrack.webapp import mail
-from parltrack.utils import diff, htmldiff, fetch, unws, Multiplexer, logger
+from parltrack.utils import diff, htmldiff, fetch, unws, Multiplexer, logger, jdump
 from parltrack.default_settings import ROOT_URL
 from parltrack.scrapers.mappings import ipexevents, COMMITTEE_MAP
 
@@ -57,6 +57,8 @@ def getMEPRef(name, retfields=['_id']):
         mep=db.ep_meps.find_one({'Name.aliases': ''.join(unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore').split()).lower()},retfields)
     if not mep and len([x for x in name if ord(x)>128]):
         mep=db.ep_meps.find_one({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in name]),re.I)},retfields)
+    if not mep:
+        mep=db.ep_meps2.find_one({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in name]),re.I)},retfields)
     if mep:
         return mep['_id']
     else:
@@ -731,6 +733,8 @@ if __name__ == "__main__":
         crawl(get_active_dossiers())
     elif sys.argv[1]=="updateseq":
         crawlseq(get_active_dossiers())
+    elif sys.argv[1]=="url":
+        print jdump(scrape(sys.argv[2]))
     elif sys.argv[1]=="test":
         save(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397"),[0,0]) # telecoms package
         #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=575084"))
