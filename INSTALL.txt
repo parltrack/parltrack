@@ -26,7 +26,7 @@ source env/bin/activate
 # start initial scraping
 
  cd parltrack/scrapers
- ./ep_meps.py >meps.log 2>&1
- ./oeil.py full >oeil.log 2>&1
- ./ep_com_meets.py >meets.log 2>&1
- for b in $(seq 2004 2011); do ./ep_votes_by_year.py $b 2>&1 ; done >votes.log
+ ./ep_meps.py current seq # always use seq here, parallel is buggy
+ ./oeil.py full
+ ./ep_comagendas.py
+ for b in $(seq 2004 2011); do ./ep_votes_by_year.py $b 2>&1 ; done
