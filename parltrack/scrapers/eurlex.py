@@ -16,9 +16,31 @@
 
 # (C) 2012 by Stefan Marsiske, <stefan.marsiske@gmail.com>
 
-import re
-from parltrack.utils import fetch, unws
+import re, sys, time
+from parltrack.utils import fetch as _fetch, unws, jdump, diff, logger
 from mappings import CELEXCODES
+from datetime import datetime
+try:
+    from parltrack.environment import connect_db
+    db = connect_db()
+except:
+    import pymongo
+    db=pymongo.Connection().parltrack
+
+db.eurlex.ensure_index([('id.celexid', 1)])
+
+def fetch(url, **kwargs):
+    timer=8
+    while True:
+        root=_fetch(url, **kwargs)
+        fail=root.xpath('//h1[text()="The system could not serve your request in time because of a temporary problem; please try again shortly."]')
+        if not len(fail):
+            timer=8
+            break
+        logger.info('[i] getting "pls wait" msg, sleeping for %ss' % timer)
+        time.sleep(timer)
+        timer=timer*2
+    return root
 
 EURLEXURL="http://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri="
 GENERIC_FIELDS = [("Classifications",
@@ -37,29 +59,56 @@ GENERIC_FIELDS = [("Classifications",
                     "Affected by case:",
                     "Instruments cited:"])]
 
-def scrape(docid):
-    (code,lang)=docid.split(":")[1:3]
-    st=7 if code[6].isalpha() else 6
-    eurlex={'id': {u'docid': docid,
-                   u'sector': code[0],
-                   u'year': code[1:5],
-                   u'doctype': code[5:st],
-                   u'refno': code[st:],
-                   u'lang': lang,
-                   u'typeDesc': CELEXCODES[code[0]]['Document Types'][code[5:st]] if code[5:st] != 'C' else CELEXCODES[code[0]]['Sector'],
-                   }}
+def scrape(celexid, path):
+    logger.info("scraping %s%s:NOT" % (EURLEXURL,celexid))
+    path.reverse()
+    (code,lang)=celexid.split(":")[1:3]
+    if len(code)>6:
+        st=7 if code[6].isalpha() else 6
+        eurlex={'id': {u'celexid': celexid,
+                       u'sector': code[0],
+                       u'year': code[1:5],
+                       u'doctype': code[5:st],
+                       u'refno': code[st:],
+                       u'lang': lang,
+                       u'typeDesc': CELEXCODES[code[0]]['Document Types'][code[5:st]] if code[5:st] != 'C' else CELEXCODES[code[0]]['Sector'],
+                       u'chapter': path,
+                       }}
+    else:
+        eurlex={'id': {u'celexid': celexid,
+                       u'sector': code[0],
+                       u'year': code[1:5],
+                       u'doctype': code[5:6],
+                       u'lang': lang,
+                       u'typeDesc': CELEXCODES[code[0]]['Document Types'][code[5:6]] if code[5:6] != 'C' else CELEXCODES[code[0]]['Sector'],
+                       u'chapter': path,
+                       }}
 
-    root = fetch("%s%s:NOT" % (EURLEXURL,docid))
+    eurlex['meta']={u'src': "%s%s:NOT" % (EURLEXURL,celexid)}
+
+    root = fetch("%s%s:NOT" % (EURLEXURL,celexid))
     eurlex[u'title'] = root.xpath('//h2[text()="Title and reference"]/following-sibling::p/text()')[0]
     # dates
     dates=root.xpath('//h2[text()="Dates"]/following-sibling::ul/text()')
-    if len(dates):
-        eurlex['dates']=dict([unws(y).split(": ") for y in dates if unws(y)])
+    for y in dates:
+        if not unws(y): continue
+        title, rest=unws(y).split(": ",1)
+        item={u'type': title}
+        tmp=rest.split('; ',1)
+        if tmp[0]=='99/99/9999': item[u'date']= datetime(9999,12,31)
+        elif tmp[0]=='00/00/0000': item[u'date']= datetime(0001,01,01)
+        else: item[u'date']= datetime.strptime(tmp[0], u"%d/%m/%Y")
+        if len(tmp)>1:
+            item['note']=tmp[1]
+        try:
+            eurlex['dates'].append(item)
+        except:
+            eurlex['dates']=[item]
+
     for t,l in GENERIC_FIELDS:
         try:
             s=root.xpath('//h2[text()="%s"]/following-sibling::ul' % t)[0]
         except:
-            print 'skipping %s' % t
             continue
         if not len(s): continue
         tmp=dict([(field, [unws(x) if x.getparent().tag!='a' else {u'text': unws(x),
@@ -67,13 +116,86 @@ def scrape(docid):
                            for x in s.xpath('./li/strong[text()="%s"]/..//text()' % field)
                            if unws(x) and unws(x)!='/'][1:])
                   for field in l])
+
+        # merge multi-text items into one dict
+        for k in ['Amended by:', "Legal basis:", 'Amendment to:']:
+            tmp1={}
+            for v in tmp.get(k,[]):
+                if type(v)==type(dict()):
+                    if not v['url'] in tmp1: tmp1[v['url']]={u'url': v['url'],
+                                                             u'text': [v['text']]}
+                    elif not v['text'] in tmp1[v['url']]['text']:
+                        tmp1[v['url']]['text'].append(v['text'])
+            if tmp1:
+                tmp[k]=tmp1.values()
+
         if len(tmp.keys()):
             eurlex[t]=tmp
     return eurlex
 
+def save(data, stats):
+    res=db.eurlex.find_one({ 'id.celexid' : data['id']['celexid'] }) or {}
+    d=diff(dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes']]),
+           dict([(k,v) for k,v in data.items() if not k in ['_id', 'meta', 'changes',]]))
+    if d:
+        now=unicode(datetime.utcnow().replace(microsecond=0).isoformat())
+        if not res:
+            logger.info(('adding %s' % (data['id']['celexid'])).encode('utf8'))
+            data['meta']['created']=now
+            if stats: stats[0]+=1
+        else:
+            logger.info(('updating %s' % (data['id']['celexid'])).encode('utf8'))
+            logger.warn(d)
+            data['meta']['updated']=now
+            if stats: stats[1]+=1
+            data['_id']=res['_id']
+        data['changes']=res.get('changes',{})
+        data['changes'][now]=d
+        db.eurlex.save(data)
+    if stats: return stats
+    else: return data
+
+crawlroot="http://eur-lex.europa.eu/en/legis/latest"
+def sources(url, path):
+    root=fetch(url)
+    regexpNS = "http://exslt.org/regular-expressions"
+    for doc in root.xpath("//a[re:test(@href, 'LexUriServ[.]do[?]uri=[0-9A-Z:]*:NOT', 'i')]",
+                          namespaces={'re':regexpNS}):
+        yield (doc.get('href').split('uri=')[1][:-4], path)
+    for c in root.xpath("//div[@id='content']//a[re:test(@href, 'chap[0-9]*.htm', 'i')]",
+                        namespaces={'re':regexpNS}):
+        for res in sources("%s/%s" % (crawlroot,c.get('href')),
+                           path+[tuple(c.text.split(' ',1))]):
+            yield res
+
+def crawl(saver=jdump, null=False):
+    for celexid, data in sources("%s/index.htm" % crawlroot, []):
+        if (null and db.eurlex.find_one({'id.celexid': celexid},['_id'])==None) or not null:
+            yield saver(scrape(celexid, data),[0,0])
+
 if __name__ == "__main__":
-    import pprint
-    pprint.pprint(scrape("CELEX:32009L0140:EN:HTML"))
+    if len(sys.argv)<2:
+        print "%s [<chapter>] [<dry>] [<null>])" % (sys.argv[0])
+    if sys.argv[1]=='url' and sys.argv[2]:
+        print jdump(scrape(sys.argv[2],[]))
+        sys.exit(0)
+    args=set(sys.argv[1:])
+    saver=save
+    null=False
+    if 'dry' in args:
+        saver=jdump
+    if 'null' in args:
+        null=True
+    iter=crawl(saver=saver, null=null)
+    if 'dry' in args:
+        print "[\n%s" % iter.next()
+    for res in iter:
+        if 'dry' in args:
+            print ",\n%s" % res.encode('utf8')
+            print ".oOo." * 35
+    if 'dry' in args:
+        print "]"
+    #pprint.pprint(scrape("CELEX:32009L0140:EN:HTML"))
     #pprint.pprint(scrape("CELEX:31994D0006:EN:HTML"))
     #pprint.pprint(scrape("CELEX:31994L0006:EN:HTML"))
     #pprint.pprint(scrape("CELEX:51994XP006:EN:HTML"))
