@@ -431,23 +431,35 @@ def view_dossier(d_id):
                            d=d_id,
                            url=request.base_url)
 
-@app.route('/new/')
-def new_docs():
-    db = connect_db()
-    d=db.dossiers2.find().sort([('meta.created', -1)]).limit(30)
+def atom(db, order, tpl, path):
+    d=db.find().sort([(order, -1)]).limit(30)
     if request.args.get('format','')=='json':
         return jsonify(tojson(d))
-    #if request.args.get('format','')=='atom':
-    return render_template('atom.xml', dossiers=list(d), path="new")
+    return render_template(tpl, dossiers=list(d), path=path)
+
+@app.route('/new/')
+def new_docs():
+    return atom(connect_db().dossiers2, 'meta.created', 'atom.xml', 'new')
 
 @app.route('/changed/')
 def changed():
-    db = connect_db()
-    d=db.dossiers2.find().sort([('meta.updated', -1)]).limit(30)
-    if request.args.get('format','')=='json':
-        return jsonify(tojson(d))
-    #if request.args.get('format','')=='atom':
-    return render_template('atom.xml', dossiers=list(d), path="changed")
+    return atom(connect_db().dossiers2, 'meta.updated', 'atom.xml', 'changed')
+
+@app.route('/meps/new/')
+def new_meps():
+    return atom(connect_db().ep_meps2, 'meta.created', 'mep_atom.xml', 'new')
+
+@app.route('/meps/changed/')
+def changed_meps():
+    return atom(connect_db().ep_meps2, 'meta.updated', 'mep_atom.xml', 'changed')
+
+@app.route('/committees/new/')
+def new_coms():
+    return atom(connect_db().ep_comagendas, 'meta.created', 'com_atom.xml', 'new')
+
+@app.route('/committees/changed/')
+def changed_com():
+    return atom(connect_db().ep_comagendas, 'meta.updated', 'com_atom.xml', 'changed')
 
 @app.route('/rss/<path:nid>')
 def rss(nid):
