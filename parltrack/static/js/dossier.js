@@ -3,9 +3,6 @@ $(document).ready(function() {
    $(this).next('div').toggleClass('hidden');
   });
   $( "#tabs" ).tabs();
-  $('.more').click(function() {
-   $(this).next().toggleClass('hidden');
-  });
   $('#notif_form').submit(function() {
       var group = $(this).children('input:eq(1)').attr('value');
        if(!group) {
