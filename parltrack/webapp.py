@@ -632,12 +632,12 @@ def formatdiff(dossier):
             res.append(u'<tr><td>summary changed</td><td>%s</td></tr>' % '/'.join([str(x) for x in di['path']]))
             continue
         if di['type']=='changed':
-            res.append(u'<tr><td>change</td><td>%s</td><td>%s</td><td>%s</td></tr>' % ('/'.join([str(x) for x in di['path']]),printdict(di['data'][1]),printdict(di['data'][0])))
+            res.append(u'<tr><td>change</td><td>%s</td><td>%s</td><td>%s</td></tr>' % ('/'.join([unicode(x) for x in di['path']]),printdict(di['data'][1]),printdict(di['data'][0])))
             continue
         if di['type']=='deleted':
-            res.append(u"<tr><td>%s</td><td>%s</td><td></td><td>%s</td></tr>" % (di['type'], '/'.join([str(x) for x in di['path']]), printdict(di['data'])))
+            res.append(u"<tr><td>%s</td><td>%s</td><td></td><td>%s</td></tr>" % (di['type'], u'/'.join([unicode(x) for x in di['path']]), printdict(di['data'])))
         if di['type']=='added':
-            res.append(u"<tr><td>%s</td><td>%s</td><td>%s</td><td></td></tr>" % (di['type'], '/'.join([str(x) for x in di['path']]), printdict(di['data'])))
+            res.append(u"<tr><td>%s</td><td>%s</td><td>%s</td><td></td></tr>" % (di['type'], u'/'.join([unicode(x) for x in di['path']]), printdict(di['data'])))
 
     return "<table><thead><tr width='90%%'><th>type</th><th>change in</th><th>new</th><th>old</th></tr></thead><tbody>%s</tbody></table>" % '\n'.join(res)
 
