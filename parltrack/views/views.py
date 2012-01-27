@@ -34,6 +34,7 @@ group_positions={u'Chair': 10,
                  u'Member': 0,
                  }
 com_positions={"Chair": 4,
+               "Vice-President": 3,
                "Vice-Chair": 3,
                "Member": 2,
                "Substitute": 1,
