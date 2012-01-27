@@ -420,7 +420,7 @@ def subjects_view():
 @cache.cached()
 @app.route('/dossier/<path:d_id>')
 def view_dossier(d_id):
-    d=dossier(d_id)
+    d=dossier(d_id, without_changes=False)
     if not d:
         abort(404)
     #print d
@@ -606,14 +606,20 @@ def tojson(data):
         return data.isoformat()
     return data
 
+@app.template_filter()
 def printdict(d):
     if type(d)==type(list()):
         return u'<ul>%s</ul>' % '\n'.join(["<li>%s</li>" % printdict(v) for v in d])
-    if not type(d)==type(dict()):
+    if type(d)==type(datetime(2000,1,1)):
+        return "%s" % d.isoformat()[:10]
+    elif not type(d)==type(dict()):
         return "%s" % unicode(d)
     res=['']
     for k,v in [(k,v) for k,v in d.items() if k not in ['mepref','comref']]:
-        res.append(u"<dl><dt>%s</dt><dd>%s</dd></dl>" % (k,printdict(v)))
+        if type(v) == type(dict()) or (type(v)==type(list()) and len(v)>1):
+            res.append(u"<dl><dt class='more'>%s</dt><dd class='hidden'>%s</dd></dl>" % (k,printdict(v)))
+        else:
+            res.append(u"<dl><dt>%s</dt><dd>%s</dd></dl>" % (k,printdict(v)))
     return '%s' % u'\n'.join(res)
 
 @app.template_filter()

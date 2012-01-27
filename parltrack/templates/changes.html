@@ -1,0 +1,33 @@
+{% macro changes(data) -%}
+   {% if data.changes %}
+     <div id='history'>
+        <h3>History</h3>
+        <p><small>(these mark the time of scraping, not the official date of the change)</small></p>
+        {% for k, changes in data.changes|dictsort|reverse %}
+        <div class="changelog-item">
+           <div class="changelog-timestamp more">{{k[:10]}}</div>
+           <table class="changelog-entries{% if not loop.first %} hidden{% endif %}">
+           {% for change in changes|sort(attribute='path') %}
+               <tr class='changelog-entry'>
+                  <td class="changelog-path">{{change.path|join('/')}}</td>
+                  <td class="changelog-type">{{change.type}}</td>
+                  {% if change.type == "changed" %}
+                     <td class="changelog-data">
+                        <div class="changelog-old">
+                           <div class="centered">Old</div>
+                           {{change.data.0|printdict|safe}}</div>
+                        <div class="changelog-new">
+                           <div class="centered">New</div>
+                           {{change.data.1|printdict|safe}}</div>
+                     </td>
+                  {% else %}
+                     <td colspan="2" class="changelog-data">{{change.data|printdict|safe}}</td>
+                  {% endif %}
+               </tr>
+           {% endfor %}
+           </table>
+        </div>
+        {% endfor %}
+     </div>
+   {%endif%}
+{% endmacro %}

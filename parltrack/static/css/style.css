@@ -214,3 +214,40 @@ background-color: #8dbdd8;
 .pivot_row_chart,
 .pivot_col_chart,
 .pivot_chart { max-width: 99%; overflow: auto; }
+
+.transparent {
+	zoom: 1;
+	filter: alpha(opacity=50);
+	opacity: 0.5;
+}
+.changelog-item { border-bottom: 1px solid #1A67B8; padding-bottom: 1em; margin-top: 1em; }
+.changelog-timestamp { margin-left: 1em; }
+.changelog-entry { margin-left: 2em; width: 96%; }
+.changelog-entry:nth-child(odd) { background-color: #eee; }
+.changelog-entries { width: 98%; }
+.changelog-type {
+   vertical-align: top;
+   width: 6%;
+}
+.changelog-path {
+   vertical-align: top;
+   width: 20%;
+}
+.changelog-data {
+   /*display: inline-block;*/
+   vertical-align: middle;
+   width: 60%;
+}
+.changelog-data dl {
+   margin: 0;
+   padding-bottom: .4em;
+}
+.changelog-data li {
+   list-style-type: none;
+   margin-bottom: .5em;
+}
+.changelog-old,
+.changelog-new {
+   width: 49%;
+   display: inline-block;
+}

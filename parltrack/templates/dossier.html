@@ -36,6 +36,7 @@
     {% if dossier.activities %}<li><a href="#activities">Activities</a></li>{% endif %}
     <li><a href="#documents">Documents</a></li>
     {% if dossier.votes %}<li><a href="#votes">Votes</a></li>{%endif%}
+    {% if dossier.changes %}<li><a href="#history">History</a></li>{%endif%}
   </ul>
 <div id="general">
   {% for fc in dossier.activities %}
@@ -277,5 +278,9 @@
 {%endfor%}
 </div>
 {% endif %}
+{% if dossier.changes %}
+   {% import 'changes.html' as changes %}
+   {{ changes.changes(dossier) }}
+{%endif%}
 </div>
 {% endblock %}
