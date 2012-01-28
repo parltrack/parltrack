@@ -15,10 +15,10 @@
                      <td class="changelog-data">
                         <div class="changelog-old">
                            <div class="centered">Old</div>
-                           {{change.data.0|printdict|safe}}</div>
+                           {%if change.data.0 %}{{change.data.0|printdict|safe}}{%else%}&nbsp;{%endif%}</div>
                         <div class="changelog-new">
                            <div class="centered">New</div>
-                           {{change.data.1|printdict|safe}}</div>
+                           {%if change.data.1 %}{{change.data.1|printdict|safe}}{%else%}&nbsp;{%endif%}</div>
                      </td>
                   {% else %}
                      <td colspan="2" class="changelog-data">{{change.data|printdict|safe}}</td>
