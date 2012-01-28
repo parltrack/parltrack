@@ -344,7 +344,6 @@ def view_mep(d_id):
         abort(404)
     if request.args.get('format','')=='json':
         return jsonify(tojson(m))
-    m['CV']=m.get('Curriculum vitae',[])
     return render_template('mep.html',
                            mep=m,
                            d=d_id,
