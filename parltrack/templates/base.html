@@ -5,7 +5,7 @@
     <meta http-equiv="content-language" content="en" />
     <meta name="description" content="" />
     <meta name="keywords" content="" />
-    <title>{% block title %}{% endblock %} | ParlTrack </title>
+    <title>{% block title %}{% endblock %}ParlTrack </title>
     <link rel="alternate" type="application/atom+xml" title="New Dossiers feed" href="{{request.url_root}}new/?format=atom" />
     <link rel="alternate" type="application/atom+xml" title="Changed Dossiers feed" href="{{request.url_root}}changed/?format=atom" />
 
@@ -77,23 +77,24 @@
         <a href="/dumps/schema.html">DB Schema</a>
         <a href="/dumps/">Complete dump</a>
      </div>
-   <a href="http://flattr.com/thing/308984/Parltrack"><img style="vertical-align: middle" src="/static/images/flattr-badge-large.png" alt="Flattr this" title="Flattr this"/></a>
-   {% block menu %}
-   {% endblock %}
+     <a href="http://flattr.com/thing/308984/Parltrack"><img style="vertical-align: middle" src="/static/images/flattr-badge-large.png" alt="Flattr this" title="Flattr this"/></a>
+     {% block menu %}
+     {% endblock %}
    </div>
    {% block header %}
    {% endblock %}
 </div>
+<div id="right-content">
   <div id="content">
       {% block content %}
       {% endblock %}
   </div>
- </div>
- <div id="footer">
-    {% block footer %} {% endblock %}
-    <hr />
-    <div class="centered"><a href="https://github.com/pudo/parltrack/">code</a> <a href="http://www.gnu.org/licenses/agpl.html">AGPLv3.0+</a>, <a href="/dumps">data</a> <a href="http://www.opendatacommons.org/licenses/odbl/">ODBLv1.0</a>, site-content <a href="http://creativecommons.org/licenses/by-sa/3.0/">CC-By-Sa-3.0</a></div>
-    <div class="centered"><a href="http://www.europarl.europa.eu/tools/disclaimer/default_en.htm">© European Union, 2011 – Source: European Parliament</a></div>
+  <div id="footer">
+     {% block footer %} {% endblock %}
+     <hr />
+     <div class="centered"><a href="https://github.com/pudo/parltrack/">code</a> <a href="http://www.gnu.org/licenses/agpl.html">AGPLv3.0+</a>, <a href="/dumps">data</a> <a href="http://www.opendatacommons.org/licenses/odbl/">ODBLv1.0</a>, site-content <a href="http://creativecommons.org/licenses/by-sa/3.0/">CC-By-Sa-3.0</a></div>
+     <div class="centered"><a href="http://www.europarl.europa.eu/tools/disclaimer/default_en.htm">© European Union, 2011 – Source: European Parliament</a></div>
+  </div>
 </div>
 </body>
 </html>
