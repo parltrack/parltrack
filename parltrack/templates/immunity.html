@@ -13,7 +13,7 @@
         $("#sortedlist").tablesorter({
             sortList: [[0,0],[2,1],[3,0],[1,0]],
          });
-        $('#sortedlist').tableFilter();
+        $('#sortedlist').tableFilter({enableCookies: false});
         $.getJSON("{{url}}?format=tree", function(json) {
            initTM(json);
            });
