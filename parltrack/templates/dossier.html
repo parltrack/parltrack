@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block title %}{{ dossier.procedure.reference }} | {% endblock %}
 {% block styles %}
 <link type="text/css" href="/static/js/css/jit/BarChart.css" rel="stylesheet" />
 {% endblock %}
@@ -120,7 +121,6 @@
 <div id="activities">
 <h3>Activites</h3>
 <ul>{%for act in dossier.activities|sort(attribute='date',reverse=True) %}
-  {%for agent in act.commission %}<li class='agent'>{{agent.DG}} {{agent.Ccommissioner}}</li>{%endfor%}
   {%if act.meeting_id%}<li class='agent'>#{{act.meeting_id}}</li>{%endif%}
    <li class='vevent'>
      {%if act.date%}<abbr class="dtstart" title="{{act.date|isodate}}">{{act.date|asdate}}</abbr>{%endif%}
@@ -146,6 +146,7 @@
         {%endif%}
         </li>
      {%endfor%}
+     {%for agent in act.commission %}<li class='agent'>{{agent.DG}}, {{agent.Commissioner}}</li>{%endfor%}
      {%for agent in act.committees%}
         <li class='agent'>
           {%if agent.responsible%}
