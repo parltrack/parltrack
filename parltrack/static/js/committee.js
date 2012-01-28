@@ -1,9 +1,9 @@
 $(function() {
 	$( "#tabs" ).tabs();
    $("#sortedlist").tablesorter();
-   $('#sortedlist').tableFilter();
+   $('#sortedlist').tableFilter({enableCookies: false});
    $("#sortedlist2").tablesorter({
-      sortList: [[3,0],[0,1]],
+      sortList: [[2,0],[0,1]],
       textExtraction: function(node) {
          var max='2020/12/31'
          var tmp=null;

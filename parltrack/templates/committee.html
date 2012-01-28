@@ -2,8 +2,14 @@
 {% block scripts %}
 <script type="text/javascript" src="/static/js/jquery.tablesorter.min.js"> </script>
 <script type="text/javascript" src="/static/js/picnet.table.filter.min.js"></script>
+<script type='text/javascript' src='/static/js/fullcalendar.min.js'></script>
+<script type='text/javascript' src='/static/js/jquery.qtip.min.js'></script>
+<script type='text/javascript' src='/static/js/radarcal.js'></script>
 <script type="text/javascript" src="/static/js/committee.js"></script>
 {% endblock %}
+{% block styles %}
+<link rel='stylesheet' type='text/css' href='/static/css/fullcalendar.css' />
+{%endblock%}
 {% block content %}
 <a class="asjson" href="{{url}}?format=json">download as json</a>
 <h2>{{Committee}} ({{c}})</h2>
@@ -12,6 +18,7 @@
     <li><a href="#meetings">Meetings</a></li>
     <li><a href="#dossiers">Dossiers</a></li>
     <li><a href="#members">Members</a></li>
+    <li><a href="#calendar-tab">Calendar</a></li>
   </ul>
 <div id="meetings">
 {%for group in committee.agendas|groupby('date') if group.grouper >= today %}
@@ -38,10 +45,10 @@
       <tr>
         <th filter-type='ddl'>Role</th>
         <th filter='false'>Dossier</th>
-        <th filter='false'>Name</th>
         <th filter='false'>Forecasts</th>
         <th filter-type='ddl'>Stage Reached</th>
         <th filter='false'>Legal Basis</th>
+        <th filter='false'>Name</th>
         <th filter='false'>Committee Dossier</th>
         <th filter-type='ddl'>Rapporteur</th>
         <th filter='false'>Commission Doc</th>
@@ -52,13 +59,19 @@
       <tr>
         <td>{% if dossier.crole %}Responsible{%else%}Opinion{%endif%}</td>
         <td><a href="/dossier/{{dossier.procedure.reference}}">{{dossier.procedure.reference}}</a></td>
-        <td>{{ dossier.procedure.title }}</td>
-        <td class='forecasts'>{% for fc in dossier.forecasts|sort if fc.date >= now_date %}
-           <div class="vevent"><abbr title="{{fc.date.isoformat()}}" class="dtstart">{{ fc.date|asdate }}</abbr> -
-              <span class="summary">{{ fc.title }}</span></div>
+        <td class='forecasts'>{% for fc in dossier.activities|sort(attribute='date') if fc.date >= now_date %}
+           <div class="vevent"><abbr title="{{fc.date.isoformat()}}" class="dtstart">{{ fc.date|asdate }}</abbr> - <span class="summary">{{ fc.type }}</span></div>
+           {% if loop.first and loop.length>1 %}
+              <div class="more" >More..</div>
+              <div class="hidden">
+           {% endif %}
+           {% if loop.last and loop.length>1 %}
+              </div>
+           {% endif %}
           {% endfor %}</td>
         <td>{{ dossier.procedure.stage_reached }}</td>
         <td>{% for sub in dossier.procedure.legal_basis %}{% if not loop.first %}, {% endif %}{{ sub }}{% endfor %}</td>
+        <td>{{ dossier.procedure.title }}</td>
         <td>{{ dossier.procedure.dossier_of_the_committee }}</td>
         <td>{% for r in dossier.rapporteur %}{% if not loop.first %}, {% endif %}<a href="/mep/{{r.name}}">{{ r.name }}</a> ({{r.group}}){% endfor %}</td>
         <td>{% if dossier.comdoc %}<a href="{{dossier.comdoc.url}}">{{ dossier.comdoc.title }}</a>{% endif %}</td>
@@ -95,6 +108,26 @@
    </tbody>
 </table>
 </div>
+   <div id='calendar-tab'>
+     <div id="calendar_legend">
+       <ul id='legend'>
+         <li class='ep-vote'>Plenary sitting agenda, vote</li>
+         <li class='ep-debate'>Plenary sitting agenda, debate</li>
+         <li class='ep-sitting'>EP plenary sitting (indicative date)</li>
+         <li class='ep-2ndsitting'>'EP plenary sitting, 2nd reading'</li>
+         <li class='ep-3rdsitting'>EP plenary sitting, 3rd reading'</li>
+         <li class='ep-1streading'>EP: report scheduled for adoption in committee, 1st or single reading</li>
+         <li class='ep-2ndreading'>'EP: report scheduled for adoption in committee, 2nd reading'</li>
+         <li class='tabling-deadline'>'EP: Deadline for committee ammendments'</li>
+         <li class='committee-agenda'>'EP: on committee agenda'</li>
+         <li class='council-debate-expected'>Council: debate or examination expected</li>
+         <li class='council-final'>Council: final act scheduled</li>
+         <li class='council-agree'>Council: political agreement on final act expected</li>
+         <li class='council-pos'>Council: political agreement on position expected</li>
+       </ul>
+     </div>
+     <div id='calendar'></div>
+   </div>
 </div>
 {% endblock %}
 
