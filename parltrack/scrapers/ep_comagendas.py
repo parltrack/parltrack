@@ -32,6 +32,8 @@ db = connect_db()
 #'http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-%2f%2fEP%2f%2fTEXT%2bCOMPARL%2bIMCO-OJ-20111220-1%2b01%2bDOC%2bXML%2bV0%2f%2fEN'
 
 db.ep_comagendas.ensure_index([('epdoc', 1)])
+db.ep_comagendas.ensure_index([('meta.created', 1)])
+db.ep_comagendas.ensure_index([('meta.updated', 1)])
 db.ep_comagendas.ensure_index([('committee', 1),
                                ('src', 1),
                                ('seq_no',1)])

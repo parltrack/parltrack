@@ -41,10 +41,12 @@ from bson.objectid import ObjectId
 from parltrack.scrapers.ipex import IPEXMAP
 
 db.dossiers2.ensure_index([('procedure.reference', 1)])
+db.dossiers2.ensure_index([('procedure.subjects', 1)])
 db.dossiers2.ensure_index([('procedure.title', 1)])
 db.dossiers2.ensure_index([('procedure.stage_reached', 1)])
 db.dossiers2.ensure_index([('activities.actors.mepref', 1)])
-db.dossiers2.ensure_index([('activities.actors.commitee', 1)])
+db.dossiers2.ensure_index([('activities.committees.rapporteur.name', 1)])
+db.dossiers2.ensure_index([('activities.committees.responsible', 1)])
 db.dossiers2.ensure_index([('meta.created', -1)])
 db.dossiers2.ensure_index([('meta.updated', -1)])
 

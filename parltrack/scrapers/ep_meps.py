@@ -32,6 +32,8 @@ db.ep_meps2.ensure_index([('UserID', 1)])
 db.ep_meps2.ensure_index([('Name.full', 1)])
 db.ep_meps2.ensure_index([('Name.aliases', 1)])
 db.ep_meps2.ensure_index([('meta.url', 1)])
+db.ep_meps2.ensure_index([('meta.updated', 1)])
+db.ep_meps2.ensure_index([('meta.created', 1)])
 
 def getAddress(root):
     res={}
