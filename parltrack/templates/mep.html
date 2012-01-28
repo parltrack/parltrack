@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block title %}{{mep.Name.full}} | {%endblock%}
 {% block scripts %}
 <script type="text/javascript">
      $(document).ready(function() {
@@ -8,9 +9,6 @@
        $('#ranking_form').submit(function() {
         window.location = '/meps/'+$('#ranking_date').attr('value');
         return false;
-       });
-       $('.more').click(function() {
-        $(this).next().toggleClass('hidden');
        });
 		 $( "#tabs" ).tabs();
      });
