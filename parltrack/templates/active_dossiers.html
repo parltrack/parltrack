@@ -11,11 +11,6 @@
 	 <script type="text/javascript">
        var json = {{stages|safe}};
        var data = {{stats|safe}};
-       jQuery(document).ready(function() {
-         jQuery('.more').click(function() {
-            jQuery(this).next().toggleClass('hidden');
-         });
-       });
     </script>
     <script type="text/javascript" src="/static/js/active_dossiers.js"></script>
 {% endblock %}
