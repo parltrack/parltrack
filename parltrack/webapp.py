@@ -95,8 +95,9 @@ def search():
     if request.args.get('s_dossiers'):
         m=celexre.match(q)
         if m:
-            ret.extend(db.dossiers2.find({'activities.documents.title': "3%sL%04d" % (m.group(2),int(m.group(3)))}))
+            ret.extend(db.dossiers2.find({'activities.docs.title': "3%sL%04d" % (m.group(2),int(m.group(3)))}))
         ret.extend(db.dossiers2.find({'procedure.title': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
+        ret.extend(db.dossiers2.find({'activities.docs.title': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
     #if request.headers.get('X-Requested-With'):
     if request.args.get('format')=='json':
         return jsonify(count=len(ret), items=tojson(ret))
@@ -126,7 +127,6 @@ def gen_notif_id():
 
 def listdossiers(d):
     db = connect_db()
-    forecasts=[]
     for act in d['activities']:
         if act.get('type') in ['Non-legislative initial document',
                                'Commission/Council: initial legislative document',
@@ -137,7 +137,6 @@ def listdossiers(d):
     for item in db.ep_comagendas.find({'epdoc': d['procedure']['reference']}):
         if 'tabling_deadline' in item and item['tabling_deadline']>=datetime.now():
             d['activities'].insert(0,{'type': '(%s) Tabling Deadline' % item['committee'], 'body': 'EP', 'date': item['tabling_deadline']})
-    d['forecasts']=sorted(forecasts, key=itemgetter('date'))
     return d
 
 @cache.cached()
@@ -532,7 +531,7 @@ def active_dossiers():
 @app.route('/committee/<string:c_id>')
 def view_committee(c_id):
     c=committee(c_id)
-    c['dossiers']=[listdossiers(d) for d in c['dossiers']]
+    #c['dossiers']=[listdossiers(d) for d in c['dossiers']]
     if not c:
         abort(404)
     if request.args.get('format','')=='json':
@@ -643,7 +642,7 @@ def formatdiff(dossier):
 
 from parltrack.scrapers.mappings import ALL_STAGES, STAGES, STAGEMAP, groupids, COUNTRIES, SEIRTNUOC, COMMITTEE_MAP
 from parltrack.views.views import mepRanking, mep, immunity, committee, subjects, dossier
-COMMITTEES=[x for x in connect_db().ep_com_meets.distinct('committee') if x not in ['Security and Defence', 'SURE'] ]
+COMMITTEES=[x for x in connect_db().ep_comagendas.distinct('committee') if x not in ['Security and Defence', 'SURE'] ]
 
 if __name__ == '__main__':
     app.run(debug=True)

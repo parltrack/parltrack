@@ -91,7 +91,7 @@ def mepRanking(date,query={}):
 
 def dossier(id, without_changes=True):
     dossier_idqueries=[{'procedure.reference': id },
-                       {'activites.documents.title': id },
+                       {'activites.docs.title': id },
                        {'procedure.docs.title': id },
                        ]
     for query in dossier_idqueries:
@@ -108,9 +108,9 @@ def dossier(id, without_changes=True):
             if 'comdoc' in dossier:
                 print 'WTF? there is already a comdoc'
                 raise
-            dossier['comdoc']={'title': act['documents'][0]['title'], 'url': act['documents'][0].get('url'), }
+            dossier['comdoc']={'title': act['docs'][0]['title'], 'url': act['docs'][0].get('url'), }
         if act.get('type')=='Final legislative act':
-            cid=act['documents'][0].get('title','')
+            cid=act['docs'][0].get('title','')
             dossier['celexid']="CELEX:%s:EN" % cid
             st=7 if cid[6].isalpha() else 6
             doctype = cid[5:st]
