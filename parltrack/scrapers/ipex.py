@@ -21,13 +21,7 @@ from lxml.html.soupparser import parse
 from operator import itemgetter
 import urllib2, cookielib, sys, csv, datetime, re, collections, unicodedata
 from parltrack.scrapers.mappings import ipexevents as dates
-
-try:
-    from parltrack.environment import connect_db
-    db = connect_db()
-except:
-    import pymongo
-    db=pymongo.Connection().parltrack
+from parltrack.db import db 
 
 class IpexMap:
     def __init__(self):

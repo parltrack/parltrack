@@ -20,14 +20,7 @@ import re, sys, time
 from parltrack.utils import fetch as _fetch, unws, jdump, diff, logger
 from mappings import CELEXCODES
 from datetime import datetime
-try:
-    from parltrack.environment import connect_db
-    db = connect_db()
-except:
-    import pymongo
-    db=pymongo.Connection().parltrack
-
-db.eurlex.ensure_index([('id.celexid', 1)])
+from parltrack.db import db
 
 def fetch(url, **kwargs):
     timer=8

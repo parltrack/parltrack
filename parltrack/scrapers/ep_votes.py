@@ -24,15 +24,11 @@ from lxml.etree import tostring
 from tempfile import mkdtemp, mkstemp
 import urllib2, json, sys, subprocess, os, re, unicodedata
 from cStringIO import StringIO
-from parltrack.environment import connect_db
 from parltrack.utils import dateJSONhandler
 from datetime import datetime
 from mappings import group_map, groupids as Groupids
 from bson.objectid import ObjectId
-
-db = connect_db()
-db.ep_votes.ensure_index([('epref', 1)])
-db.ep_votes.ensure_index([('dossierid', 1)])
+from parltrack.db import db
 
 def fetchVotes(d):
     url="%s%s%s" % ("http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+PV+",

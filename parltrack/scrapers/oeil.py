@@ -31,24 +31,8 @@ from parltrack.scrapers.mappings import ipexevents, COMMITTEE_MAP
 BASE_URL = 'http://www.europarl.europa.eu'
 
 import unicodedata
-try:
-    from parltrack.environment import connect_db
-    db = connect_db()
-except:
-    import pymongo
-    db=pymongo.Connection().parltrack
-from bson.objectid import ObjectId
+from parltrack.db import db
 from parltrack.scrapers.ipex import IPEXMAP
-
-db.dossiers2.ensure_index([('procedure.reference', 1)])
-db.dossiers2.ensure_index([('procedure.subjects', 1)])
-db.dossiers2.ensure_index([('procedure.title', 1)])
-db.dossiers2.ensure_index([('procedure.stage_reached', 1)])
-db.dossiers2.ensure_index([('activities.actors.mepref', 1)])
-db.dossiers2.ensure_index([('activities.committees.rapporteur.name', 1)])
-db.dossiers2.ensure_index([('activities.committees.responsible', 1)])
-db.dossiers2.ensure_index([('meta.created', -1)])
-db.dossiers2.ensure_index([('meta.updated', -1)])
 
 def getMEPRef(name, retfields=['_id']):
     if not name: return
