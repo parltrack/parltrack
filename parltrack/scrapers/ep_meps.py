@@ -233,10 +233,11 @@ def scrape(url, data={}):
         if k in ret and k in data:
             # save party
             if k=='Constituencies':
-                try:
-                    data['Constituencies'][0][u'party']=ret['Constituencies'][0][u'party']
-                except:
-                    pass
+                for key in [u'party',u'country']:
+                    try:
+                        data['Constituencies'][0][key]=ret['Constituencies'][0][key]
+                    except:
+                        pass
             # currently data is better than ret - might change later
             del ret[k]
     if 'Constituencies' in data:
