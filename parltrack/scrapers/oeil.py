@@ -379,9 +379,9 @@ def scrape(url):
         return
 
 def scrape_basic(tree):
-    res=form2obj(tree.xpath('//table[@id="technicalInformations"]')[0],detailsheaders)
     table=(tree.xpath('//table[@id="basic_information"]') or [None])[0]
     if table is None: return
+    res=form2obj(table,detailsheaders)
     res.update({ 'stage_reached': (table.xpath('.//p[@class="pf_stage"]/text()') or [''])[0].strip(),
                  'reference': (table.xpath('.//span[@class="basic_reference"]/text()') or [''])[0].strip(),
                  'type': (table.xpath('.//p[@class="basic_procedurefile"]/text()') or [''])[0].strip(),
