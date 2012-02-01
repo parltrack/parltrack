@@ -19,22 +19,16 @@
 
 from datetime import datetime
 from urlparse import urljoin
-from parltrack.environment import connect_db
 from mappings import COMMITTEE_MAP
 from parltrack.utils import diff, htmldiff, fetch, dateJSONhandler, unws, Multiplexer, logger, jdump
 import json, re, copy, unicodedata, traceback, sys
+from parltrack.db import db
 
 BASE_URL = 'http://www.europarl.europa.eu'
-db = connect_db()
 
 #http://www.europarl.europa.eu/committees/en/IMCO/documents-search.html?&docType=AGEN&leg=7&miType=text
 #'http://www.europarl.europa.eu/committees/en/IMCO/documents-search.html?author=&clean=false&committee=2867&docType=AGEN&leg=7&miText=&miType=text&refPe='
 #'http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-%2f%2fEP%2f%2fTEXT%2bCOMPARL%2bIMCO-OJ-20111220-1%2b01%2bDOC%2bXML%2bV0%2f%2fEN'
-
-db.ep_comagendas.ensure_index([('epdoc', 1)])
-db.ep_comagendas.ensure_index([('committee', 1),
-                               ('src', 1),
-                               ('seq_no',1)])
 
 datere=re.compile(r'^(?:\S+ )?([0-9]{1,2} \w+ [0-9]{4}), ([0-9]{1,2}[.:][0-9]{2})( . [0-9]{1,2}[.:][0-9]{2})?')
 def toTime(txt):
@@ -239,13 +233,6 @@ def scrape(url, comid):
         logger.debug("(falltrough) %s %s" % (line.tag, txt.encode('utf8')))
     if item: res.append(item)
     return res
-
-try:
-    from parltrack.environment import connect_db
-    db = connect_db()
-except:
-    import pymongo
-    db=pymongo.Connection().parltrack
 
 def getMEPRef(name, retfields=['_id']):
     if not name: return

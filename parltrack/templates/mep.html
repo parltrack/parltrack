@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block title %}{{mep.Name.full}} | {%endblock%}
 {% block scripts %}
 <script type="text/javascript">
      $(document).ready(function() {
@@ -8,9 +9,6 @@
        $('#ranking_form').submit(function() {
         window.location = '/meps/'+$('#ranking_date').attr('value');
         return false;
-       });
-       $('.more').click(function() {
-        $(this).next().toggleClass('hidden');
        });
 		 $( "#tabs" ).tabs();
      });
@@ -29,6 +27,7 @@
     {% if mep.dossiers %}<li><a href="#dossiers">Dossiers</a></li>{%endif%}
     <li><a href="#cv">Curriculum Vitae</a></li>
     {% if mep.term7 or mep.term6 %}<li><a href="#activities">Activities</a></li>{%endif%}
+    {% if mep.changes  %}<li><a href="#history">History</a></li>{%endif%}
     <li><a href="#links">Links</a></li>
   </ul>
 <div id="general">
@@ -324,5 +323,9 @@
         <li><a href="https://encrypted.google.com/search?q={{mep.Name.sur}}+{{mep.Name.family.title()}}">... google</a></li>
     </ul>
   </div>
+{% if mep.changes %}
+   {% import 'changes.html' as changes %}
+   {{ changes.changes(mep) }}
+{%endif%}
 </div>
 {% endblock %}

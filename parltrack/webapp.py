@@ -95,8 +95,9 @@ def search():
     if request.args.get('s_dossiers'):
         m=celexre.match(q)
         if m:
-            ret.extend(db.dossiers2.find({'activities.documents.title': "3%sL%04d" % (m.group(2),int(m.group(3)))}))
+            ret.extend(db.dossiers2.find({'activities.docs.title': "3%sL%04d" % (m.group(2),int(m.group(3)))}))
         ret.extend(db.dossiers2.find({'procedure.title': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
+        ret.extend(db.dossiers2.find({'activities.docs.title': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
     #if request.headers.get('X-Requested-With'):
     if request.args.get('format')=='json':
         return jsonify(count=len(ret), items=tojson(ret))
@@ -126,7 +127,6 @@ def gen_notif_id():
 
 def listdossiers(d):
     db = connect_db()
-    forecasts=[]
     for act in d['activities']:
         if act.get('type') in ['Non-legislative initial document',
                                'Commission/Council: initial legislative document',
@@ -137,7 +137,6 @@ def listdossiers(d):
     for item in db.ep_comagendas.find({'epdoc': d['procedure']['reference']}):
         if 'tabling_deadline' in item and item['tabling_deadline']>=datetime.now():
             d['activities'].insert(0,{'type': '(%s) Tabling Deadline' % item['committee'], 'body': 'EP', 'date': item['tabling_deadline']})
-    d['forecasts']=sorted(forecasts, key=itemgetter('date'))
     return d
 
 @cache.cached()
@@ -344,7 +343,6 @@ def view_mep(d_id):
         abort(404)
     if request.args.get('format','')=='json':
         return jsonify(tojson(m))
-    m['CV']=m.get('Curriculum vitae',[])
     return render_template('mep.html',
                            mep=m,
                            d=d_id,
@@ -420,7 +418,7 @@ def subjects_view():
 @cache.cached()
 @app.route('/dossier/<path:d_id>')
 def view_dossier(d_id):
-    d=dossier(d_id)
+    d=dossier(d_id, without_changes=False)
     if not d:
         abort(404)
     #print d
@@ -431,23 +429,35 @@ def view_dossier(d_id):
                            d=d_id,
                            url=request.base_url)
 
-@app.route('/new/')
-def new_docs():
-    db = connect_db()
-    d=db.dossiers2.find().sort([('meta.created', -1)]).limit(30)
+def atom(db, order, tpl, path):
+    d=db.find().sort([(order, -1)]).limit(30)
     if request.args.get('format','')=='json':
         return jsonify(tojson(d))
-    #if request.args.get('format','')=='atom':
-    return render_template('atom.xml', dossiers=list(d), path="new")
+    return render_template(tpl, dossiers=list(d), path=path)
+
+@app.route('/new/')
+def new_docs():
+    return atom(connect_db().dossiers2, 'meta.created', 'atom.xml', 'new')
 
 @app.route('/changed/')
 def changed():
-    db = connect_db()
-    d=db.dossiers2.find().sort([('meta.updated', -1)]).limit(30)
-    if request.args.get('format','')=='json':
-        return jsonify(tojson(d))
-    #if request.args.get('format','')=='atom':
-    return render_template('atom.xml', dossiers=list(d), path="changed")
+    return atom(connect_db().dossiers2, 'meta.updated', 'atom.xml', 'changed')
+
+@app.route('/meps/new/')
+def new_meps():
+    return atom(connect_db().ep_meps2, 'meta.created', 'mep_atom.xml', 'new')
+
+@app.route('/meps/changed/')
+def changed_meps():
+    return atom(connect_db().ep_meps2, 'meta.updated', 'mep_atom.xml', 'changed')
+
+@app.route('/committees/new/')
+def new_coms():
+    return atom(connect_db().ep_comagendas, 'meta.created', 'com_atom.xml', 'new')
+
+@app.route('/committees/changed/')
+def changed_com():
+    return atom(connect_db().ep_comagendas, 'meta.updated', 'com_atom.xml', 'changed')
 
 @app.route('/rss/<path:nid>')
 def rss(nid):
@@ -521,7 +531,7 @@ def active_dossiers():
 @app.route('/committee/<string:c_id>')
 def view_committee(c_id):
     c=committee(c_id)
-    c['dossiers']=[listdossiers(d) for d in c['dossiers']]
+    #c['dossiers']=[listdossiers(d) for d in c['dossiers']]
     if not c:
         abort(404)
     if request.args.get('format','')=='json':
@@ -594,14 +604,20 @@ def tojson(data):
         return data.isoformat()
     return data
 
+@app.template_filter()
 def printdict(d):
     if type(d)==type(list()):
         return u'<ul>%s</ul>' % '\n'.join(["<li>%s</li>" % printdict(v) for v in d])
-    if not type(d)==type(dict()):
+    if type(d)==type(datetime(2000,1,1)):
+        return "%s" % d.isoformat()[:10]
+    elif not type(d)==type(dict()):
         return "%s" % unicode(d)
     res=['']
     for k,v in [(k,v) for k,v in d.items() if k not in ['mepref','comref']]:
-        res.append(u"<dl><dt>%s</dt><dd>%s</dd></dl>" % (k,printdict(v)))
+        if type(v) == type(dict()) or (type(v)==type(list()) and len(v)>1):
+            res.append(u"<dl><dt class='more'>%s</dt><dd class='hidden'>%s</dd></dl>" % (k,printdict(v)))
+        else:
+            res.append(u"<dl><dt>%s</dt><dd>%s</dd></dl>" % (k,printdict(v)))
     return '%s' % u'\n'.join(res)
 
 @app.template_filter()
@@ -614,19 +630,19 @@ def formatdiff(dossier):
             res.append(u'<tr><td>summary changed</td><td>%s</td></tr>' % '/'.join([str(x) for x in di['path']]))
             continue
         if di['type']=='changed':
-            res.append(u'<tr><td>change</td><td>%s</td><td>%s</td><td>%s</td></tr>' % ('/'.join([str(x) for x in di['path']]),printdict(di['data'][1]),printdict(di['data'][0])))
+            res.append(u'<tr><td>change</td><td>%s</td><td>%s</td><td>%s</td></tr>' % ('/'.join([unicode(x) for x in di['path']]),printdict(di['data'][1]),printdict(di['data'][0])))
             continue
         if di['type']=='deleted':
-            res.append(u"<tr><td>%s</td><td>%s</td><td></td><td>%s</td></tr>" % (di['type'], '/'.join([str(x) for x in di['path']]), printdict(di['data'])))
+            res.append(u"<tr><td>%s</td><td>%s</td><td></td><td>%s</td></tr>" % (di['type'], u'/'.join([unicode(x) for x in di['path']]), printdict(di['data'])))
         if di['type']=='added':
-            res.append(u"<tr><td>%s</td><td>%s</td><td>%s</td><td></td></tr>" % (di['type'], '/'.join([str(x) for x in di['path']]), printdict(di['data'])))
+            res.append(u"<tr><td>%s</td><td>%s</td><td>%s</td><td></td></tr>" % (di['type'], u'/'.join([unicode(x) for x in di['path']]), printdict(di['data'])))
 
     return "<table><thead><tr width='90%%'><th>type</th><th>change in</th><th>new</th><th>old</th></tr></thead><tbody>%s</tbody></table>" % '\n'.join(res)
 
 
 from parltrack.scrapers.mappings import ALL_STAGES, STAGES, STAGEMAP, groupids, COUNTRIES, SEIRTNUOC, COMMITTEE_MAP
 from parltrack.views.views import mepRanking, mep, immunity, committee, subjects, dossier
-COMMITTEES=[x for x in connect_db().ep_com_meets.distinct('committee') if x not in ['Security and Defence', 'SURE'] ]
+COMMITTEES=[x for x in connect_db().ep_comagendas.distinct('committee') if x not in ['Security and Defence', 'SURE'] ]
 
 if __name__ == '__main__':
     app.run(debug=True)

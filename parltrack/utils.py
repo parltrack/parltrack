@@ -330,6 +330,14 @@ def test_diff():
     #import pprint
     #pprint.pprint(diff(d1,d2))
 
+opener=None
+def init_opener():
+    global opener
+    #opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
+    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()),
+                                  urllib2.ProxyHandler({'http': 'http://localhost:8123/'}))
+    opener.addheaders = [('User-agent', 'parltrack/0.6')]
+
 def fetch(url, retries=5, ignore=[], params=None):
     if not opener:
         init_opener()
@@ -416,14 +424,6 @@ from parltrack.default_settings import ROOT_URL
 from lxml.html.soupparser import parse
 import pprint
 import urllib2, cookielib, sys, time, json
-
-opener=None
-def init_opener():
-    global opener
-    #opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
-    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()),
-                                  urllib2.ProxyHandler({'http': 'http://localhost:8123/'}))
-    opener.addheaders = [('User-agent', 'parltrack/0.6')]
 
 def jdump(d, stats=None):
     # simple json dumper default for saver

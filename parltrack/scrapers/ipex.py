@@ -21,13 +21,7 @@ from lxml.html.soupparser import parse
 from operator import itemgetter
 import urllib2, cookielib, sys, csv, datetime, re, collections, unicodedata
 from parltrack.scrapers.mappings import ipexevents as dates
-
-try:
-    from parltrack.environment import connect_db
-    db = connect_db()
-except:
-    import pymongo
-    db=pymongo.Connection().parltrack
+from parltrack.db import db 
 
 class IpexMap:
     def __init__(self):
@@ -129,26 +123,26 @@ def getIpexData():
                 try:
                     tmp1=toDate(tmp[0])
                     if tmp1:
-                        item['Dates'].append({'type': 'Event', 'body': body, 'date': tmp1, 'type': k})
+                        item['Dates'].append({u'body': body, u'date': tmp1, u'type': k})
                 except:
                     print k, tmp[0]
                     raise
             elif len(tmp)>1:
                 tmp1=toDate(tmp[-1])
                 if tmp1:
-                    item['Dates'].append({'type': 'Event', 'body': body, 'date': tmp1, 'type': k})
+                    item['Dates'].append({u'body': body, u'date': tmp1, u'type': k})
             else:
                 print >>sys.stderr, "[!]", k, item[k]
             del item[k]
-        item['Dates']=sorted(item['Dates'])
+        item[u'Dates']=sorted(item['Dates'])
         tmp=basre.match(item['Bas Doc'])
         if tmp:
-            item['Base Doc']=u"%s/%s/%s" % tmp.groups()
+            item[u'Base Doc']=u"%s/%s/%s" % tmp.groups()
             del item['Bas Doc']
-        item['Com Opinion']=filter(None,item['Com Avis'].split(';'))
-        item['title']=item['Titre EN'].decode('raw_unicode_escape')
-        item['subject']=item['Theme'].decode('raw_unicode_escape')
-        item['Com Responible']=item['ComFond'].decode('raw_unicode_escape')
+        item[u'Com Opinion']=filter(None,item['Com Avis'].split(';'))
+        item[u'title']=item['Titre EN'].decode('raw_unicode_escape')
+        item[u'subject']=item['Theme'].decode('raw_unicode_escape')
+        item[u'Com Responible']=item['ComFond'].decode('raw_unicode_escape')
         for k in ['ComFond', 'Theme', ' ', 'Titre EN', 'Com Avis']:
             del item[k]
         for k in item.keys():

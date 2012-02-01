@@ -19,19 +19,32 @@ jQuery(document).ready(function() {
        var eventclass;
        if(/EP: on [A-Z]* agenda/.test(type)) {
           eventclass="committee-agenda";
-       } else if(/EP: [A-Z]* Deadline for tabling ammendments/.test(type)) {
+       } else if(/(EP: [A-Z]* Deadline for tabling ammendments|.* Tabling Deadline)/.test(type)) {
           eventclass="tabling-deadline";
        } else {
           eventclass=eventclasses[type];
        }
-       events.push( {
-          title : jQuery(this).parent().prev().text(),
-          summary : jQuery(this).parent().next().next().next().text(),
-          type  : type,
-          url   : jQuery(this).parent().prev().find("a").attr('href'),
-          start : jQuery(this).find(".dtstart").text(),
-          className: eventclass
-       });
+       var item;
+       if(jQuery(this).parent().prev().text()=="More..") {
+          item={
+             title : jQuery(this).parent().parent().prev().text(),
+             summary : jQuery(this).parent().parent().next().next().next().text(),
+             type  : type,
+             url   : jQuery(this).parent().parent().prev().find("a").attr('href'),
+             start : jQuery(this).find(".dtstart").text(),
+             className: eventclass
+          };
+       } else {
+          item={
+             title : jQuery(this).parent().prev().text(),
+             summary : jQuery(this).parent().next().next().next().text(),
+             type  : type,
+             url   : jQuery(this).parent().prev().find("a").attr('href'),
+             start : jQuery(this).find(".dtstart").text(),
+             className: eventclass
+          };
+       }
+       events.push(item);
     });
     jQuery('#categories').hide();
     jQuery('#legend').show();

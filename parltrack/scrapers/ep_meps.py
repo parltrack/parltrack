@@ -19,19 +19,14 @@
 
 
 from datetime import datetime
-from parltrack.environment import connect_db
 from mappings import COMMITTEE_MAP, buildings, group_map
 from urlparse import urlparse, urljoin
 import unicodedata, traceback, urllib2, sys
 from parltrack.utils import diff, htmldiff, fetch, dateJSONhandler, unws, Multiplexer, logger, jdump
+from parltrack.db import db
 
 current_term=7
 BASE_URL = 'http://www.europarl.europa.eu'
-db = connect_db()
-db.ep_meps2.ensure_index([('UserID', 1)])
-db.ep_meps2.ensure_index([('Name.full', 1)])
-db.ep_meps2.ensure_index([('Name.aliases', 1)])
-db.ep_meps2.ensure_index([('meta.url', 1)])
 
 def getAddress(root):
     res={}
@@ -238,10 +233,11 @@ def scrape(url, data={}):
         if k in ret and k in data:
             # save party
             if k=='Constituencies':
-                try:
-                    data['Constituencies'][0][u'party']=ret['Constituencies'][0][u'party']
-                except:
-                    pass
+                for key in [u'party',u'country']:
+                    try:
+                        data['Constituencies'][0][key]=ret['Constituencies'][0][key]
+                    except:
+                        pass
             # currently data is better than ret - might change later
             del ret[k]
     if 'Constituencies' in data:
