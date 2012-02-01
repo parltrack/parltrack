@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import pymongo, json, sys
 from datetime import datetime, date
-from utils import dateJSONhandler
+from parltrack.utils import dateJSONhandler
 conn = pymongo.Connection()
 db=conn.parltrack
 
