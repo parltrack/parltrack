@@ -175,7 +175,7 @@ crawlroot="http://eur-lex.europa.eu/en/legis/latest"
 def sources(url, path):
     root=fetch(url)
     regexpNS = "http://exslt.org/regular-expressions"
-    if path: logger.info("[i] crawler: %s" % path[-1])
+    if len(path): logger.info("[i] crawler: %s" % ' '.join(path[-1]))
     for doc in root.xpath("//a[re:test(@href, 'LexUriServ[.]do[?]uri=[0-9A-Z:]*:NOT', 'i')]",
                           namespaces={'re':regexpNS}):
         yield (doc.get('href').split('uri=')[1][:-4], path)
