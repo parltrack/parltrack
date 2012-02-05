@@ -283,6 +283,7 @@ def save(data, stats):
                 if stats: stats[0]+=1
             else:
                 logger.info((u'updating %s,%s' % (item['committee'], item['seq_no'])).encode('utf8'))
+                logger.info(d)
                 item['meta']['updated']=now
                 if stats: stats[1]+=1
                 item['_id']=res['_id']
