@@ -70,10 +70,21 @@ def getMep(text,date):
     if not mep and u'ß' in text:
         name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(u'ß','ss').strip())).encode('ascii','ignore').split()).lower()
         mep=db.ep_meps.find_one({'Name.aliases': name,
-                             "Constituencies.start" : {'$lt': date},
-                             "Constituencies.end" : {'$gt': date}},['_id'])
+                                 "Constituencies.start" : {'$lt': date},
+                                 "Constituencies.end" : {'$gt': date}},['_id'])
     if not mep and len([x for x in text if ord(x)>128]):
         mep=db.ep_meps.find_one({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in text]),re.I)},['_id'])
+    # check also new db
+    mep=db.ep_meps2.find_one({'Name.aliases': name,
+                             "Constituencies.start" : {'$lt': date},
+                             "Constituencies.end" : {'$gt': date}},['_id'])
+    if not mep and u'ß' in text:
+        name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(u'ß','ss').strip())).encode('ascii','ignore').split()).lower()
+        mep=db.ep_meps2.find_one({'Name.aliases': name,
+                                  "Constituencies.start" : {'$lt': date},
+                                  "Constituencies.end" : {'$gt': date}},['_id'])
+    if not mep and len([x for x in text if ord(x)>128]):
+        mep=db.ep_meps2.find_one({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in text]),re.I)},['_id'])
     if not mep:
         print >>sys.stderr, '[$] lookup oops:', text.encode('utf8')
         mepCache['name']=None
@@ -239,6 +250,8 @@ def scrape(f):
                             queries.append(({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in name]),re.I)},5))
                         for query,q in queries:
                             mep=db.ep_meps.find_one(query,['_id'])
+                            if not mep:
+                                mep=db.ep_meps2.find_one(query,['_id'])
                             if mep:
                                 vtmp.append({'id': mep['_id'], 'orig': name})
                                 if q>2: print >>sys.stderr, '[!] weak mep', q, vote['ts'], group, name.encode('utf8')
@@ -320,6 +333,8 @@ def scrape(f):
                     queries.append(({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in name]),re.I)},5))
                 for query,q in queries:
                     mep=db.ep_meps.find_one(query)
+                    if not mep:
+                        mep=db.ep_meps2.find_one(query)
                     if mep:
                         vote[k]['correctional'].append({'id': mep['_id'], 'q': q, 'orig': name})
                         break
