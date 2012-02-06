@@ -49,12 +49,7 @@
 </ul>
 {%for c in mep.Constituencies|sort(attribute='start',reverse=True) if c.end<today %}
   {% if loop.first %}
-    {% if mep.active %}
-      <div class="more" >Show earlier Constituencies...</div>
-      <ul class="hidden">
-    {%else%}
       <ul>
-    {%endif%}
   {% endif %}
     <li>
     <img class="group_icon" title="icon: {{countries[c.country]}}" src="/static/images/{{countries[c.country]|lower}}.gif" /> {{c.country}}
@@ -82,19 +77,13 @@
     {%endif%}
     {{c.role}}
     {%if c.group%}{{c.group}}{%else%}{{c.Organization}}{%endif%}
-    {{c.start|asdate}} - ...
     </li>
     {% if loop.last %}</ul>{%endif%}
     {% break %}
 {% endfor %}
 {%for c in mep.Groups|sort(attribute='start',reverse=True) if c.end<=today %}
    {% if loop.first %}
-      {% if mep.active %}
-      <div class="more">Show earlier groups...</div>
-      <ul class="hidden">
-      {%else%}
         <ul>
-      {%endif%}
    {%endif%}
    <li>
     <img class="group_icon" title="icon: {{countries[c.country]}}" src="/static/images/{{countries[c.country]|lower}}.gif" /> {{c.country}}
@@ -127,18 +116,12 @@
    <li>
     {{c.role}} of
     {{c.Organization}}
-    {{c.start|asdate}} - ...
   </li>
 {% endfor %}
 </ul>
 {%for c in mep.Staff|sort(attribute='start',reverse=True) if c.end<=today %}
    {% if loop.first %}
-      {% if mep.active %}
-      <div class="more">Show earlier staff positions...</div>
-      <ul class="hidden">
-      {%else%}
         <ul>
-      {%endif%}
     {%endif%}
     <li>
     {{c.role}} of
@@ -161,17 +144,11 @@
     {% if c.Organization|length == 4 %}<a href="/committee/{{c.Organization}}">{{c.Organization}}</a>
     {%elif committee_map[c.Organization]|length == 4%}<a href="/committee/{{committee_map[c.Organization]}}">{{c.Organization}}</a>{%else%}
     {{c.Organization}}{%endif%}
-    {{c.start|asdate}} - ...
   </li>
   {%endif%}
 {% endfor %}
 </ul>
-{% if mep.active %}
-<div class="more">Show earlier commitees...</div>
-<ul class="hidden">
-{%else%}
-  <ul>
-{%endif%}
+<ul>
 {%for c in mep.Committees|sort(attribute='start',reverse=True) %}
   {% if c.end<=today%}
     <li>
@@ -247,17 +224,11 @@
    <li>
     {{c.role}} of
     {{c.Organization}}
-    {{c.start|asdate}} - ...
   </li>
   {%endif%}
 {% endfor %}
 </ul>
-{% if mep.active %}
-<div class="more">Show earlier delegations...</div>
-<ul class="hidden">
-{%else%}
   <ul>
-{%endif%}
 {%for c in mep.Delegations|sort(attribute='start',reverse=True) %}
   {% if c.end<=today%}
     <li>
@@ -318,7 +289,7 @@
   <div id='links'>
   <h3>{{mep.Name.full}} on</h3>
     <ul>
-        <li><a href="{{mep.meta.url}}">EP official site</a></li>
+        {% if mep.meta %}<li><a href="{{mep.meta.url}}">EP official site</a></li>{% endif %}
         <li><a href="https://secure.wikimedia.org/wikipedia/en/wiki/{{mep.Name.sur.replace(' ','_')}}_{{mep.Name.family.title().replace(' ','_')}}">... wikipedia</a></li>
         <li><a href="https://encrypted.google.com/search?q={{mep.Name.sur}}+{{mep.Name.family.title()}}">... google</a></li>
     </ul>
