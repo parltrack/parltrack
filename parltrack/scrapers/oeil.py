@@ -86,10 +86,21 @@ groupurlmap={'http://www.guengl.eu/?request_locale=en': u"GUE/NGL",
              'http://www.ecrgroup.eu/?request_locale=en': u'ECR',
              'http://www.socialistsanddemocrats.eu/gpes/index.jsp?request_locale=en': u'S&D'}
 def toMEP(node):
-    tips=[t.xpath('text()')[0] if len(t.xpath('text()'))>0 else groupurlmap[t.xpath("a")[0].get('href')]
+    tips=[t.xpath('text()')[0]
+          if len(t.xpath('text()'))>0
+          else groupurlmap[t.xpath("a")[0].get('href')]
           for t in node.xpath('.//span[@class="tiptip"]')]
-    [tip.xpath('..')[0].remove(tip) for tip in node.xpath('.//span[@class="tiptip"]')]
-    return [{u'name': toText(p), u'group': group} for p, group in izip_longest(node.xpath("p"),tips)]
+    [tip.xpath('..')[0].remove(tip)
+     for tip
+     in node.xpath('.//span[@class="tiptip"]')]
+
+    return [{u'name': toText(p),
+             u'group': group,
+             u'mepref': getMEPRef(toText(p))}
+            for p, group
+            in izip_longest(node.xpath("p"),tips)
+            if not toText(p).startswith("The committee decided not to give an opinion")
+            ]
 
 def toLinks(node):
     if node is None: return
@@ -381,12 +392,11 @@ def scrape(url):
 def scrape_basic(tree):
     table=(tree.xpath('//table[@id="basic_information"]') or [None])[0]
     if table is None: return
-    res=form2obj(table,detailsheaders)
-    res.update({ 'stage_reached': (table.xpath('.//p[@class="pf_stage"]/text()') or [''])[0].strip(),
-                 'reference': (table.xpath('.//span[@class="basic_reference"]/text()') or [''])[0].strip(),
-                 'type': (table.xpath('.//p[@class="basic_procedurefile"]/text()') or [''])[0].strip(),
-                 'title': (table.xpath('.//p[@class="basic_title"]/text()') or [''])[0].strip(),
-                 })
+    res={'stage_reached': (table.xpath('.//p[@class="pf_stage"]/text()') or [''])[0].strip(),
+         'reference': (table.xpath('.//span[@class="basic_reference"]/text()') or [''])[0].strip(),
+         'type': (table.xpath('.//p[@class="basic_procedurefile"]/text()') or [''])[0].strip(),
+         'title': (table.xpath('.//p[@class="basic_title"]/text()') or [''])[0].strip(),
+         }
     if '' in res:
         del res['']
     if 'legal_basis' in res:
@@ -404,7 +414,8 @@ def scrape_basic(tree):
         elif elem.tag=='strong':
             if attrib in res and res[attrib]:
                 res[attrib].sort()
-            attrib=u' '.join(elem.xpath('text()')[0].split()).lower().replace(u" ",u"_")
+            attrib=u' '.join(elem.xpath('text()')[0].split())
+            attrib=detailsheaders.get(attrib,attrib).lower().replace(u" ",u"_")
             if attrib:
                 res[attrib]=[]
     return res
@@ -510,12 +521,12 @@ def scrape_epagents(table):
         agent[u'responsible']=responsible
         agent[u'body']='EP'
         if agent.get('rapporteur'):
-            if agent['rapporteur'][0]['name'].strip().startswith("The committee decided not to give an opinion"):
-                del agent['rapporteur']
-                agent[u'opinion']=None
-                continue
             meps=[]
             for mep in agent['rapporteur']:
+                if unws(mep['name']).startswith("The committee decided not to give an opinion"):
+                    del agent['rapporteur'][agent['rapporteur'].index(mep)]
+                    agent[u'opinion']=None
+                    continue
                 tmp=getMEPRef(mep['name'])
                 if tmp:
                     meps.append({u'mepref': tmp,
