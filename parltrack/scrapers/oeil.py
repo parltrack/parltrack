@@ -336,6 +336,7 @@ def scrape(url):
         forecasts=lst2obj((tree.xpath('//table[@id="forecast"]') or [None])[0],forecastFields)
         events=scrape_events(tree)
         procedure=scrape_basic(tree)
+        if not procedure: return
         ipext=[]
         for ipexd in (IPEXMAP[procedure['reference']] or {}).get('Dates',[]):
             skip=False
