@@ -391,13 +391,14 @@ def scrape(url):
         return
 
 def scrape_basic(tree):
+    res=form2obj((tree.xpath('//table[@id="technicalInformations"]') or [None])[0],detailsheaders) or {}
     table=(tree.xpath('//table[@id="basic_information"]') or [None])[0]
-    if table is None: return
-    res={'stage_reached': (table.xpath('.//p[@class="pf_stage"]/text()') or [''])[0].strip(),
-         'reference': (table.xpath('.//span[@class="basic_reference"]/text()') or [''])[0].strip(),
-         'type': (table.xpath('.//p[@class="basic_procedurefile"]/text()') or [''])[0].strip(),
-         'title': (table.xpath('.//p[@class="basic_title"]/text()') or [''])[0].strip(),
-         }
+    if table is None: return res
+    res.update({'stage_reached': (table.xpath('.//p[@class="pf_stage"]/text()') or [''])[0].strip(),
+                'reference': (table.xpath('.//span[@class="basic_reference"]/text()') or [''])[0].strip(),
+                'type': (table.xpath('.//p[@class="basic_procedurefile"]/text()') or [''])[0].strip(),
+                'title': (table.xpath('.//p[@class="basic_title"]/text()') or [''])[0].strip(),
+                })
     if '' in res:
         del res['']
     if 'legal_basis' in res:
@@ -466,7 +467,6 @@ def scrape_actors(tree):
         for table in inst.xpath('following-sibling::td/table'):
             if inst_name == 'European Parliament':
                 meps.extend([x for x in scrape_epagents(table) if x not in meps])
-                #meps.extend(scrape_epagents(table))
             # Handle council
             elif inst_name == 'Council of the European Union':
                 for agent in lst2obj(table, cslagents, 1):
