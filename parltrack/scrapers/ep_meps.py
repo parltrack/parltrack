@@ -405,6 +405,7 @@ def getIncomming(term=current_term):
 def getOutgoing(term=current_term):
     # returns an iter over ex meps from the current term, these are
     # missing from the get_meps result
+    global newbies
     i=0
     page=fetch('http://www.europarl.europa.eu/meps/en/incoming-outgoing.html?type=out', ignore=[500])
     last=None
@@ -427,14 +428,13 @@ def getOutgoing(term=current_term):
                 mep[u'Constituencies']=[{u'start': datetime.strptime(tmp[0], "%B %d, %Y"),
                                          u'end': datetime.strptime(tmp[1], "%B %d, %Y"),
                                          u'country': mep['country']}]
-                mep[u'Groups']=[{u'start': datetime.strptime(tmp[0], "%B %d, %Y"),
-                                 u'end': datetime.strptime(tmp[1], "%B %d, %Y"),
-                                 u'Organization': mep['group'],
+                mep[u'Groups']=[{u'Organization': mep['group'],
                                  u'role': mep['role']}]
                 del mep['dates']
                 del mep['country']
                 del mep['group']
                 del mep['role']
+                newbies.update(([int(mep['url'].split('/')[-2])],mep))
                 yield (urljoin(urljoin(BASE_URL,mep['url']),'get.html'), mep)
         i+=1
         page=fetch('http://www.europarl.europa.eu/meps/en/incoming-outgoing.html?action=%s&webCountry=&webTermId=%s&name=&politicalGroup=&bodyType=&bodyValue=&type=out&filter=' % (i, term), ignore=[500])
