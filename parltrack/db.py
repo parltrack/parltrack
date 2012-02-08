@@ -54,6 +54,7 @@ def index(db):
     db.dossiers2.ensure_index([('activities.committees.responsible', 1)])
     db.dossiers2.ensure_index([('meta.created', -1)])
     db.dossiers2.ensure_index([('meta.updated', -1)])
+    db.dossiers2.ensure_index([('committees.committee')])
 
 if __name__ == "__main__":
     index(db)
