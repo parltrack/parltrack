@@ -99,7 +99,11 @@
              {% if mep.Groups.0.groupid in groupids %}
                <a rel="nofollow" href="/meps/{{ mep.Groups.0.groupid }}?date={{now_date|asdate}}">{{mep.Groups.0.groupid }}</a>
              {% else %}
+             {% if mep.Groups.0.groupid.0 in groupids %}
+               <a rel="nofollow" href="/meps/{{ mep.Groups.0.groupid.0 }}?date={{now_date|asdate}}">{{mep.Groups.0.groupid.0 }}</a>
+             {% else %}
                {{mep.Groups.0.groupid }}
+             {% endif %}
              {% endif %}
          </td>
          <td><img class="group_icon" alt="icon: {{countries[mep.Constituencies.0.country]}}" src="/static/images/{{countries[mep.Constituencies.0.country]|lower}}.gif" /> <a rel="nofollow" href="/meps/{{ countries[mep.Constituencies.0.country] }}?date={{now_date|asdate}}">{{ mep.Constituencies.0.country }}</a></td>
