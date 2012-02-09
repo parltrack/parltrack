@@ -97,8 +97,7 @@ def parseMember(userid):
         logger.warn('[!] failed to scrape birth data %s' % url)
         logger.warn(traceback.format_exc())
     const={u'country': unws(mepdiv.xpath('.//span[@class="ep_country"]/text()')[0]),
-           u'start': datetime.strptime("2009/7/14", "%Y/%M/%d"),
-           u'end': datetime.strptime("2014/06/31", "%Y/%M/%d")}
+           u'start': datetime(2009,7,14)}
     data[u'Constituencies']=[const]
     try:
         const[u'party']=unws(mepdiv.xpath('.//span[@class="ep_group"]/text()')[1])
@@ -112,8 +111,6 @@ def parseMember(userid):
             role=u"Member"
         data[u'Groups'] = [{ u'role': role,
                              u'Organization': group,
-                             u'start': datetime.strptime("2009/7/14", "%Y/%M/%d"),
-                             u'end': datetime.strptime("2014/06/31", "%Y/%M/%d"),
                              u'groupid': group_map[group]}]
     cdiv=root.xpath('//div[@class="ep_elementcontact"]')
     if len(cdiv):
@@ -136,8 +133,6 @@ def parseMember(userid):
             for span in div.xpath('.//span[@class="commission_label"]'):
                 item={u'role': key,
                       # guessing dates
-                      u'start': datetime.strptime("2009/7/14", "%Y/%M/%d"),
-                      u'end': datetime.strptime("2014/06/31", "%Y/%M/%d"),
                       u'abbr': unws(''.join(span.xpath('text()'))),
                       u'Organization': unws(span.tail)}
                 for start, field in orgmaps:
@@ -244,7 +239,8 @@ def scrape(url, data={}):
         for k in ['Staff', 'Delegations']:
             if k in ret:
                 ret[k][0][u'start']=data['Constituencies'][0][u'start']
-                ret[k][0][u'end']=data['Constituencies'][0][u'end']
+                if 'end' in data['Constituencies'][0]:
+                    ret[k][0][u'end']=data['Constituencies'][0][u'end']
     data.update(ret)
     data['Gender'] = getMEPGender(userid)
     return data
@@ -384,10 +380,8 @@ def getIncomming(term=current_term):
         meps=[((u'name', unws(x.xpath('text()')[0])),
                (u'meta', {u'url': urljoin(urljoin(BASE_URL,x.get('href')),'get.html')}),
                (u'Constituencies', [{u'start': datetime.strptime(unws((x.xpath('../span[@class="meps_date_inout"]/text()') or [''])[0]), "%B %d, %Y"),
-                                     u'end': datetime.strptime("9999/12/31", "%Y/%M/%d"),
                                      u'country': unws((x.xpath('..//span[@class="ep_country"]/text()') or [''])[0])}]),
                (u'Groups', [{u'start': datetime.strptime(unws((x.xpath('../span[@class="meps_date_inout"]/text()') or [''])[0]), "%B %d, %Y"),
-                             u'end': datetime.strptime("9999/12/31", "%Y/%M/%d"),
                              u'Organization': unws((x.xpath('..//span[@class="ep_group"]/text()') or [''])[0]),
                              u'groupid': group_map[unws((x.xpath('..//span[@class="ep_group"]/text()') or [''])[0])],
                              u'role': unws((x.xpath('..//span[@class="ep_group"]/span[@class="ep_title"]/text()') or [''])[0])}]),
@@ -451,7 +445,7 @@ def save(data, stats):
             if stats: stats[0]+=1
         else:
             logger.info(('updating %s' % (data['Name']['full'])).encode('utf8'))
-            logger.warn(d)
+            logger.warn(jdump(d))
             data['meta']['updated']=now
             if stats: stats[1]+=1
             data['_id']=res['_id']
@@ -507,7 +501,7 @@ if __name__ == "__main__":
         print jdump(scrape("http://www.europarl.europa.eu/meps/en/28269/Jerzy_BUZEK.html"), None)
         print jdump(scrape("http://www.europarl.europa.eu/meps/en/1186/Astrid_LULLING.html"), None)
     elif sys.argv[1]=='url' and sys.argv[2]:
-        print jdump(scrape(sys.argv[2]))
+        print jdump(scrape(sys.argv[2])).encode('utf8')
         sys.exit(0)
 
     # handle opts

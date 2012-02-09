@@ -47,7 +47,6 @@ staff_positions={"President": 7,
                  }
 def mepRanking(date,query={}):
     meps=db.ep_meps2.find(query)
-    # workaround for pre-1970 dates
     tmp=[]
     for m in meps:
         for c in m['Constituencies']:
@@ -147,6 +146,7 @@ def dossier(id, without_changes=True):
         item['Committees']={}
         if 'Rapporteur' in item:
             item['Rapporteur']['rapporteurs']=[db.ep_meps2.find_one({'_id': x}) for x in item['Rapporteur']['rapporteurs']]
+            item['Rapporteur']['rapporteurs'].extend([db.ep_meps.find_one({'_id': x}) for x in item['Rapporteur']['rapporteurs']])
             item['Committees'][item['committee']]=item['Rapporteur']['rapporteurs']
         for com in item.get('Opinions',[]):
             if 'committees' in com and 'committee' not in com:
@@ -155,9 +155,14 @@ def dossier(id, without_changes=True):
                     item['Committees'][c['committee']]=c
             else:
                 com['rapporteurs']=[db.ep_meps2.find_one({'_id': x}) for x in com['rapporteurs']]
+                com['rapporteurs'].extend([db.ep_meps.find_one({'_id': x}) for x in com['rapporteurs']])
                 item['Committees'][com['committee']]=com['rapporteurs']
         if 'tabling_deadline' in item and item['tabling_deadline']>=datetime.now():
-            dossier['activities'].insert(0,{'type': '(%s) Tabling Deadline' % item['committee'], 'body': 'EP', 'date': item['tabling_deadline']})
+            deadline={'type': '(%s) Tabling Deadline' % item['committee'],
+                      'body': 'EP',
+                      'date': item['tabling_deadline']}
+            if deadline not in dossier['activities']:
+                dossier['activities'].insert(0,deadline)
         item['resp']=item['committee'] in [x['committee'] for x in item.get('Responsible',[])]
         dossier['comeets'].append(item)
 
@@ -184,14 +189,37 @@ def getMep(text, date):
     else:
         query={'Name.aliases': name}
     mep=db.ep_meps2.find_one(query)
-    if not mep and u'ß' in text:
-        name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(u'ß','ss').strip())).encode('ascii','ignore').split()).lower()
-        mep=db.ep_meps2.find_one(query)
+    mep5=None
     if not mep:
+        mep5=db.ep_meps.find_one(query)
+    if not (mep or mep5):
+        if u'ß' in text:
+            query['Name.aliases']=''.join(unicodedata.normalize('NFKD', unicode(text.replace(u'ß','ss').strip())).encode('ascii','ignore').split()).lower()
+            mep=db.ep_meps2.find_one(query)
+            if not mep:
+                mep5=db.ep_meps.find_one(query)
+        else:
+            query={'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in name]),re.I)}
+            mep=db.ep_meps2.find_one(query,retfields)
+            if not mep:
+                mep5=db.ep_meps.find_one(query,retfields)
+    if not (mep or mep5):
         print >>sys.stderr, '[$] lookup oops:', text.encode('utf8')
-    else:
-        return mep
-    print query, '\n', mep
+        print >>sys.stderr, query, '\n', mep
+        return
+
+    # merge with v5 mep db
+    if mep:
+        mep5=db.ep_meps.find_one({'UserID': str(mep['UserID'])})
+        if not mep5:
+            return mep
+    for field in [u'Constituencies', u'Groups', u'Delegations', u'Committees', u'Staff']:
+        for item in sorted(mep5[field],key=itemgetter('start')):
+            if item['start']>=datetime(2009,7,13):
+                continue
+            else:
+                mep[field].append(item)
+    return mep
 
 def mep(id,date):
     mep=getMep(id,date)
@@ -203,7 +231,7 @@ def mep(id,date):
     docs.extend([(x, False) for x in db.dossiers2.find({ 'activities.committees': { '$elemMatch': {'rapporteur.name': "%s %s" % (mep['Name']['family'],mep['Name']['sur']), 'responsible': False}}})])
     for c in mep['Constituencies']:
         # term 6 20.07.2004 / 13.07.2009
-        if c['start']>=datetime(2004,07,20) and c['end']<=datetime(2009,07,13):
+        if 'end' in c and c['start']>=datetime(2004,07,20) and c['end']<=datetime(2009,07,13):
             mep['term6']=True
         # term 7 started on 14.07.2009 / ...
         if c['start']>=datetime(2009,07,14):
@@ -217,35 +245,27 @@ def committee(id):
     # get dossiers
     #comre=re.compile(COMMITTEE_MAP[id],re.I)
     dossiers=[]
-    for d in db.dossiers2.find({'committees.committee': id, 'procedure.stage_reached': {'$in': STAGES}}):
+    for d in db.dossiers2.find({'activities.committees.committee': id, 'procedure.stage_reached': {'$in': STAGES}}):
         tmp=[c for c in d['committees'] if c['committee']==id]
         if len(tmp)>0:
             d['crole']=0 if tmp[0]['responsible'] else 1
             d['rapporteur']=[m for c in d['committees'] if c['responsible'] for m in c.get('rapporteur',[])]
-            d['comdoc']=[act['docs'][0] for act in d['activities']
-                         if act.get('type') in ['Non-legislative initial document',
-                                                'Commission/Council: initial legislative document',
-                                                "Legislative proposal",
-                                                "Legislative proposal published"]]
+            for act in d['activities']:
+                if act.get('type') in ['Non-legislative initial document',
+                                       'Commission/Council: initial legislative document',
+                                       "Legislative proposal",
+                                       "Legislative proposal published"] and 'docs' in act and len(act['docs'])>0:
+                    d['comdoc']={'title': act['docs'][0]['title'],
+                                 'url': act['docs'][0].get('url'), }
+                    break
             if d not in dossiers: dossiers.append(d)
     # get members of committee
     date=datetime.now()
-    query={"Committees":
-           {'$elemMatch' :
-            {'start' : {'$lte': date},
-             "end" : {'$gte': date},
-             "abbr": id,
-             }}}
+    query={"Committees.abbr": id, "active": True}
     rankedMeps=[]
     for mep in db.ep_meps2.find(query):
-        for group in mep['Groups']:
-            if group['start']<=date and group['end']>=date:
-                if type(group.get('groupid'))==list:
-                    group['groupid']=group['groupid'][0]
-                mep['Groups']=[group]
-                break
         for c in mep['Committees']:
-            if c['start']<date and c['end']>date and c['abbr']==id:
+            if c['abbr']==id:
                 score=com_positions[c['role']]
                 mep['crole']=c['role']
                 rankedMeps.append((score,mep))
@@ -255,7 +275,7 @@ def committee(id):
             'agendas': agendas}
 
 def immunity():
-    immre=re.compile(r'IMM/.*')
+    immre=re.compile(r'.*\(IMM\)$')
     mepre=re.compile(r"(?:.*Mr.? |.* of |)(.*?)(?:'[s]? .*(?:immunity|mandate|testimony)| to be waived|$)")
     res=[]
     for d in db.dossiers2.find({'procedure.reference': immre}):
@@ -265,13 +285,17 @@ def immunity():
             continue
         name=''.join(unicodedata.normalize('NFKD', unicode(m.group(1).strip())).encode('ascii','ignore').split()).lower()
         mep=db.ep_meps2.find_one({'Name.aliases': name })
+        if not mep:
+            mep=db.ep_meps.find_one({'Name.aliases': name })
         if not mep and u'ß' in m.group(1):
             name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(u'ß','ss').strip())).encode('ascii','ignore').split()).lower()
             mep=db.ep_meps2.find_one({'Name.aliases': name })
+            if not mep:
+                mep=db.ep_meps.find_one({'Name.aliases': name })
         if not mep:
             print '[0] not found', d['procedure']['reference'].split('/')[1], m.group(1).encode('utf8')
             continue
-        year=d['procedure']['reference'].split('/')[1]
+        year=d['procedure']['reference'].split('/')[0]
         for c in mep['Constituencies']:
             if c['start'].year<=int(year) and c['end'].year>=int(year):
                 country=c['country']
@@ -309,9 +333,18 @@ def inc(dct,fld,sfl):
     dct[fld][sfl]+=1
 
 def getCountry(mep,date):
-    date=datetime.strptime(date,"%Y-%m-%d")
+    if type(date) in [type(str()), type(unicode())]:
+        date=datetime.strptime(date,"%Y-%m-%d")
     for c in mep:
-        if c['end']>=date and c['start']<=date:
+        if type(c['start']) in [type(str()), type(unicode())]:
+            start=datetime.strptime(c['start'],"%Y-%m-%d")
+        else:
+            start=c['start']
+        if type(c['end']) in [type(str()), type(unicode())]:
+            end=datetime.strptime(c['end'],"%Y-%m-%d")
+        else:
+            end=c['end']
+        if end>=date and start<=date:
             return (c['country'],c['party'])
     if len(mep)==1:
         return (mep[0]['country'],mep[0]['party'])
@@ -319,18 +352,23 @@ def getCountry(mep,date):
 def subjects():
     all={}
     fullmeps=dict([(x['_id'],(x['Constituencies'])) for x in db.ep_meps2.find({},['Constituencies'])])
+    fullmeps.update(dict([(x['_id'],(x['Constituencies'])) for x in db.ep_meps.find({},['Constituencies'])]))
     tree={}
     for d in db.dossiers2.find():
         subs=[fetchsubj(x) for x in d['procedure'].get('subject',[]) if x]
         if not len(subs): continue
         buck=[]
-        for actor in [a
-                      for action in d['activities'] if 'actors' in action
-                      for a in action['actors']
-                      if hasattr(a,'keys') and a.get('responsible') and a.get('mepref')!=None]:
+        for actor, committee in [(a,committee)
+                                 for committee in d['committees']
+                                 for a in committee.get('rapporteur', [])
+                                 if hasattr(a,'keys') and committee.get('responsible') and a.get('mepref')]:
             if actor in buck: continue
             buck.append(actor)
-            (country,party)=getCountry(fullmeps[actor['mepref']],actor.get('date',False))
+            if type(committee.get('date'))==type(list()):
+                (country,party)=getCountry(fullmeps[actor['mepref']],
+                                           committee.get('date')[committee['rapporteur'].index(actor)])
+            else:
+                (country,party)=getCountry(fullmeps[actor['mepref']],committee.get('date'))
             [inc(all,(party, actor['group'], country),sub) for sub in subs]
             inc(all,(party, actor['group'], country),'total')
             group=actor['group']

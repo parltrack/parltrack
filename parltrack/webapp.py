@@ -76,7 +76,8 @@ def index():
                            dossiers_num=db.dossiers2.find().count(),
                            latest=d,
                            votes_num=db.ep_votes.find().count(),
-                           meps_num=db.ep_meps2.find().count())
+                           meps_num=db.ep_meps2.find().count()+db.ep_meps.find({"Constituencies.start": {'$lt': datetime(2009,07,14)}}).count())
+
 
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 #               Search
@@ -92,14 +93,14 @@ def search():
     ret = []
     if request.args.get('s_meps'):
         ret.extend(db.ep_meps2.find({'Name.full': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
+        ret.extend(db.ep_meps.find({'Name.full': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
     if request.args.get('s_dossiers'):
         m=celexre.match(q)
         if m:
             ret.extend(db.dossiers2.find({'activities.docs.title': "3%sL%04d" % (m.group(2),int(m.group(3)))}))
         ret.extend(db.dossiers2.find({'procedure.title': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
         ret.extend(db.dossiers2.find({'activities.docs.title': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
-    #if request.headers.get('X-Requested-With'):
-    if request.args.get('format')=='json':
+    if request.args.get('format')=='json' or request.headers.get('X-Requested-With') or request.headers.get('Accept')=='text/json':
         return jsonify(count=len(ret), items=tojson(ret))
     if len(ret)==1:
         if 'procedure' in ret[0]:
@@ -264,7 +265,7 @@ def render_meps(query={},kwargs={}):
     rankings=mepRanking(date,query)
     if not rankings:
         abort(404)
-    if request.args.get('format','')=='json':
+    if request.args.get('format','')=='json' or request.headers.get('X-Requested-With') or request.headers.get('Accept')=='text/json':
         return jsonify(count=len(rankings), meps=tojson([z for x,y,z in rankings]))
     return render_template('mep_ranking.html',
                            rankings=rankings,
@@ -341,7 +342,7 @@ def view_mep(d_id):
     m=mep(d_id,date)
     if not m:
         abort(404)
-    if request.args.get('format','')=='json':
+    if request.args.get('format','')=='json' or request.headers.get('X-Requested-With') or request.headers.get('Accept')=='text/json':
         return jsonify(tojson(m))
     return render_template('mep.html',
                            mep=m,
@@ -367,7 +368,7 @@ def toJit(tree, name):
 @app.route('/datasets/imm/')
 def immunity_view():
     res=immunity()
-    if request.args.get('format','')=='json':
+    if request.args.get('format','')=='json' or request.headers.get('X-Requested-With') or request.headers.get('Accept')=='text/json':
         return jsonify(tojson({'count': len(res), 'data': res}))
     if request.args.get('format','')=='csv':
         fd = cStringIO.StringIO()
@@ -397,9 +398,9 @@ def immunity_view():
 @app.route('/datasets/subjects/')
 def subjects_view():
     (res,tree)=subjects() or ([],{})
-    if request.args.get('format','')=='json':
+    if request.args.get('format','')=='json' or request.headers.get('X-Requested-With') or request.headers.get('Accept')=='text/json':
         return jsonify(tojson({'count': len(res), 'data': res}))
-    if request.args.get('format','')=='csv':
+    if request.args.get('format','')=='csv' or request.headers.get('Accept')=='text/csv':
         fd = cStringIO.StringIO()
         writer = csv.writer(fd,dialect='excel')
         writer.writerow(['count', 'subj_id','party','subj_title','group','country'])
@@ -422,7 +423,7 @@ def view_dossier(d_id):
     if not d:
         abort(404)
     #print d
-    if request.args.get('format','')=='json':
+    if request.args.get('format','')=='json' or request.headers.get('X-Requested-With') or request.headers.get('Accept')=='text/json':
         return jsonify(tojson(d))
     return render_template('dossier.html',
                            dossier=d,
@@ -431,7 +432,7 @@ def view_dossier(d_id):
 
 def atom(db, order, tpl, path):
     d=db.find().sort([(order, -1)]).limit(30)
-    if request.args.get('format','')=='json':
+    if request.args.get('format','')=='json' or request.headers.get('X-Requested-With') or request.headers.get('Accept')=='text/json':
         return jsonify(tojson(d))
     return render_template(tpl, dossiers=list(d), path=path)
 
@@ -477,7 +478,7 @@ def rss(nid):
                d['changes']={k:c}
                res.append((k,d))
     res=[x[1] for x in sorted(res,reverse=True)]
-    if request.args.get('format','')=='json':
+    if request.args.get('format','')=='json' or request.headers.get('X-Requested-With') or request.headers.get('Accept')=='text/json':
         return jsonify(tojson(res))
     return render_template('atom.xml', dossiers=res, path="changed")
 
@@ -534,7 +535,7 @@ def view_committee(c_id):
     #c['dossiers']=[listdossiers(d) for d in c['dossiers']]
     if not c:
         abort(404)
-    if request.args.get('format','')=='json':
+    if request.args.get('format','')=='json' or request.headers.get('X-Requested-With') or request.headers.get('Accept')=='text/json':
         return jsonify(tojson(c))
     return render_template('committee.html',
                            committee=c,

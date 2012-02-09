@@ -46,15 +46,14 @@ li .has_summary, .more { cursor: pointer; padding-left: 0px; font-size: 1em; col
 .ep-1streading, .ep-1streading a{ background-color: #214478 !important; border-color: #214478 !important; color: yellow !important; }
 .ep-2ndreading, .ep-2ndreading a{ background-color: #315488 !important; border-color: #315488 !important; color: yellow !important; }
 .ep-vote, .ep-vote a { background-color: #214478 !important; border-color: #214478 !important; color: #ffcc00 !important; }
+.com-vote, .com-vote a { background-color: #1A67B8 !important; color: #ffcc00 !important; }
+.cal-other, .cal-other a { background-color: #c3c3c3 !important; color: #040404 !important; }
+.agenda-unknown, .committee-agenda a { background-color:white !important; color: #ccc !important; }
 .committee-agenda, .committee-agenda a { background-color:#1A67B8 !important; color: #ccc !important; }
 .tabling-deadline, .tabling-deadline a { background-color:#1A67B8 !important; color: orange !important; }
+.2ndreading-deadline, .2ndreading-deadline-deadline a { background-color:#315488 !important; color: orange !important; }
 #legend li { font-size:0.7em; list-style-type:none; margin-bottom:0.2em; margin-left:-2.5em; margin-right:1em; }
 .fc-content { clear:none !important; }
-.fc-event, .fc-agenda .fc-event-time, .fc-event a {
-    background-color: white !important;
-    border-color: grey !important;
-    border-style: solid !important;
-}
 #calendar a:hover { color: red !important; }
 
 div.qtip { font-family:Trebuchet MS,Tahoma,Verdana,Arial,sans-serif; font-size: .8em; }
@@ -326,4 +325,9 @@ background-color: #8dbdd8;
 	width:		27px;
 	display:	inline-block;
 	text-align:	center;
+}
+
+.ui-tabs .ui-tabs-nav li a {
+    font-size: 80% !important;
+    line-height: 1.1 !important;
 }
