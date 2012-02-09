@@ -257,7 +257,9 @@ def merge_events(events,committees,agents):
                 if cmts:
                     actors[item['body']][u'committees']=cmts
                 if item['body']=='EC':
-                    actors['EC']['commission']=[{u'DG': x['dg'], u'Commissioner': x['commissioner']} for x in agents if x['body']=='EC']
+                    actors['EC']['commission']=[{u'DG': x['dg'],
+                                                 u'Commissioner': x['commissioner']} if x.get('commissioner') else {u'DG': x['dg']}
+                                                for x in agents if x['body']=='EC']
                 continue
             # merge any docs
             if 'doc' in item:
