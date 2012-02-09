@@ -588,9 +588,12 @@ def crawl(urls, threads=4):
     m.finish()
     logger.info('end of crawl')
 
-def crawlseq(urls):
-    [save(scrape(url),[0,0]) for url, title in urls]
-    logger.info('end of crawl')
+def crawlseq(urls, null=False):
+    stats=[0,0]
+    [save(scrape(url),stats)
+     for url, title in urls
+     if (null and db.dossiers2.find_one({'meta.source': url},['_id'])==None) or not null]
+    logger.info('end of crawl %s' % stats)
 
 comre=re.compile(r'COM\(([0-9]{4})\)([0-9]{4})')
 comepre=re.compile(r'COM/([0-9]{4})/([0-9]{4})')
@@ -719,20 +722,24 @@ def makemsg(data, d):
              dt))
 
 if __name__ == "__main__":
+    args=set(sys.argv[1:])
+    null=False
+    if 'null' in args:
+        null=True
     if len(sys.argv)!=2:
         print "%s full|fullseq|new|update|updateseq|test" % (sys.argv[0])
     if sys.argv[1]=="full":
         crawl(get_all_dossiers(), threads=4)
     elif sys.argv[1]=="fullseq":
-        crawlseq(get_all_dossiers())
+        crawlseq(get_all_dossiers(), null=null)
     elif sys.argv[1]=="newseq":
-        crawlseq(get_new_dossiers())
+        crawlseq(get_new_dossiers(), null=null)
     elif sys.argv[1]=="new":
         crawl(get_new_dossiers())
     elif sys.argv[1]=="update":
         crawl(get_active_dossiers())
     elif sys.argv[1]=="updateseq":
-        crawlseq(get_active_dossiers())
+        crawlseq(get_active_dossiers(), null=null)
     elif sys.argv[1]=="url":
         print jdump(scrape(sys.argv[2])).encode('utf8')
     elif sys.argv[1]=="test":
