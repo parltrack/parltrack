@@ -434,7 +434,7 @@ def getOutgoing(term=current_term):
                 del mep['country']
                 del mep['group']
                 del mep['role']
-                newbies.update(([int(mep['url'].split('/')[-2])],mep))
+                newbies[int(mep['url'].split('/')[-2])]=mep
                 yield (urljoin(urljoin(BASE_URL,mep['url']),'get.html'), mep)
         i+=1
         page=fetch('http://www.europarl.europa.eu/meps/en/incoming-outgoing.html?action=%s&webCountry=&webTermId=%s&name=&politicalGroup=&bodyType=&bodyValue=&type=out&filter=' % (i, term), ignore=[500])
