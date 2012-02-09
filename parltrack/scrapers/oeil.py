@@ -544,9 +544,10 @@ def scrape_epagents(table):
         if not abbr in COMMITTEE_MAP.keys():
             logger.warn(u"[!] uknown committee abbrev %s" % abbr)
             agent[u'committee_full']=agent['committee']
-            del agent['committee']
+            if agent['committee'][4]==' ' and abbr.isalpha():
+                agent[u'committee']=abbr
         else:
-            agent[u'committee_full']=agent['committee'][4:]
+            agent[u'committee_full']=agent['committee'][5:]
             agent[u'committee']=abbr
 
         if agent.get(u'committee') in shadows.keys():
