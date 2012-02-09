@@ -56,7 +56,7 @@ def getdocs(line):
         else:
             issue[u'epdoc']=m.group(3)
     if m.group(4):
-        dossier=db.dossiers2.find_one({'activities.documents.title': m.group(4)})
+        dossier=db.dossiers2.find_one({'activities.docs.title': m.group(4)})
         if dossier:
             issue[u'docref']=dossier['_id']
             issue[u'comdoc']=m.group(4)
@@ -277,7 +277,7 @@ def save(data, stats):
         if not 'committee' in item: continue
         res=db.ep_comagendas.find_one({'committee': item['committee'],
                                        'src': item['src'],
-                                       'seq_no': item['seq_no']}) or {}
+                                       'title': item['title']}) or {}
         d=diff(dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes']]),
                dict([(k,v) for k,v in item.items() if not k in ['_id', 'meta', 'changes',]]))
         if d:

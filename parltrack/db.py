@@ -28,9 +28,9 @@ def index(db):
     db.ep_comagendas.ensure_index([('epdoc', 1)])
     db.ep_comagendas.ensure_index([('meta.created', 1)])
     db.ep_comagendas.ensure_index([('meta.updated', 1)])
-    db.ep_comagendas.ensure_index([('committee', 1),
-                               ('src', 1),
-                               ('seq_no',1)])
+    db.ep_comagendas.ensure_index([('committee', 1)])
+    db.ep_comagendas.ensure_index([('src', 1)])
+    db.ep_comagendas.ensure_index([('title',1)])
 
     db.ep_meps2.ensure_index([('UserID', 1)])
     db.ep_meps2.ensure_index([('Name.full', 1)])
@@ -52,9 +52,9 @@ def index(db):
     db.dossiers2.ensure_index([('activities.docs.title', 1)])
     db.dossiers2.ensure_index([('activities.committees.rapporteur.name', 1)])
     db.dossiers2.ensure_index([('activities.committees.responsible', 1)])
+    db.dossiers2.ensure_index([('activities.committees.committee', 1)])
     db.dossiers2.ensure_index([('meta.created', -1)])
     db.dossiers2.ensure_index([('meta.updated', -1)])
-    db.dossiers2.ensure_index([('committees.committee')])
 
 if __name__ == "__main__":
     index(db)
