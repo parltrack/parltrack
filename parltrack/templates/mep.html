@@ -139,31 +139,39 @@
 
 <div id="committees">
 <h3>Committees</h3>
-<ul>
+<table class="tablesorter">
+<thead><tr><th>Role</th><th>Committee</th><th>Start</th><th>End</th></tr></thead>
+<tbody>
 {%for c in mep.Committees if not c.end or c.end>today%}
-   <li>
-    {{c.role}} of
-    {% if c.Organization|length == 4 %}<a href="/committee/{{c.Organization}}">{{c.Organization}}</a>
-    {%elif committee_map[c.Organization]|length == 4%}<a href="/committee/{{committee_map[c.Organization]}}">{{c.Organization}}</a>{%else%}
-    {{c.Organization}}{%endif%}
-    {% if c.start and c.end%}{{c.start|asdate}} - {{c.end|asdate}}{% endif %}
-  </li>
+   <tr>
+      <td>{{c.role}} of</td>
+      <td>{% if c.Organization|length == 4 %}<a href="/committee/{{c.Organization}}">{{c.Organization}}</a></td>
+      <td>{%elif committee_map[c.Organization]|length == 4%}<a href="/committee/{{committee_map[c.Organization]}}">{{c.Organization}}</a>{%else%}
+         {{c.Organization}}{%endif%}</td>
+      <td>{{c.start|asdate}}</td>
+      <td>{{c.end|asdate}}</td>
+   </tr>
 {% endfor %}
-</ul>
+</tbody>
+</table>
 {%for c in mep.Committees if c.end and c.end<=today %}
    {% if loop.first %}
       <div class="more">Show earlier commitees...</div>
-      <ul class="hidden">
+      <table class="tablesorter hidden">
+         <thead><tr><th>Role</th><th>Committee</th><th>Start</th><th>End</th></tr></thead>
+         <tbody>
    {%endif%}
-    <li>
-    {{c.role}} of
-    {% if c.Organization|length == 4 %}<a href="/committee/{{c.Organization}}">{{c.Organization}}</a>
-    {%elif committee_map[c.Organization]|length == 4%}<a href="/committee/{{committee_map[c.Organization]}}">{{c.Organization}}</a>{%else%}
-    {{c.Organization}}{%endif%}
-    {{c.start|asdate}} - {{c.end|asdate}}
-  </li>
+    <tr>
+       <td>{{c.role}} of</td>
+       <td>{% if c.Organization|length == 4 %}<a href="/committee/{{c.Organization}}">{{c.Organization}}</a></td>
+          {%elif committee_map[c.Organization]|length == 4%}<a href="/committee/{{committee_map[c.Organization]}}">{{c.Organization}}</a>{%else%}
+       <td>{{c.Organization}}{%endif%}</td>
+       <td>{{c.start|asdate}}</td>
+       <td>{{c.end|asdate}}</td>
+       </tr>
    {% if loop.last %}
-      </ul>
+         </tbody>
+      </table>
    {%endif%}
 {% endfor %}
 </div>
@@ -223,39 +231,49 @@
 
 <div id="delegations">
 <h3>Delegations</h3>
-<ul>
+<table class="tablesorter">
+<thead><tr><th>Role</th><th>Delegation</th><th>Start</th><th>End</th></tr></thead>
+<tbody>
 {%for c in mep.Delegations if not c.end or c.end>today %}
-   <li>
-    {{c.role}} of
-    {{c.Organization}}
-    {% if c.start and c.end%}{{c.start|asdate}} - {{c.end|asdate}}{% endif %}
-  </li>
+   <tr>
+    <td>{{c.role}} of</td>
+    <td>{{c.Organization}}</td>
+    <td>{{c.start|asdate}}</td>
+    <td>{{c.end|asdate}}</td>
+  </tr>
 {% endfor %}
-</ul>
+</tbody></table>
 {%for c in mep.Delegations if c.end and c.end<=today %}
    {% if loop.first %}
       <div class="more">Show earlier delegations...</div>
-      <ul class="hidden">
+      <table class="hidden tablesorter">
+         <thead><tr><th>Role</th><th>Delegation</th><th>Start</th><th>End</th></tr></thead>
+         <tbody>
    {%endif%}
-    <li>
-    {{c.role}} of
-    {{c.Organization}}
-    {{c.start|asdate}} - {{c.end|asdate}}
-    </li>
+    <tr>
+       <td>{{c.role}} of</td>
+       <td>{{c.Organization}}</td>
+       <td>{{c.start|asdate}}</td>
+       <td>{{c.end|asdate}}</td>
+    </tr>
    {% if loop.last %}
-      </ul>
+      </tbody></table>
    {%endif%}
 {% endfor %}
-</ul>
 </div>
 {% if mep.dossiers %}
   <div id='dossiers'>
   <h3>Rapporteur</h3>
-  <ul>
+  <table class="tablesorter">
+     <tbody>
     {%for doc,resp in mep.dossiers%}
-    <li>{%if not resp%}(opinion){%endif%} <a href="/dossier/{{doc.procedure.reference}}">{{doc.procedure.reference}}</a> {{doc.procedure.title}}</li>
+    <tr>
+       <td>{%if not resp%}opinion{%else%}rapporteur{%endif%}</td>
+       <td><a href="/dossier/{{doc.procedure.reference}}">{{doc.procedure.reference}}</a></td>
+       <td>{{doc.procedure.title}}</td>
+    </tr>
     {%endfor%}
-  </ul>
+  </table>
   </div>
 {%endif%}
 <div id='cv'>
