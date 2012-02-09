@@ -214,10 +214,11 @@ def getMep(text, date):
         if not mep5:
             return mep
     for field in [u'Constituencies', u'Groups', u'Delegations', u'Committees', u'Staff']:
-        for item in sorted(mep5[field],key=itemgetter('start')):
+        for item in sorted(mep5.get(field,[]),key=itemgetter('start')):
             if item['start']>=datetime(2009,7,13):
                 continue
             else:
+                if not field in mep: mep[field]=[]
                 mep[field].append(item)
     return mep
 
