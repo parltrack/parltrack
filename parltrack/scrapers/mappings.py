@@ -19,6 +19,7 @@
 
 COMMITTEE_MAP={'AFET': "Foreign Affairs",
                'DROI': "Human Rights",
+               'CLIM': 'Climate Change',
                'SEDE': "Security and Defence",
                'DEVE': "Development",
                'INTA': "International Trade",
