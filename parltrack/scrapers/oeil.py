@@ -734,7 +734,7 @@ if __name__ == "__main__":
     elif sys.argv[1]=="updateseq":
         crawlseq(get_active_dossiers())
     elif sys.argv[1]=="url":
-        print jdump(scrape(sys.argv[2]))
+        print jdump(scrape(sys.argv[2])).encode('utf8')
     elif sys.argv[1]=="test":
         save(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397"),[0,0]) # telecoms package
         #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=575084"))
