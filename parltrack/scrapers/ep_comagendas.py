@@ -311,7 +311,7 @@ def crawler(saver=jdump,threads=4):
 def seqcrawler(saver=jdump):
     for u, com in getComAgendas():
         try:
-            print saver(scrape(u,com)).encode('utf8')
+            print saver(scrape(u,com), None).encode('utf8')
         except:
             # ignore failed scrapes
             logger.warn("[!] failed to scrape: %s" % u)
