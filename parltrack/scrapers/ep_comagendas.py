@@ -332,7 +332,7 @@ if __name__ == "__main__":
     if 'save' in args:
         saver=save
     if 'seq' in args:
-        res=seqcrawl(saver=saver)
+        res=seqcrawler(saver=saver)
         if 'dry' in args:
             print "[%s]" % ',\n'.join(res).encode('utf8')
     else:
