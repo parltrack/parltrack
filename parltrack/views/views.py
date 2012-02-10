@@ -21,7 +21,9 @@ SHORTCUTMAP={'L': 'Directive',
              'R': 'Regulation',
              'D': 'Decision'}
 group_positions={u'Chair': 10,
+                 u'Treasurer/Vice-Chair/Member of the Bureau': 10,
                  u'Co-Chair': 8,
+                 u'First Vice-Chair/Member of the Bureau': 8,
                  u'Vice-Chair': 6,
                  u'Deputy Chair': 5,
                  u'Chair of the Bureau': 4,
@@ -50,7 +52,7 @@ def mepRanking(date,query={}):
     tmp=[]
     for m in meps:
         for c in m['Constituencies']:
-            if c['start']<=date and c['end']>=date:
+            if (not 'end' in c and c['start']>datetime(2009,7,13)) or (c['start']<=date and c['end']>=date):
                 tmp.append(m)
                 break
     rankedMeps=[]
@@ -59,7 +61,7 @@ def mepRanking(date,query={}):
         ranks=[]
         # get group rank
         for group in mep['Groups']:
-            if group['start']<=date and group['end']>=date:
+            if not 'end' in group or (group['start']<=date and group['end']>=date):
                 score=group_positions[group['role']]
                 if not 'groupid' in group:
                     group['groupid']=group['Organization']
@@ -71,7 +73,7 @@ def mepRanking(date,query={}):
         # get committee ranks
         tmp=[]
         for com in mep.get('Committees',[]):
-            if com['start']<=date and com['end']>=date:
+            if not 'end' in com or (com['start']<=date and com['end']>=date):
                 score+=com_positions[com['role']]
                 ranks.append((com_positions[com['role']],com['role'],com['Organization']))
                 tmp.append(com)
@@ -79,7 +81,7 @@ def mepRanking(date,query={}):
         # get ep staff ranks
         tmp=[]
         for staff in mep.get('Staff',[]):
-            if staff['start']<=date and staff['end']>=date:
+            if not 'end' in staff or (staff['start']<=date and staff['end']>=date):
                 score+=staff_positions[staff['role']]
                 ranks.append((staff_positions[staff['role']],staff['role'],staff['Organization']))
                 tmp.append(staff)
@@ -235,7 +237,7 @@ def mep(id,date):
         if 'end' in c and c['start']>=datetime(2004,07,20) and c['end']<=datetime(2009,07,13):
             mep['term6']=True
         # term 7 started on 14.07.2009 / ...
-        if c['start']>=datetime(2009,07,14):
+        if c['start']>=datetime(2009,07,13):
             mep['term7']=True
     mep['dossiers']=docs
     return mep

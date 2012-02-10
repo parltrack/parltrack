@@ -328,9 +328,12 @@ def mepsbygroup(p1):
 def ranking():
     query={}
     date=getDate()
-    query={"Constituencies": {'$elemMatch' :
-                             {'start' : {'$lte': date},
-                              'end' : {'$gte': date},}}}
+    if date<datetime(2009,7,14):
+        query={"Constituencies": {'$elemMatch' :
+                                 {'start' : {'$lte': date},
+                                  'end' : {'$gte': date},}}}
+    else:
+        query={"Constituencies.start": {'$lte': date} }
     return render_meps(query)
 
 @cache.cached()
