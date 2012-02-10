@@ -263,9 +263,11 @@ def getComAgendas():
         agendas=[]
         logger.info('scraping %s' % com)
         while True:
+            logger.info("crawling %s" % (url))
             root=fetch(url)
             tmp=[(a.get('href'), unws(a.xpath('text()')[0]))
-                 for a in root.xpath('//p[@class="title"]/a')]
+                 for a in root.xpath('//p[@class="title"]/a')
+                 if len(a.get('href',''))>13]
             if not tmp: break
             for u,_ in tmp:
                 yield (u,com)
