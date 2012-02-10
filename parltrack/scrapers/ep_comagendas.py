@@ -257,7 +257,7 @@ def getMEPRef(name, retfields=['_id']):
 def getComAgendas():
     urltpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?&docType=AGEN&leg=7&miType=text"
     nexttpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?tabActif=tabLast&startValue=%s"
-    for com in (k for k in COMMITTEE_MAP.keys() if len(k)==4 and k not in ['CODE', 'RETT']):
+    for com in (k for k in COMMITTEE_MAP.keys() if len(k)==4 and k not in ['CODE', 'RETT', 'CLIM', 'TDIP']):
         url=urltpl % (com)
         i=0
         agendas=[]
@@ -286,11 +286,11 @@ def save(data, stats):
             now=unicode(datetime.utcnow().replace(microsecond=0).isoformat())
             if not 'meta' in item: item[u'meta']={}
             if not res:
-                logger.info((u'adding %s,%s' % (item['committee'], item['seq_no'])).encode('utf8'))
+                logger.info((u'adding %s %s' % (item['committee'], item['title'])).encode('utf8'))
                 item['meta']['created']=now
                 if stats: stats[0]+=1
             else:
-                logger.info((u'updating %s,%s' % (item['committee'], item['seq_no'])).encode('utf8'))
+                logger.info((u'updating %s %s' % (item['committee'], item['title'])).encode('utf8'))
                 logger.info(d)
                 item['meta']['updated']=now
                 if stats: stats[1]+=1
@@ -309,13 +309,15 @@ def crawler(saver=jdump,threads=4):
     logger.info('end of crawl')
 
 def seqcrawler(saver=jdump):
+    stats=[0,0]
     for u, com in getComAgendas():
         try:
-            print (saver(scrape(u,com), None) or '').encode('utf8')
+            saver(scrape(u,com), stats)
         except:
             # ignore failed scrapes
             logger.warn("[!] failed to scrape: %s" % u)
             logger.warn(traceback.format_exc())
+    logger.info("[o] added/updated: %s/%s" % (stats[0],stats[1]))
 
 if __name__ == "__main__":
     if len(sys.argv)>1:
