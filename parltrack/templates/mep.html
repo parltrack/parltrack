@@ -85,7 +85,7 @@
     {% if loop.last %}</ul>{%endif%}
     {% break %}
 {% endfor %}
-{%for c in mep.Groups if c.end and c.end<=today %}
+{%for c in mep.Groups|sort(attribute='start',reverse=True) if c.end and c.end<=today %}
    {% if loop.first %}
       <div class="more">Show earlier groups...</div>
       <ul class="hidden">
@@ -125,7 +125,7 @@
   </li>
 {% endfor %}
 </ul>
-{%for c in mep.Staff if c.end and c.end<=today %}
+{%for c in mep.Staff|sort(attribute='start',reverse=True) if c.end and c.end<=today %}
    {% if loop.first %}
       <div class="more">Show earlier staff positions...</div>
       <ul class="hidden">
