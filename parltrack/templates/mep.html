@@ -152,8 +152,8 @@
       <td>{% if c.Organization|length == 4 %}<a href="/committee/{{c.Organization}}">{{c.Organization}}</a></td>
       <td>{%elif committee_map[c.Organization]|length == 4%}<a href="/committee/{{committee_map[c.Organization]}}">{{c.Organization}}</a>{%else%}
          {{c.Organization}}{%endif%}</td>
-      <td>{{c.start|asdate}}</td>
-      <td>{{c.end|asdate}}</td>
+      <td>{% if c.start %}{{c.start|asdate}}{% endif %}</td>
+      <td>{% if c.end %}{{c.end|asdate}}{% endif %}</td>
    </tr>
 {% endfor %}
 </tbody>
@@ -170,8 +170,8 @@
        <td>{% if c.Organization|length == 4 %}<a href="/committee/{{c.Organization}}">{{c.Organization}}</a>
           {%elif committee_map[c.Organization]|length == 4%}<a href="/committee/{{committee_map[c.Organization]}}">{{c.Organization}}</a>{%else%}
           {{c.Organization}}{%endif%}</td>
-       <td>{{c.start|asdate}}</td>
-       <td>{{c.end|asdate}}</td>
+          <td>{% if c.start %}{{c.start|asdate}}{% endif %}</td>
+          <td>{% if c.end %}{{c.end|asdate}}{% endif %}</td>
        </tr>
    {% if loop.last %}
          </tbody>
@@ -242,8 +242,8 @@
    <tr>
     <td>{{c.role}} of</td>
     <td>{{c.Organization}}</td>
-    <td>{{c.start|asdate}}</td>
-    <td>{{c.end|asdate}}</td>
+    <td>{% if c.start %}{{c.start|asdate}}{% endif %}</td>
+    <td>{% if c.end %}{{c.end|asdate}}{% endif %}</td>
   </tr>
 {% endfor %}
 </tbody></table>
@@ -257,8 +257,8 @@
     <tr>
        <td>{{c.role}} of</td>
        <td>{{c.Organization}}</td>
-       <td>{{c.start|asdate}}</td>
-       <td>{{c.end|asdate}}</td>
+       <td>{% if c.start %}{{c.start|asdate}}{% endif %}</td>
+       <td>{% if c.end %}{{c.end|asdate}}{% endif %}</td>
     </tr>
    {% if loop.last %}
       </tbody></table>
