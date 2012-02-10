@@ -21,7 +21,7 @@
     <li><a href="#calendar-tab">Calendar</a></li>
   </ul>
 <div id="meetings">
-{%for group in committee.agendas|groupby('date') if group.grouper >= today %}
+{%for group in committee.agendas|groupby('date')|sort(reverse=True) if group.grouper >= today %}
     <div>{{group.grouper}} {% if group.end %} - {{group.end}}{% endif %}</div>
     <table class="tablesorter">
        <thead><tr><th>Committee Dossier</th><th>Title</th><th>Dossier</th><th>Deadline</th><th>Notes</th></tr></thead>
@@ -42,7 +42,7 @@
     </tbody></table>
 {%endfor%}
 <h3>Earlier meetings</h3>
-{%for group in committee.agendas|groupby('date') if group.grouper < today %}
+{%for group in committee.agendas|groupby('date')|sort(reverse=True) if group.grouper < today %}
     <div class="more">{{group.grouper}} {% if group.end %} - {{group.end}}{% endif %}</div>
     <table class="hidden tablesorter">
        <thead><tr><th>Committee Dossier</th><th>Title</th><th>Dossier</th><th>Deadline</th><th>Notes</th></tr></thead>
