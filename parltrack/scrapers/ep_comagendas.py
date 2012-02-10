@@ -277,11 +277,16 @@ def getComAgendas():
 def save(data, stats):
     for item in data:
         if not 'committee' in item: continue
-        res=db.ep_comagendas.find_one({'committee': item['committee'],
-                                       'src': item['src'],
-                                       'date': item['date'],
-                                       'end': item['end'],
-                                       'title': item['title']}) or {}
+        query={'committee': item['committee'],
+               'src': item['src'],
+               'title': item['title']}
+        if 'date' in data:
+            query['date']= item['date']
+            if 'end' in data:
+                query['end']= item['end']
+        else:
+            query['seq_no']=item['seq_no']
+        res=db.ep_comagendas.find_one(query) or {}
         d=diff(dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes']]),
                dict([(k,v) for k,v in item.items() if not k in ['_id', 'meta', 'changes',]]))
         if d:
@@ -339,7 +344,5 @@ if __name__ == "__main__":
         saver=save
     if 'seq' in args:
         res=seqcrawler(saver=saver)
-        if 'dry' in args:
-            print "[%s]" % ',\n'.join(res).encode('utf8')
     else:
         crawler(saver=saver)
