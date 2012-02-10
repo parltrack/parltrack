@@ -224,23 +224,13 @@ def scrape(url, data={}):
     name=urlseq.path.split('/')[4][:-5].replace('_',' ')
     data['UserID']=userid
     ret=parseMember(userid)
-    for k in ['Constituencies', 'Groups']:
-        if k in ret and k in data:
-            # save party
-            if k=='Constituencies':
-                for key in [u'party',u'country']:
-                    try:
-                        data['Constituencies'][0][key]=ret['Constituencies'][0][key]
-                    except:
-                        pass
-            # currently data is better than ret - might change later
-            del ret[k]
     if 'Constituencies' in data:
-        for k in ['Staff', 'Delegations']:
-            if k in ret:
-                ret[k][0][u'start']=data['Constituencies'][0][u'start']
-                if 'end' in data['Constituencies'][0]:
-                    ret[k][0][u'end']=data['Constituencies'][0][u'end']
+        for key in [u'party',u'country']:
+            try:
+                data['Constituencies'][0][key]=ret['Constituencies'][0][key]
+            except:
+                pass
+        del ret['Constituencies']
     data.update(ret)
     data['Gender'] = getMEPGender(userid)
     return data
