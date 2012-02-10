@@ -22,21 +22,45 @@
   </ul>
 <div id="meetings">
 {%for group in committee.agendas|groupby('date') if group.grouper >= today %}
-    <h3>{{group.grouper}} {% if group.end %} - {{group.end}}{% endif %}</h3><ul>
+    <div>{{group.grouper}} {% if group.end %} - {{group.end}}{% endif %}</div>
+    <table class="tablesorter">
+       <thead><tr><th>Committee Dossier</th><th>Title</th><th>Dossier</th><th>Deadline</th><th>Notes</th></tr></thead>
+       <tbody>
     {% for meet in group.list %}
-      <li><a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{meet.comdossier}}&amp;body={{meet.committee}}&amp;language=EN">{{meet.comdossier}}</a> {{meet.title}}
-        {%if meet.epdoc %}<a href="/dossier/{{meet.epdoc}}">{{meet.epdoc}}</a>{%else%}{{meet.comdoc}}{%endif%}
-        {%if meet.tabling_deadline %}<div><strong>Tabling Deadline</strong> {{meet.tabling_deadline}}</div>{%endif%}
-        {%for line in meet.Misc if not line.startswith('Deadline for tabling amendments') %}
+      <tr>
+        <td><a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{meet.comdossier}}&amp;body={{meet.committee}}&amp;language=EN">{{meet.comdossier}}</a></td>
+        <td>{{meet.title}}</td>
+        <td>{%if meet.epdoc %}<a href="/dossier/{{meet.epdoc}}">{{meet.epdoc}}</a>{%else%}{{meet.comdoc}}{%endif%}</td>
+        <td>{%if meet.tabling_deadline %}<div><strong>Tabling Deadline</strong> {{meet.tabling_deadline}}</div>{%endif%}</td>
+        <td>{%for line in meet.list if not line.startswith('Deadline for tabling amendments') %}
            {%if loop.first %}<ul>{%endif%}
            <li>{{line}}</li>
            {%if loop.last %}</ul>{%endif%}
-        {%endfor%}
-      </li>
+        {%endfor%}</td>
+      </tr>
     {%endfor%}
-    </ul>
-{% else %}
- <h3>No agenda known</h3>
+    </tbody></table>
+{%endfor%}
+<h3>Earlier meetings</h3>
+{%for group in committee.agendas|groupby('date') if group.grouper < today %}
+    <div class="more">{{group.grouper}} {% if group.end %} - {{group.end}}{% endif %}</div>
+    <table class="hidden tablesorter">
+       <thead><tr><th>Committee Dossier</th><th>Title</th><th>Dossier</th><th>Deadline</th><th>Notes</th></tr></thead>
+       <tbody>
+    {% for meet in group.list|sort(attribute='seq_no') %}
+      <tr>
+        <td><a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{meet.comdossier}}&amp;body={{meet.committee}}&amp;language=EN">{{meet.comdossier}}</a></td>
+        <td>{{meet.title}}</td>
+        <td>{%if meet.epdoc %}<a href="/dossier/{{meet.epdoc}}">{{meet.epdoc}}</a>{%else%}{{meet.comdoc}}{%endif%}</td>
+        <td>{%if meet.tabling_deadline %}<div><strong>Tabling Deadline</strong> {{meet.tabling_deadline}}</div>{%endif%}</td>
+        <td>{%for line in meet.list if not line.startswith('Deadline for tabling amendments') %}
+           {%if loop.first %}<ul>{%endif%}
+           <li>{{line}}</li>
+           {%if loop.last %}</ul>{%endif%}
+        {%endfor%}</td>
+      </tr>
+    {%endfor%}
+    </tbody></table>
 {%endfor%}
 </div>
 <div id="dossiers">

@@ -242,7 +242,12 @@ def mep(id,date):
 
 def committee(id):
     # get agendas
-    agendas=db.ep_comagendas.find({'committee': id, 'date': { '$gte': datetime.now()}}).sort([('date', pymongo.DESCENDING), ('seq_no', pymongo.ASCENDING)])
+    agendas=[]
+    for entry in db.ep_comagendas.find({'committee': id,
+                                        'date': { '$exists': True}}).sort([('date', pymongo.DESCENDING),
+                                                                           ('seq_no', pymongo.ASCENDING)]):
+        entry['date'], entry['time']=entry['date'].isoformat().split('T')
+        agendas.append(entry)
     # get dossiers
     #comre=re.compile(COMMITTEE_MAP[id],re.I)
     dossiers=[]
@@ -261,7 +266,6 @@ def committee(id):
                     break
             if d not in dossiers: dossiers.append(d)
     # get members of committee
-    date=datetime.now()
     query={"Committees.abbr": id, "active": True}
     rankedMeps=[]
     for mep in db.ep_meps2.find(query):

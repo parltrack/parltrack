@@ -540,7 +540,7 @@ def view_committee(c_id):
     return render_template('committee.html',
                            committee=c,
                            Committee=COMMITTEE_MAP[c_id],
-                           today=datetime.now(),
+                           today=datetime.now().isoformat().split('T')[0],
                            groupids=groupids,
                            c=c_id,
                            url=request.base_url)
