@@ -60,7 +60,7 @@ def inject_data():
                 countries=SEIRTNUOC,
                 )
 
-#@cache.cached()
+@cache.cached()
 @app.route('/')
 def index():
     db = connect_db()
@@ -436,30 +436,37 @@ def atom(db, order, tpl, path):
         return jsonify(tojson(d))
     return render_template(tpl, dossiers=list(d), path=path)
 
+@cache.cached()
 @app.route('/new/')
 def new_docs():
     return atom(connect_db().dossiers2, 'meta.created', 'atom.xml', 'new')
 
+@cache.cached()
 @app.route('/changed/')
 def changed():
     return atom(connect_db().dossiers2, 'meta.updated', 'atom.xml', 'changed')
 
+@cache.cached()
 @app.route('/meps/new/')
 def new_meps():
     return atom(connect_db().ep_meps2, 'meta.created', 'mep_atom.xml', 'new')
 
+@cache.cached()
 @app.route('/meps/changed/')
 def changed_meps():
     return atom(connect_db().ep_meps2, 'meta.updated', 'mep_atom.xml', 'changed')
 
+@cache.cached()
 @app.route('/committees/new/')
 def new_coms():
     return atom(connect_db().ep_comagendas, 'meta.created', 'com_atom.xml', 'new')
 
+@cache.cached()
 @app.route('/committees/changed/')
 def changed_com():
     return atom(connect_db().ep_comagendas, 'meta.updated', 'com_atom.xml', 'changed')
 
+@cache.cached()
 @app.route('/rss/<path:nid>')
 def rss(nid):
     db = connect_db()
