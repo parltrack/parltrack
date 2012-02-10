@@ -334,7 +334,7 @@ def ranking():
     return render_meps(query)
 
 @cache.cached()
-@app.route('/mep/<string:d_id>/rss')
+@app.route('/mep/<string:d_id>/atom')
 def mep_changes(d_id):
     c=mep(d_id,None)
     if not c:
@@ -430,7 +430,7 @@ def subjects_view():
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 
 @cache.cached()
-@app.route('/dossier/<path:d_id>/rss')
+@app.route('/dossier/<path:d_id>/atom')
 def dossier_changes(d_id):
     c=dossier(d_id, without_changes=False)
     if not c:
@@ -493,7 +493,7 @@ def changed_com():
     return atom(connect_db().ep_comagendas, 'meta.updated', 'com_atom.xml', 'changed')
 
 @cache.cached()
-@app.route('/rss/<path:nid>')
+@app.route('/atom/<path:nid>')
 def rss(nid):
     db = connect_db()
     ng=db.notifications.find_one({'id': nid})
@@ -563,7 +563,7 @@ def active_dossiers():
 
 
 @cache.cached()
-@app.route('/committee/<string:c_id>/rss')
+@app.route('/committee/<string:c_id>/atom')
 def committee_changes(c_id):
     c=committee(c_id)
     if not c:

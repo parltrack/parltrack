@@ -6,6 +6,8 @@
     <meta name="description" content="" />
     <meta name="keywords" content="" />
     <title>{% block title %}{% endblock %}ParlTrack </title>
+    {% block rss %}
+    {% endblock %}
     <link rel="alternate" type="application/atom+xml" title="New Dossiers feed" href="{{request.url_root}}new/?format=atom" />
     <link rel="alternate" type="application/atom+xml" title="Changed Dossiers feed" href="{{request.url_root}}changed/?format=atom" />
 
@@ -14,8 +16,6 @@
 
     <link rel="alternate" type="application/atom+xml" title="New Committee agenda items feed" href="{{request.url_root}}committees/new/?format=atom" />
     <link rel="alternate" type="application/atom+xml" title="Changed Committee agenda items feed" href="{{request.url_root}}committees/changed/?format=atom" />
-    {% block rss %}
-    {% endblock %}
     <script type="text/javascript" src="/static/js/jquery.js"> </script>
     <script type="text/javascript" src="/static/js/jquery-ui.js"> </script>
     <script type="text/javascript">
