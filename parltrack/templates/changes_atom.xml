@@ -8,7 +8,7 @@
    <id>{{request.url}}</id>
    {% for c in changes %}
 	<entry>
-      <title>{{updated}})</title>
+      <title>{{updated}}</title>
       <link rel="alternate" type="text/html" href="{{path}}"/>
       <id>{{path}}/{{updated}}</id>
       <updated>{{updated}}</updated>
