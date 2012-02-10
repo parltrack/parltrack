@@ -334,6 +334,19 @@ def ranking():
     return render_meps(query)
 
 @cache.cached()
+@app.route('/mep/<string:d_id>/rss')
+def mep_changes(d_id):
+    c=mep(d_id,None)
+    if not c:
+        abort(404)
+    changes=[(date, change)
+             for date,change
+             in c['changes'].items()]
+    updated=max(changes, key=itemgetter(0))[0]
+    changes=[{'changes': {date: change}} for date, change in sorted(changes, key=itemgetter(0), reverse=True)]
+    return render_template('changes_atom.xml', updated=updated, changes=changes, path='/mep/%s' % d_id)
+
+@cache.cached()
 @app.route('/mep/<string:d_id>')
 def view_mep(d_id):
     date=None
@@ -415,6 +428,19 @@ def subjects_view():
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 #               Dossiers
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
+
+@cache.cached()
+@app.route('/dossier/<path:d_id>/rss')
+def dossier_changes(d_id):
+    c=dossier(d_id, without_changes=False)
+    if not c:
+        abort(404)
+    changes=[(date, change)
+             for date,change
+             in c['changes'].items()]
+    updated=max(changes, key=itemgetter(0))[0]
+    changes=[{'changes': {date: change}} for date, change in sorted(changes, key=itemgetter(0), reverse=True)]
+    return render_template('changes_atom.xml', updated=updated, changes=changes, path='/dossier/%s' % d_id)
 
 @cache.cached()
 @app.route('/dossier/<path:d_id>')
@@ -534,6 +560,21 @@ def active_dossiers():
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 #              Committees
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
+
+
+@cache.cached()
+@app.route('/committee/<string:c_id>/rss')
+def committee_changes(c_id):
+    c=committee(c_id)
+    if not c:
+        abort(404)
+    changes=[]
+    for item in c['agendas']:
+        for date,change in item['changes'].items():
+            changes.append((date, change))
+    updated=max(changes, key=itemgetter(0))[0]
+    changes=[{'changes': {date: change}} for date, change in sorted(changes, key=itemgetter(0), reverse=True)]
+    return render_template('changes_atom.xml', updated=updated, changes=changes, path='/committee/%s' % c_id)
 
 @cache.cached()
 @app.route('/committee/<string:c_id>')
