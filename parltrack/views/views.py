@@ -283,30 +283,59 @@ def committee(id):
 
 def immunity():
     immre=re.compile(r'.*\(IMM\)$')
-    mepre=re.compile(r"(?:.*Mr.? |.* of |)(.*?)(?:'[s]? .*(?:immunity|mandate|testimony)| to be waived|$)")
     res=[]
     for d in db.dossiers2.find({'procedure.reference': immre}):
-        m=mepre.match(d['procedure']['title'])
-        if not m:
-            print 'pls improve mepre to handle', d['procedure']['title'].encode('utf8')
-            continue
-        name=''.join(unicodedata.normalize('NFKD', unicode(m.group(1).strip())).encode('ascii','ignore').split()).lower()
-        mep=db.ep_meps2.find_one({'Name.aliases': name })
+        text=None
+        d['procedure']['title']=d['procedure']['title'].replace(u"\u00A0",' ')
+        for marker in [' immunity of Mr.',
+                       ' immunity of Mr',
+                       ' immunity of ',
+                       ' privileges of Mr. ',
+                       ' privileges of Mr ',]:
+            candidate=d['procedure']['title'].find(marker)
+            if candidate>=0:
+                text=d['procedure']['title'][candidate+len(marker):]
+                break
+        if not text:
+            for marker in ["'s parliamentary immunity",
+                           "' parliamentary immunity",
+                           "'s immunity",
+                           "' immunity",]:
+                candidate=d['procedure']['title'].find(marker)
+                if candidate>=0:
+                    text=d['procedure']['title'][:candidate]
+                    break
+        if not text:
+            text=d['procedure']['title'].strip()
+        # cut of head
+        for head in ['Request for the waiver of Mrs. ',
+                     'Request for the waiver of Mrs ',
+                     'Request for the waiver of Mr. ',
+                     'Request for the waiver of Mr ',
+                     'Request for waiver of Mrs ',
+                     'Request for waiver of Mr ',
+                     'Request for waiver of ',
+                     'Second request for the waiver of Mr ',
+                     ]:
+            if text.startswith(head):
+                text=text[len(head):]
+        name=''.join(unicodedata.normalize('NFKD', unicode(text)).encode('ascii','ignore').split()).lower()
+        mep=db.ep_meps.find_one({'Name.aliases': name })
         if not mep:
-            mep=db.ep_meps.find_one({'Name.aliases': name })
-        if not mep and u'ß' in m.group(1):
-            name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(u'ß','ss').strip())).encode('ascii','ignore').split()).lower()
             mep=db.ep_meps2.find_one({'Name.aliases': name })
+        if not mep and u'ß' in text:
+            name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(u'ß','ss').strip())).encode('ascii','ignore').split()).lower()
+            mep=db.ep_meps.find_one({'Name.aliases': name })
             if not mep:
-                mep=db.ep_meps.find_one({'Name.aliases': name })
+                mep=db.ep_meps2.find_one({'Name.aliases': name })
         if not mep:
-            print '[0] not found', d['procedure']['reference'].split('/')[1], m.group(1).encode('utf8')
+            print '[0] not found', d['procedure']['reference'].split('/')[1], text.encode('utf8')
             continue
         year=d['procedure']['reference'].split('/')[0]
         for c in mep['Constituencies']:
             if c['start'].year<=int(year) and c['end'].year>=int(year):
                 country=c['country']
-                party=c['party']
+                party=c.get('party','*n/a*')
                 break
         if d['procedure']['stage_reached']=='Awaiting Parliament 1st reading / single reading / budget 1st stage':
             state='[1] in progress'

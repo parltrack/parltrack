@@ -384,15 +384,6 @@ def toJit(tree, name):
 @app.route('/datasets/imm/')
 def immunity_view():
     res=immunity()
-    if request.args.get('format','')=='json' or request.headers.get('X-Requested-With') or request.headers.get('Accept')=='text/json':
-        return jsonify(tojson({'count': len(res), 'data': res}))
-    if request.args.get('format','')=='csv':
-        fd = cStringIO.StringIO()
-        writer = csv.writer(fd,dialect='excel')
-        writer.writerow(['status', 'procedure','country','name','year','party'])
-        writer.writerows([[v.encode('utf8') for k,v in row.items()] for row in sorted(res,key=itemgetter('year'),reverse=True)])
-        fd.seek(0)
-        return Response( response=fd.read(), mimetype="text/csv" )
     if request.args.get('format','')=='tree':
         tree={}
         for item in res:
@@ -406,6 +397,15 @@ def immunity_view():
                                                                       'status': item['status'],
                                                                       'dossier': item['dossier']})
         return jsonify(tojson(toJit(tree,'Immunity Procedures by Country/Party')))
+    if request.args.get('format','')=='json' or request.headers.get('X-Requested-With') or request.headers.get('Accept')=='text/json':
+        return jsonify(tojson({'count': len(res), 'data': res}))
+    if request.args.get('format','')=='csv':
+        fd = cStringIO.StringIO()
+        writer = csv.writer(fd,dialect='excel')
+        writer.writerow(['status', 'procedure','country','name','year','party'])
+        writer.writerows([[v.encode('utf8') for k,v in row.items()] for row in sorted(res,key=itemgetter('year'),reverse=True)])
+        fd.seek(0)
+        return Response( response=fd.read(), mimetype="text/csv" )
     return render_template('immunity.html',
                            data=res,
                            url=request.base_url)
