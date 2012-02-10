@@ -167,9 +167,9 @@
    {%endif%}
     <tr>
        <td>{{c.role}} of</td>
-       <td>{% if c.Organization|length == 4 %}<a href="/committee/{{c.Organization}}">{{c.Organization}}</a></td>
+       <td>{% if c.Organization|length == 4 %}<a href="/committee/{{c.Organization}}">{{c.Organization}}</a>
           {%elif committee_map[c.Organization]|length == 4%}<a href="/committee/{{committee_map[c.Organization]}}">{{c.Organization}}</a>{%else%}
-       <td>{{c.Organization}}{%endif%}</td>
+          {{c.Organization}}{%endif%}</td>
        <td>{{c.start|asdate}}</td>
        <td>{{c.end|asdate}}</td>
        </tr>
