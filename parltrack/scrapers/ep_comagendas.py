@@ -198,8 +198,8 @@ def scrape(url, comid):
             if item: res.append(item)
             itemcnt+=1
             item=copy.deepcopy(agenda)
-            item.update({'title': ' '.join(txt.split()[1:]),
-                         'seq_no': itemcnt,})
+            item.update({u'title': ' '.join(txt.split()[1:]),
+                         u'seq_no': itemcnt,})
             if schedule:
                 item.update(schedule)
             continue
@@ -279,6 +279,8 @@ def save(data, stats):
         if not 'committee' in item: continue
         res=db.ep_comagendas.find_one({'committee': item['committee'],
                                        'src': item['src'],
+                                       'date': item['date'],
+                                       'end': item['end'],
                                        'title': item['title']}) or {}
         d=diff(dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes']]),
                dict([(k,v) for k,v in item.items() if not k in ['_id', 'meta', 'changes',]]))
