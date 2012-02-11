@@ -110,7 +110,7 @@ def search():
             return redirect('/mep/%s' % (ret[0]['Name']['full']))
             #return view_mep(ret[0]['Name']['full'])
     return render_template('search_results.html', query=q,
-                           results=ret)
+                           results=sorted(ret, reverse=True))
 
 
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
