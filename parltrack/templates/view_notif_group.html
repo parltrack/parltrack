@@ -99,15 +99,21 @@ $(document).ready(function() {
       {% for dossier in dossiers %}
       <tr>
         <td><a href="/dossier/{{ dossier.procedure.reference }}">{{ dossier.procedure.reference }}</a></td>
-        <td class='forecasts'>{% for fc in dossier.forecasts|sort if fc.date > now_date %}
-           <div class="vevent"><abbr title="{{fc.date.isoformat()}}" class="dtstart">{{ fc.date|asdate }}</abbr> -
-              <span class="summary">{{ fc.title }}</span></div>
+        <td class='forecasts'>{% for fc in dossier.activities|sort(attribute='date') if fc.date >= now_date %}
+           <div class="vevent"><abbr title="{{fc.date.isoformat()}}" class="dtstart">{{ fc.date|asdate }}</abbr> - <span class="summary">{{ fc.type }}</span></div>
+           {% if loop.first and loop.length>1 %}
+              <div class="more" >More..</div>
+              <div class="hidden">
+           {% endif %}
+           {% if loop.last and loop.length>1 %}
+              </div>
+           {% endif %}
           {% endfor %}</td>
         <td>{{ dossier.procedure.stage_reached }}</td>
         <td>{% for sub in dossier.procedure.legal_basis %}{% if not loop.first %}, {% endif %}{{ sub }}{% endfor %}</td>
         <td>{{ dossier.procedure.title }}</td>
         <td>{{ dossier.procedure.dossier_of_the_committee }}</td>
-        <td>{% for r in dossier.rapporteur %}{% if not loop.first %}, {% endif %}<a href="/mep/{{r.name}}">{{ r.name }}</a> ({{r.grp}}){% endfor %}</td>
+        <td>{% for c in dossier.committees %}{% if c.responsible %}{% for r in c.rapporteur %}{% if not loop.first %}, {% endif %}<a href="/mep/{{r.name}}">{{ r.name }}</a> ({{r.group}}){% endfor %}{%endif%}{%endfor%}</td>
         <td>{% if dossier.comdoc %}<a href="{{dossier.comdoc.url}}">{{ dossier.comdoc.title }}</a>{% endif %}</td>
       </tr>
       {% endfor %}
