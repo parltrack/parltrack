@@ -33,6 +33,7 @@ def index(db):
     db.ep_comagendas.ensure_index([('date',1)])
     db.ep_comagendas.ensure_index([('end', 1)])
     db.ep_comagendas.ensure_index([('title',1)])
+    db.ep_comagendas.ensure_index([('seq_no',1)])
 
     db.ep_meps2.ensure_index([('UserID', 1)])
     db.ep_meps2.ensure_index([('Name.full', 1)])
