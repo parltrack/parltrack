@@ -16,7 +16,7 @@
 <a href="{{url}}/atom"><img src="/static/images/rss.gif" alt="rss icon" /></a>
 <a href="{{url}}/atom">track atom</a>
 <a href="{{url}}?format=json">download json</a>
-<span id="track_dossier"><a href="/notification">Track dossier</a>
+<div id="track_dossier"><a href="/notification">Track dossier</a>
     <div class="hidden right" id="notif_subscr">
     <h3>Email subscription</h3>
     <div>
@@ -31,7 +31,7 @@
         </form>
     </div>
     </div>
-</span>
+</div>
 {% endblock %}
 {% block content %}
 <h2>{{ dossier.procedure.reference }}</h2>
@@ -71,11 +71,11 @@
     agenda
     {%if 'tabling_deadline' in committee and committee.tabling_deadline > now_date %}<div><strong>Tabling deadline</strong> {{committee.tabling_deadline}}</div>{%endif%}
     {%if Misc in committee%}
-    <ul>
-      {%for line in committee.Misc%}
-        <li>{{line}}</li>
-      {%endfor%}
-    </ul>
+       {%for line in committee.Misc%}
+           {% if loop.first %}<ul>{% endif %}
+           <li>{{line}}</li>
+           {% if loop.last %} </ul>{% endif %}
+       {%endfor%}
     {%endif%}
     </li>
     {%if loop.last %}</ul>{%endif%}
@@ -109,7 +109,11 @@
   </ul>
   {%endif%}
 <div>Subjects
-<ul>{%for sub in dossier.procedure.subject%}<li><a href="/dossiers?sub={{sub.split(' ')[0]}}&subtitle={{sub}}">{{sub}}</a></li>{%endfor%}</ul>
+{%for sub in dossier.procedure.subject%}
+    {% if loop.first %}<ul>{% endif %}
+    <li><a href="/dossiers?sub={{sub.split(' ')[0]}}&amp;subtitle={{sub}}">{{sub}}</a></li>
+    {% if loop.last %} </ul>{% endif %}
+{%endfor%}
 </div>
   {% if dossier.procedure.legal_basis %}
   <div>Legal Basis
@@ -182,10 +186,11 @@
 <ul>
 {% for act in dossier.activities %}
    {%for doc in act.docs%}
+      <li>{{doc.type}}: 
       {%if doc.celexid %}
-         <li>{{doc.type}}: <a href='http://pippi.euwiki.org/doc/{{doc.celexid}}'>{{doc.title}}</a>
+         <a href='http://pippi.euwiki.org/doc/{{doc.celexid}}'>{{doc.title}}</a>
       {%else%}
-         <li>{{doc.type}}: {%if doc.url %}<a href='{{doc.url}}'>{%endif%}{{doc.title}}{%if doc.url %}</a>{%endif%}
+         {%if doc.url %}<a href='{{doc.url}}'>{%endif%}{{doc.title}}{%if doc.url %}</a>{%endif%}
       {%endif%}
       {%if doc.summary%}
          [<a class="has_summary">summary</a>]
@@ -195,6 +200,7 @@
            {%endfor%}
          </div>
       {%endif%}
+      </li>
    {%endfor%}
 {%endfor%}
 {%for doc in dossier.docs%}
