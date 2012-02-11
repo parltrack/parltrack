@@ -256,7 +256,7 @@
   </tr>
    {% if loop.last %}
 </tbody></table>
-   {%endif}
+   {%endif%}
 {% endfor %}
 {%for c in mep.Delegations if c.end and c.end<=today %}
    {% if loop.first %}
