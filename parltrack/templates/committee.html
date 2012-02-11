@@ -14,9 +14,12 @@
 {% block styles %}
 <link rel='stylesheet' type='text/css' href='/static/css/fullcalendar.css' />
 {%endblock%}
+{% block topbar %}
+<a href="{{url}}/atom"><img src="/static/images/rss.gif" alt="rss icon" /></a>
+<a href="{{url}}/atom">track atom</a>
+<a href="{{url}}?format=json">download json</a> 
+{% endblock %}
 {% block content %}
-<a class="asjson" href="{{url}}/atom">track as atom</a><br />
-<a class="asjson" href="{{url}}?format=json">download as json</a>
 <h2>{{Committee}} ({{c}})</h2>
 <div id="tabs">
   <ul>

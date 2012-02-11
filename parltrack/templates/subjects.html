@@ -11,9 +11,11 @@
      });
     </script>
 {% endblock %}
+{% block topbar %}
+<a href="{{url}}?format=json">download json</a>
+<a href="{{url}}?format=csv">download csv</a>
+{% endblock %}
 {% block content %}
-<a class="asjson" href="{{url}}?format=json">download as json</a><br />
-<a class="asjson" href="{{url}}?format=csv">download as csv</a>
 <h2>Subjects of dossiers</h2>
 <p>This is a table shows which subjects are taken on by which national parties. Group and country fields provide greater granularity for filtering. The data is available as <a href="?format=csv">csv</a> and as <a href="?format=json">json</a>. Please help in visualizing this, thank you!</p>
 <table id='sortedlist' class="tablesorter">

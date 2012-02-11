@@ -12,10 +12,11 @@
 <script type="text/javascript" src="/static/js/jitchart.js"></script>
 <script type="text/javascript" src="/static/js/dossier.js"></script>
 {% endblock %}
-{% block content %}
-<a class="asjson" href="{{url}}/atom">track as atom</a><br />
-<a class="asjson" href="{{url}}?format=json">download as json</a><br />
-<div id="track_dossier"><a class="asjson" href="/notification">Track this dossier</a>
+{% block topbar %}
+<a href="{{url}}/atom"><img src="/static/images/rss.gif" alt="rss icon" /></a>
+<a href="{{url}}/atom">track atom</a>
+<a href="{{url}}?format=json">download json</a>
+<span id="track_dossier"><a href="/notification">Track dossier</a>
     <div class="hidden right" id="notif_subscr">
     <h3>Notification subscription</h3>
     <div>
@@ -30,7 +31,9 @@
         </form>
     </div>
     </div>
-</div>
+</span>
+{% endblock %}
+{% block content %}
 <h2>{{ dossier.procedure.reference }}</h2>
 {% if dossier.finalref %}<p>{{dossier.finalref}}</p>{% endif %}
 <p>{{dossier.procedure.title}}</p>

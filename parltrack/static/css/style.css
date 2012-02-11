@@ -234,6 +234,7 @@ background-color: #8dbdd8;
 	position:	fixed;
 	float:		left;
 	background:	#214478;
+   z-index:		11;
 }
 
 #monolith a {
@@ -330,4 +331,22 @@ background-color: #8dbdd8;
 .ui-tabs .ui-tabs-nav li a {
     font-size: 80% !important;
     line-height: 1.1 !important;
+}
+
+#topbar {
+	top:			0px;
+   right:		0px;
+	width:		100%;
+	padding-left:200px;
+	height:		1.1em;
+	position:	fixed;
+	background:	#214478;
+   z-index:		10;
+}
+
+#topbar a {
+	color:		#ffcc00;
+   float:		right;
+   margin-right: 0.5em;
+   font-size:	.8em;
 }

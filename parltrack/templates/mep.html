@@ -3,6 +3,11 @@
 {% block rss %}
 <link rel="alternate" type="application/atom+xml" title="Changes for {{ mep.Name.full }} feed" href="{{url}}/atom" />
 {% endblock %}
+{% block topbar %}
+<a href="{{url}}/atom"><img src="/static/images/rss.gif" alt="rss icon" /></a>
+<a href="{{url}}/atom">track atom</a>
+<a href="{{url}}?format=json">download json</a>
+{% endblock %}
 {% block scripts %}
 <script type="text/javascript">
      $(document).ready(function() {
@@ -18,8 +23,6 @@
     </script>
 {% endblock %}
 {% block content %}
-<a class="asjson" href="{{url}}/atom">track as atom</a><br />
-<a class="asjson" href="{{url}}?format=json">download as json</a>
 <h2>{{ mep.Name.full }}</h2>
 <br style="clear: both" />
 <div id="tabs">

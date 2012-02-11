@@ -9,8 +9,10 @@
      });
     </script>
 {% endblock %}
+{% block topbar %}
+<a href="{{url}}?format=json">download json</a>
+{% endblock %}
 {% block content %}
-<a class="asjson" href="{{url}}?format=json">download as json</a>
 <h2>Members of the European Parliament</h2>
 <h3>{%if country or group%}from <img class="group_icon" alt="icon: {{countries[country]}}" src="/static/images/{{countries[country]|lower}}.gif" /> {{country}}{%if group and country %}/{%endif%}{%if group%}<img class="group_icon" alt="icon: {{group}}" src="/{{group|group_icon}}" /> {{group}}{%endif%}{%endif%} as of  {{ d|asdate }}</h3>
 
