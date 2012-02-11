@@ -5,6 +5,18 @@
     <script type='text/javascript' src='/static/js/jquery.qtip.min.js'></script>
     <script type='text/javascript' src='/static/js/radarcal.js'></script>
     <script type="text/javascript" src="/static/js/view_notif.js"></script>
+    <script type="text/javascript">
+$(document).ready(function() {
+  $('#notif_form').submit(function() {
+       $.ajax({url: '{{group.id}}', success: function(data) {
+           $.ajax({url: '{{group.id}}/add/emails/'+$('#notif_form div').children('input:first').attr('value'), success: function(data) { $('#notif_subscr h3').html(data); }});
+           $.ajax({url: '{{group.id}}/add/dossiers/'+$('#content > h2:first').html()});
+       }});
+       return false;
+  });
+});
+</script>
+
 {% endblock %}
 {% block styles %}
 <link rel='stylesheet' type='text/css' href='/static/css/fullcalendar.css' />
