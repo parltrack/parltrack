@@ -1,7 +1,7 @@
 $(document).ready(function() {
   $( "#tabs" ).tabs();
   $("#sortedlist").tablesorter({
-    sortList: [[1,0],[0,0]],
+    sortList: [[1,0],[0,1]],
     textExtraction: function(node) {
        var max='2020/12/31'
        var tmp=null;
