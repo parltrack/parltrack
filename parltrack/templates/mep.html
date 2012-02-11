@@ -146,10 +146,12 @@
 
 <div id="committees">
 <h3>Committees</h3>
+{%for c in mep.Committees if not c.end or c.end>today%}
+   {% if loop.first %}
 <table class="tablesorter">
 <thead><tr><th>Role</th><th>Committee</th><th>Start</th><th>End</th></tr></thead>
 <tbody>
-{%for c in mep.Committees if not c.end or c.end>today%}
+   {% endif %}
    <tr>
       <td>{{c.role}} of</td>
       <td>{% if c.Organization|length == 4 %}<a href="/committee/{{c.Organization}}">{{c.Organization}}</a></td>
@@ -158,9 +160,11 @@
       <td>{% if c.start %}{{c.start|asdate}}{% endif %}</td>
       <td>{% if c.end %}{{c.end|asdate}}{% endif %}</td>
    </tr>
-{% endfor %}
+   {% if loop.last %}
 </tbody>
 </table>
+   {% endif %}
+{% endfor %}
 {%for c in mep.Committees if c.end and c.end<=today %}
    {% if loop.first %}
       <div class="more">Show earlier commitees...</div>
@@ -238,18 +242,22 @@
 
 <div id="delegations">
 <h3>Delegations</h3>
+{%for c in mep.Delegations if not c.end or c.end>today %}
+   {% if loop.first %}
 <table class="tablesorter">
 <thead><tr><th>Role</th><th>Delegation</th><th>Start</th><th>End</th></tr></thead>
 <tbody>
-{%for c in mep.Delegations if not c.end or c.end>today %}
+   {%endif}
    <tr>
     <td>{{c.role}} of</td>
     <td>{{c.Organization}}</td>
     <td>{% if c.start %}{{c.start|asdate}}{% endif %}</td>
     <td>{% if c.end %}{{c.end|asdate}}{% endif %}</td>
   </tr>
-{% endfor %}
+   {% if loop.last %}
 </tbody></table>
+   {%endif}
+{% endfor %}
 {%for c in mep.Delegations if c.end and c.end<=today %}
    {% if loop.first %}
       <div class="more">Show earlier delegations...</div>
