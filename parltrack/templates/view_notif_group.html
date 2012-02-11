@@ -16,13 +16,15 @@ $(document).ready(function() {
   });
 });
 </script>
-
 {% endblock %}
+
 {% block styles %}
 <link rel='stylesheet' type='text/css' href='/static/css/fullcalendar.css' />
 {%endblock%}
 
 {% block topbar %}
+<a href="{{url}}/atom"><img src="/static/images/rss.gif" alt="rss icon" /></a>
+<a href="/atom/{{group.id}}">track atom</a>
 <span id="track_dossier"><a href="/notification">Join this notification group</a>
     <div class="hidden right" id="notif_subscr">
        <h3>Subscribe</h3>
