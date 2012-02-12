@@ -290,7 +290,7 @@ def save(data, stats):
         d=diff(dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes']]),
                dict([(k,v) for k,v in item.items() if not k in ['_id', 'meta', 'changes',]]))
         if d:
-            now=unicode(datetime.utcnow().replace(microsecond=0).isoformat())
+            now=datetime.utcnow().replace(microsecond=0)
             if not 'meta' in item: item[u'meta']={}
             if not res:
                 logger.info((u'adding %s %s' % (item['committee'], item['title'])).encode('utf8'))

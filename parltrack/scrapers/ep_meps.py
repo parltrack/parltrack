@@ -132,7 +132,6 @@ def parseMember(userid):
         elif key in ['Member', 'Substitute', 'Chair', 'Vice-Chair', 'Co-President', 'President', 'Vice-President']:
             for span in div.xpath('.//span[@class="commission_label"]'):
                 item={u'role': key,
-                      # guessing dates
                       u'abbr': unws(''.join(span.xpath('text()'))),
                       u'Organization': unws(span.tail)}
                 for start, field in orgmaps:
@@ -428,7 +427,7 @@ def save(data, stats):
     d=diff(dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes']]),
            dict([(k,v) for k,v in data.items() if not k in ['_id', 'meta', 'changes',]]))
     if d:
-        now=unicode(datetime.utcnow().replace(microsecond=0).isoformat())
+        now=datetime.utcnow().replace(microsecond=0)
         if not res:
             logger.info(('adding %s' % (data['Name']['full'])).encode('utf8'))
             data['meta']['created']=now
