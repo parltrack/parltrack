@@ -75,7 +75,7 @@ $(document).ready(function() {
 <ul>
  <li>Number of subscribers: {{ group.active_emails|length }}</li>
  <li>Pending subscribers: {{ group.pending_emails|length }}</li>
- <li><a href="/rss/{{ group.id }}">Feed URL</a></li>
+ <li><a href="/atom/{{ group.id }}">Feed URL</a></li>
 {% if group.restricted %}
     <li>Restricted</li>
 {% else %}
