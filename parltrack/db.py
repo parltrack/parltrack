@@ -54,6 +54,7 @@ def index(db):
     db.dossiers2.ensure_index([('activities.actors.mepref', 1)])
     db.dossiers2.ensure_index([('activities.docs.title', 1)])
     db.dossiers2.ensure_index([('activities.committees.rapporteur.name', 1)])
+    db.dossiers2.ensure_index([('activities.committees.shadows.name', 1)])
     db.dossiers2.ensure_index([('activities.committees.responsible', 1)])
     db.dossiers2.ensure_index([('activities.committees.committee', 1)])
     db.dossiers2.ensure_index([('meta.created', -1)])
