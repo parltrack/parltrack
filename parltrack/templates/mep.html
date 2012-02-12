@@ -282,7 +282,7 @@
      <tbody>
     {%for doc,resp in mep.dossiers%}
     <tr>
-       <td>{%if not resp%}opinion{%else%}rapporteur{%endif%}</td>
+       <td>{{resp}}</td>
        <td><a href="/dossier/{{doc.procedure.reference}}">{{doc.procedure.reference}}</a></td>
        <td>{{doc.procedure.title}}</td>
     </tr>

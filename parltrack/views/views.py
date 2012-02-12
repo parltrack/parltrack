@@ -230,8 +230,9 @@ def mep(id,date):
         return None
 
     # find related dossiers
-    docs=[(x, True) for x in db.dossiers2.find({ 'activities.committees': { '$elemMatch': {'rapporteur.name': "%s %s" % (mep['Name']['family'],mep['Name']['sur']), 'responsible': True}}})]
-    docs.extend([(x, False) for x in db.dossiers2.find({ 'activities.committees': { '$elemMatch': {'rapporteur.name': "%s %s" % (mep['Name']['family'],mep['Name']['sur']), 'responsible': False}}})])
+    docs=[(x, 'Responsible') for x in db.dossiers2.find({ 'activities.committees': { '$elemMatch': {'rapporteur.name': "%s %s" % (mep['Name']['family'],mep['Name']['sur']), 'responsible': True}}})]
+    docs.extend([(x, 'Opinion') for x in db.dossiers2.find({ 'activities.committees': { '$elemMatch': {'rapporteur.name': "%s %s" % (mep['Name']['family'],mep['Name']['sur']), 'responsible': False}}})])
+    docs.extend([(x, 'Shadow') for x in db.dossiers2.find({ 'activities.committees.shadows.name': "%s %s" % (mep['Name']['family'],mep['Name']['sur'])})])
     for c in mep['Constituencies']:
         # term 6 20.07.2004 / 13.07.2009
         if 'end' in c and c['start']>=datetime(2004,07,20) and c['end']<=datetime(2009,07,13):
@@ -239,7 +240,7 @@ def mep(id,date):
         # term 7 started on 14.07.2009 / ...
         if c['start']>=datetime(2009,07,13):
             mep['term7']=True
-    mep['dossiers']=docs
+        mep['dossiers']=sorted(docs,key=lambda a: itemgetter('reference')(itemgetter('procedure')(itemgetter(0)(a))), reverse=True)
     return mep
 
 def committee(id):
