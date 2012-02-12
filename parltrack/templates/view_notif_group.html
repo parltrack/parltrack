@@ -25,7 +25,7 @@ $(document).ready(function() {
 {% block topbar %}
 <a href="{{url}}/atom"><img src="/static/images/rss.gif" alt="rss icon" /></a>
 <a href="/atom/{{group.id}}">track atom</a>
-<span id="track_dossier"><a href="/notification">Join this notification group</a>
+<div id="track_dossier"><a href="/notification">Join this notification group</a>
     <div class="hidden right" id="notif_subscr">
        <h3>Subscribe</h3>
        <div>
@@ -39,7 +39,7 @@ $(document).ready(function() {
            </form>
        </div>
     </div>
-</span>
+</div>
 {%endblock%}
 
 {% block content %}
