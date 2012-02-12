@@ -504,7 +504,7 @@ def scrape_epagents(table):
     for shadow, group in izip_longest(shadowelems, tips):
         committee=shadow.xpath('./ancestor::td/preceding-sibling::td//acronym/text()')[0]
         if not committee in shadows: shadows[committee]=[]
-        mep={u'name': shadow.xpath('text()')[0],
+        mep={u'name': unicode(shadow.xpath('text()')[0]),
              u'group': group}
         tmp=getMEPRef(shadow.xpath('text()')[0])
         if tmp:
