@@ -95,7 +95,7 @@ def toMEP(node):
      in node.xpath('.//span[@class="tiptip"]')]
 
     return [{u'name': toText(p),
-             u'group': group,
+             u'group': unicode(group),
              u'mepref': getMEPRef(toText(p))}
             for p, group
             in izip_longest(node.xpath("p"),tips)
@@ -677,7 +677,7 @@ def save(data, stats):
             sys.stdout.flush()
             stats[1]+=1
             data['_id']=res['_id']
-            #print >> sys.stderr, (d)
+            logger.info(jdump(d))
         m=db.notifications.find({'dossiers': data['procedure']['reference']},['active_emails'])
         for g in m:
             if len(g['active_emails'])==0:
@@ -743,6 +743,7 @@ if __name__ == "__main__":
         crawlseq(get_active_dossiers(), null=null)
     elif sys.argv[1]=="url":
         print jdump(scrape(sys.argv[2])).encode('utf8')
+        #save(scrape(sys.argv[2]),[0,0])
     elif sys.argv[1]=="test":
         save(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397"),[0,0]) # telecoms package
         #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=575084"))
