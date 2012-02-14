@@ -439,7 +439,7 @@ def save(data, stats):
             if stats: stats[1]+=1
             data['_id']=res['_id']
         data['changes']=res.get('changes',{})
-        data['changes'][now]=d
+        data['changes'][now.isoformat()]=d
         db.ep_meps2.save(data)
     if stats: return stats
     else: return data
