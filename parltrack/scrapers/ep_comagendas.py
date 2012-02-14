@@ -303,7 +303,7 @@ def save(data, stats):
                 if stats: stats[1]+=1
                 item['_id']=res['_id']
             item['changes']=res.get('changes',{})
-            item['changes'][now]=d
+            item['changes'][now.isoformat()]=d
             db.ep_comagendas.save(item)
     if stats: return stats
     else: return data
