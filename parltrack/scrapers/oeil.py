@@ -404,7 +404,10 @@ def scrape_basic(tree):
     if '' in res:
         del res['']
     if 'legal_basis' in res:
-        res[u'legal_basis']=sorted((x.strip() for x in res['legal_basis'].split(';')))
+        res[u'legal_basis']=sorted((unws(x)[len("Treaty on the Functioning of the EU "):]
+                                    if unws(x).startswith("Treaty on the Functioning of the EU")
+                                    else unws(x)
+                                    for x in res['legal_basis'].split(';')))
     fields=table.xpath('.//p[@class="basic_content"]/*')
     firstline=u' '.join((table.xpath('.//p[@class="basic_content"]/text()') or [''])[0].split())
     attrib=u'summary'
