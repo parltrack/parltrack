@@ -30,7 +30,7 @@ $(function() {
          return max.split('/').join('');
       }
    });
-   $('#sortedlist2').tableFilter();
+   $('#sortedlist2').tableFilter({enableCookies: false});
 });
 if(typeof(String.prototype.trim) === "undefined") { String.prototype.trim = function() {
       return String(this).replace(/^\s+|\s+$/g, '').replace(/\s+/,' ');
