@@ -179,6 +179,7 @@ otherinst={'Economic and Social Committee': u'ESOC',
            'European Data Protecion Supervisor': u'EDPS',
            'Court of Justice of the European Communities': u'CJEC',
            'Court of Justice of the European Union': u'CJEU',
+           'Court of Auditors', u'CoA',
            }
 detailsheaders={ 'Committee dossier': u'dossier_of_the_committee',
                  'Legal basis': u'legal_basis',
