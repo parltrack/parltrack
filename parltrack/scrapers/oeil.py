@@ -193,6 +193,7 @@ stage2inst={ 'Debate in Council': u'CSL',
              "Parliament's amendments rejected by Council": u'CSL',
              'Decision by Council, 3rd reading': u'CSL',
              'Council position published': u'CSL',
+             'Resolution/conclusions adopted by Council': u'CSL',
              
              'Final act signed by Parliament and Council': u'EP/CSL',
              'Joint text approved by Conciliation Committee co-chairs': u'EP/CSL',
@@ -257,11 +258,11 @@ def merge_events(events,committees,agents):
                     actors[item['body']][u'docs']=docs
                 cmts=getCommittee(item,committees)
                 if cmts:
-                    actors[item['body']][u'committees']=cmts
+                    actors[item['body']][u'committees']=sorted(cmts)
                 if item['body']=='EC':
-                    actors['EC']['commission']=[{u'DG': x['dg'],
-                                                 u'Commissioner': x['commissioner']} if x.get('commissioner') else {u'DG': x['dg']}
-                                                for x in agents if x['body']=='EC']
+                    actors['EC']['commission']=sorted([{u'DG': x['dg'],
+                                                        u'Commissioner': x['commissioner']} if x.get('commissioner') else {u'DG': x['dg']}
+                                                       for x in agents if x['body']=='EC'])
                 continue
             # merge any docs
             if 'doc' in item:
@@ -289,7 +290,7 @@ def merge_events(events,committees,agents):
 
 def merge_new_docs(doc, item):
     if type(doc)==type(list()):
-        return [merge_new_doc(d, item) for d in doc]
+        return sorted([merge_new_doc(d, item) for d in doc])
     else:
         return [merge_new_doc(doc, item)]
 
@@ -485,7 +486,6 @@ def scrape_actors(tree):
                 for p in table.xpath('.//p[@class="players_head"]'):
                     p.getparent().remove(p)
                 for agent in lst2obj(table, ecagents, 0):
-                    print agent
                     if len(agent['dg'])==len(agent['commissioner']):
                         for dg,cmnr in izip(agent['dg'], agent['commissioner']):
                             agent['body']=u'EC'
@@ -516,6 +516,7 @@ def scrape_epagents(table):
     for shadow, group in izip_longest(shadowelems, tips):
         committee=shadow.xpath('./ancestor::td/preceding-sibling::td//acronym/text()')[0]
         if not committee in shadows: shadows[committee]=[]
+        if group=='NI': group=u'NI'
         mep={u'name': unicode(shadow.xpath('text()')[0]),
              u'group': group}
         tmp=getMEPRef(shadow.xpath('text()')[0])
