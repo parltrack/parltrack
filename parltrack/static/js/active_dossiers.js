@@ -8,9 +8,6 @@ jQuery(document).ready(function() {
        var tmp=null;
        var d=jQuery(node).find('abbr');
        if(d.length==0) {
-          if(jQuery(node).text().trim()=='') {
-             return '999999999999';
-          }
           return jQuery(node).text().trim();
        }
        var now=new Date();

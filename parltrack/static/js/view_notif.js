@@ -7,9 +7,6 @@ $(document).ready(function() {
        var tmp=null;
        var d=$(node).find('abbr');
        if(d.length==0) {
-          if($(node).text().trim()=='') {
-             return '99999999';
-          }
           return $(node).text().trim();
        }
        var now=new Date();
