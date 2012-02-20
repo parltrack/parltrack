@@ -173,6 +173,7 @@ instmap={'European Parliament': u'EP',
          'European Commission': u'EC',
          'Council of the European Union': u'CSL',
          'Council of the EU': u'CSL',
+         'European Central Bank': u'ECB',
          'Other institutions': u'x!x',
          }
 otherinst={'Economic and Social Committee': u'ESOC',
@@ -199,6 +200,8 @@ stage2inst={ 'Debate in Council': u'CSL',
              'Joint text approved by Conciliation Committee co-chairs': u'EP/CSL',
              'Final decision by Conciliation Committee': u'EP/CSL',
              'Formal meeting of Conciliation Committee': u'EP/CSL',
+
+             'European Central Bank: opinion, guideline, report': u'ECB',
              
              'Legislative proposal published': u'EC',
              'Initial legislative proposal published': u'EC',
@@ -209,6 +212,7 @@ stage2inst={ 'Debate in Council': u'CSL',
              'Debate in Parliament': u'EP',
              'Debate scheduled': u'EP',
              'Vote scheduled': u'EP',
+             'Referral to associated committees announced in Parliament': u'EP',
              'Indicative plenary sitting date, 1st reading/single reading': u'EP',
              'Deadline for 2nd reading in plenary': u'EP',
              'Decision by Parliament, 1st reading/single reading': u'EP',
@@ -249,7 +253,7 @@ def merge_events(events,committees,agents):
                     continue
                 else:
                     logger.warn('unknown body: %s' % item.get('type'))
-                    item[u'body']=''
+                    item[u'body']='unknown'
             # new institution for this date
             if not item['body'] in actors:
                 # new body for this date
