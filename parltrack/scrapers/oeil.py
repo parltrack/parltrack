@@ -179,7 +179,7 @@ otherinst={'Economic and Social Committee': u'ESOC',
            'European Data Protecion Supervisor': u'EDPS',
            'Court of Justice of the European Communities': u'CJEC',
            'Court of Justice of the European Union': u'CJEU',
-           'Court of Auditors', u'CoA',
+           'Court of Auditors': u'CoA',
            }
 detailsheaders={ 'Committee dossier': u'dossier_of_the_committee',
                  'Legal basis': u'legal_basis',
@@ -245,6 +245,7 @@ def merge_events(events,committees,agents):
                     res.append(item)
                     continue
                 else:
+                    logger.warn('unknown body: %s' % item.get('type'))
                     item[u'body']=''
             # new institution for this date
             if not item['body'] in actors:
@@ -526,7 +527,7 @@ def scrape_epagents(table):
     agents=[]
     for agent in lst2obj(table,epagents,1):
         agent[u'responsible']=responsible
-        agent[u'body']='EP'
+        agent[u'body']=u'EP'
         if agent.get('rapporteur'):
             meps=[]
             for mep in agent['rapporteur']:
@@ -747,7 +748,9 @@ if __name__ == "__main__":
         crawlseq(get_active_dossiers(), null=null)
     elif sys.argv[1]=="url":
         print jdump(scrape(sys.argv[2])).encode('utf8')
-        #save(scrape(sys.argv[2]),[0,0])
+        #res=scrape(sys.argv[2])
+        #print >>sys.stderr, pprint.pformat(res)
+        #save(res,[0,0])
     elif sys.argv[1]=="test":
         save(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397"),[0,0]) # telecoms package
         #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=575084"))
