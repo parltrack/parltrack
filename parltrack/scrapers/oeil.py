@@ -291,7 +291,7 @@ def merge_events(events,committees,agents):
                     actors[item['body']][u'docs']=docs
                 cmts=getCommittee(item,committees)
                 if cmts:
-                    actors[item['body']][u'committees']=sorted(cmts)
+                    actors[item['body']][u'committees']=sorted(cmts, key=itemgetter('committee'))
                 if item['body']=='EC':
                     actors['EC']['commission']=sorted([{u'DG': x['dg'],
                                                         u'Commissioner': x['commissioner']} if x.get('commissioner') else {u'DG': x['dg']}
