@@ -63,34 +63,34 @@
         {% if not loop.first and loop.last %}</ul>{% endif%}
      {% endfor %}
 
-   <table class="tablesorter">
-      {%for committee in dossier.committees %}
-         {% if loop.first %}
-            <thead><tr><th>Role</td><th>Committee</th><th>Rapporteur</th><th>Shadows</th></tr></thead>
-         {% endif %}
-          <tr>
-             <td>
-                {%if committee.responsible%}Lead
-                {% else %}Opinion{%endif%}
-             </td>
-             <td>
-                {% if committee.committee|length == 4 %}<a href="/committee/{{committee.committee}}#dossiers">{{committee.committee}}</a>
-                {%elif committee_map[committee.committee]|length == 4 %}<a href="/committee/{{committee_map[committee.committee]}}#dossiers">{{committee.committee}}</a>
-                {%else%}{{committee.committee}}{%endif%}
-             </td>
-             <td>
-                {% for a in committee.rapporteur %}
-                   <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.group}}">{{a.group}}</a>){% if not loop.last %},{%endif%}
-                {% endfor %}
-             </td>
-             <td>
-                {% for a in committee.shadows %}
-                   <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.group}}">{{a.group}}</a>){% if not loop.last %},{%endif%}
-                {% endfor %}
-             </td>
-        </tr>
-        {%endfor%}
-   </table>
+{%for committee in dossier.committees %}
+   {% if loop.first %}
+      <table class="tablesorter">
+      <thead><tr><th>Role</td><th>Committee</th><th>Rapporteur</th><th>Shadows</th></tr></thead>
+   {% endif %}
+    <tr>
+       <td>
+          {%if committee.responsible%}Lead
+          {% else %}Opinion{%endif%}
+       </td>
+       <td>
+          {% if committee.committee|length == 4 %}<a href="/committee/{{committee.committee}}#dossiers">{{committee.committee}}</a>
+          {%elif committee_map[committee.committee]|length == 4 %}<a href="/committee/{{committee_map[committee.committee]}}#dossiers">{{committee.committee}}</a>
+          {%else%}{{committee.committee}}{%endif%}
+       </td>
+       <td>
+          {% for a in committee.rapporteur %}
+             <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.group}}">{{a.group}}</a>){% if not loop.last %},{%endif%}
+          {% endfor %}
+       </td>
+       <td>
+          {% for a in committee.shadows %}
+             <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.group}}">{{a.group}}</a>){% if not loop.last %},{%endif%}
+          {% endfor %}
+       </td>
+  </tr>
+  {% if loop.last %}</table>{% endif %}
+  {%endfor%}
      {% if dossier.procedure.dossier_of_the_committee %}Lead committee dossier:  <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&amp;body={{dossier.procedure.committee}}&amp;language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}<br>
    {% if dossier.procedure.legal_basis %}
    Legal Basis
