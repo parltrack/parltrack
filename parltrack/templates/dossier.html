@@ -47,67 +47,81 @@
     {% if dossier.changes %}<li><a href="#history">History</a></li>{%endif%}
   </ul>
 <div id="general">
-  {% for fc in dossier.activities %}
-     {% if loop.first %}
-        <h3>Forecasts</h3>
-        <ul>
-     {%endif%}
-     {% if fc.date>now_date %}<li><abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr> {{fc.type}}</li>{% endif %}
-     {% if loop.last %}</ul>{% endif%}
-  {% endfor %}
-  {% for committee in dossier.comeets|sort(attribute='resp',reverse=True) if committee.date and committee.date > now_date %}
-    {%if loop.first %}
-      <h3>Upcomming Committee events</h3>
-      <ul>
-    {%endif%}
-    <li>
-    {{ committee.date|asdate }}
-    EP: On
-    {% if committee.resp %}<b>{%endif%}
-    {% if committee.committee|length == 4 %}<a href="/committee/{{committee.committee}}">{{committee.committee}}</a>
-    {%elif committee_map[committee.committee]|length == 4 %}<a href="/committee/{{committee_map[committee.committee]}}">{{committee.committee}}</a>
-    {%else%}{{committee.committee}}{%endif%}
-    {% if committee.resp %}</b>{%endif%}
-    agenda
-    {%if 'tabling_deadline' in committee and committee.tabling_deadline > now_date %}<div><strong>Tabling deadline</strong> {{committee.tabling_deadline}}</div>{%endif%}
-    {%if Misc in committee%}
-       {%for line in committee.Misc%}
-           {% if loop.first %}<ul>{% endif %}
-           <li>{{line}}</li>
-           {% if loop.last %} </ul>{% endif %}
-       {%endfor%}
-    {%endif%}
-    </li>
-    {%if loop.last %}</ul>{%endif%}
-  {%endfor%}
-  {% if dossier.procedure.agents %}
-  <h3>Committees</h3>
-  {% if dossier.procedure.dossier_of_the_committee %}<div>Dossier of the Committee <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&amp;body={{dossier.procedure.committee}}&amp;language=EN">{{dossier.procedure.dossier_of_the_committee}}</a></div>{%endif%}
-  <ul>{%for agent in dossier.procedure.agents%}
-       {% if agent.committee %}
-       <li>
-       {%if agent.responsible%}
-          <strong>{% if agent.committee|length == 4 %}<a href="/committee/{{agent.committee}}">{{agent.committee}}</a>
-            {%elif committee_map[agent.committee]|length == 4 %}<a href="/committee/{{committee_map[agent.committee]}}">{{agent.committee}}</a>
-            {%else%}{{agent.committee}}{%endif%}</strong>
-          {%if dossier.procedure.dossier_of_the_committee and dossier.procedure.dossier_of_the_committee[:4]==agent.committee %}<a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&amp;body={{dossier.procedure.committee}}&amp;language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
-       {%else%}
-          {% if agent.committee|length == 4 %}<a href="/committee/{{agent.committee}}">{{agent.committee}}</a>
-          {%elif committee_map[agent.committee]|length == 4 %}<a href="/committee/{{committee_map[agent.committee]}}">{{agent.committee}}</a>
-          {%else%}{{agent.committee}}{%endif%}
-       {%endif%}
-          {%if agent.name%}<a href="/mep/{{agent.name}}">{{agent.name}}</a>{%endif%}{%if agent.group%} <a href="/meps/{{agent.group}}">{{agent.group}}</a>{%endif%}{% if not loop.first %},{%endif%}
-       {%if agent.responsible and dossier.ipex %}
-          {% for a in dossier.ipex.Shadows %}
-             {%if loop.first %}Shadows:{%endif%}
-             <a href="/mep/{{a[0].Name.full}}">{{a[0].Name.full}}</a> (<a href="/meps/{{a[1]}}">{{a[1]}}</a>)
-          {% endfor %}
-       {%endif%}
-     </li>
-     {%endif%}
+
+<div>
+   <b>{{dossier.procedure.reference}} {{dossier.procedure.title}}</b><br>
+     {% for fc in dossier.activities if fc.date>now_date %}
+        {% if loop.first %}
+           Next event: {{fc.type}} <abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr>
+           {% if not loop.last %} 
+           <a class='button'>more...</a>
+              <ul class="hidden">
+           {% endif %}
+        {% else %}
+           <li>{{fc.type}} <abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr></li>
+        {%endif%}
+        {% if not loop.first and loop.last %}</ul>{% endif%}
+     {% endfor %}
+
+   <table class="tablesorter">
+      <thead><tr><th>Role</td><th>Committee</th><th>Rapporteur</th><th>Shadows</th></tr></thead>
+      {%for committee in dossier.committees %}
+          <tr>
+             <td>
+                {%if committee.responsible%}Lead
+                {% else %}Opinion{%endif%}
+             </td>
+             <td>
+                {% if committee.committee|length == 4 %}<a href="/committee/{{committee.committee}}#dossiers">{{committee.committee}}</a>
+                {%elif committee_map[committee.committee]|length == 4 %}<a href="/committee/{{committee_map[committee.committee]}}#dossiers">{{committee.committee}}</a>
+                {%else%}{{committee.committee}}{%endif%}
+             </td>
+             <td>
+                {% for a in committee.rapporteur %}
+                   <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.group}}">{{a.group}}</a>){% if not loop.last %},{%endif%}
+                {% endfor %}
+             </td>
+             <td>
+                {% for a in committee.shadows %}
+                   <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.group}}">{{a.group}}</a>){% if not loop.last %},{%endif%}
+                {% endfor %}
+             </td>
+        </tr>
+        {%endfor%}
+   </table>
+     Lead committee dossier: {% if dossier.procedure.dossier_of_the_committee %} <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&amp;body={{dossier.procedure.committee}}&amp;language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}<br>
+   {% if dossier.procedure.legal_basis %}
+   Legal Basis
+     {%for sub in dossier.procedure.legal_basis%}{{sub}}{% if not loop.last %}, {%endif%}{%endfor%}
+   {% endif %}
+</div>
+
+{% for committee in dossier.comeets|sort(attribute='resp',reverse=True) if committee.date and committee.date > now_date %}
+ {%if loop.first %}
+   <h3>Upcomming Committee events</h3>
+   <ul>
+ {%endif%}
+ <li>
+ {{ committee.date|asdate }}
+ EP: On
+ {% if committee.resp %}<b>{%endif%}
+ {% if committee.committee|length == 4 %}<a href="/committee/{{committee.committee}}">{{committee.committee}}</a>
+ {%elif committee_map[committee.committee]|length == 4 %}<a href="/committee/{{committee_map[committee.committee]}}">{{committee.committee}}</a>
+ {%else%}{{committee.committee}}{%endif%}
+ {% if committee.resp %}</b>{%endif%}
+ agenda
+ {%if 'tabling_deadline' in committee and committee.tabling_deadline > now_date %}<div><strong>Tabling deadline</strong> {{committee.tabling_deadline}}</div>{%endif%}
+ {%if Misc in committee%}
+    {%for line in committee.Misc%}
+        {% if loop.first %}<ul>{% endif %}
+        <li>{{line}}</li>
+        {% if loop.last %} </ul>{% endif %}
     {%endfor%}
-  </ul>
-  {%endif%}
+ {%endif%}
+ </li>
+ {%if loop.last %}</ul>{%endif%}
+{%endfor%}
+
 <div>Subjects
 {%for sub in dossier.procedure.subject%}
     {% if loop.first %}<ul>{% endif %}
@@ -115,10 +129,7 @@
     {% if loop.last %} </ul>{% endif %}
 {%endfor%}
 </div>
-  {% if dossier.procedure.legal_basis %}
-  <div>Legal Basis
-     <ul>{%for sub in dossier.procedure.legal_basis%}<li>{{sub}}</li>{%endfor%}</ul></div>
-  {% endif %}
+
 <div>Links
 <ul>
   {% if dossier.celexid %}<li>The final text on <a href="http://pippi.euwiki.org/doc/{{dossier.celexid}}">Pippi Longstrings</a></li>{% endif %}
@@ -148,7 +159,7 @@
         {{doc.title}}
         {%endif%}
         {%if doc.text%}
-           <a class="has_summary">[summary]</a>
+           <a class="button">[summary]</a>
            <div class="hidden">
              {%for line in doc.text %}
              <p>{{line|striptags|urlize}}</p>
@@ -193,7 +204,7 @@
          {%if doc.url %}<a href='{{doc.url}}'>{%endif%}{{doc.title}}{%if doc.url %}</a>{%endif%}
       {%endif%}
       {%if doc.summary%}
-         [<a class="has_summary">summary</a>]
+         [<a class="button">summary</a>]
          <div class="hidden">
            {%for line in doc.summary %}
            {{line|striptags}}
@@ -212,7 +223,7 @@
   {%else%}{{doc.title}}{% endif %}
 
   {%if doc.summary%}
-     [<a class="has_summary">summary</a>]
+     [<a class="button">summary</a>]
      <div class="hidden">
        {%for line in doc.summary %}
        {{line|striptags}}

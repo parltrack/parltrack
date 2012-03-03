@@ -1,5 +1,5 @@
 $(document).ready(function() {
-  $('.has_summary').click(function() {
+  $('.button').click(function() {
    $(this).next('div').toggleClass('hidden');
   });
   $( "#tabs" ).tabs();
