@@ -53,7 +53,7 @@
      {% for fc in dossier.activities if fc.date>now_date %}
         {% if loop.first %}
            Next event: {{fc.type}} <abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr>
-           {% if not loop.last %} 
+           {% if not loop.last %}
            <a class='button'>more...</a>
               <ul class="hidden">
            {% endif %}
@@ -64,8 +64,10 @@
      {% endfor %}
 
    <table class="tablesorter">
-      <thead><tr><th>Role</td><th>Committee</th><th>Rapporteur</th><th>Shadows</th></tr></thead>
       {%for committee in dossier.committees %}
+         {% if loop.first %}
+            <thead><tr><th>Role</td><th>Committee</th><th>Rapporteur</th><th>Shadows</th></tr></thead>
+         {% endif %}
           <tr>
              <td>
                 {%if committee.responsible%}Lead
@@ -89,7 +91,7 @@
         </tr>
         {%endfor%}
    </table>
-     Lead committee dossier: {% if dossier.procedure.dossier_of_the_committee %} <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&amp;body={{dossier.procedure.committee}}&amp;language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}<br>
+     {% if dossier.procedure.dossier_of_the_committee %}Lead committee dossier:  <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&amp;body={{dossier.procedure.committee}}&amp;language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}<br>
    {% if dossier.procedure.legal_basis %}
    Legal Basis
      {%for sub in dossier.procedure.legal_basis%}{{sub}}{% if not loop.last %}, {%endif%}{%endfor%}
