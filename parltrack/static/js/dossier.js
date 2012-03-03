@@ -1,6 +1,6 @@
 $(document).ready(function() {
   $('.button').click(function() {
-   $(this).next('div').toggleClass('hidden');
+   $(this).next().toggleClass('hidden');
   });
   $( "#tabs" ).tabs();
   $('#notif_form').submit(function() {
