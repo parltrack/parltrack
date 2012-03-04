@@ -119,7 +119,7 @@ def votemeta(line, date):
         line=''.join([m.group(1),m.group(3)])
         doc=m.group(2).replace(' ', '')
         res['report']=doc
-        report=db.dossiers2.find_one({"activities.documents.title": doc},['_id', 'procedure.reference'])
+        report=db.dossiers2.find_one({"activities.docs.title": doc},['_id', 'procedure.reference'])
         if report:
             res['dossierid']=report['_id']
             res['epref']=report['procedure']['reference']
