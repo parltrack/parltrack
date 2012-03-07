@@ -344,9 +344,17 @@ background-color: #8dbdd8;
    z-index:		10;
 }
 
-#topbar a {
+#topbar a, #topbar span {
 	color:		#ffcc00;
    float:		right;
    margin-right: 0.5em;
    font-size:	.8em;
+}
+
+#topbar span {
+   cursor: pointer;
+}
+
+#topbar span:hover {
+   text-decoration: underline;
 }
