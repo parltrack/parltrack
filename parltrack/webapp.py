@@ -689,7 +689,7 @@ def formatdiff(dossier):
         if di['type']=='added':
             res.append(u"<tr><td>%s</td><td>%s</td><td>%s</td><td></td></tr>" % (di['type'], u'/'.join([unicode(x) for x in di['path']]), printdict(di['data'])))
 
-    return "<table><thead><tr width='90%%'><th>type</th><th>change in</th><th>new</th><th>old</th></tr></thead><tbody>%s</tbody></table>" % '\n'.join(res)
+    return "<table border='1'><thead><tr width='90%%'><th>type</th><th>change in</th><th>new</th><th>old</th></tr></thead><tbody>%s</tbody></table>" % '\n'.join(res)
 
 
 from parltrack.scrapers.mappings import ALL_STAGES, STAGES, STAGEMAP, groupids, COUNTRIES, SEIRTNUOC, COMMITTEE_MAP
