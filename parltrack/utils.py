@@ -108,21 +108,35 @@ def difflist(old, new, path):
     #import code; code.interact(local=locals());
     ret=[]
     for oe in list(oldunique):
-        for ne in list(newunique):
-            if type(ne)==type(list()):
-                pos=neworder[tuple(ne)]
-            else:
-                pos=neworder[ne]
-            diffs=diff(oe, ne, path + [pos])
-            if hasattr(oe,'__iter__') and hasattr(ne,'__iter__'):
-                shorter=min([len(oe),len(ne)])
-                if shorter-len(diffs)>=3 and len(diffs)*2<shorter:
-                    ret.extend(diffs)
-                    oldunique.remove(oe)
-                    newunique.remove(ne)
+        candidates=sorted([(oe, ne,
+                            diff(oe,
+                                 ne,
+                                 path + [neworder[tuple(ne)]
+                                         if type(ne)==type(list())
+                                         else neworder[ne]]))
+                            for ne in list(newunique)],
+                           cmp=lambda a,b: cmp(len(a[2]),len(b[2])))
+        # find deep matches firs
+        skip=False
+        for c in candidates:
+            for d in c[2]:
+                if len(d['path'])-len(path)+1<1:
+                    skip=True
                     break
-            #else:
-            #    logger.info((old,new))
+            if skip:
+                skip=False
+                continue
+            ret.extend(c[2])
+            oldunique.remove(c[0])
+            newunique.remove(c[1])
+            skip=True
+            break
+        if skip:
+            continue
+        if len(candidates) and len(candidates[0][2])*3<=len(ne):
+            ret.extend(candidates[0][2])
+            oldunique.remove(candidates[0][0])
+            newunique.remove(candidates[0][1])
     # handle added
     if newunique:
         ret.extend(sorted([{'type': u'added', 'data': e, 'path': path + [neworder[e]]} for e in newunique], key=itemgetter('path')))
@@ -246,7 +260,6 @@ def htmldict(d):
     suppress=['mepref','comref']
     res=['<dl>']
     for k,v in [(k,d[k]) for k in getorder(d) if k not in suppress and d.get(k)!=None]:
-    #for k,v in [(k,d[k]) for k in d.keys() if k not in suppress and d.get(k)!=None]:
         res.append(u"<li style='list-style-type: none;'><dt style='display: inline-block; width: 10em; text-transform: capitalize;'>%s</dt><dd style='display: inline'>%s</dd></li>" % (k,htmldict(v)))
     res.append('</dl>')
     return u''.join(res)
