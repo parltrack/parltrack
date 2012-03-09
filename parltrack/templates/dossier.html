@@ -126,7 +126,7 @@ Legal Basis {%for sub in dossier.procedure.legal_basis%}{{sub}}{% if not loop.la
 
 {%for committee in dossier.committees %}
    {% if loop.first %}
-      <table class="tablesorter">
+      <table border="1" class="tablesorter">
       <thead><tr><th>Role</td><th>Committee</th><th>Rapporteur</th><th>Shadows</th></tr></thead>
    {% endif %}
     <tr>
@@ -304,7 +304,7 @@ Legal Basis {%for sub in dossier.procedure.legal_basis%}{{sub}}{% if not loop.la
 <h4>{{vote.linkedtitle|safe}}</h4>
   <div>{{vote.ts|asdate}}</div>
   <div class='votes-graph'> </div>
-  <table class="votes">
+  <table border="1" class="votes">
      <thead>
         <tr>
           <td>Position</td>

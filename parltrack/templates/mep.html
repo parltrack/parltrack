@@ -147,7 +147,7 @@
 <h3>Committees</h3>
 {%for c in mep.Committees if not c.end or c.end>today%}
    {% if loop.first %}
-<table class="tablesorter">
+<table border="1" class="tablesorter">
 <thead><tr><th>Role</th><th>Committee</th><th>Start</th><th>End</th></tr></thead>
 <tbody>
    {% endif %}
@@ -167,7 +167,7 @@
 {%for c in mep.Committees if c.end and c.end<=today %}
    {% if loop.first %}
       <div class="more">Show earlier commitees...</div>
-      <table class="tablesorter hidden">
+      <table border="1" class="tablesorter hidden">
          <thead><tr><th>Role</th><th>Committee</th><th>Start</th><th>End</th></tr></thead>
          <tbody>
    {%endif%}
@@ -243,7 +243,7 @@
 <h3>Delegations</h3>
 {%for c in mep.Delegations if not c.end or c.end>today %}
    {% if loop.first %}
-<table class="tablesorter">
+<table border="1" class="tablesorter">
 <thead><tr><th>Role</th><th>Delegation</th><th>Start</th><th>End</th></tr></thead>
 <tbody>
    {%endif%}
@@ -260,7 +260,7 @@
 {%for c in mep.Delegations if c.end and c.end<=today %}
    {% if loop.first %}
       <div class="more">Show earlier delegations...</div>
-      <table class="hidden tablesorter">
+      <table border="1" class="hidden tablesorter">
          <thead><tr><th>Role</th><th>Delegation</th><th>Start</th><th>End</th></tr></thead>
          <tbody>
    {%endif%}
@@ -278,7 +278,7 @@
 {% if mep.dossiers %}
   <div id='dossiers'>
   <h3>Rapporteur</h3>
-  <table class="tablesorter">
+  <table border="1" class="tablesorter">
      <tbody>
     {%for doc,resp in mep.dossiers%}
     <tr>
