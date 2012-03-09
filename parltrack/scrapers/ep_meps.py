@@ -132,7 +132,7 @@ def parseMember(userid):
         elif key in ['Member', 'Substitute', 'Chair', 'Vice-Chair', 'Co-President', 'President', 'Vice-President']:
             for span in div.xpath('.//span[@class="commission_label"]'):
                 item={u'role': key,
-                      u'abbr': unws(''.join(span.xpath('text()'))),
+                      u'abbr': unws(''.join(span.xpath('.//text()'))),
                       u'Organization': unws(span.tail)}
                 for start, field in orgmaps:
                     if item['abbr'] in COMMITTEE_MAP or item['Organization'].startswith(start):
