@@ -24,7 +24,7 @@ import datetime, sys, re, feedparser, traceback
 from operator import itemgetter
 from flaskext.mail import Message
 from parltrack.webapp import mail
-from parltrack.utils import diff, htmldiff, fetch, unws, Multiplexer, logger, jdump
+from parltrack.utils import diff, htmldiff, fetch, unws, Multiplexer, logger, jdump, printdict
 from parltrack.default_settings import ROOT_URL
 from parltrack.scrapers.mappings import ipexevents, COMMITTEE_MAP
 
@@ -293,7 +293,7 @@ def merge_events(events,committees,agents):
                 if cmts:
                     actors[item['body']][u'committees']=sorted(cmts, key=itemgetter('committee'))
                 if item['body']=='EC':
-                    actors['EC']['commission']=sorted([{u'DG': x['dg'],
+                    actors[u'EC'][u'commission']=sorted([{u'DG': x['dg'],
                                                         u'Commissioner': x['commissioner']} if x.get('commissioner') else {u'DG': x['dg']}
                                                        for x in agents if x['body']=='EC'])
                 continue
@@ -406,7 +406,7 @@ def scrape(url):
             if link.get('class')=='sumbutton':
                 try: summary=fetch("http://www.europarl.europa.eu%s" % link.get('href'))
                 except: continue
-                final['text']=[tostring(x) for x in summary.xpath('//div[@id="summary"]')]
+                final['text']=[unicode(tostring(x)) for x in summary.xpath('//div[@id="summary"]')]
             else:
                 if not 'docs' in final: final['docs']=[]
                 final['docs'].append({'title': link.xpath('text()')[0].strip(),
@@ -469,7 +469,7 @@ def scrape_events(tree):
         if item.get('text'):
             try: summary=fetch(item['text']['url'])
             except: continue
-            item['text']=[tostring(x) for x in summary.xpath('//div[@id="summary"]')]
+            item['text']=[unicode(tostring(x)) for x in summary.xpath('//div[@id="summary"]')]
         res.append(item)
     return res
 
@@ -493,7 +493,7 @@ def scrape_docs(tree):
                 if doc.get('text'):
                     try: summary=fetch(doc['text']['url'])
                     except: continue
-                    doc[u'text']=[tostring(x) for x in summary.xpath('//div[@id="summary"]')]
+                    doc[u'text']=[unicode(tostring(x)) for x in summary.xpath('//div[@id="summary"]')]
                 res.append(doc)
         elif inst != 'All documents':
             logger.warn(u"[!] unrecognized tab in documents %s" % inst)
@@ -511,8 +511,8 @@ def scrape_actors(tree):
             # Handle council
             elif inst_name == 'Council of the European Union':
                 for agent in lst2obj(table, cslagents, 1):
-                    agent['body']=u'CSL'
-                    agent['type']=u'Council Meeting'
+                    agent[u'body']=u'CSL'
+                    agent[u'type']=u'Council Meeting'
                     agents.append(agent)
             # and commission
             elif inst_name == 'European Commission':
@@ -521,7 +521,7 @@ def scrape_actors(tree):
                 for agent in lst2obj(table, ecagents, 0):
                     if len(agent['dg'])==len(agent['commissioner']):
                         for dg,cmnr in izip(agent['dg'], agent['commissioner']):
-                            agent['body']=u'EC'
+                            agent[u'body']=u'EC'
                             agents.append({u'body': u'EC',
                                            u'dg': dg,
                                            u'commissioner': cmnr})
@@ -703,11 +703,12 @@ def checkUrl(url):
     return (res.xpath('//h1/text()') or [''])[0]!="Not available in English." # TODO check this
 
 def save(data, stats):
+    if not data: return stats
     src=data['meta']['source']
     res=db.dossiers2.find_one({ 'meta.source' : src }) or {}
     d=diff(dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes']]),
            dict([(k,v) for k,v in data.items() if not k in ['_id', 'meta', 'changes',]]))
-    #logger.warn(d)
+    #logger.warn(pprint.pformat(d))
     if d:
         now=datetime.datetime.utcnow().replace(microsecond=0).isoformat()
         if not res:
@@ -734,20 +735,12 @@ def save(data, stats):
             msg.html = htmldiff(data,d)
             msg.body = makemsg(data,d)
             mail.send(msg)
+        #logger.info(htmldiff(data,d))
+        #logger.info(makemsg(data,d))
         data['changes']=res.get('changes',{})
         data['changes'][now]=d
         db.dossiers2.save(data)
     return stats
-
-def printdict(d,i=0):
-    if type(d)==type(list()):
-        return (u'\n\t%s' % ('  '*i)).join([printdict(v,i+1) for v in d])
-    if not type(d)==type(dict()):
-        return unicode(d)
-    res=['']
-    for k,v in [(k,v) for k,v in d.items() if k not in ['mepref','comref']]:
-        res.append(u"\t%s%s:\t%s" % ('  '*i,k,printdict(v,i+1)))
-    return u'\n'.join(res)
 
 def makemsg(data, d):
     res=[]
