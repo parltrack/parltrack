@@ -40,10 +40,10 @@
 <p>{{dossier.procedure.title}}</p>
 
 <div id="epheader" class="hidden">
-{{dossier.procedure.reference}}<br>
+<b>{{dossier.procedure.title}}</b> <a href="/dossier/{{dossier.procedure.reference}}">{{dossier.procedure.reference}}</a><br>
 {% for fc in dossier.activities if fc.date>now_date %}
    {% if loop.first %}
-      Next event: {{fc.type}} <abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr>
+      <a href="/dossier/{{dossier.procedure.reference}}#activities">Next event</a>: <b>{{fc.type}}</b> <abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr>
       {% break %}
    {%endif%}
 {% endfor %}
@@ -51,9 +51,9 @@
 {%if dossier.committees %}
 <table border="1">
    <tr>
-      <td>Committee</td>
+      <td></td>
       {%for committee in dossier.committees %}
-          <td>
+          <td align="center">
              {% if committee.committee|length == 4 %}<a href="/committee/{{committee.committee}}#dossiers">{{committee.committee}}</a>
              {%elif committee_map[committee.committee]|length == 4 %}<a href="/committee/{{committee_map[committee.committee]}}#dossiers">{{committee.committee}}</a>
              {%else%}{{committee.committee}}{%endif%}
@@ -61,7 +61,7 @@
       {%endfor%}
    </tr>
    <tr>
-      <td>Responsible</td>
+      <td>Lead Rapporteur</td>
       {%for committee in dossier.committees %}
           {% if committee.responsible %}
           <td>
@@ -76,7 +76,7 @@
       {%endfor%}
    </tr>
    <tr>
-       <td>Opinion</td>
+       <td>Opinion Rapporteur(s)</td>
    {%for committee in dossier.committees %}
        {% if not committee.responsible %}
        <td>
