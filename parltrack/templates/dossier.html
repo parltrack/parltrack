@@ -43,7 +43,7 @@
 <b>{{dossier.procedure.title}}</b> <a href="/dossier/{{dossier.procedure.reference}}">{{dossier.procedure.reference}}</a><br>
 {% for fc in dossier.activities if fc.date>now_date %}
    {% if loop.first %}
-      <a href="/dossier/{{dossier.procedure.reference}}#activities"Next event</a>: <b>{{fc.type}}</b> <abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr>
+      <a href="/dossier/{{dossier.procedure.reference}}#activities">Next event</a>: <b>{{fc.type}}</b> <abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr>
       {% break %}
    {%endif%}
 {% endfor %}
