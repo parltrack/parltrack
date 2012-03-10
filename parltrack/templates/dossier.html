@@ -40,19 +40,20 @@
 <p>{{dossier.procedure.title}}</p>
 
 <div id="epheader" class="hidden">
-<b>{{dossier.procedure.title}}</b> <a href="/dossier/{{dossier.procedure.reference}}">{{dossier.procedure.reference}}</a><br>
+{{dossier.procedure.reference}}<br>
 {% for fc in dossier.activities if fc.date>now_date %}
    {% if loop.first %}
-      <a href="/dossier/{{dossier.procedure.reference}}#activities">Next event</a>: <b>{{fc.type}}</b> <abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr>
+      Next event: {{fc.type}} <abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr>
       {% break %}
    {%endif%}
 {% endfor %}
+
 {%if dossier.committees %}
 <table border="1">
    <tr>
-      <td></td>
+      <td>Committee</td>
       {%for committee in dossier.committees %}
-          <td align="center">
+          <td>
              {% if committee.committee|length == 4 %}<a href="/committee/{{committee.committee}}#dossiers">{{committee.committee}}</a>
              {%elif committee_map[committee.committee]|length == 4 %}<a href="/committee/{{committee_map[committee.committee]}}#dossiers">{{committee.committee}}</a>
              {%else%}{{committee.committee}}{%endif%}
@@ -60,7 +61,7 @@
       {%endfor%}
    </tr>
    <tr>
-      <td>Lead Rapporteur</td>
+      <td>Responsible</td>
       {%for committee in dossier.committees %}
           {% if committee.responsible %}
           <td>
@@ -71,11 +72,11 @@
           </td>
           {% else %}
           <td></td>
-          {% endif %}
+          {% endif  %}
       {%endfor%}
    </tr>
    <tr>
-       <td>Opinion Rapporteur(s)</td>
+       <td>Opinion</td>
    {%for committee in dossier.committees %}
        {% if not committee.responsible %}
        <td>
@@ -86,20 +87,76 @@
        </td>
        {% else %}
        <td></td>
-       {% endif %}
+       {% endif  %}
    {%endfor%}
    </tr>
 </table>
 {%endif%}
-{% if dossier.procedure.dossier_of_the_committee %}Lead committee dossier: <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&amp;body={{dossier.procedure.committee}}&amp;language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}. {% if dossier.procedure.legal_basis %}
-Legal basis: {%for sub in dossier.procedure.legal_basis%}
-{% if sub[1,45] == "Rules of Procedure of the European Parliament" %}
-RoP {{sub[45]}}
-{% else %}
-{{sub}}
-{%endif%}
-{% if not loop.last %}, {%endif%}{%endfor%}
+{% if dossier.procedure.dossier_of_the_committee %}Lead committee dossier:  <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&amp;body={{dossier.procedure.committee}}&amp;language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}<br>
+{% if dossier.procedure.legal_basis %}
+Legal Basis {%for sub in dossier.procedure.legal_basis%}{{sub}}{% if not loop.last %}, {%endif%}{%endfor%}
 {% endif %}
+</div>
+
+<p><strong>{{dossier.procedure.stage_reached}}</strong></p>
+<div id="tabs">
+  <ul>
+    <li><a href="#general">General</a></li>
+    {% if dossier.activities %}<li><a href="#activities">Activities</a></li>{% endif %}
+    <li><a href="#documents">Documents</a></li>
+    {% if dossier.votes %}<li><a href="#votes">Votes</a></li>{%endif%}
+    {% if dossier.changes %}<li><a href="#history">History</a></li>{%endif%}
+  </ul>
+<div id="general">
+
+<div>
+   <b>{{dossier.procedure.reference}} {{dossier.procedure.title}}</b><br>
+     {% for fc in dossier.activities if fc.date>now_date %}
+        {% if loop.first %}
+           Next event: {{fc.type}} <abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr>
+           {% if not loop.last %}
+           <a class='button'>more...</a>
+              <ul class="hidden">
+           {% endif %}
+        {% else %}
+           <li>{{fc.type}} <abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr></li>
+        {%endif%}
+        {% if not loop.first and loop.last %}</ul>{% endif%}
+     {% endfor %}
+
+{%for committee in dossier.committees %}
+   {% if loop.first %}
+      <table border="1" class="tablesorter">
+      <thead><tr><th>Role</td><th>Committee</th><th>Rapporteur</th><th>Shadows</th></tr></thead>
+   {% endif %}
+    <tr>
+       <td>
+          {%if committee.responsible%}Lead
+          {% else %}Opinion{%endif%}
+       </td>
+       <td>
+          {% if committee.committee|length == 4 %}<a href="/committee/{{committee.committee}}#dossiers">{{committee.committee}}</a>
+          {%elif committee_map[committee.committee]|length == 4 %}<a href="/committee/{{committee_map[committee.committee]}}#dossiers">{{committee.committee}}</a>
+          {%else%}{{committee.committee}}{%endif%}
+       </td>
+       <td>
+          {% for a in committee.rapporteur %}
+             <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.group}}">{{a.group}}</a>){% if not loop.last %},{%endif%}
+          {% endfor %}
+       </td>
+       <td>
+          {% for a in committee.shadows %}
+             <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.group}}">{{a.group}}</a>){% if not loop.last %},{%endif%}
+          {% endfor %}
+       </td>
+  </tr>
+  {% if loop.last %}</table>{% endif %}
+  {%endfor%}
+     {% if dossier.procedure.dossier_of_the_committee %}Lead committee dossier:  <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&amp;body={{dossier.procedure.committee}}&amp;language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}<br>
+   {% if dossier.procedure.legal_basis %}
+   Legal Basis
+     {%for sub in dossier.procedure.legal_basis%}{{sub}}{% if not loop.last %}, {%endif%}{%endfor%}
+   {% endif %}
 </div>
 
 {% for committee in dossier.comeets|sort(attribute='resp',reverse=True) if committee.date and committee.date > now_date %}
@@ -315,3 +372,4 @@ RoP {{sub[45]}}
 {%endif%}
 </div>
 {% endblock %}
+
