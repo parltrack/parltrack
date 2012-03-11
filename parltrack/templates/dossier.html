@@ -43,7 +43,7 @@
 <b>{{dossier.procedure.title}}</b> <a href="/dossier/{{dossier.procedure.reference}}">{{dossier.procedure.reference}}</a><br>
 {% for fc in dossier.activities if fc.date>now_date %}
    {% if loop.first %}
-      <a href="/dossier/{{dossier.procedure.reference}}#activities">Next event</a>: <b>{{fc.type}}</b> <abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr>
+      <a href="/dossier/{{dossier.procedure.reference}}#activities">Next event</a>: <b><abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr></b> {{fc.type}}
       {% break %}
    {%endif%}
 {% endfor %}
@@ -94,7 +94,13 @@
 {%endif%}
 {% if dossier.procedure.dossier_of_the_committee %}Lead committee dossier:  <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&amp;body={{dossier.procedure.committee}}&amp;language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}<br>
 {% if dossier.procedure.legal_basis %}
-Legal Basis {%for sub in dossier.procedure.legal_basis%}{{sub}}{% if not loop.last %}, {%endif%}{%endfor%}
+Legal basis: {%for sub in dossier.procedure.legal_basis%}
+    {% if sub[:48] == "Rules of Procedure of the European Parliament EP" %}
+    <a href="http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//TEXT+RULES-EP+20120110+RULE-{{sub[49:51]}}+DOC+XML+V0//EN">RoP {{sub[48:]}}</a>
+    {% else %}
+    {{sub}}
+    {% endif %}
+{% if not loop.last %}, {%endif%}{%endfor%}
 {% endif %}
 </div>
 
