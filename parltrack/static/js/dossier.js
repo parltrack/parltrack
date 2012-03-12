@@ -26,10 +26,10 @@ $(document).ready(function() {
    $(this).next().toggleClass('hidden');
   });
   if(getCookie('epheader')) {
-   $('#epheader').removeClass('hidden');
+   $('.epheader').toggleClass('hidden');
   }
   $('#toggle_ep').click(function() {
-   $('#epheader').toggleClass('hidden');
+   $('.epheader').toggleClass('hidden');
    if(getCookie('epheader')) {
      deleteCookie('epheader');
    } else {

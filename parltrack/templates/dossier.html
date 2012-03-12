@@ -35,11 +35,11 @@
 <span id='toggle_ep'>Toggle EP header</span>
 {% endblock %}
 {% block content %}
-<h2>{{ dossier.procedure.reference }}</h2>
-{% if dossier.finalref %}<p>{{dossier.finalref}}</p>{% endif %}
-<p>{{dossier.procedure.title}}</p>
+<h2 class="epheader">{{ dossier.procedure.reference }}</h2>
+{% if dossier.finalref %}<p class="epheader">{{dossier.finalref}}</p>{% endif %}
+<p class="epheader">{{dossier.procedure.title}}</p>
 
-<div id="epheader" class="hidden">
+<div class="hidden epheader">
 <b>{{dossier.procedure.title}}</b> <a href="/dossier/{{dossier.procedure.reference}}">{{dossier.procedure.reference}}</a><br>
 {% for fc in dossier.activities if fc.date>now_date %}
    {% if loop.first %}
