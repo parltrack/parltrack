@@ -90,6 +90,14 @@ def mepRanking(date,query={}):
         rankedMeps.append((score,sorted(ranks, reverse=True),mep))
     return [x for x in sorted(rankedMeps,reverse=True)]
 
+def clean_lb(dossier):
+    for lbstrip, prefix in [("Treaty on the Functioning of the EU ", 'TFEU'),
+                            ("Rules of Procedure of the European Parliament EP ", 'RoP')]:
+        for i, lb in enumerate(dossier['procedure']['legal_basis']):
+            if lb.startswith(lbstrip):
+                dossier['procedure']['legal_basis'][i]="%s %s" % (prefix,lb[len(lbstrip):])
+    return dossier
+
 def dossier(id, without_changes=True):
     dossier_idqueries=[{'procedure.reference': id },
                        {'activites.docs.title': id },
@@ -103,6 +111,8 @@ def dossier(id, without_changes=True):
         return
     if 'dossier_of_the_committee' in dossier['procedure']:
         dossier['procedure']['committee']=dossier['procedure']['dossier_of_the_committee'].split('/')[0]
+    if 'legal_basis' in dossier.get('procedure', {}):
+        clean_lb(dossier)
     if 'changes' in dossier and without_changes: del dossier['changes']
     for act in dossier['activities']:
         if act.get('type') in ['Non-legislative initial document', 'Commission/Council: initial legislative document']:
@@ -267,6 +277,8 @@ def committee(id):
                     d['comdoc']={'title': act['docs'][0]['title'],
                                  'url': act['docs'][0].get('url'), }
                     break
+            if 'legal_basis' in d.get('procedure', {}):
+                clean_lb(d)
             if d not in dossiers: dossiers.append(d)
     # get members of committee
     query={"Committees.abbr": id, "active": True}
