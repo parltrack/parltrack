@@ -430,6 +430,8 @@ def scrape(url):
 
 def scrape_basic(tree):
     res=form2obj((tree.xpath('//table[@id="technicalInformations"]') or [None])[0],detailsheaders) or {}
+    if 'dossier_of_the_committee' in res:
+        res['dossier_of_the_committee']=';'.join(sorted((unws(x) for x in res['dossier_of_the_committee'].split(';'))))
     table=(tree.xpath('//table[@id="basic_information"]') or [None])[0]
     if table is None: return res
     res.update({'stage_reached': (table.xpath('.//p[@class="pf_stage"]/text()') or [''])[0].strip(),
@@ -440,10 +442,7 @@ def scrape_basic(tree):
     if '' in res:
         del res['']
     if 'legal_basis' in res:
-        res[u'legal_basis']=sorted((unws(x)[len("Treaty on the Functioning of the EU "):]
-                                    if unws(x).startswith("Treaty on the Functioning of the EU")
-                                    else unws(x)
-                                    for x in res['legal_basis'].split(';')))
+        res[u'legal_basis']=sorted((unws(x) for x in res['legal_basis'].split(';')))
     fields=table.xpath('.//p[@class="basic_content"]/*')
     firstline=u' '.join((table.xpath('.//p[@class="basic_content"]/text()') or [''])[0].split())
     attrib=u'summary'
