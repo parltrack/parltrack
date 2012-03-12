@@ -18,7 +18,7 @@
 
 # (C) 2011 by Adam Tauber, <asciimoo@gmail.com>, Stefan Marsiske <stefan.marsiske@gmail.com>
 
-import os, re, copy, csv, cStringIO, json, sys
+import os, re, copy, csv, cStringIO, json, sys, itertools
 from pymongo import Connection
 from flaskext.mail import Mail, Message
 from flaskext.cache import Cache
@@ -30,6 +30,7 @@ from werkzeug import ImmutableDict
 from bson.objectid import ObjectId
 from bson.code import Code
 from operator import itemgetter
+from itertools import chain
 from collections import defaultdict
 from parltrack import default_settings
 
@@ -69,14 +70,28 @@ def index():
     #                                                                              {'count': 0},
     #                                                                              Code('function(doc, out){ out.count++ }'))])
     #stages=[(k,tmp[k]) for k in ALL_STAGES if tmp.get(k)]
-    cutoff=datetime.now()-timedelta(days=3)
-    d=db.dossiers2.find({'meta.created': {'$gt': cutoff}}).sort([('meta.created', -1)])
+    cutoff=datetime.now()-timedelta(days=int(request.args.get('days','2')))
+
+    cdocs=db.dossiers2.find      ({'meta.updated': {'$gt': cutoff}}).sort([('procedure.reference', 1)])
+    cmeps=db.ep_meps2.find       ({'meta.updated': {'$gt': cutoff}}).sort([('Name.family', 1)])
+    ccoms=db.ep_comagendas.find  ({'meta.updated': {'$gt': cutoff}}).sort([('commmittee', 1)])
+    newdocs=db.dossiers2.find    ({'meta.created': {'$gt': cutoff}}).sort([('procedure.reference', 1)])
+    newmeps=db.ep_meps2.find     ({'meta.created': {'$gt': cutoff}}).sort([('Name.family', 1)])
+    newcoms=db.ep_comagendas.find({'meta.created': {'$gt': cutoff}}).sort([('commmittee', 1)])
+
     return render_template('index.html',
                            #stages=stages,
                            dossiers_num=db.dossiers2.find().count(),
-                           latest=d,
                            votes_num=db.ep_votes.find().count(),
-                           meps_num=db.ep_meps2.find().count()+db.ep_meps.find({"Constituencies.start": {'$lt': datetime(2009,07,14)}}).count())
+                           meps_num=db.ep_meps2.find().count()+db.ep_meps.find({"Constituencies.start": {'$lt': datetime(2009,07,14)}}).count(),
+                           newdocs=newdocs,
+                           newmeps=newmeps,
+                           newcoms=newcoms,
+                           cdocs=cdocs,
+                           cmeps=cmeps,
+                           ccoms=ccoms,
+                           )
+
 
 
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
@@ -133,8 +148,9 @@ def listdossiers(d):
                                'Commission/Council: initial legislative document',
                                "Legislative proposal",
                                "Legislative proposal published"]:
-            d['comdoc']={'title': act['docs'][0]['title'],
-                         'url': act['docs'][0].get('url'), }
+            if 'title' in act['docs'][0]:
+                d['comdoc']={'title': act['docs'][0]['title'],
+                             'url': act['docs'][0].get('url'), }
     for item in db.ep_comagendas.find({'epdoc': d['procedure']['reference']}):
         if 'tabling_deadline' in item and item['tabling_deadline']>=datetime.now():
             d['activities'].insert(0,{'type': '(%s) Tabling Deadline' % item['committee'], 'body': 'EP', 'date': item['tabling_deadline']})
