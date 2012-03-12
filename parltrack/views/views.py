@@ -274,8 +274,9 @@ def committee(id):
                                        'Commission/Council: initial legislative document',
                                        "Legislative proposal",
                                        "Legislative proposal published"] and 'docs' in act and len(act['docs'])>0:
-                    d['comdoc']={'title': act['docs'][0]['title'],
-                                 'url': act['docs'][0].get('url'), }
+                    if 'title' in act['docs'][0]:
+                        d['comdoc']={'title': act['docs'][0]['title'],
+                                     'url': act['docs'][0].get('url'), }
                     break
             if 'legal_basis' in d.get('procedure', {}):
                 clean_lb(d)
