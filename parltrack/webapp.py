@@ -142,7 +142,6 @@ def gen_notif_id():
     return '/notification/'+nid
 
 def listdossiers(d):
-    db = connect_db()
     for act in d['activities']:
         if act.get('type') in ['Non-legislative initial document',
                                'Commission/Council: initial legislative document',
@@ -151,6 +150,9 @@ def listdossiers(d):
             if 'title' in act['docs'][0]:
                 d['comdoc']={'title': act['docs'][0]['title'],
                              'url': act['docs'][0].get('url'), }
+    if 'legal_basis' in d.get('procedure', {}):
+        clean_lb(d)
+    db = connect_db()
     for item in db.ep_comagendas.find({'epdoc': d['procedure']['reference']}):
         if 'tabling_deadline' in item and item['tabling_deadline']>=datetime.now():
             d['activities'].insert(0,{'type': '(%s) Tabling Deadline' % item['committee'], 'body': 'EP', 'date': item['tabling_deadline']})
@@ -713,7 +715,7 @@ def formatdiff(dossier):
 
 
 from parltrack.scrapers.mappings import ALL_STAGES, STAGES, STAGEMAP, groupids, COUNTRIES, SEIRTNUOC, COMMITTEE_MAP
-from parltrack.views.views import mepRanking, mep, immunity, committee, subjects, dossier
+from parltrack.views.views import mepRanking, mep, immunity, committee, subjects, dossier, clean_lb
 COMMITTEES=[x for x in connect_db().ep_comagendas.distinct('committee') if x not in ['Security and Defence', 'SURE'] ]
 
 if __name__ == '__main__':
