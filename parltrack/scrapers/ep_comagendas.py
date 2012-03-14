@@ -216,7 +216,7 @@ def scrape(url, comid):
                     try:
                         item[u'tabling_deadline']=datetime.strptime(tmp.split(':')[1].strip(),"%d.%m.%Y at %H.%M")
                     except:
-                        logger.warn('[$] unknown tabling deadline format', tmp.split(':')[1].strip())
+                        logger.warn('[$] unknown tabling deadline format', unws(tmp))
             item[u'list'].append(tmp)
             continue
         # committee dossier
