@@ -23,10 +23,10 @@ source env/bin/activate
 
  sudo python setup.py develop
 
-# start initial scraping
+# download the official dumps
 
- cd parltrack/scrapers
- ./ep_meps.py current seq # always use seq here, parallel is buggy
- ./oeil.py full
- ./ep_comagendas.py
- for b in $(seq 2004 2011); do ./ep_votes_by_year.py $b 2>&1 ; done
+curl http://parltrack.euwiki.org/dumps/ep_comagendas.json.xz | xz -dc | mongoimport -d parltrack -c ep_comagendas
+curl http://parltrack.euwiki.org/dumps/ep_dossiers.json.xz | xz -dc | mongoimport -d parltrack -c dossiers
+curl http://parltrack.euwiki.org/dumps/ep_meps_current.json.xz | xz -dc | mongoimport -d parltrack -c ep_meps2
+curl http://parltrack.euwiki.org/dumps/ep_votes.json.xz | xz -dc | mongoimport -d parltrack -c ep_votes
+curl http://parltrack.euwiki.org/dumps/eurlex.json.xz | xz -dc | mongoimport -d parltrack -c eurlex
