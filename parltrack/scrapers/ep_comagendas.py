@@ -83,8 +83,8 @@ def getdoclist(node):
         else:
             i+=1
     if i < len(txt) and len(unws(txt[i]).split(u" \u2013 "))>1:
-        res.append({u'type': unws(txt[i].split(u" \u2013 ")[0]),
-                    u'title': unws(txt[i].split(u" \u2013 ")[1])})
+        res.append({u'type': unws(txt[i]).split(u" \u2013 ")[0],
+                    u'title': unws(txt[i]).split(u" \u2013 ")[1]})
     return res
 
 def getactors(node):
@@ -216,7 +216,7 @@ def scrape(url, comid):
                     try:
                         item[u'tabling_deadline']=datetime.strptime(tmp.split(':')[1].strip(),"%d.%m.%Y at %H.%M")
                     except:
-                        logger.warn('[$] unknown tabling deadline format', unws(tmp))
+                        logger.warn('[$] unknown tabling deadline format %s' % unws(tmp))
             item[u'list'].append(tmp)
             continue
         # committee dossier
