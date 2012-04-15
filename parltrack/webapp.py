@@ -150,6 +150,9 @@ def listdossiers(d):
             if 'title' in act['docs'][0]:
                 d['comdoc']={'title': act['docs'][0]['title'],
                              'url': act['docs'][0].get('url'), }
+        if 'date' not in act:
+            print 'removing [%s] %s' % (d['activities'].index(act), act)
+            del d['activities'][d['activities'].index(act)]
     if 'legal_basis' in d.get('procedure', {}):
         clean_lb(d)
     db = connect_db()
@@ -617,6 +620,11 @@ def view_committee(c_id):
                            groupids=groupids,
                            c=c_id,
                            url=request.base_url)
+
+@cache.cached()
+@app.route('/preferences')
+def prefs():
+    return render_template('prefs.html')
 
 @app.template_filter()
 def asdate(value):

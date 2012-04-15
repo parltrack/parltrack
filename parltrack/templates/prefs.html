@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Preferences | {% endblock %}
+{% block scripts %}
+<script type="text/javascript" src="/static/js/prefs.js"></script>
+{% endblock %}
+{% block content %}
+<h1>Preferences</h1>
+<form>
+   <div>
+      <p><label>Toggle EP header</label> <input type="checkbox" name='epheader' id='epheader' class='toggle'{% if request.cookies.epheader %} checked="checked"{%endif%}></input></input><span class="saved hidden"> saved</span></p>
+      <p><label>Your email address for notifications</label> <input type="text" name='email' id='email' class='edit' value={{request.cookies.email}}></input></input><span class="saved hidden"> saved</span></p>
+      <p><label>Mediawiki supported by Herr Nilsson</label> <input type="text" name='mediawiki' id='mediawiki' class='edit' value={{request.cookies.mediawiki}}></input><span class="saved hidden"> saved</span></p>
+   </div>
+</form>
+<p><small>These settings are stored in your cookies, this allows us <b>not</b> to store this data about you.</small></p>
+<p><small>These cookies serve your sole convenience, we don't use these cookies to track you.</small></p>
+{% endblock %}
+

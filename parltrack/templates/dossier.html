@@ -22,7 +22,7 @@
     <div>
         <form method="get" action="" id="notif_form">
            <div>
-              E-mail: <input type="text" name="address" /><br />
+              E-mail: <input type="text" name="address" {%if request.cookies.email %}value="{{request.cookies.email}}"{%endif%}/><br />
               //required<br />
               Collection name: <input type="text" name="group" /><br />
               //generated if empty<br />
