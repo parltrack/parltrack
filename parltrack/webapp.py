@@ -721,6 +721,9 @@ def formatdiff(dossier):
 
     return "<table border='1'><thead><tr width='90%%'><th>type</th><th>change in</th><th>new</th><th>old</th></tr></thead><tbody>%s</tbody></table>" % '\n'.join(res)
 
+@app.template_filter()
+def reftopath(ref):
+    return "%s/%s" % (ref[-4:-1], ref[:9])
 
 from parltrack.scrapers.mappings import ALL_STAGES, STAGES, STAGEMAP, groupids, COUNTRIES, SEIRTNUOC, COMMITTEE_MAP
 from parltrack.views.views import mepRanking, mep, immunity, committee, subjects, dossier, clean_lb

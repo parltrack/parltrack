@@ -33,7 +33,7 @@
     </div>
 </div>
 <span id='toggle_ep'>Toggle EP header</span>
-{% if request.cookies.mediawiki %}<a href="{{request.cookies.mediawiki}}/{{dossier.procedure.reference}}">Notes</a>{% endif %}
+{% if request.cookies.mediawiki %}<a href="{{request.cookies.mediawiki}}/{{dossier.procedure.reference|reftopath}}">Notes</a>{% endif %}
 {% endblock %}
 {% block content %}
 <h2 class="epheader">{{ dossier.procedure.reference }}</h2>
