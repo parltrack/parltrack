@@ -13,8 +13,8 @@
 <script type="text/javascript" src="/static/js/dossier.js"></script>
 {% endblock %}
 {% block topbar %}
-<a href="/dossier/atom/{{dossier.procedure.reference}}">Track RSS</a>
 <a href="/dossier/atom/{{dossier.procedure.reference}}"><img src="/static/images/rss.gif" alt="rss icon" /></a>
+<a href="/dossier/atom/{{dossier.procedure.reference}}">Track RSS</a>
 <a href="{{url}}?format=json">download json</a>
 <div id="track_dossier"><a href="/notification">Track dossier</a>
     <div class="hidden right" id="notif_subscr">
