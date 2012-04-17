@@ -453,12 +453,12 @@ def subjects_view():
 #               Dossiers
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 
-@app.route('/dossier/<string:d>/<string:y>/<string:ctr>')
+@app.route('/dossier/<string:d>/<int:y>/<int:ctr>')
 def dossier_path(d, y, ctr):
-    return redirect('/dossier/%s/%s(%s)' % (y,ctr,d))
+    return redirect('/dossier/%s/%04d(%s)' % (y,int(ctr),d))
 
 @cache.cached()
-@app.route('/dossier/<path:d_id>/atom')
+@app.route('/dossier/atom/<path:d_id>')
 def dossier_changes(d_id):
     c=dossier(d_id, without_changes=False)
     if not c:
