@@ -255,7 +255,7 @@ def getMEPRef(name, retfields=['_id']):
         logger.warn('[!] lookup oops %s' % name.encode('utf8'))
 
 def getComAgendas():
-    urltpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?&docType=AGEN&leg=7&miType=text"
+    urltpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?&docType=AGEN&leg=7&miType=text&tabActif=tabResult#sidesForm"
     nexttpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?tabActif=tabLast&startValue=%s"
     for com in (k for k in COMMITTEE_MAP.keys() if len(k)==4 and k not in ['CODE', 'RETT', 'CLIM', 'TDIP']):
         url=urltpl % (com)
@@ -269,8 +269,9 @@ def getComAgendas():
                  for a in root.xpath('//p[@class="title"]/a')
                  if len(a.get('href',''))>13]
             if not tmp: break
-            for u,_ in tmp:
-                yield (u,com)
+            for u,title in tmp:
+                if title.startswith('DRAFT AGENDA'):
+                    yield (u,com)
             i+=10
             url=nexttpl % (com,i)
 
@@ -329,8 +330,9 @@ def seqcrawler(saver=jdump):
 if __name__ == "__main__":
     if len(sys.argv)>1:
         if sys.argv[1]=="test":
-            print jdump(scrape('http://www.europarl.europa.eu/sides/getDoc.do?type=COMPARL&reference=ECON-OJ-20120109-1&language=EN', 'ECON')).encode('utf8')
-            print jdump(scrape('http://www.europarl.europa.eu/sides/getDoc.do?type=COMPARL&reference=LIBE-OJ-20120112-1&language=EN', 'LIBE')).encode('utf8')
+            print jdump([(u,d) for u,d in getComAgendas()])
+            #print jdump(scrape('http://www.europarl.europa.eu/sides/getDoc.do?type=COMPARL&reference=ECON-OJ-20120109-1&language=EN', 'ECON')).encode('utf8')
+            #print jdump(scrape('http://www.europarl.europa.eu/sides/getDoc.do?type=COMPARL&reference=LIBE-OJ-20120112-1&language=EN', 'LIBE')).encode('utf8')
             #import code; code.interact(local=locals());
             sys.exit(0)
         elif sys.argv[1]=='url' and len(sys.argv)==4:
