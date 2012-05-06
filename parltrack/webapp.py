@@ -173,8 +173,8 @@ def notification_view_or_create(g_id):
     ds=[]
     if len(group['dossiers']):
         ds=[listdossiers(d) for d in db.dossiers2.find({'procedure.reference': { '$in' : group['dossiers'] } })]
-    if ds and request.args.get('format','')=='json' or request.headers.get('X-Requested-With') or request.headers.get('Accept')=='text/json':
-        return Response( response=tojson(ds), mimetype="text/json" )
+    if ds and request.args.get('format','')=='json' or request.headers.get('X-Requested-With'):
+        return jsonify(count=len(ds), dossiers=tojson(ds))
     return render_template('view_notif_group.html',
                            dossiers=ds,
                            date=datetime.now(),
