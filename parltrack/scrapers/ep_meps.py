@@ -70,11 +70,15 @@ def getMEPGender(id):
     except Exception, e:
         logger.error("mepgender %s" % e)
         return 'n/a'
-    hint=mepraw.xpath('//div[@class="ep_elementtext"]/p/text()')[0].replace(u"\u00A0",' ').split()[0]
-    if hint==u"Née":
-        return "F"
-    elif hint==u"Né":
-        return "M"
+    borntxt=mepraw.xpath('//div[@class="ep_elementpeople2"]//div[@class="ep_elementtext"]/p/text()')
+    if len(borntxt)>0:
+        logger.info(borntxt)
+        hint=borntxt[0].replace(u"\u00A0",' ').split()[0]
+        if hint==u"Née":
+            return "F"
+        elif hint==u"Né":
+            return "M"
+    logger.warn('[!] no birth/gender data %s' % url)
     return 'n/a'
 
 def parseMember(userid):
@@ -89,13 +93,17 @@ def parseMember(userid):
         logger.error("len(mepdiv) not 1: %s" % str(list(mepdiv)))
     data[u'Name'] = mangleName(unws(mepdiv.xpath('.//span[@class="ep_title"]/text()')[0]))
     data[u'Photo'] = unicode(urljoin(BASE_URL,mepdiv.xpath('.//span[@class="ep_img"]/img')[0].get('src')),'utf8')
-    (d, p) = mepdiv.xpath('.//div[@class="ep_elementtext"]/p/text()')[0].split(',', 1)
-    try:
-        data[u'Birth'] = { u'date': datetime.strptime(unws(d), u"Born on %d %B %Y"),
-                           u'place': unws(p) }
-    except ValueError:
-        logger.warn('[!] failed to scrape birth data %s' % url)
-        logger.warn(traceback.format_exc())
+    borntxt=mepdiv.xpath('.//div[@class="ep_elementtext"]/p/text()')
+    if len(borntxt)>0:
+        (d, p) = borntxt[0].split(',', 1)
+        try:
+            data[u'Birth'] = { u'date': datetime.strptime(unws(d), u"Born on %d %B %Y"),
+                               u'place': unws(p) }
+        except ValueError:
+            logger.warn('[!] failed to scrape birth data %s' % url)
+            logger.warn(traceback.format_exc())
+    else:
+        logger.warn('[!] no birth data %s' % url)
     const={u'country': unws(mepdiv.xpath('.//span[@class="ep_country"]/text()')[0]),
            u'start': datetime(2009,7,14)}
     data[u'Constituencies']=[const]
