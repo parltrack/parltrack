@@ -72,13 +72,12 @@ def getMEPGender(id):
         return 'n/a'
     borntxt=mepraw.xpath('//div[@class="ep_elementpeople2"]//div[@class="ep_elementtext"]/p/text()')
     if len(borntxt)>0:
-        logger.info(borntxt)
         hint=borntxt[0].replace(u"\u00A0",' ').split()[0]
         if hint==u"Née":
             return "F"
         elif hint==u"Né":
             return "M"
-    logger.warn('[!] no birth/gender data %s' % url)
+    logger.warn('[!] no birth/gender data http://www.europarl.europa.eu/meps/fr/%s/get.html' % id)
     return 'n/a'
 
 def parseMember(userid):
