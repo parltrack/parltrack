@@ -69,13 +69,13 @@
   {% if loop.first %}<ul>{% endif %}
     <li>
     {% if c.groupid.__iter__ %}
-      {% if not c.start or c.start >= group_cutoff %}
+      {% if not c.start or c.start >= group_cutoff and c.groupid %}
         <img class="group_icon" alt="icon: {{c.groupid.0}}" src="/{{c.groupid.0|group_icon}}" /> <a href="/meps/{{c.groupid.0}}">{{c.groupid.0}}</a>
       {%else%}
         <img class="group_icon" alt="icon: {{c.groupid.0}}" src="/{{c.groupid.0|group_icon}}" /> {{c.groupid.0}}
       {%endif%}
     {%else%}
-      {% if not c.start or c.start >= group_cutoff %}
+      {% if not c.start or c.start >= group_cutoff and c.groupid %}
         <img class="group_icon" alt="icon: {{c.groupid}}" src="/{{c.groupid|group_icon}}" /> <a href="/meps/{{c.groupid}}">{{c.groupid}}</a>
       {%else%}
         <img class="group_icon" alt="icon: {{c.groupid}}" src="/{{c.groupid|group_icon}}" /> {{c.groupid}}
