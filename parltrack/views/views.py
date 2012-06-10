@@ -212,9 +212,9 @@ def getMep(text, date):
                 mep5=db.ep_meps.find_one(query)
         else:
             query={'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in name]),re.I)}
-            mep=db.ep_meps2.find_one(query,retfields)
+            mep=db.ep_meps2.find_one(query)
             if not mep:
-                mep5=db.ep_meps.find_one(query,retfields)
+                mep5=db.ep_meps.find_one(query)
     if not (mep or mep5):
         print >>sys.stderr, '[$] lookup oops:', text.encode('utf8')
         print >>sys.stderr, query, '\n', mep
