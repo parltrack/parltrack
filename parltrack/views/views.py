@@ -230,7 +230,7 @@ def getMep(text, date):
             if item['start']>=datetime(2009,7,13):
                 continue
             else:
-                if not field in mep: mep[field]=[]
+                if mep and not field in mep: mep[field]=[]
                 mep[field].append(item)
     return mep
 
