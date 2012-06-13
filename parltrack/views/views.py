@@ -229,8 +229,8 @@ def getMep(text, date):
         for item in sorted(mep5.get(field,[]),key=itemgetter('start')):
             if item['start']>=datetime(2009,7,13):
                 continue
-            else:
-                if mep and not field in mep: mep[field]=[]
+            elif mep:
+                if not field in mep: mep[field]=[]
                 mep[field].append(item)
     return mep
 
