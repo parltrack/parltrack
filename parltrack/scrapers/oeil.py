@@ -252,7 +252,7 @@ stage2inst={ 'Debate in Council': u'CSL',
              'Committee interim report tabled for plenary': u'EP',
              'Referral to joint committee announced in Parliament': u'EP',
              
-
+             'Committee of the Regions: opinion': u'CoR',
              'Additional information': u'all',
              }
 
@@ -780,10 +780,10 @@ if __name__ == "__main__":
     elif sys.argv[1]=="updateseq":
         crawlseq(get_active_dossiers(), null=null)
     elif sys.argv[1]=="url":
-        print jdump(scrape(sys.argv[2])).encode('utf8')
-        #res=scrape(sys.argv[2])
-        #print >>sys.stderr, pprint.pformat(res)
-        #save(res,[0,0])
+        #print jdump(scrape(sys.argv[2])).encode('utf8')
+        res=scrape(sys.argv[2])
+        print >>sys.stderr, pprint.pformat(res)
+        save(res,[0,0])
     elif sys.argv[1]=="test":
         save(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397"),[0,0]) # telecoms package
         #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=575084"))
