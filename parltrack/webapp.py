@@ -300,25 +300,17 @@ def render_meps(query={},kwargs={}):
 @cache.cached()
 @app.route('/meps/<string:country>/<path:group>')
 def mepfilter(country, group):
-    query={}
     args={}
     date=getDate()
     if country.upper() in COUNTRIES.keys():
-        query["Constituencies"]={'$elemMatch' :
-                                 {'start' : {'$lte': date},
-                                  'country': COUNTRIES[country.upper()],
-                                  "end" : {'$gte': date},}}
+        query={'$or': [{"Constituencies": {'$elemMatch' : {'start' : {'$lte': date}, 'country': COUNTRIES[country.upper()], 'end' : {'$gte': date} } } },
+                       {"Constituencies": {'$elemMatch' : {'start' : {'$lte': date}, 'country': COUNTRIES[country.upper()], 'end' : { '$exists': False } } } }] }
         args['country']=COUNTRIES[country.upper()]
     else:
-        query["Constituencies"]={'$elemMatch' :
-                                 {'start' : {'$lte': date},
-                                  "end" : {'$gte': date},}}
-        group="%s/%s" % (country, group)
+        query={'$or': [{"Constituencies": {'$elemMatch' : {'start' : {'$lte': date}, 'end' : {'$gte': date} } } },
+                       {"Constituencies": {'$elemMatch' : {'start' : {'$lte': date}, 'end' : { '$exists': False } } } }] }
     if group in groupids:
-        query['Groups']={'$elemMatch' :
-                         {'groupid': group,
-                          'start' : {'$lte': date},
-                          "end" : {'$gte': date},}}
+        query['Groups.groupid']=group
         args['group']=group
     if not args:
         abort(404)
@@ -331,16 +323,13 @@ def mepsbygroup(p1):
     args={}
     date=getDate()
     if p1 in groupids:
-        query['Groups']={'$elemMatch' :
-                         {'groupid': p1,
-                          'start' : {'$lte': date},
-                          "end" : {'$gte': date},}}
+        query={'$or': [{"Constituencies": {'$elemMatch' : {'start' : {'$lte': date}, 'end' : {'$gte': date} } } },
+                       {"Constituencies": {'$elemMatch' : {'start' : {'$lte': date}, 'end' : { '$exists': False } } } }] }
+        query['Groups.groupid']=p1
         args['group']=p1
     elif p1.upper() in COUNTRIES.keys():
-        query["Constituencies"]={'$elemMatch' :
-                                 {'start' : {'$lte': date},
-                                  'country': COUNTRIES[p1.upper()],
-                                  "end" : {'$gte': date},}}
+        query={'$or': [{"Constituencies": {'$elemMatch' : {'start' : {'$lte': date}, 'country': COUNTRIES[p1.upper()], 'end' : {'$gte': date} } } },
+                       {"Constituencies": {'$elemMatch' : {'start' : {'$lte': date}, 'country': COUNTRIES[p1.upper()], 'end' : { '$exists': False } } } }] }
         args['country']=COUNTRIES[p1.upper()]
     else:
         abort(404)
@@ -351,12 +340,22 @@ def mepsbygroup(p1):
 def ranking():
     query={}
     date=getDate()
-    if date<datetime(2009,7,14):
-        query={"Constituencies": {'$elemMatch' :
-                                 {'start' : {'$lte': date},
-                                  'end' : {'$gte': date},}}}
-    else:
-        query={"Constituencies.start": {'$lte': date} }
+    query={'$or':
+           [{"Constituencies":
+            {'$elemMatch' :
+             {'start' : {'$lte': date},
+              'end' : {'$gte': date}
+              }
+             }
+            },
+           {"Constituencies":
+            {'$elemMatch' :
+             {'start' : {'$lte': date},
+              'end' : { '$exists': False }
+              }
+             }
+            }]
+           }
     return render_meps(query)
 
 @cache.cached()
