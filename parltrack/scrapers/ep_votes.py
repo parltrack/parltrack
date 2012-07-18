@@ -254,7 +254,7 @@ def scrape(f):
                                 mep=db.ep_meps2.find_one(query,['_id'])
                             if mep:
                                 vtmp.append({'id': mep['_id'], 'orig': name})
-                                if q>2: print >>sys.stderr, '[!] weak mep', q, vote['ts'], group, name.encode('utf8')
+                                #if q>2: print >>sys.stderr, '[!] weak mep', q, vote['ts'], group, name.encode('utf8')
                                 break
                         if not mep:
                             print >>sys.stderr, '[?] warning unknown MEP',vote['ts'] , group.encode('utf8'), name.encode('utf8')
