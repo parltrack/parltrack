@@ -201,6 +201,7 @@ stage2inst={ 'Debate in Council': u'CSL',
              'Draft budget approved by Council': u'CSL',
              'Council position scheduled for adoption': u'CSL',
              'Decision by Council': u'CSL',
+             'Act approved by Council, 2nd reading': u'CSL',
              
              'Final act signed by Parliament and Council': u'EP/CSL',
              'Joint text approved by Conciliation Committee co-chairs': u'EP/CSL',
