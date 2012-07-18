@@ -49,14 +49,8 @@ staff_positions={"President": 7,
                  }
 def mepRanking(date,query={}):
     meps=db.ep_meps2.find(query)
-    tmp=[]
-    for m in meps:
-        for c in m['Constituencies']:
-            if (not 'end' in c and c['start']>datetime(2009,7,13)) or (c['start']<=date and c['end']>=date):
-                tmp.append(m)
-                break
     rankedMeps=[]
-    for mep in tmp:
+    for mep in meps:
         score=0
         ranks=[]
         # get group rank
