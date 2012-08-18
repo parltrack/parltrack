@@ -519,14 +519,16 @@ def scrape_actors(tree):
                 for p in table.xpath('.//p[@class="players_head"]'):
                     p.getparent().remove(p)
                 for agent in lst2obj(table, ecagents, 0):
-                    if len(agent['dg'])==len(agent['commissioner']):
+                    if len(agent.get('dg','x'))==len(agent.get('commissioner','')):
                         for dg,cmnr in izip(agent['dg'], agent['commissioner']):
                             agent[u'body']=u'EC'
                             agents.append({u'body': u'EC',
                                            u'dg': dg,
                                            u'commissioner': cmnr})
                     else:
-                        logger.warn("commission data wrong: %s" % (agent))
+                        agents.append({u'body': u'EC',
+                                       u'dg': agent['dg']})
+                        #logger.warn("commission data wrong: %s" % (agent))
             else:
                 "[!] wrong institution name", inst_name
     return (agents, sorted(meps,key=itemgetter('committee')))
