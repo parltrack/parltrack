@@ -341,7 +341,7 @@ def immunity():
             continue
         year=d['procedure']['reference'].split('/')[0]
         for c in mep['Constituencies']:
-            if c['start'].year<=int(year) and c['end'].year>=int(year):
+            if c['start'].year<=int(year) and (not c.get('end') or c.get('end').year>=int(year)):
                 country=c['country']
                 party=c.get('party','*n/a*')
                 break
