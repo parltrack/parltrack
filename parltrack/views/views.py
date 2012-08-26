@@ -54,7 +54,7 @@ def mepRanking(date,query={}):
         score=0
         ranks=[]
         # get group rank
-        for group in mep['Groups']:
+        for group in mep.get('Groups',[]):
             if not 'end' in group or (group['start']<=date and group['end']>=date):
                 score=group_positions[group['role']]
                 if not 'groupid' in group:
