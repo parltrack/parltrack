@@ -231,6 +231,7 @@ background-color: #8dbdd8;
 
 #monolith {
 	top:		0px;
+   left:    0px;
 	width:		200px;
 	height:		100%;
 	position:	fixed;
