@@ -231,7 +231,7 @@ Legal Basis {%for sub in dossier.procedure.legal_basis%}{{sub}}{% if not loop.la
         {%endif%}
         </li>
      {%endfor%}
-     {%for agent in act.commission %}<li class='agent'>{{agent.DG}}, {{agent.Commissioner}}</li>{%endfor%}
+     {%for agent in act.commission %}<li class='agent'>{{agent.DG.title}}, {{agent.Commissioner}}</li>{%endfor%}
      {%for agent in act.committees%}
         <li class='agent'>
           {%if agent.responsible%}
