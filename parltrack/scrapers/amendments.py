@@ -19,34 +19,38 @@
 import os, re, sys
 import Image, ImageMath
 import numpy as np
-from pbs import pdftotext
+from pbs import pdftotext, gs
 from parltrack.utils import fetch_raw, fetch, unws, logger, jdump, diff
-from tempfile import mkstemp
+from tempfile import mkstemp, mkdtemp
 from mappings import COMMITTEE_MAP
 from datetime import datetime
-from wand.image import Image as wimage
 from cStringIO import StringIO
 from bbox import find_paws, remove_overlaps, slice_to_bbox
 from parltrack.db import db
 from dateutil.parser import parse
+from shutil import rmtree
 
-def getdims(fp):
-    im=wimage(file=fp)
+def getdims(pdf):
+    tmpdir=mkdtemp()
+    gs('-q',
+       '-dQUIET',
+       '-dSAFER',
+       '-dBATCH',
+       '-dNOPAUSE',
+       '-dNOPROMPT',
+       '-sDEVICE=pngmono',
+       '-r72x72',
+       '-sOutputFile=%s/%%08d' % tmpdir,
+       '-f%s' % pdf)
     mask=None
     i=0
-    while im.sequence:
-        im.format='png'
-        imfp = StringIO()
-        im.save(file=imfp)
-        del im.sequence.index
-        imfp.seek(0)
-        page=Image.open(imfp).convert("1",dither=Image.NONE)
+    for fname in os.listdir(tmpdir):
+        page=Image.open(tmpdir+'/'+fname) #.convert("1",dither=Image.NONE)
         if not mask:
             mask=page
-        imfp.close()
         mask=ImageMath.eval("a & b", a=page, b=mask)
         i+=1
-    im.close()
+    rmtree(tmpdir)
     data = np.array(mask)
     data_slices = find_paws(255-data, smooth_radius = 5, threshold = 5)
     bboxes = remove_overlaps(slice_to_bbox(data_slices))
@@ -57,12 +61,11 @@ def getraw(pdf):
     (fd, fname)=mkstemp()
     fd=os.fdopen(fd, 'w')
     fd.write(fetch_raw(pdf).read())
-    fd.seek(0)
-    x,y,h,w = getdims(fd)
     fd.close()
+    x,y,h,w = getdims(fname)
     logger.info("%s dims: %s %s %s %s" % (datetime.now().isoformat(), x,y,h,w))
     if w<430 or h<620:
-        logger.warn("%s patching dimensions to: 89, 63, 628, 438" % datetime.now().isoformat())
+        logger.warn("%s patching dimensions to" % datetime.now().isoformat())
         x, y, h, w = 89, 63, 628, 438
     text=pdftotext('-nopgbrk',
                    '-layout',
@@ -122,6 +125,8 @@ def parse_block(block, url, reference, date, committee):
         else:
             logger.warn("%s %s" % (datetime.now().isoformat(),
                                    (len(block[i]), newstart, (len(block[i])-newstart)/float(newstart), block[i])))
+            am['old'].append(unws(block[i][:newstart]))
+            am['new'].append(unws(block[i][newstart:]))
         i+=1
     if am['new']==['deleted']:
         am['new']=[]
@@ -129,8 +134,13 @@ def parse_block(block, url, reference, date, committee):
     try:
         am['orig_lang']=unws(block[i])[4:]
     except:
-        logger.warn(datetime.now().isoformat()+str(am)+"\n"+str(block))
-        raise
+        # workaround: am44 has no language:
+        if (url=='http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-%2f%2fEP%2f%2fNONSGML%2bCOMPARL%2bPE-441.284%2b01%2bDOC%2bPDF%2bV0%2f%2fEN' and
+            am['title']=="Amendment 44"):
+            am['orig_lang']="en"
+        else:
+            logger.warn(datetime.now().isoformat()+str(am)+"\n"+str(block))
+            raise
     i+=1
     while i<len(block) and not unws(block[i]): i+=1
     if i<len(block) and unws(block[i])=="Justification":
@@ -157,7 +167,7 @@ def scrape(url):
         if prolog:
             if amstart.match(line):
                 if reference==None:
-                    logger.warn("[!] %s couldn't find ref, in %s" % (datetime.now().isoformat(), url))
+                    logger.warn("%s [!] couldn't find ref" % (datetime.now().isoformat()))
                     return []
                 if date==None or committee==[]:
                     raise ValueError
@@ -194,7 +204,7 @@ def scrape(url):
             block=[line]
             continue
         block.append(line)
-    if filter(None,block):
+    if block and filter(None,block):
         res.append(parse_block(block, url, reference, date, committee))
     return res
 
@@ -211,17 +221,17 @@ def getComAms():
         root=fetch(url, params=postdata)
         prev=[]
         while True:
-            logger.info("%s scraping %s" % (datetime.now().isoformat(), url))
+            logger.info("%s %s" % (datetime.now().isoformat(), url))
             #logger.info(tostring(root))
             tmp=[a.get('href')
                  for a in root.xpath('//a[@title="open this PDF in a new window"]')
                  if (len(a.get('href',''))>13)]
             if not tmp or prev==tmp:
                 break
+            prev=tmp
             for u in tmp:
                 if db.ep_ams.find_one({'src': u}): continue
                 yield u
-            prev=tmp
             i+=1
             url=nexttpl % (com,i)
             root=fetch(url)
@@ -263,7 +273,7 @@ def save(data, stats):
 def crawler(saver=jdump):
     stats=[0,0]
     for pdf in getComAms():
-        logger.info(datetime.now().isoformat()+" scraping "+pdf)
+        logger.info(datetime.now().isoformat()+" "+pdf)
         ctr=[0,0]
         try:
             saver(scrape(pdf), ctr)
