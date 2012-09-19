@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #    This file is part of parltrack.
 
 #    parltrack is free software: you can redistribute it and/or modify
@@ -21,6 +22,7 @@ import Image, ImageMath
 import numpy as np
 from pbs import pdftotext, gs
 from parltrack.utils import fetch_raw, fetch, unws, logger, jdump, diff
+from parltrack.scrapers.oeil import getMEPRef
 from tempfile import mkstemp, mkdtemp
 from mappings import COMMITTEE_MAP
 from datetime import datetime
@@ -63,9 +65,9 @@ def getraw(pdf):
     fd.write(fetch_raw(pdf).read())
     fd.close()
     x,y,h,w = getdims(fname)
-    logger.info("%s dims: %s %s %s %s" % (datetime.now().isoformat(), x,y,h,w))
+    logger.info("%s dimensions: %sx%s+%s+%s" % (datetime.now().isoformat(), x,y,h,w))
     if w<430 or h<620:
-        logger.warn("%s patching dimensions to" % datetime.now().isoformat())
+        logger.info("%s patching dimensions" % datetime.now().isoformat())
         x, y, h, w = 89, 63, 628, 438
     text=pdftotext('-nopgbrk',
                    '-layout',
@@ -78,29 +80,115 @@ def getraw(pdf):
     os.unlink(fname)
     return text
 
+def splitNames(text):
+    text = text.split(' on behalf ',1)[0]
+    res=[]
+    for delim in (', ', ' and ', ' & ', '; ', ','):
+        if not res:
+            res=filter(None,[item[:-1] if item[-1] in [',', "'", ';'] else item
+                              for item in unws(text).split(delim)
+                              if item])
+            continue
+        res=filter(None,[item[:-1] if item[-1] in [',', "'", ';'] else item
+                         for elem in res
+                         for item in elem.split(delim)
+                         if item])
+    return res
+
+types=['Motion for a resolution',
+       'Draft opinion',
+       'Proposal for a decision',
+       'Proposal for a recommendation',
+       'Proposal for a directive',
+       'Proposal for a regulation']
+locstarts=['After', 'Annex', 'Article', 'Chapter', 'Citation', 'Guideline',
+           'Heading', 'Index', 'New', 'Paragraph', 'Part', 'Pecital', 'Point',
+           'Proposal', 'Recital', 'Recommendation', 'Rejection', 'Rule',
+           'Section', 'Subheading', 'Subtitle', 'Title', u'Considérant']
+
+def istype(text):
+    # get type
+    found=False
+    for t in types:
+        if unws(text).startswith(t):
+            found=True
+            break
+    return found
+
 def parse_block(block, url, reference, date, committee):
     am={u'title': unws(block[0]),
         u'src': url,
         u'reference': reference,
         u'date': date,
         u'committee': committee,
+        u'type': [],
         u'authors': [],
+        u'meps': [],
         u'old': [],
         u'new': []}
     i=1
-    am['authors'].extend(unws(block[i]).split(', '))
-    while unws(block[i]).endswith(','):
+    while not unws(block[i]): i+=1 # skip blanks
+
+    # parse authors
+    while unws(block[i]):
+        if istype(block[i]) or unws(block[i]).split()[0] in locstarts:
+            break
+        # skip leading "on behalf..."
+        while block[i].lower().startswith('on behalf '):
+            am['authors'].append(block[i])
+            i+=1
+        if block[i].lower().startswith('compromise amendment replacing amendment'):
+            while unws(block[i]):
+                try:
+                    am['compromising'].append(block[i])
+                except:
+                    am['compromising']=[block[i]]
+                i+=1
+                if unws(block[i-1])[-1]!=',': break
+            break
+        # get authors
+        authors=filter(None,splitNames(block[i]))
+        #logger.info("asdf"+str(authors))
+        if len(authors)==0: break
+        # check authors in ep_meps
+        tmp=filter(None,
+                   [getMEPRef(author)
+                    for author in authors
+                    if unws(author)])
+        if not tmp: break
+        am['authors'].extend(authors)
+        am['meps'].extend(tmp)
         i+=1
-        am['authors'].extend(unws(block[i]).split(', '))
-    i+=1
-    if block[i].lower().startswith('on behalf of the'): i+=1
-    while not unws(block[i]): i+=1
-    am[u'type']=block[i]
-    i+=1
-    while not unws(block[i]): i+=1
+    if len(am['meps'])<1:
+        #logger.warn("%s [!] no meps found in %s\n\n%s" %
+        logger.warn("%s [!] no meps found in %s" %
+                    (datetime.now().isoformat(),
+                     am['title'],
+                     #'\n'.join(block)))
+                    ))
+
+    while not unws(block[i]): i+=1        # skip blank lines
+
+    if not unws(block[i]).split()[0] in locstarts:
+        if not istype(block[i]):
+            logger.warn("%s [!] unknown type %s" %
+                        (datetime.now().isoformat(),
+                         unws(block[i])))
+        #logger.warn("%s\n\n%s\n\n%s\n\n" % (i,'\n'.join([str(x) for x in am.items()]),'\n'.join(block)))
+        am[u'type'].append(block[i])
+        i+=1
+        # possible continuation lines
+        while unws(block[i+1]) and unws(block[i]).split()[0] not in locstarts:
+            am[u'type'].append(block[i])
+            i+=1
+
+    while not unws(block[i]): i+=1        # skip blank lines
+
+    # get location
+    if not unws(block[i]).split()[0] in locstarts:
+        logger.warn("%s [!] unknown type %s" % (datetime.now().isoformat(),unws(block[i])))
     am[u'location']=block[i]
     i+=1
-    #logger.warn("%s\n%s\n%s\n\n" % (i,am,block))
     # skip over split table header
     while not unws(block[i]): i+=1
     i+=1
@@ -119,14 +207,17 @@ def parse_block(block, url, reference, date, committee):
             am['old'].append(unws(block[i]))
             i+=1
             continue
-        if 0.1 < (len(block[i])-newstart)/float(newstart) < 1.5:
-            am['old'].append(unws(block[i][:newstart]))
-            am['new'].append(unws(block[i][newstart:]))
+        if block[i][len(block[i])/2]==' ' and (
+            block[i][(len(block[i])/2)+1]==' ' or
+            block[i][(len(block[i])/2)-1]==' '):
+            am['old'].append(unws(block[i][:len(block[i])/2]))
+            am['new'].append(unws(block[i][len(block[i])/2:]))
         else:
-            logger.warn("%s %s" % (datetime.now().isoformat(),
-                                   (len(block[i]), newstart, (len(block[i])-newstart)/float(newstart), block[i])))
             am['old'].append(unws(block[i][:newstart]))
             am['new'].append(unws(block[i][newstart:]))
+            if 0.1 <= (len(block[i])-newstart)/float(newstart) >= 1.5:
+                logger.warn("%s %s" % (datetime.now().isoformat(),
+                                       (len(block[i]), newstart, (len(block[i])-newstart)/float(newstart), block[i])))
         i+=1
     if am['new']==['deleted']:
         am['new']=[]
@@ -151,6 +242,7 @@ def parse_block(block, url, reference, date, committee):
             tmp.append(unws(block[i]))
             i+=1
         am['justification']='\n'.join(tmp)
+    # get mep refs in db
     return am
 
 refre=re.compile(r'[0-9]{4}/[0-9]{4}\([A-Z]*\)')
@@ -290,6 +382,9 @@ def crawler(saver=jdump):
 if __name__ == "__main__":
     import pprint, sys
     if len(sys.argv)>1:
+        #if sys.argv[1]=='meps':
+        #    addmeprefs()
+        #    sys.exit(0)
         while len(sys.argv)>1:
             pprint.pprint(scrape(sys.argv[1]))
             del sys.argv[1]
