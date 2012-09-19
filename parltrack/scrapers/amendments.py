@@ -22,7 +22,7 @@ import Image, ImageMath
 import numpy as np
 from pbs import pdftotext, gs
 from parltrack.utils import fetch_raw, fetch, unws, logger, jdump, diff
-from parltrack.scrapers.oeil import getMEPRef
+from parltrack.views.views import getMep
 from tempfile import mkstemp, mkdtemp
 from mappings import COMMITTEE_MAP
 from datetime import datetime
@@ -31,6 +31,8 @@ from bbox import find_paws, remove_overlaps, slice_to_bbox
 from parltrack.db import db
 from dateutil.parser import parse
 from shutil import rmtree
+
+debug=False
 
 def getdims(pdf):
     tmpdir=mkdtemp()
@@ -80,6 +82,18 @@ def getraw(pdf):
     os.unlink(fname)
     return text
 
+mepmaps={ 'Elisa Ferrreira': 'Elisa Ferreira',
+          'Marcus Ferber': u'Markus Ferber',
+          'Eleni Theocharus': 'Eleni Theocharous',
+          u'Radvil÷ Morkūnait÷-Mikul÷nien÷': u'Radvilė MORKŪNAITĖ-MIKULĖNIENĖ',
+          u'Csaba İry': u'Csaba Őry',
+          u'Corina CreŃu': u'Corina CREŢU',
+          u'Sidonia ElŜbieta': u'Sidonia Elżbieta JĘDRZEJEWSKA',
+          'Birgit Sippel on': 'Birgit Sippel',
+          u'Krišjānis KariĦš': u'Krišjānis KARIŅŠ',
+          u'Sidonia ElŜbieta Jędrzejewska': u'Sidonia Elżbieta JĘDRZEJEWSKA',
+          'Liz Lynne': 'Elizabeth Lynn'}
+
 def splitNames(text):
     text = text.split(' on behalf ',1)[0]
     res=[]
@@ -93,12 +107,17 @@ def splitNames(text):
                          for elem in res
                          for item in elem.split(delim)
                          if item])
-    return res
+    return [mepmaps.get(x,x) for x in res]
 
 types=['Motion for a resolution',
        'Draft opinion',
        'Proposal for a decision',
        'Proposal for a recommendation',
+       "Parliament's Rules of Procedure",
+       'Draft Agreement',
+       'Draft report',
+       'Draft legislative resolution',
+       'Motion forf a resolution',
        'Proposal for a directive',
        'Proposal for a regulation']
 locstarts=['After', 'Annex', 'Article', 'Chapter', 'Citation', 'Guideline',
@@ -131,10 +150,8 @@ def parse_block(block, url, reference, date, committee):
 
     # parse authors
     while unws(block[i]):
-        if istype(block[i]) or unws(block[i]).split()[0] in locstarts:
-            break
         # skip leading "on behalf..."
-        while block[i].lower().startswith('on behalf '):
+        while block[i].lower().startswith('on behalf ') or block[i].lower().startswith('behalf of '):
             am['authors'].append(block[i])
             i+=1
         if block[i].lower().startswith('compromise amendment replacing amendment'):
@@ -146,16 +163,19 @@ def parse_block(block, url, reference, date, committee):
                 i+=1
                 if unws(block[i-1])[-1]!=',': break
             break
+        while not unws(block[i]): i+=1        # skip blank lines
+        if istype(block[i]) or unws(block[i]).split()[0] in locstarts:
+            break
         # get authors
         authors=filter(None,splitNames(block[i]))
         #logger.info("asdf"+str(authors))
         if len(authors)==0: break
         # check authors in ep_meps
         tmp=filter(None,
-                   [getMEPRef(author)
+                   [getMep(author,None)['_id']
                     for author in authors
                     if unws(author)])
-        if not tmp: break
+        if not tmp and am['authors']: break
         am['authors'].extend(authors)
         am['meps'].extend(tmp)
         i+=1
@@ -168,13 +188,16 @@ def parse_block(block, url, reference, date, committee):
                     ))
 
     while not unws(block[i]): i+=1        # skip blank lines
+    while block[i].lower().startswith('on behalf ') or block[i].lower().startswith('behalf of '):
+        am['authors'].append(block[i])
+        i+=1
+    while not unws(block[i]): i+=1        # skip blank lines
 
     if not unws(block[i]).split()[0] in locstarts:
         if not istype(block[i]):
             logger.warn("%s [!] unknown type %s" %
                         (datetime.now().isoformat(),
                          unws(block[i])))
-        #logger.warn("%s\n\n%s\n\n%s\n\n" % (i,'\n'.join([str(x) for x in am.items()]),'\n'.join(block)))
         am[u'type'].append(block[i])
         i+=1
         # possible continuation lines
@@ -301,11 +324,12 @@ def scrape(url):
     return res
 
 #from lxml.etree import tostring
-def getComAms():
+def getComAms(leg=7):
     urltpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html"
-    postdata="clean=false&leg=7&docType=AMCO&miType=text"
+    postdata="clean=false&leg=%s&docType=AMCO&miType=text" % leg
     nexttpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?action=%s&tabActif=tabResult#sidesForm "
-    for com in (k for k in COMMITTEE_MAP.keys() if len(k)==4 and k not in ['CODE', 'RETT', 'CLIM', 'TDIP']):
+    for com in (k for k in COMMITTEE_MAP.keys()
+                if len(k)==4 and k not in ['CODE', 'RETT', 'CLIM', 'TDIP']):
         url=urltpl % (com)
         i=0
         amendments=[]
@@ -385,6 +409,7 @@ if __name__ == "__main__":
         #if sys.argv[1]=='meps':
         #    addmeprefs()
         #    sys.exit(0)
+        debug=True
         while len(sys.argv)>1:
             pprint.pprint(scrape(sys.argv[1]))
             del sys.argv[1]
