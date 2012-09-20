@@ -87,11 +87,35 @@ mepmaps={ 'Elisa Ferrreira': 'Elisa Ferreira',
           'Eleni Theocharus': 'Eleni Theocharous',
           u'Radvil÷ Morkūnait÷-Mikul÷nien÷': u'Radvilė MORKŪNAITĖ-MIKULĖNIENĖ',
           u'Csaba İry': u'Csaba Őry',
+          u'Enikı Gyıri': u'Enikő Győri',
           u'Corina CreŃu': u'Corina CREŢU',
           u'Sidonia ElŜbieta': u'Sidonia Elżbieta JĘDRZEJEWSKA',
+          u'ElŜbieta Katarzyna Łukacijewska': u'Elżbieta Katarzyna ŁUKACIJEWSKA',
+          u'ElŜbieta Katarzyna': u'Elżbieta Katarzyna ŁUKACIJEWSKA',
+          u'ElŜbieta': u'Elżbieta Katarzyna ŁUKACIJEWSKA',
+          u'Silvia-Adriana łicău': u'Silvia-Adriana ŢICĂU',
+          u'Adriana łicău': u'Silvia-Adriana ŢICĂU',
+          u'Maria Ad Grace Carvel': u'Maria Da Graça CARVALHO',
+          u'László Tıkés': u'László Tőkés',
           'Birgit Sippel on': 'Birgit Sippel',
+          u'Hans Van Baalen': u'Johannes Cornelis van BAALEN',
           u'Krišjānis KariĦš': u'Krišjānis KARIŅŠ',
+          u'Arturs Krišjānis': u'Krišjānis KARIŅŠ',
+          u'Arturs Krišjānis KariĦš': u'Krišjānis KARIŅŠ',
+          u'KariĦš': u'Krišjānis KARIŅŠ',
           u'Sidonia ElŜbieta Jędrzejewska': u'Sidonia Elżbieta JĘDRZEJEWSKA',
+          u'RóŜa Gräfin von Thun und Hohenstein': u'Róża Gräfin von THUN UND HOHENSTEIN',
+          u'Marielle De Starnes': u'Marielle De Sarnes',
+          u'José Ignacio Samaranch Sánchez-Neyra': u'José Ignacio SALAFRANCA SÁNCHEZ-NEYRA',
+          u'McMillan Scott': u'Edward McMillan-Scott',
+          u'Edward McMillan Scott': u'Edward McMillan-Scott',
+          u'Pablo Zalba Bidegain<': u'Pablo ZALBA BIDEGAIN',
+          u'Annemie Neyts--Uyttebroeck': u'Annemie Neyts-Uyttebroeck',
+          u'María Paloma Muñiz De Urquiza': u'María MUÑIZ DE URQUIZA',
+          u'Marije Cornelissen (Greens/EFA': u'Marije Cornelissen',
+          u'Marie Eleni Koppa': u'Maria Eleni Koppa',
+          u'Ilda Figueiredo (GUE/NGL': u'Ilda Figueiredo',
+          u'Ramon Tremors i Balcells': u'Ramon TREMOSA i BALCELLS',
           'Liz Lynne': 'Elizabeth Lynn'}
 
 def splitNames(text):
@@ -107,29 +131,41 @@ def splitNames(text):
                          for elem in res
                          for item in elem.split(delim)
                          if item])
+    res=[mep if not mep.endswith('Shadow)') else mep[:mep.rfind(' (')]
+         for mep in res]
     return [mepmaps.get(x,x) for x in res]
 
-types=['Motion for a resolution',
-       'Draft opinion',
-       'Proposal for a decision',
-       'Proposal for a recommendation',
-       "Parliament's Rules of Procedure",
-       'Draft Agreement',
-       'Draft report',
-       'Draft legislative resolution',
-       'Motion forf a resolution',
-       'Proposal for a directive',
-       'Proposal for a regulation']
+types=[u'Motion for a resolution',
+       u'Motion forf a resolution',
+       u'Motion for a decision',
+       u"Parliament's Rules of Procedure",
+       u'Council position',
+       u'Draft opinion',
+       u'Draft Agreement',
+       u'Draft report',
+       u'Draft decision',
+       u'Draft directive',
+       u'Draft regulation',
+       u'Draft legislative resolution',
+       u'Draft Report',
+       u'Draft Directive – amending act',
+       u'Draft opinion Amendment',
+       u'Draft Interinstitutional Agreement',
+       u'Proposal for a decision',
+       u'Proposal for a recommendation',
+       u'Proposal for a directive',
+       u'Proposal for a regulation']
 locstarts=['After', 'Annex', 'Article', 'Chapter', 'Citation', 'Guideline',
            'Heading', 'Index', 'New', 'Paragraph', 'Part', 'Pecital', 'Point',
            'Proposal', 'Recital', 'Recommendation', 'Rejection', 'Rule',
-           'Section', 'Subheading', 'Subtitle', 'Title', u'Considérant']
+           'Section', 'Subheading', 'Subtitle', 'Title', u'Considérant', 'Indent',
+           'Paragraphe']
 
 def istype(text):
     # get type
     found=False
     for t in types:
-        if unws(text).startswith(t):
+        if unws(text).lower().startswith(t.lower()):
             found=True
             break
     return found
@@ -151,7 +187,10 @@ def parse_block(block, url, reference, date, committee):
     # parse authors
     while unws(block[i]):
         # skip leading "on behalf..."
-        while block[i].lower().startswith('on behalf ') or block[i].lower().startswith('behalf of '):
+        while (unws(block[i]).lower().startswith('on behalf ') or
+               unws(block[i]).lower().startswith('behalf of ') or
+               unws(block[i]).lower().startswith('parliament') or
+               unws(block[i]).lower().startswith('the green/efa group')):
             am['authors'].append(block[i])
             i+=1
         if block[i].lower().startswith('compromise amendment replacing amendment'):
@@ -172,7 +211,7 @@ def parse_block(block, url, reference, date, committee):
         if len(authors)==0: break
         # check authors in ep_meps
         tmp=filter(None,
-                   [getMep(author,None)['_id']
+                   [getMep(author,None,True)
                     for author in authors
                     if unws(author)])
         if not tmp and am['authors']: break
@@ -186,9 +225,14 @@ def parse_block(block, url, reference, date, committee):
                      am['title'],
                      #'\n'.join(block)))
                     ))
+    else:
+        am['meps']=list(set(am['meps']))
 
     while not unws(block[i]): i+=1        # skip blank lines
-    while block[i].lower().startswith('on behalf ') or block[i].lower().startswith('behalf of '):
+    while (unws(block[i]).lower().startswith('on behalf ') or
+           unws(block[i]).lower().startswith('behalf of ') or
+           unws(block[i]).lower().startswith('parliament') or
+           unws(block[i]).lower().startswith('the green/efa group')):
         am['authors'].append(block[i])
         i+=1
     while not unws(block[i]): i+=1        # skip blank lines
@@ -201,7 +245,9 @@ def parse_block(block, url, reference, date, committee):
         am[u'type'].append(block[i])
         i+=1
         # possible continuation lines
-        while unws(block[i+1]) and unws(block[i]).split()[0] not in locstarts:
+        while (unws(block[i+1]) and
+               unws(block[i]) and
+               unws(block[i]).split()[0] not in locstarts):
             am[u'type'].append(block[i])
             i+=1
 
