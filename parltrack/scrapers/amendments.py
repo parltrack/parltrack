@@ -277,7 +277,8 @@ locstarts=['After', 'Annex', 'Article', 'Chapter', 'Citation', 'Guideline',
            'Column', 'Annexe', 'Sub-heading', 'ANNEX', 'Anexo', 'Articles', 'paragraph',
            'Paragraphs', 'Subh.', 'Subheading.', 'Short', 'Single', 'First', 'Articolo',
            'Suggestion', 'Allegato','Introductory', 'Explanatory', 'Statement', 'Notes',
-           'Visa', 'article', 'Thematic', 'recital']
+           'Visa', 'article', 'Thematic', 'recital', 'Legislative', '.Article',
+           'citation', 'Recitals']
 
 def istype(text):
     # get type
@@ -335,6 +336,8 @@ def parse_block(block, url, reference, date, committee):
     i=len(block)-1
     while (i>2 and
            not ((block[i].endswith("     Amendment") or
+                 block[i].endswith("     PARTICULARS") or
+                 block[i].endswith("     Remedy") or
                  block[i].endswith("     Amended text") or
                  block[i].endswith("     Amendement") or
                  block[i].endswith("           Amendments by Parliament") or
