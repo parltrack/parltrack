@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Amendments of {{ owner }} | {% endblock %}
+{% block content %}
+   <h2>{{owner}} ({{amendments.count()}})</h2>
+   <table class="tablesorter" id="amendments">
+      <thead>
+         <tr><td width="8em">Amendments</td><td>Dossier</td></tr>
+      </thead>
+      {% for group in amendments|groupby('reference') %}
+      <tr>
+         <td>{{group.list|length()}}</td>
+         <td class="reference">
+            {{group.grouper|asdossier|safe}}
+            {% for doc in group.list|groupby('date') %}
+               <div>{{doc.list.0.src|asPE}} {{doc.grouper|asdate}} <span class="more">{{doc.list|length}} amendments...</span>
+                  <div class="hidden">
+                     {% for am in doc.list|sort(attribute='seq') %}
+                        <div class="amendment">
+                           <div class="title">Amendment {{am.seq}}</div>
+                           <div class="committees">{% for c in am.committee%}{{c}}{% if not loop.last %}, {%endif%}{%endfor%}</div>
+                           <div class="authors">{% for a in am.meps%}{{a|asmep|safe}}{% if not loop.last %}, {%endif%}{%endfor%}</div>
+                           <div class="location">{% for d,l in am.location%}<div>{{d}}<br />{{l}}</div>{%endfor%}</ul></div>
+                           <div class="diff">{{am|asdiff|safe}}</div>
+                           <div class="source">source: <a href="{{am.src}}">{{am.src|asPE}}</a></div>
+                        </div>
+                        <hr />
+                     {%endfor%}
+                  </div>
+               </div>
+            {%endfor%}
+         </td>
+      </tr>
+      {% endfor %}
+      </table>
+{% endblock %}
