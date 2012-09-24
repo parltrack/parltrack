@@ -222,6 +222,7 @@ background-color: #8dbdd8;
 .changelog-data li {
    list-style-type: none;
    margin-bottom: .5em;
+   margin-right: .5em;
 }
 .changelog-old,
 .changelog-new {
@@ -362,3 +363,19 @@ background-color: #8dbdd8;
 #topbar span:hover {
    text-decoration: underline;
 }
+
+table.tablesorter#amendments {
+   font-size: 18px;
+}
+.amendment { margin-bottom: 1em; }
+.amendment .title { font-size: 21px; }
+.amendment .committees,
+.amendment .authors,
+.amendment .date { font-size: 15px; }
+.amendment .location { font-style: italic; }
+.amendment .source { font-size: 13px; }
+.amendment .diff {
+   width: 40em;
+}
+
+.small { font-size: .7em; }

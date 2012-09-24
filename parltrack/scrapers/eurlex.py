@@ -65,7 +65,6 @@ def scrape(celexid, path):
                        u'doctype': code[5:st],
                        u'refno': code[st:],
                        u'lang': lang,
-                       u'chapter': path,
                        }}
     else:
         eurlex={'id': {u'celexid': celexid,
@@ -73,7 +72,6 @@ def scrape(celexid, path):
                        u'year': code[1:5],
                        u'doctype': code[5:6],
                        u'lang': lang,
-                       u'chapter': path,
                        }}
 
     try:
@@ -87,7 +85,7 @@ def scrape(celexid, path):
     if len(root.xpath('//h1[text()="No documents matching criteria."]'))>0:
         logger.warn('[!] nothing to scrape here: %s', "%s%s:NOT" % (EURLEXURL,celexid))
         return
-    eurlex[u'title'] = root.xpath('//h2[text()="Title and reference"]/following-sibling::p/text()')[0]
+    eurlex[u'title'] = unws(root.xpath('//h2[text()="Title and reference"]/following-sibling::p/text()')[0])
     # dates
     dates=root.xpath('//h2[text()="Dates"]/following-sibling::ul/text()')
     for y in dates:
@@ -119,8 +117,8 @@ def scrape(celexid, path):
         except:
             continue
         if not len(s): continue
-        tmp=dict([(field, [unws(x) if x.getparent().tag!='a' else {u'text': unws(x),
-                                                                   u'url': x.getparent().get('href')}
+        tmp=dict([(field, [{u'text': unws(x),
+                            u'url': x.getparent().get('href')}
                            for x in s.xpath('./li/strong[text()="%s"]/..//text()' % field)
                            if unws(x) and unws(x)!='/'][1:])
                   for field in l])
@@ -186,7 +184,7 @@ def crawl(saver=jdump, null=False):
 if __name__ == "__main__":
     if len(sys.argv)<2:
         print "%s [<chapter>] [<dry>] [<null>])" % (sys.argv[0])
-    if sys.argv[1]=='url' and sys.argv[2]:
+    elif sys.argv[1]=='url' and sys.argv[2]:
         print jdump(scrape(sys.argv[2],[]))
         sys.exit(0)
     args=set(sys.argv[1:])

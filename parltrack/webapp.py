@@ -18,7 +18,7 @@
 
 # (C) 2011 by Adam Tauber, <asciimoo@gmail.com>, Stefan Marsiske <stefan.marsiske@gmail.com>
 
-import os, re, copy, csv, cStringIO, json, sys, itertools
+import os, re, copy, csv, cStringIO, json, sys, itertools, diff_match_patch, urllib
 from pymongo import Connection
 from flaskext.mail import Mail, Message
 from flaskext.cache import Cache
@@ -602,8 +602,15 @@ def committee_changes(c_id):
         for date,change in item['changes'].items():
             changes.append((date, change))
     updated=max(changes, key=itemgetter(0))[0]
-    changes=[{'changes': {date: change}} for date, change in sorted(changes, key=itemgetter(0), reverse=True)]
-    return render_template('changes_atom.xml', updated=updated, changes=changes, path='/committee/%s' % c_id)
+    changes=[{'changes': {date: change}}
+             for date, change
+             in sorted(changes,
+                       key=itemgetter(0),
+                       reverse=True)]
+    return render_template('changes_atom.xml',
+                           updated=updated,
+                           changes=changes,
+                           path='/committee/%s' % c_id)
 
 @cache.cached()
 @app.route('/committee/<string:c_id>')
@@ -612,7 +619,9 @@ def view_committee(c_id):
     #c['dossiers']=[listdossiers(d) for d in c['dossiers']]
     if not c:
         abort(404)
-    if request.args.get('format','')=='json' or request.headers.get('X-Requested-With') or request.headers.get('Accept')=='text/json':
+    if (request.args.get('format','')=='json' or
+        request.headers.get('X-Requested-With') or
+        request.headers.get('Accept')=='text/json'):
         return jsonify(tojson(c))
     return render_template('committee.html',
                            committee=c,
@@ -620,6 +629,23 @@ def view_committee(c_id):
                            today=datetime.now().isoformat().split('T')[0],
                            groupids=groupids,
                            c=c_id,
+                           url=request.base_url)
+
+@cache.cached()
+@app.route('/amendments/<path:owner>')
+def view_amendments(owner):
+    c, ismep=amendments(owner)
+    if not c:
+        abort(404)
+    if (request.args.get('format','')=='json' or
+        request.headers.get('X-Requested-With') or
+        request.headers.get('Accept')=='text/json'):
+        return jsonify(tojson({'data': c}))
+    return render_template('amendments.html',
+                           owner=owner,
+                           ismep=ismep,
+                           amendments=c,
+                           today=datetime.now().isoformat().split('T')[0],
                            url=request.base_url)
 
 @cache.cached()
@@ -634,6 +660,38 @@ def asdate(value):
     if type(value) not in [type(str()), type(unicode())]:
         return value.strftime('%Y/%m/%d')
     return value.split(' ')[0]
+
+@app.template_filter()
+def asdiff(obj): # should have a new and old item
+    de=diff_match_patch.diff_match_patch()
+    diffs=de.diff_main(' '.join (obj.get('old','')),' '.join (obj.get('new','')))
+    de.diff_cleanupSemantic(diffs)
+    return de.diff_prettyHtml(diffs)
+
+@app.template_filter()
+def asPE(obj): # should have a new and old item
+    return urllib.unquote(obj).split('+')[2]
+
+@app.template_filter()
+def asmep(value):
+    db = connect_db()
+    mep=db.ep_meps2.find_one({'_id': value})
+    if not mep:
+        mep=db.ep_meps.find_one({'_id': value})
+    if not mep:
+        return value
+    return u'<a href="/mep/%s">%s</a>' % (mep['Name']['full'],mep['Name']['full'])
+
+@app.template_filter()
+def asdossier(value):
+    db = connect_db()
+    doc=db.dossiers2.find_one({'procedure.reference': value})
+    if not doc:
+        return value
+    return (u'<a href="/dossier/%s">%s</a> %s' %
+            (doc['procedure']['reference'],
+             doc['procedure']['reference'],
+             doc['procedure']['title']))
 
 @app.template_filter()
 def isodate(value):
@@ -727,7 +785,7 @@ def reftopath(ref):
     return "%s/%s" % (ref[-4:-1], ref[:9])
 
 from parltrack.scrapers.mappings import ALL_STAGES, STAGES, STAGEMAP, groupids, COUNTRIES, SEIRTNUOC, COMMITTEE_MAP
-from parltrack.views.views import mepRanking, mep, immunity, committee, subjects, dossier, clean_lb
+from parltrack.views.views import mepRanking, mep, immunity, committee, subjects, dossier, clean_lb, amendments
 COMMITTEES=[x for x in connect_db().ep_comagendas.distinct('committee') if x not in ['Security and Defence', 'SURE'] ]
 
 if __name__ == '__main__':

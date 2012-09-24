@@ -351,7 +351,7 @@ def init_opener():
                                   urllib2.ProxyHandler({'http': 'http://localhost:8123/'}))
     opener.addheaders = [('User-agent', 'parltrack/0.6')]
 
-def fetch(url, retries=5, ignore=[], params=None):
+def fetch_raw(url, retries=5, ignore=[], params=None):
     if not opener:
         init_opener()
     # url to etree
@@ -363,10 +363,13 @@ def fetch(url, retries=5, ignore=[], params=None):
             raise
         if retries>0:
             time.sleep(4*(6-retries))
-            f=fetch(url,retries-1, ignore=ignore)
+            f=fetch_raw(url, retries-1, ignore=ignore, params=params)
         else:
             raise
-    return parse(f)
+    return f
+
+def fetch(url, retries=5, ignore=[], params=None):
+    return parse(fetch_raw(url, retries, ignore, params))
 
 from multiprocessing import Pool, Process, JoinableQueue, log_to_stderr
 from multiprocessing.sharedctypes import Value

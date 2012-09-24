@@ -180,9 +180,10 @@ def dossier(id, without_changes=True):
                        for x in c.get('rapporteur',[])])
     dossier['procedure']['agents']=sorted([dict(x) for x in agents],key=itemgetter('name'))
 
+    dossier['amendments']=db.ep_ams.find({'reference': dossier['procedure']['reference']},{'changes': False})
     return dossier
 
-def getMep(text, date):
+def getMep(text, date, idonly=False):
     name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(',','').strip())).encode('ascii','ignore').split()).lower()
 
     if not name: return
@@ -194,25 +195,31 @@ def getMep(text, date):
                                    }}}
     else:
         query={'Name.aliases': name}
-    mep=db.ep_meps2.find_one(query)
+    fields=None
+    if idonly:
+        fields=['_id']
+    mep=db.ep_meps2.find_one(query,fields)
     mep5=None
     if not mep:
-        mep5=db.ep_meps.find_one(query)
+        mep5=db.ep_meps.find_one(query,fields)
     if not (mep or mep5):
         if u'ß' in text:
             query['Name.aliases']=''.join(unicodedata.normalize('NFKD', unicode(text.replace(u'ß','ss').strip())).encode('ascii','ignore').split()).lower()
-            mep=db.ep_meps2.find_one(query)
+            mep=db.ep_meps2.find_one(query,fields)
             if not mep:
-                mep5=db.ep_meps.find_one(query)
+                mep5=db.ep_meps.find_one(query,fields)
         else:
             query={'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in name]),re.I)}
-            mep=db.ep_meps2.find_one(query)
+            mep=db.ep_meps2.find_one(query,fields)
             if not mep:
-                mep5=db.ep_meps.find_one(query)
+                mep5=db.ep_meps.find_one(query,fields)
     if not (mep or mep5):
-        print >>sys.stderr, '[$] lookup oops:', text.encode('utf8')
-        print >>sys.stderr, query, '\n', mep
+        #print >>sys.stderr, '[$] lookup oops:', text.encode('utf8')
+        #print >>sys.stderr, query, '\n', mep
         return
+
+    if idonly and mep: return mep['_id']
+    if idonly and mep5: return mep5['_id']
 
     # merge with v5 mep db
     if mep:
@@ -245,6 +252,7 @@ def mep(id,date):
         if c['start']>=datetime(2009,07,13):
             mep['term7']=True
         mep['dossiers']=sorted(docs,key=lambda a: itemgetter('reference')(itemgetter('procedure')(itemgetter(0)(a))), reverse=True)
+    mep['amendments']=db.ep_ams.find({'meps': mep['_id']},{'changes': False})
     return mep
 
 def committee(id):
@@ -428,6 +436,23 @@ def subjects():
            for subj,count in v.items() if subj!='total']
     return (csv,tree)
     #print u'\n'.join([u'\t'.join([unicode(y) for y in x]) for x in sorted(csv,reverse=True)]).encode('utf8')
+
+def amendments(owner):
+    mep=getMep(owner,None)
+    ismep=False
+    if mep:
+        query={'meps': mep['_id']}
+        ismep=True
+    else:
+        dossier=db.dossiers2.find_one({'procedure.reference': owner })
+        if not dossier:
+            return []
+        query={'reference': owner}
+    return (db.ep_ams.find(query,
+                           sort=[('reference', pymongo.DESCENDING),
+                                 ('date', pymongo.DESCENDING),
+                                 ('title', pymongo.ASCENDING)]),
+            ismep)
 
 import sys, unicodedata
 from datetime import datetime
