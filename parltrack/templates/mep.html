@@ -18,7 +18,16 @@
         window.location = '/meps/'+$('#ranking_date').attr('value');
         return false;
        });
-		 $( "#tabs" ).tabs();
+
+       $("#tabs").tabs();
+       if(window.location.hash.substring(1).slice(0,3)=='am-') {
+          anchored=$('a[name|="'+window.location.hash.substring(1)+'"]');
+          if(anchored) {
+            anchored.parents('.hidden').removeClass('hidden');
+            $( "#tabs" ).tabs('select','#amendments');
+            $(document).scrollTop(anchored.offset().top-16);
+          }
+       }
      });
     </script>
 {% endblock %}
@@ -30,10 +39,9 @@
     <li><a href="#general">General</a></li>
     {% if 'Addresses' in mep %}<li><a href="#contact">Contact</a></li>{%endif%}
     <li><a href="#committees">Committees</a></li>
-    <li><a href="#delegations">Delegations</a></li>
-    {% if mep.dossiers %}<li><a href="#dossiers">Dossiers</a></li>{%endif%}
-    <li><a href="#cv">Curriculum Vitae</a></li>
-    {% if mep.term7 or mep.term6 %}<li><a href="#activities">Activities</a></li>{%endif%}
+    {% if mep.dossiers %}<li><a href="#dossiers">Dossiers ({{mep.dossiers|length()}})</a></li>{%endif%}
+    <li><a href="#cv">Bio</a></li>
+    {% if mep.amendments.count()>0 %}<li><a href="#amendments">Amendments ({{mep.amendments.count()}})</a></li>{%endif%}
     {% if mep.changes  %}<li><a href="#history">History</a></li>{%endif%}
     <li><a href="#links">Links</a></li>
   </ul>
@@ -184,6 +192,41 @@
       </table>
    {%endif%}
 {% endfor %}
+
+<h3>Delegations</h3>
+{%for c in mep.Delegations if not c.end or c.end>today %}
+      {% if loop.first %}
+         <table border="1" class="tablesorter">
+         <thead><tr><th>Role</th><th>Delegation</th><th>Start</th><th>End</th></tr></thead>
+         <tbody>
+      {%endif%}
+      <tr>
+       <td>{{c.role}} of</td>
+       <td>{{c.Organization}}</td>
+       <td>{% if c.start %}{{c.start|asdate}}{% endif %}</td>
+       <td>{% if c.end %}{{c.end|asdate}}{% endif %}</td>
+      </tr>
+      {% if loop.last %}
+         </tbody></table>
+      {%endif%}
+   {% endfor %}
+   {%for c in mep.Delegations if c.end and c.end<=today %}
+      {% if loop.first %}
+         <div class="more">Show earlier delegations...</div>
+         <table border="1" class="hidden tablesorter">
+            <thead><tr><th>Role</th><th>Delegation</th><th>Start</th><th>End</th></tr></thead>
+            <tbody>
+      {%endif%}
+       <tr>
+          <td>{{c.role}} of</td>
+          <td>{{c.Organization}}</td>
+          <td>{% if c.start %}{{c.start|asdate}}{% endif %}</td>
+          <td>{% if c.end %}{{c.end|asdate}}{% endif %}</td>
+       </tr>
+      {% if loop.last %}
+         </tbody></table>
+      {%endif%}
+{% endfor %}
 </div>
 
 {% if 'Addresses' in mep %}
@@ -239,42 +282,6 @@
 </div>
 {%endif%}
 
-<div id="delegations">
-<h3>Delegations</h3>
-{%for c in mep.Delegations if not c.end or c.end>today %}
-   {% if loop.first %}
-<table border="1" class="tablesorter">
-<thead><tr><th>Role</th><th>Delegation</th><th>Start</th><th>End</th></tr></thead>
-<tbody>
-   {%endif%}
-   <tr>
-    <td>{{c.role}} of</td>
-    <td>{{c.Organization}}</td>
-    <td>{% if c.start %}{{c.start|asdate}}{% endif %}</td>
-    <td>{% if c.end %}{{c.end|asdate}}{% endif %}</td>
-  </tr>
-   {% if loop.last %}
-</tbody></table>
-   {%endif%}
-{% endfor %}
-{%for c in mep.Delegations if c.end and c.end<=today %}
-   {% if loop.first %}
-      <div class="more">Show earlier delegations...</div>
-      <table border="1" class="hidden tablesorter">
-         <thead><tr><th>Role</th><th>Delegation</th><th>Start</th><th>End</th></tr></thead>
-         <tbody>
-   {%endif%}
-    <tr>
-       <td>{{c.role}} of</td>
-       <td>{{c.Organization}}</td>
-       <td>{% if c.start %}{{c.start|asdate}}{% endif %}</td>
-       <td>{% if c.end %}{{c.end|asdate}}{% endif %}</td>
-    </tr>
-   {% if loop.last %}
-      </tbody></table>
-   {%endif%}
-{% endfor %}
-</div>
 {% if mep.dossiers %}
   <div id='dossiers'>
   <h3>Rapporteur</h3>
@@ -302,39 +309,48 @@
     {%endfor%}
   </ul>
 </div>
-{% if mep.term7 or mep.term6 %}
-  <div id='activities'>
-  <h3>Activities</h3>
-    {% if mep.term7%}
-    <h4>Term 7 14.07.2009 / ...</h4>
-    <ul>
-    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=QP&amp;language=EN&amp;term=7&amp;author={{mep.UserID}}">Questions</a></li>
-    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=MOTION&amp;language=EN&amp;term=7&amp;author={{mep.UserID}}">Motions for resolutions</a></li>
-    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=CRE&amp;language=EN&amp;term=7&amp;author={{mep.UserID}}">Speeches in plenary</a></li>
-    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=WDECL&amp;language=EN&amp;term=7&amp;author={{mep.UserID}}">Written declarations</a></li>
-    </ul>
-    {%endif%}
-    {% if mep.term6%}
-    <h4>Term 6 20.07.2004 - 13.07.2009</h4>
-    <ul>
-    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=QP&amp;language=EN&amp;term=6&amp;author={{mep.UserID}}">Questions</a></li>
-    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=MOTION&amp;language=EN&amp;term=6&amp;author={{mep.UserID}}">Motions for resolutions</a></li>
-    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=CRE&amp;language=EN&amp;term=6&amp;author={{mep.UserID}}">Speeches in plenary</a></li>
-    <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=WDECL&amp;language=EN&amp;term=6&amp;author={{mep.UserID}}">Written declarations</a></li>
-    <li><a href="http://www.europarl.europa.eu/mepatt/leg6/{{mep.UserID}}.pdf">Attendance List</a> (pdf)</li>
-    </ul>
-    {%endif%}
-    All references link to europarl.eu
-  </div>
+
+{% if mep.amendments.count()>0 %}
+<div id='amendments'>
+    <h3>Amendments</h3>
+    {% import 'am_tpl.html' as ams %}
+    {{ ams.render(mep.amendments) }}
+</div>
 {%endif%}
-  <div id='links'>
+
+<div id='links'>
   <h3>{{mep.Name.full}} on</h3>
-    <ul>
-        {% if mep.meta %}<li><a href="{{mep.meta.url}}">EP official site</a></li>{% endif %}
-        <li><a href="https://secure.wikimedia.org/wikipedia/en/wiki/{{mep.Name.sur.replace(' ','_')}}_{{mep.Name.family.title().replace(' ','_')}}">... wikipedia</a></li>
-        <li><a href="https://encrypted.google.com/search?q={{mep.Name.sur}}+{{mep.Name.family.title()}}">... google</a></li>
-    </ul>
-  </div>
+  <ul>
+     {% if mep.meta %}<li><a href="{{mep.meta.url}}">EP official site</a></li>{% endif %}
+     <li><a href="https://secure.wikimedia.org/wikipedia/en/wiki/{{mep.Name.sur.replace(' ','_')}}_{{mep.Name.family.title().replace(' ','_')}}">... wikipedia</a></li>
+     <li><a href="https://encrypted.google.com/search?q={{mep.Name.sur}}+{{mep.Name.family.title()}}">... google</a></li>
+     <li><a href="https://memopol.lqdn.fr/europe/parliament/deputy/{{mep.Name.sur}}{{mep.Name.family.title()}}/">... Political Memory</a></li>
+     <li><a href="http://www.votewatch.eu/en/{{mep.Name.sur.lower()}}-{{mep.Name.family.lower()}}.html">... Votewatch</a></li>
+  </ul>
+  {% if mep.term7 or mep.term6 %}
+     <h3>Activities</h3>
+     {% if mep.term7%}
+     <h4>Term 7 14.07.2009 / ...</h4>
+     <ul>
+        <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=QP&amp;language=EN&amp;term=7&amp;author={{mep.UserID}}">Questions</a></li>
+        <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=MOTION&amp;language=EN&amp;term=7&amp;author={{mep.UserID}}">Motions for resolutions</a></li>
+        <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=CRE&amp;language=EN&amp;term=7&amp;author={{mep.UserID}}">Speeches in plenary</a></li>
+        <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=WDECL&amp;language=EN&amp;term=7&amp;author={{mep.UserID}}">Written declarations</a></li>
+     </ul>
+     {%endif%}
+     {% if mep.term6%}
+     <h4>Term 6 20.07.2004 - 13.07.2009</h4>
+     <ul>
+        <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=QP&amp;language=EN&amp;term=6&amp;author={{mep.UserID}}">Questions</a></li>
+        <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=MOTION&amp;language=EN&amp;term=6&amp;author={{mep.UserID}}">Motions for resolutions</a></li>
+        <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=CRE&amp;language=EN&amp;term=6&amp;author={{mep.UserID}}">Speeches in plenary</a></li>
+        <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=WDECL&amp;language=EN&amp;term=6&amp;author={{mep.UserID}}">Written declarations</a></li>
+        <li><a href="http://www.europarl.europa.eu/mepatt/leg6/{{mep.UserID}}.pdf">Attendance List</a> (pdf)</li>
+     </ul>
+     {%endif%}
+     All references link to europarl.eu
+   {%endif%}
+</div>
 {% if mep.changes %}
    {% import 'changes.html' as changes %}
    {{ changes.changes(mep) }}

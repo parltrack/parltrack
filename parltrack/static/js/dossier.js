@@ -36,7 +36,15 @@ $(document).ready(function() {
      setCookie('epheader','on');
    }
   });
-  $( "#tabs" ).tabs();
+  $("#tabs").tabs();
+  if(window.location.hash.substring(1).slice(0,3)=='am-') {
+     anchored=$('a[name|="'+window.location.hash.substring(1)+'"]');
+     if(anchored) {
+       anchored.parents('.hidden').removeClass('hidden');
+       $( "#tabs" ).tabs('select','#ams');
+       $(document).scrollTop(anchored.offset().top-16);
+     }
+  }
   $('#notif_form').submit(function() {
       var group = $(this).find('div').children('input:eq(1)').attr('value');
        if(!group) {

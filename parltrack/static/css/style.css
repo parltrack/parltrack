@@ -364,18 +364,18 @@ background-color: #8dbdd8;
    text-decoration: underline;
 }
 
-table.tablesorter#amendments {
+table#amendments,
+table.amendments {
    font-size: 18px;
 }
+.amendments .source { font-size: 13px; }
+.amendment .title { font-size: 23px; }
 .amendment { margin-bottom: 1em; }
-.amendment .title { font-size: 21px; }
-.amendment .committees,
-.amendment .authors,
-.amendment .date { font-size: 15px; }
+.amendment .authors{ font-size: 15px; }
 .amendment .location { font-style: italic; }
-.amendment .source { font-size: 13px; }
-.amendment .diff {
-   width: 40em;
-}
+.amendment .diff { width: 40em; }
 
 .small { font-size: .7em; }
+
+.hover .anchorLink { color: white; }
+.hover:hover .anchorLink { color: blue; }

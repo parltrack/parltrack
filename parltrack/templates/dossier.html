@@ -111,6 +111,7 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
     {% if dossier.activities %}<li><a href="#activities">Activities</a></li>{% endif %}
     <li><a href="#documents">Documents</a></li>
     {% if dossier.votes %}<li><a href="#votes">Votes</a></li>{%endif%}
+    {% if dossier.amendments.count()>0 %}<li><a href="#ams">Amendments ({{dossier.amendments.count()}})</a></li>{%endif%}
     {% if dossier.changes %}<li><a href="#history">History</a></li>{%endif%}
   </ul>
 <div id="general">
@@ -208,6 +209,7 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
   {% if dossier.ipex and dossier.ipex.Scrutiny %}<li><a href="{{dossier.ipex.Scrutiny}}">IPEX National Scrutiny</a></li>{% endif %}
 </ul></div>
 </div>
+
 {% if dossier.activities %}
 <div id="activities">
 <h3>Activites</h3>
@@ -237,7 +239,7 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
         {%endif%}
         </li>
      {%endfor%}
-     {%for agent in act.commission %}<li class='agent'>{{agent.DG.title}}, {{agent.Commissioner}}</li>{%endfor%}
+     {%for agent in act.commission %}<li class='agent'>DG {{agent.DG}}, {{agent.Commissioner}}</li>{%endfor%}
      {%for agent in act.committees%}
         <li class='agent'>
           {%if agent.responsible%}
@@ -261,48 +263,49 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
 </ul>
 </div>
 {% endif %}
+
 <div id="documents">
 <h3>Documents</h3>
-<ul>
-{% for act in dossier.activities %}
-   {%for doc in act.docs%}
-      <li>{{doc.type}}: 
-      {%if doc.celexid %}
-         <a href='http://pippi.euwiki.org/doc/{{doc.celexid}}'>{{doc.title}}</a>
-      {%else%}
-         {%if doc.url %}<a href='{{doc.url}}'>{%endif%}{{doc.title}}{%if doc.url %}</a>{%endif%}
-      {%endif%}
-      {%if doc.summary%}
-         [<a class="button">summary</a>]
-         <div class="hidden">
-           {%for line in doc.summary %}
-           {{line|striptags}}
-           {%endfor%}
-         </div>
-      {%endif%}
-      </li>
+   <ul>
+   {% for act in dossier.activities %}
+      {%for doc in act.docs%}
+         <li>{{doc.type}}: 
+         {%if doc.celexid %}
+            <a href='http://pippi.euwiki.org/doc/{{doc.celexid}}'>{{doc.title}}</a>
+         {%else%}
+            {%if doc.url %}<a href='{{doc.url}}'>{%endif%}{{doc.title}}{%if doc.url %}</a>{%endif%}
+         {%endif%}
+         {%if doc.summary%}
+            [<a class="button">summary</a>]
+            <div class="hidden">
+              {%for line in doc.summary %}
+              {{line|striptags}}
+              {%endfor%}
+            </div>
+         {%endif%}
+         </li>
+      {%endfor%}
    {%endfor%}
-{%endfor%}
-{%for doc in dossier.docs%}
-  <li>
-  {{doc.type}}
-  {% if doc.celexid %}
-    <a href="http://pippi.euwiki.org/doc/{{doc.celexid}}">{{doc.title}}</a>
-    {% elif doc.url  %}<a href="{{doc.url}}">{{doc.title}}</a>
-  {%else%}{{doc.title}}{% endif %}
-
-  {%if doc.summary%}
-     [<a class="button">summary</a>]
-     <div class="hidden">
-       {%for line in doc.summary %}
-       {{line|striptags}}
-       {%endfor%}
-     </div>
-  {%endif%}
-  </li>
-{%endfor%}
-</ul>
+   {%for doc in dossier.docs%}
+     <li>
+     {{doc.type}}
+     {% if doc.celexid %}
+       <a href="http://pippi.euwiki.org/doc/{{doc.celexid}}">{{doc.title}}</a>
+       {% elif doc.url  %}<a href="{{doc.url}}">{{doc.title}}</a>
+     {%else%}{{doc.title}}{% endif %}
+     {%if doc.summary%}
+        [<a class="button">summary</a>]
+        <div class="hidden">
+          {%for line in doc.summary %}
+          {{line|striptags}}
+          {%endfor%}
+        </div>
+     {%endif%}
+     </li>
+   {%endfor%}
+   </ul>
 </div>
+
 {% if dossier.votes %}
 <div id="votes">
 <h3>Votes</h3>
@@ -372,6 +375,14 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
 {%endfor%}
 </div>
 {% endif %}
+
+{% if dossier.amendments.count()>0 %}
+   <div id="ams">
+      {% import 'am_tpl.html' as ams %}
+      {{ ams.render(dossier.amendments) }}
+   </div>
+{%endif%}
+
 {% if dossier.changes %}
    {% import 'changes.html' as changes %}
    {{ changes.changes(dossier) }}
