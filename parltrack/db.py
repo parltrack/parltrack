@@ -61,5 +61,7 @@ def index(db):
     db.dossiers2.ensure_index([('meta.source', -1)])
     db.dossiers2.ensure_index([('meta.updated', -1)])
 
+    db.ep_ams.ensure_index([('reference', 1)])
+    db.ep_ams.ensure_index([('meps', 1)])
 if __name__ == "__main__":
     index(db)
