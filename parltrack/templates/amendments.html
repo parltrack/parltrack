@@ -1,7 +1,17 @@
 {% extends "base.html" %}
+{% block scripts %}
+   <script type="text/javascript">
+      $(document).ready(function() {
+         $('.amendments').addClass('hidden');
+         anchored=$('a[name|="'+window.location.hash.substring(1)+'"]');
+         anchored.parents('.hidden').removeClass('hidden');
+         $(document).scrollTop(anchored.offset().top-16);
+      });
+    </script>
+{% endblock %}
 {% block title %}Amendments of {{ owner }} | {% endblock %}
 {% block content %}
-   <h2>{{owner}} ({{amendments.count()}})</h2>
+   <h2>{% if ismep%}<a href="/mep/{{obj.Name.full}}">{{obj.Name.full}}</a>{%else%}<a href="/mep/{{obj.process.reference}}">{{obj.process.reference}}</a>{%endif%} ({{amendments.count()}})</h2>
    <table class="tablesorter" id="amendments">
       <thead>
          <tr><td width="8em">Amendments</td><td>Dossier</td></tr>
@@ -12,20 +22,22 @@
          <td class="reference">
             {{group.grouper|asdossier|safe}}
             {% for doc in group.list|groupby('date') %}
-               <div>{{doc.list.0.src|asPE}} {{doc.grouper|asdate}} <span class="more">{{doc.list|length}} amendments...</span>
-                  <div class="hidden">
+               <div>
+                  {{doc.grouper|asdate}} 
+                  <span class="committees">{% for c in doc.list.0.committee%}{{c}}{% if not loop.last %}, {%endif%}{%endfor%}</span> 
+                  <span class="more">{{doc.list|length}} amendments...</span>
+                  <div class="amendments">
                      {% for am in doc.list|sort(attribute='seq') %}
                         <div class="amendment">
-                           <div class="title">Amendment {{am.seq}}</div>
-                           <div class="committees">{% for c in am.committee%}{{c}}{% if not loop.last %}, {%endif%}{%endfor%}</div>
+                           <div class="title hover">Amendment {{am.seq}} <a class="anchorLink" name="{{am.src|asPE}}-{{am.seq}}" href="#{{am.src|asPE}}-{{am.seq}}">#</a></div>
                            <div class="authors">{% for a in am.meps%}{{a|asmep|safe}}{% if not loop.last %}, {%endif%}{%endfor%}</div>
                            <div class="location">{% for d,l in am.location%}<div>{{d}}<br />{{l}}</div>{%endfor%}</ul></div>
                            <div class="diff">{{am|asdiff|safe}}</div>
-                           <div class="source">source: <a href="{{am.src}}">{{am.src|asPE}}</a></div>
                         </div>
                         <hr />
                      {%endfor%}
                   </div>
+                  <div class="source">source: <a href="{{doc.list.0.src}}">{{doc.list.0.src|asPE}}</a></div>
                </div>
             {%endfor%}
          </td>
