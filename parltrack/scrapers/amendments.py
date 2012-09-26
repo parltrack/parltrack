@@ -18,59 +18,22 @@
 # (C) 2012 by Stefan Marsiske, <stefan.marsiske@gmail.com>
 
 import os, re, sys
-import Image, ImageMath
-import numpy as np
-from pbs import pdftotext, gs
 from parltrack.utils import fetch_raw, fetch, unws, logger, jdump, diff
 from parltrack.views.views import getMep
-from tempfile import mkstemp, mkdtemp
+from tempfile import mkstemp
+from pbs import pdftotext
 from mappings import COMMITTEE_MAP
 from datetime import datetime
-from cStringIO import StringIO
-from bbox import find_paws, remove_overlaps, slice_to_bbox
 from parltrack.db import db
 from dateutil.parser import parse
-from shutil import rmtree
 
 debug=False
-
-def getdims(pdf):
-    tmpdir=mkdtemp()
-    gs('-q',
-       '-dQUIET',
-       '-dSAFER',
-       '-dBATCH',
-       '-dNOPAUSE',
-       '-dNOPROMPT',
-       '-sDEVICE=pngmono',
-       '-r72x72',
-       '-sOutputFile=%s/%%08d' % tmpdir,
-       '-f%s' % pdf)
-    mask=None
-    i=0
-    for fname in os.listdir(tmpdir):
-        page=Image.open(tmpdir+'/'+fname) #.convert("1",dither=Image.NONE)
-        if not mask:
-            mask=page
-        mask=ImageMath.eval("a & b", a=page, b=mask)
-        i+=1
-    rmtree(tmpdir)
-    data = np.array(mask)
-    data_slices = find_paws(255-data, smooth_radius = 5, threshold = 5)
-    bboxes = remove_overlaps(slice_to_bbox(data_slices))
-    m=max(bboxes,key=lambda x: (x.x2 - x.x1)*(x.y2 - x.y1))
-    return (m.x1,m.y1,m.y2-m.y1,m.x2-m.x1)
 
 def getraw(pdf):
     (fd, fname)=mkstemp()
     fd=os.fdopen(fd, 'w')
     fd.write(fetch_raw(pdf).read())
     fd.close()
-    #x,y,h,w = getdims(fname)
-    #logger.info("%s dimensions: %sx%s+%s+%s" % (datetime.now().isoformat(), x,y,h,w))
-    #if w<430 or h<620:
-    #    logger.info("%s patching dimensions" % datetime.now().isoformat())
-    #    x, y, h, w = 89, 63, 628, 438
     x,y,h,w = 70,63,631,473
     text=pdftotext('-nopgbrk',
                    '-layout',
@@ -540,8 +503,7 @@ def scrape(url):
             if not line: continue
 
             if line in COMMITTEE_MAP:
-                # FIXME some pdfs are in french, so committee names also :/
-                committee.append(line)
+                committee.append(COMMITTEE_MAP[line])
                 continue
 
             if (committee and
@@ -569,7 +531,7 @@ def scrape(url):
     return res
 
 #from lxml.etree import tostring
-def getComAms(leg=7):
+def getComAms(leg=7, update=False):
     urltpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html"
     postdata="clean=false&leg=%s&docType=AMCO&miType=text" % leg
     nexttpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?action=%s&tabActif=tabResult#sidesForm "
@@ -593,6 +555,7 @@ def getComAms(leg=7):
             for u in tmp:
                 if db.ep_ams.find_one({'src': u}): continue
                 yield u
+            if update: break
             i+=1
             url=nexttpl % (com,i)
             root=fetch(url)
@@ -654,9 +617,9 @@ def crawler(saver=jdump):
 if __name__ == "__main__":
     import pprint, sys
     if len(sys.argv)>1:
-        #if sys.argv[1]=='meps':
-        #    addmeprefs()
-        #    sys.exit(0)
+        if sys.argv[1]=='update':
+            crawler(saver=save)
+            sys.exit(0)
         debug=True
         while len(sys.argv)>1:
             logger.info(sys.argv[1])
