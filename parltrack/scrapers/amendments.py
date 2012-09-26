@@ -597,9 +597,9 @@ def save(data, stats):
     if stats: return stats
     else: return data
 
-def crawler(saver=jdump):
+def crawler(saver=jdump, update=False):
     stats=[0,0]
-    for pdf in getComAms():
+    for pdf in getComAms(update=update):
         logger.info(datetime.now().isoformat()+" "+pdf)
         ctr=[0,0]
         try:
@@ -618,7 +618,7 @@ if __name__ == "__main__":
     import pprint, sys
     if len(sys.argv)>1:
         if sys.argv[1]=='update':
-            crawler(saver=save)
+            crawler(saver=save,update=True)
             sys.exit(0)
         debug=True
         while len(sys.argv)>1:
