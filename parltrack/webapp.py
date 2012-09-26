@@ -634,7 +634,7 @@ def view_committee(c_id):
 @cache.cached()
 @app.route('/amendments/<path:owner>')
 def view_amendments(owner):
-    c, ismep=amendments(owner)
+    c, ismep, obj=amendments(owner)
     if not c:
         abort(404)
     if (request.args.get('format','')=='json' or
@@ -645,6 +645,7 @@ def view_amendments(owner):
                            owner=owner,
                            ismep=ismep,
                            amendments=c,
+                           obj=obj,
                            today=datetime.now().isoformat().split('T')[0],
                            url=request.base_url)
 
