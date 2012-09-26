@@ -151,8 +151,15 @@ def dossier(id, without_changes=True):
     for item in db.ep_comagendas.find({'epdoc': dossier['procedure']['reference']}):
         item['Committees']={}
         if 'Rapporteur' in item:
-            item['Rapporteur']['rapporteurs']=[db.ep_meps2.find_one({'_id': x}) for x in item['Rapporteur']['rapporteurs']]
-            item['Rapporteur']['rapporteurs'].extend([db.ep_meps.find_one({'_id': x}) for x in item['Rapporteur']['rapporteurs']])
+            for mep in item['Rapporteur']['rapporteurs']:
+                r=db.ep_meps2.find_one({'_id': mep})
+                if r:
+                    if r not in item['Rapporteur']['rapporteurs']:
+                        item['Rapporteur']['rapporteurs'].append(r)
+                    continue
+                r=db.ep_meps.find_one({'_id': mep})
+                if r and r not in item['Rapporteur']['rapporteurs']:
+                    item['Rapporteur']['rapporteurs'].append(r)
             item['Committees'][item['committee']]=item['Rapporteur']['rapporteurs']
         for com in item.get('Opinions',[]):
             if 'committees' in com and 'committee' not in com:
@@ -160,8 +167,15 @@ def dossier(id, without_changes=True):
                     c['rapporteurs']=[]
                     item['Committees'][c['committee']]=c
             else:
-                com['rapporteurs']=[db.ep_meps2.find_one({'_id': x}) for x in com['rapporteurs']]
-                com['rapporteurs'].extend([db.ep_meps.find_one({'_id': x}) for x in com['rapporteurs']])
+                for mep in com['rapporteurs']:
+                    r=db.ep_meps2.find_one({'_id': mep})
+                    if r:
+                        if r not in com['rapporteurs']:
+                            com['rapporteurs'].append(r)
+                        continue
+                    r=db.ep_meps.find_one({'_id': mep})
+                    if r and r not in com['rapporteurs']:
+                        com['rapporteurs'].append(r)
                 item['Committees'][com['committee']]=com['rapporteurs']
         if 'tabling_deadline' in item and item['tabling_deadline']>=datetime.now():
             deadline={'type': '(%s) Tabling Deadline' % item['committee'],
@@ -452,7 +466,8 @@ def amendments(owner):
                            sort=[('reference', pymongo.DESCENDING),
                                  ('date', pymongo.DESCENDING),
                                  ('title', pymongo.ASCENDING)]),
-            ismep)
+            ismep,
+            mep or dossier)
 
 import sys, unicodedata
 from datetime import datetime
