@@ -346,7 +346,7 @@ def notify(data,d):
                     (u"a change on " if d else u'',
                      data['epdoc'],
                      data['committee'],
-                     data['date'],
+                     data['date'] if 'date' in data else 'unknown date',
                      ("\n  - %s" % u'\n  - '.join(data['list'])) if len(data['list'])>0 else u"",
                      "\n %s" % (textdiff(d) if d else ''),
                      "%s/dossier/%s" % (ROOT_URL, data['epdoc']),
