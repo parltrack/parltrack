@@ -121,13 +121,16 @@ def getactors(node):
             if len(tmp1)==2:
                 (comid, rest)=tmp1
             elif len(tmp1)==1:
-                skip=False
-                for com in tmp.split(' ,'):
-                    if com in COMMITTEE_MAP and len(com)==4:
-                        ax[1].append({u'comid': com})
-                        skip=True
-                if skip:
-                    continue
+                if len(tmp1[0])>4 and tmp1[0][4] in ['-', u'–'] and tmp1[0][:4].isupper():
+                    (comid, rest)=(tmp1[:4],tmp1[5:])
+                else:
+                    skip=False
+                    for com in tmp.split(' ,'):
+                        if com in COMMITTEE_MAP and len(com)==4:
+                            ax[1].append({u'comid': com})
+                            skip=True
+                    if skip:
+                        continue
             else:
                 logger.warn("[!] unknown committee: %s" % tmp)
                 raise
@@ -258,7 +261,7 @@ def getMEPRef(name, retfields=['_id']):
         logger.warn('[!] lookup oops %s' % name.encode('utf8'))
 
 def getComAgendas():
-    urltpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?"
+    urltpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html"
     postdata="docType=AGEN&leg=7&miType=text&tabActif=tabResult#sidesForm"
     nexttpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?action=%s&tabActif=tabResult#sidesForm"
     for com in (k for k in COMMITTEE_MAP.keys()
@@ -372,7 +375,7 @@ if __name__ == "__main__":
     if len(sys.argv)>1:
         if sys.argv[1]=="test":
             print jdump([(u,d) for u,d in getComAgendas()])
-            #print jdump(scrape('http://www.europarl.europa.eu/sides/getDoc.do?type=COMPARL&reference=ECON-OJ-20120109-1&language=EN', 'ECON')).encode('utf8')
+            #print jdump(scrape('http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-%2f%2fEP%2f%2fTEXT%2bCOMPARL%2bCONT-OJ-20100531-1%2b01%2bDOC%2bXML%2bV0%2f%2fEN&language=EN', 'CONT')).encode('utf8')
             #print jdump(scrape('http://www.europarl.europa.eu/sides/getDoc.do?type=COMPARL&reference=LIBE-OJ-20120112-1&language=EN', 'LIBE')).encode('utf8')
             #import code; code.interact(local=locals());
             sys.exit(0)
