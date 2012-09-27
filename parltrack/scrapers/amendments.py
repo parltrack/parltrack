@@ -538,7 +538,7 @@ def scrape(url):
 def getComAms(leg=7, update=False):
     urltpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html"
     postdata="clean=false&leg=%s&docType=AMCO&miType=text" % leg
-    nexttpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?action=%s&tabActif=tabResult#sidesForm "
+    nexttpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?action=%s&tabActif=tabResult#sidesForm"
     for com in (k for k in COMMITTEE_MAP.keys()
                 if len(k)==4 and k not in ['CODE', 'RETT', 'CLIM', 'TDIP']):
         url=urltpl % (com)
