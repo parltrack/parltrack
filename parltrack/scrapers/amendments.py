@@ -566,40 +566,7 @@ def getComAms(leg=7, update=False):
 
 def save(data, stats):
     for item in data:
-        ## query={'src': item['src'],
-        ##        'date': item['date'],
-        ##        'seq': item['seq'],
-        ##        'committee': item['committee'],
-        ##        'reference': item['reference']}
-        ## if 'location' in item:
-        ##     query['location']=item['location']
-        ## else:
-        ##     query['location']={ '$exists': False }
-        ## # todo enable diffing
-        ## #res=db.ep_ams.find_one(query) or {}
-        ## res={}
-        ## d=diff(dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes']]),
-        ##        dict([(k,v) for k,v in item.items() if not k in ['_id', 'meta', 'changes',]]))
-        ## if d:
-        ##     now=datetime.utcnow().replace(microsecond=0)
-        ##     if not 'meta' in item: item[u'meta']={}
-        ##     if not res:
-        ##         #logger.info((u'adding %s %s' % (item['reference'], item['title'])).encode('utf8'))
-        ##         item['meta']['created']=now
-        ##         if stats: stats[0]+=1
-        ##     else:
-        ##         logger.info((u'%s updating %s Amendment %s' % (datetime.now().isoformat(),
-        ##                                                        item['reference'],
-        ##                                                        item['seq'])).encode('utf8'))
-        ##         logger.info(d)
-        ##         item['meta']['updated']=now
-        ##         if stats: stats[1]+=1
-        ##         item['_id']=res['_id']
-        ##     item['changes']=res.get('changes',{})
-        ##     item['changes'][now.isoformat()]=d
-        ##     db.ep_ams.save(item)
-        # TODO enable saving db.ep_ams.save(item)
-        pass
+        db.ep_ams.save(item)
     m=db.notifications.find({'dossiers': data[0]['reference']},['active_emails'])
     for g in m:
         if len(g['active_emails'])==0:
