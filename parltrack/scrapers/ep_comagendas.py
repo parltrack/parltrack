@@ -275,6 +275,7 @@ def getComAgendas():
                  for a in root.xpath('//p[@class="title"]/a')
                  if len(a.get('href',''))>13]
             if not tmp or prev==tmp: break
+            prev=tmp
             for u,title in tmp:
                 if title.startswith('DRAFT AGENDA'):
                     yield (u,com)
