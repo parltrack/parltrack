@@ -24,7 +24,7 @@ import datetime, sys, re, feedparser, traceback
 from operator import itemgetter
 from flaskext.mail import Message
 from parltrack.webapp import mail
-from parltrack.utils import diff, htmldiff, fetch, unws, Multiplexer, logger, jdump, printdict
+from parltrack.utils import diff, htmldiff, fetch, unws, Multiplexer, logger, jdump, textdiff
 from parltrack.default_settings import ROOT_URL
 from parltrack.scrapers.mappings import ipexevents, COMMITTEE_MAP
 
@@ -749,23 +749,12 @@ def save(data, stats):
     return stats
 
 def makemsg(data, d):
-    res=[]
-    for di in sorted(d,key=itemgetter('path')):
-        if 'text' in di['path'] or 'summary' in di['path']:
-            res.append(u'\nsummary text changed in %s' % '/'.join([str(x) for x in di['path']]))
-            continue
-        if di['type']=='changed':
-            res.append(u'\nchanged %s from:\n\t%s\n  to:\n\t%s' % ('/'.join([str(x) for x in di['path']]),di['data'][0],printdict(di['data'][1])))
-            continue
-        res.append(u"\n%s %s:\t%s" % (di['type'], '/'.join([str(x) for x in di['path']]), printdict(di['data'])))
-
-    dt='\n'.join(res)
     return (u"Parltrack has detected a change in %s %s on OEIL.\n\nPlease follow this URL: %s/dossier/%s to see the dossier.\n\nChanges follow\n%s\n\n\nsincerly,\nYour Parltrack team" %
             (data['procedure']['reference'],
              data['procedure']['title'],
              ROOT_URL,
              data['procedure']['reference'],
-             dt))
+             textdiff(d)))
 
 if __name__ == "__main__":
     args=set(sys.argv[1:])
