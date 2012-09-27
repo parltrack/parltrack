@@ -232,12 +232,22 @@
 {% if 'Addresses' in mep %}
 <div id="contact">
 <h3>Contact</h3>
-{% if mep.Homepage or mep.Mail%}
+{% if mep.Homepage or mep.Mail or mep.Twiter or mep.Facebook %}
 <h4>Online</h4>
 <ul>
 {% if mep.Homepage%}
   {% for url in mep.Homepage %}
       <li><dl><dt>Homepage</dt><dd><a href="{{url}}">{{url}}</a></dd></dl></li>
+  {% endfor %}
+{%endif%}
+{% if mep.Twitter%}
+  {% for url in mep.Twitter %}
+      <li><dl><dt>Twitter</dt><dd><a href="{{url}}">{{url}}</a></dd></dl></li>
+  {% endfor %}
+{%endif%}
+{% if mep.Facebook %}
+  {% for url in mep.Facebook  %}
+      <li><dl><dt>Facebook </dt><dd><a href="{{url}}">{{url}}</a></dd></dl></li>
   {% endfor %}
 {%endif%}
 {% if mep.Mail%}
