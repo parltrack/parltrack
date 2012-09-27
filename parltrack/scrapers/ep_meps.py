@@ -122,9 +122,9 @@ def parseMember(userid):
     cdiv=root.xpath('//div[@class="ep_elementcontact"]')
     if len(cdiv):
         addif(data,u'RSS',[unicode(urljoin(BASE_URL,x.get('href')),'utf8') for x in cdiv[0].xpath('.//li[@class="ep_rss"]//a')])
-        addif(data,u'Homepage',[unicode(x.get('href'),'utf8') for x in cdiv[0].xpath('.//li[@class="ep_website"]//a')])
-        addif(data,u'Twitter',[unicode(x.get('href'),'utf8') for x in cdiv[0].xpath('.//li[@class="ep_twitter"]//a')])
-        addif(data,u'Facebook',[unicode(x.get('href'),'utf8') for x in cdiv[0].xpath('.//li[@class="ep_facebook"]//a')])
+        addif(data,u'Homepage',[x.get('href') for x in cdiv[0].xpath('.//li[@class="ep_website"]//a')])
+        addif(data,u'Twitter',[x.get('href') for x in cdiv[0].xpath('.//li[@class="ep_twitter"]//a')])
+        addif(data,u'Facebook',[x.get('href') for x in cdiv[0].xpath('.//li[@class="ep_facebook"]//a')])
         addif(data,u'Mail',[decodemail(unws(x)) for x in cdiv[0].xpath('.//li[@class="ep_email"]//text()') if len(unws(x))])
     for span in root.xpath('//div[@id="contextzone"]//span[@class="ep_title"]'):
         title=unws(''.join(span.xpath('.//text()')))
