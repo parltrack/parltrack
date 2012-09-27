@@ -121,7 +121,7 @@ def getactors(node):
             if len(tmp1)==2:
                 (comid, rest)=tmp1
             elif len(tmp1)==1:
-                if len(tmp1[0])>4 and tmp1[0][4] in ['-', u'–'] and tmp1[0][:4].isupper():
+                if len(tmp1[0])>4 and tmp1[0][4] in ['-', u'–', u':'] and tmp1[0][:4].isupper():
                     (comid, rest)=(tmp1[:4],tmp1[5:])
                 else:
                     skip=False
@@ -134,6 +134,8 @@ def getactors(node):
             else:
                 logger.warn("[!] unknown committee: %s" % tmp)
                 raise
+            if not comid:
+                logger.warn("[!] unknown committee: %s" % tmp)
             item={u'comid': comid}
             if rest==' Decision: no opinion':
                 item[u'response']=u'Decision: no opinion'
@@ -374,8 +376,8 @@ def seqcrawler(saver=jdump):
 if __name__ == "__main__":
     if len(sys.argv)>1:
         if sys.argv[1]=="test":
-            print jdump([(u,d) for u,d in getComAgendas()])
-            #print jdump(scrape('http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-%2f%2fEP%2f%2fTEXT%2bCOMPARL%2bCONT-OJ-20100531-1%2b01%2bDOC%2bXML%2bV0%2f%2fEN&language=EN', 'CONT')).encode('utf8')
+            #print jdump([(u,d) for u,d in getComAgendas()])
+            print jdump(scrape('http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-%2f%2fEP%2f%2fTEXT%2bCOMPARL%2bPECH-OJ-20090930-1%2b01%2bDOC%2bXML%2bV0%2f%2fEN&language=EN', 'CONT')).encode('utf8')
             #print jdump(scrape('http://www.europarl.europa.eu/sides/getDoc.do?type=COMPARL&reference=LIBE-OJ-20120112-1&language=EN', 'LIBE')).encode('utf8')
             #import code; code.interact(local=locals());
             sys.exit(0)
