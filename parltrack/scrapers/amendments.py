@@ -565,6 +565,7 @@ def getComAms(leg=7, update=False):
             root=fetch(url)
 
 def save(data, stats):
+    if len(data)<1: return stats
     for item in data:
         db.ep_ams.save(item)
     m=db.notifications.find({'dossiers': data[0]['reference']},['active_emails'])
