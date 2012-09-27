@@ -20,9 +20,12 @@
 from datetime import datetime
 from urlparse import urljoin
 from mappings import COMMITTEE_MAP
-from parltrack.utils import diff, htmldiff, fetch, dateJSONhandler, unws, Multiplexer, logger, jdump
+from parltrack.utils import diff, htmldiff, fetch, dateJSONhandler, unws, Multiplexer, logger, jdump, textdiff
 import json, re, copy, unicodedata, traceback, sys
 from parltrack.db import db
+from flaskext.mail import Message
+from parltrack.webapp import mail
+from parltrack.default_settings import ROOT_URL
 
 BASE_URL = 'http://www.europarl.europa.eu'
 
@@ -255,25 +258,29 @@ def getMEPRef(name, retfields=['_id']):
         logger.warn('[!] lookup oops %s' % name.encode('utf8'))
 
 def getComAgendas():
-    urltpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?&docType=AGEN&leg=7&miType=text&tabActif=tabResult#sidesForm"
-    nexttpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?tabActif=tabLast&startValue=%s"
-    for com in (k for k in COMMITTEE_MAP.keys() if len(k)==4 and k not in ['CODE', 'RETT', 'CLIM', 'TDIP']):
+    urltpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?"
+    postdata="docType=AGEN&leg=7&miType=text&tabActif=tabResult#sidesForm"
+    nexttpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?action=%s&tabActif=tabResult#sidesForm"
+    for com in (k for k in COMMITTEE_MAP.keys()
+                if len(k)==4 and k not in ['CODE', 'RETT', 'CLIM', 'TDIP']):
         url=urltpl % (com)
         i=0
         agendas=[]
         logger.info('scraping %s' % com)
+        root=fetch(url, params=postdata)
+        prev=[]
         while True:
-            logger.info("crawling %s" % (url))
-            root=fetch(url)
+            logger.info("%s %s" % (datetime.now().isoformat(), url))
             tmp=[(a.get('href'), unws(a.xpath('text()')[0]))
                  for a in root.xpath('//p[@class="title"]/a')
                  if len(a.get('href',''))>13]
-            if not tmp: break
+            if not tmp or prev==tmp: break
             for u,title in tmp:
                 if title.startswith('DRAFT AGENDA'):
                     yield (u,com)
-            i+=10
+            i+=1
             url=nexttpl % (com,i)
+            root=fetch(url)
 
 def save(data, stats):
     for item in data:
@@ -294,20 +301,53 @@ def save(data, stats):
             now=datetime.utcnow().replace(microsecond=0)
             if not 'meta' in item: item[u'meta']={}
             if not res:
-                logger.info((u'adding %s %s' % (item['committee'], item['title'])).encode('utf8'))
+                logger.info((u'adding %s%s %s' % (u'%s ' % item['epdoc'] if 'epdoc' in item else '',
+                                                    item['committee'],
+                                                    item['title'])).encode('utf8'))
                 item['meta']['created']=now
                 if stats: stats[0]+=1
+                notify(item,None)
             else:
-                logger.info((u'updating %s %s' % (item['committee'], item['title'])).encode('utf8'))
+                logger.info((u'updating %s%s %s' % (u'%s ' % item['epdoc'] if 'epdoc' in item else '',
+                                                    item['committee'],
+                                                    item['title'])).encode('utf8'))
                 logger.info(d)
                 item['meta']['updated']=now
                 if stats: stats[1]+=1
                 item['_id']=res['_id']
+                notify(item,d)
             item['changes']=res.get('changes',{})
             item['changes'][now.isoformat()]=d
             db.ep_comagendas.save(item)
     if stats: return stats
     else: return data
+
+def notify(data,d):
+    if not 'epdoc' in data: return
+    m=db.notifications.find({'dossiers': data['epdoc']},['active_emails'])
+    for g in m:
+        if len(g['active_emails'])==0:
+            continue
+        msg = Message("[PT-Com] %s: %s" %
+                      (data['committee'],
+                       data['title']),
+                      sender = "parltrack@parltrack.euwiki.org",
+                      bcc = g['active_emails'])
+        msg.body = (u"Parltrack has detected %s%s on the schedule of %s \n"
+                    u"\n  on %s"
+                    u"\n%s"
+                    u"%s"
+                    u"\nsee the details here: %s\n"
+                    u"\nYour Parltrack team" %
+                    (u"a change on " if d else u'',
+                     data['epdoc'],
+                     data['committee'],
+                     data['date'],
+                     ("\n  - %s" % u'\n  - '.join(data['list'])) if len(data['list'])>0 else u"",
+                     "\n %s" % (textdiff(d) if d else ''),
+                     "%s/dossier/%s" % (ROOT_URL, data['epdoc']),
+                    ))
+        mail.send(msg)
 
 def crawler(saver=jdump,threads=4):
     m=Multiplexer(scrape,saver,threads=threads)
