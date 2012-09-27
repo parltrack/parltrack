@@ -26,6 +26,10 @@ from mappings import COMMITTEE_MAP
 from datetime import datetime
 from parltrack.db import db
 from dateutil.parser import parse
+from flaskext.mail import Message
+from parltrack.default_settings import ROOT_URL
+from parltrack.webapp import mail
+from urllib import quote_plus
 
 debug=False
 
@@ -562,39 +566,76 @@ def getComAms(leg=7, update=False):
 
 def save(data, stats):
     for item in data:
-        query={'src': item['src'],
-               'date': item['date'],
-               'seq': item['seq'],
-               'committee': item['committee'],
-               'reference': item['reference']}
-        if 'location' in item:
-            query['location']=item['location']
-        else:
-            query['location']={ '$exists': False }
-        # todo uncomment and remove next line after - devel only
-        #res=db.ep_ams.find_one(query) or {}
-        res={}
-        d=diff(dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes']]),
-               dict([(k,v) for k,v in item.items() if not k in ['_id', 'meta', 'changes',]]))
-        if d:
-            now=datetime.utcnow().replace(microsecond=0)
-            if not 'meta' in item: item[u'meta']={}
-            if not res:
-                #logger.info((u'adding %s %s' % (item['reference'], item['title'])).encode('utf8'))
-                item['meta']['created']=now
-                if stats: stats[0]+=1
-            else:
-                logger.info((u'%s updating %s Amendment %s' % (datetime.now().isoformat(),
-                                                               item['reference'],
-                                                               item['seq'])).encode('utf8'))
-                logger.info(d)
-                item['meta']['updated']=now
-                if stats: stats[1]+=1
-                item['_id']=res['_id']
-            item['changes']=res.get('changes',{})
-            item['changes'][now.isoformat()]=d
-            db.ep_ams.save(item)
-    if stats: return stats
+        ## query={'src': item['src'],
+        ##        'date': item['date'],
+        ##        'seq': item['seq'],
+        ##        'committee': item['committee'],
+        ##        'reference': item['reference']}
+        ## if 'location' in item:
+        ##     query['location']=item['location']
+        ## else:
+        ##     query['location']={ '$exists': False }
+        ## # todo enable diffing
+        ## #res=db.ep_ams.find_one(query) or {}
+        ## res={}
+        ## d=diff(dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes']]),
+        ##        dict([(k,v) for k,v in item.items() if not k in ['_id', 'meta', 'changes',]]))
+        ## if d:
+        ##     now=datetime.utcnow().replace(microsecond=0)
+        ##     if not 'meta' in item: item[u'meta']={}
+        ##     if not res:
+        ##         #logger.info((u'adding %s %s' % (item['reference'], item['title'])).encode('utf8'))
+        ##         item['meta']['created']=now
+        ##         if stats: stats[0]+=1
+        ##     else:
+        ##         logger.info((u'%s updating %s Amendment %s' % (datetime.now().isoformat(),
+        ##                                                        item['reference'],
+        ##                                                        item['seq'])).encode('utf8'))
+        ##         logger.info(d)
+        ##         item['meta']['updated']=now
+        ##         if stats: stats[1]+=1
+        ##         item['_id']=res['_id']
+        ##     item['changes']=res.get('changes',{})
+        ##     item['changes'][now.isoformat()]=d
+        ##     db.ep_ams.save(item)
+        # TODO enable saving db.ep_ams.save(item)
+        pass
+    m=db.notifications.find({'dossiers': data[0]['reference']},['active_emails'])
+    for g in m:
+        if len(g['active_emails'])==0:
+            continue
+        dtitle=db.dossiers2.find_one({'procedure.reference': data[0]['reference']},
+                                    ['procedure.title'])['procedure']['title']
+        msg = Message("[PT-Am] %s %s" %
+                      (data[0]['reference'], dtitle),
+                      sender = "parltrack@parltrack.euwiki.org",
+                      bcc = g['active_emails'])
+        msg.body = (u"Parltrack has detected %s new amendments for \n"
+                    u"\n  %s\n"
+                    u"  %s\n"
+                    u"\n  Committee(s): %s\n"
+                    u"  Date: %s\n"
+                    u"\non OEIL.\n"
+                    u"\nPlease follow this URL:\n"
+                    u"  %s/dossier/%s#amendments\n"
+                    u"  to see the dossier.\n"
+                    u"\nOr this URL to see the original PDF:\n"
+                    u"  %s\n"
+                    u"\nsincerly,\n"
+                    u"Your Parltrack team" %
+                    (len(data),
+                     data[0]['reference'],
+                     dtitle,
+                     ', '.join(data[0]['committee']),
+                     data[0]['date'].isoformat().split('T')[0],
+                     ROOT_URL,
+                     quote_plus(data[0]['reference']),
+                     data[0]['src'])
+                    )
+        mail.send(msg)
+    if stats:
+        stats[0]+=len(data)
+        return stats
     else: return data
 
 def crawler(saver=jdump, update=False):
