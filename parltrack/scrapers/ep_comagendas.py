@@ -38,8 +38,12 @@ def toTime(txt):
     m=datere.match(txt)
     if m:
         if m.group(3):
-            return { 'date': datetime.strptime("%s %s" % (m.group(1), m.group(2).replace(':','.')), "%d %B %Y %H.%M"),
-                     'end': datetime.strptime("%s %s" % (m.group(1), m.group(3)[3:].replace(':','.')), "%d %B %Y %H.%M")}
+            try:
+                return { 'date': datetime.strptime("%s %s" % (m.group(1), m.group(2).replace(':','.')), "%d %B %Y %H.%M"),
+                         'end': datetime.strptime("%s %s" % (m.group(1), m.group(3)[3:].replace(':','.')), "%d %B %Y %H.%M")}
+            except ValueError:
+                logger.warning("[!] unknown date %s" % txt)
+                return
         else:
             return { 'date': datetime.strptime("%s %s" % (m.group(1), m.group(2).replace(':','.')), "%d %B %Y %H.%M") }
 
@@ -81,7 +85,7 @@ def getdoclist(node):
             i+=2
         elif len(unws(txt[i]).split(u" \u2013 "))>1:
             res.append({u'type': unws(txt[i].split(u" \u2013 ")[0]),
-                        u'title': unws(txt[i].split(u" \u2013 ")[1])})
+                        u'title': unws(txt[i].split(u" \u2013 ")[1] if len(txt[i].split(u" \u2013 "))>1 else u'')})
             i+=1
         else:
             i+=1
@@ -106,7 +110,7 @@ def getactors(node):
                 tmp="Rapporteur"
             ax=[tmp,[]]
 
-        tmp=unws((cells[1].xpath('text()') or [None])[0])
+        tmp=unws((cells[1].xpath('text()') or [''])[0])
         if ax[0] in ["Rapporteur", "Rapporteur for the opinion"] and tmp:
             name=' '.join(tmp.split()[:-1])
             item={u'group': tmp.split()[-1][1:-1],
@@ -349,7 +353,7 @@ def notify(data,d):
                      data['epdoc'],
                      data['committee'],
                      data['date'] if 'date' in data else 'unknown date',
-                     ("\n  - %s" % u'\n  - '.join(data['list'])) if len(data['list'])>0 else u"",
+                     ("\n  - %s" % u'\n  - '.join(data['list'])) if 'list' in data and len(data['list'])>0 else u"",
                      "\n %s" % (textdiff(d) if d else ''),
                      "%s/dossier/%s" % (ROOT_URL, data['epdoc']),
                     ))
@@ -375,9 +379,11 @@ def seqcrawler(saver=jdump):
 
 if __name__ == "__main__":
     if len(sys.argv)>1:
+        if sys.argv[1]=="url":
+            print jdump(scrape(sys.argv[2], 'XXXX')).encode('utf8')
+            sys.exit(0)
         if sys.argv[1]=="test":
-            #print jdump([(u,d) for u,d in getComAgendas()])
-            print jdump(scrape('http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-%2f%2fEP%2f%2fTEXT%2bCOMPARL%2bPECH-OJ-20090930-1%2b01%2bDOC%2bXML%2bV0%2f%2fEN&language=EN', 'CONT')).encode('utf8')
+            print jdump([(u,d) for u,d in getComAgendas()])
             #print jdump(scrape('http://www.europarl.europa.eu/sides/getDoc.do?type=COMPARL&reference=LIBE-OJ-20120112-1&language=EN', 'LIBE')).encode('utf8')
             #import code; code.interact(local=locals());
             sys.exit(0)
