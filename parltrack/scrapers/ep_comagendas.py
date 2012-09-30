@@ -171,6 +171,9 @@ def scrape(url, comid):
             u'src': url,
         }
     i=1
+    if unws(' '.join(lines[3].xpath('.//text()')))=="INTERPARLIAMENTARY COMMITTEE MEETING":
+        logger.warn("skipping interparl com meet")
+        return
     if unws(' '.join(lines[6].xpath('.//text()'))).startswith('Room'):
             agenda.update({u'docid': unws(' '.join(lines[1].xpath('.//text()'))),
                            u'type': unws(' '.join(lines[3].xpath('.//text()'))),
