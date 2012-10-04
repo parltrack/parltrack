@@ -247,7 +247,7 @@ def getMep(text, date, idonly=False):
             elif mep:
                 if not field in mep: mep[field]=[]
                 mep[field].append(item)
-    return mep
+    return mep or mep5
 
 def mep(id,date):
     mep=getMep(id,date)
