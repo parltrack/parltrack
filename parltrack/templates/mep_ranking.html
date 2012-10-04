@@ -29,9 +29,28 @@
       {% for ranking in rankings %}
       <tr>
          <td><a href="/mep/{{ ranking.2.Name.full }}">{{ ranking.2.Name.full }}</a></td>
-         <td>{{ ranking.2.Groups.0.role }}</td>
-         {% if not group %}<td><img class="group_icon" alt="icon: {{ranking.2.Groups.0.groupid}}" src="/{{ranking.2.Groups.0.groupid|group_icon}}" /> {% if ranking.2.Groups.0.groupid in groupids %}<a rel="nofollow" href="/meps/{{ ranking.2.Groups.0.groupid }}?date={{d|asdate}}">{{ranking.2.Groups.0.groupid }}</a>{% else %}{{ranking.2.Groups.0.groupid }}{% endif %}</td>{% endif %}
-         {% if not country %}<td><img class="group_icon" alt="icon: {{countries[ranking.2.Constituencies.0.country]}}" src="/static/images/{{countries[ranking.2.Constituencies.0.country]|lower}}.gif" /> <a rel="nofollow" href="/meps/{{ countries[ranking.2.Constituencies.0.country] }}?date={{d|asdate}}">{{ ranking.2.Constituencies.0.country }}</a></td>{% endif %}
+         <td>{%if 'Groups' in ranking.2 %}{{ ranking.2.Groups.0.role }}{%endif%}</td>
+         {% if not group %}
+            <td>
+               {% if 'Groups' in ranking.2 %}
+                  <img class="group_icon" alt="icon: {{ranking.2.Groups.0.groupid}}" src="/{{ranking.2.Groups.0.groupid|group_icon}}" /> 
+                  {% if ranking.2.Groups.0.groupid in groupids %}
+                     <a rel="nofollow" href="/meps/{{ ranking.2.Groups.0.groupid }}?date={{d|asdate}}">{{ranking.2.Groups.0.groupid }}</a>
+                  {% else %}
+                     {{ranking.2.Groups.0.groupid }}
+                  {% endif %}
+               {% endif %}
+            </td>
+         {% endif %}
+         {% if not country %}
+            <td>
+               {% if 'Constituencies' in ranking.2 %}
+                  <img class="group_icon" alt="icon: {{countries[ranking.2.Constituencies.0.country]}}" 
+                       src="/static/images/{{countries[ranking.2.Constituencies.0.country]|lower}}.gif" />
+                  <a rel="nofollow" href="/meps/{{ countries[ranking.2.Constituencies.0.country] }}?date={{d|asdate}}">{{ ranking.2.Constituencies.0.country }}</a>
+               {% endif %}
+            </td>
+         {% endif %}
       </tr>
       {% endfor %}
    </tbody>
