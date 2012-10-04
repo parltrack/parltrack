@@ -666,7 +666,7 @@ def asdate(value):
 @app.template_filter()
 def asdiff(obj): # should have a new and old item
     de=diff_match_patch.diff_match_patch()
-    diffs=de.diff_main(' '.join (obj.get('old','')),' '.join (obj.get('new','')))
+    diffs=de.diff_main(' '.join (obj.get('new','')),' '.join (obj.get('old','')))
     de.diff_cleanupSemantic(diffs)
     return de.diff_prettyHtml(diffs)
 
