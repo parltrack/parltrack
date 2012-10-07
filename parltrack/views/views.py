@@ -272,7 +272,6 @@ def mep(id,date):
 def committee(id):
     # get agendas
     agendas=[]
-    id=id.upper()
     for entry in db.ep_comagendas.find({'committee': id,
                                         'date': { '$exists': True}}).sort([('date', pymongo.DESCENDING),
                                                                            ('seq_no', pymongo.ASCENDING)]):
