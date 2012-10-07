@@ -82,7 +82,7 @@
       {%else%}
         <img class="group_icon" alt="icon: {{c.groupid.0}}" src="/{{c.groupid.0|group_icon}}" /> {{c.groupid.0}}
       {%endif%}
-    {%elif  c.groupid %}
+    {%elif c.groupid %}
       {% if not c.start or c.start >= group_cutoff %}
         <img class="group_icon" alt="icon: {{c.groupid}}" src="/{{c.groupid|group_icon}}" /> <a href="/meps/{{c.groupid}}">{{c.groupid}}</a>
       {%else%}

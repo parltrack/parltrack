@@ -20,6 +20,7 @@ dbmap={'meps': db.ep_meps2,
       'com': db.ep_comagendas,
       'votes': db.ep_votes,
       'eurlex': db.eurlex,
+      'ams': db.ep_ams,
       }
 
 all=dbmap[sys.argv[1]].find({})

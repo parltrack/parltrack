@@ -18,7 +18,7 @@
 # (C) 2009-2011 by Stefan Marsiske, <stefan.marsiske@gmail.com>
 import pprint
 from lxml.etree import tostring
-from urlparse import urljoin
+from urlparse import urljoin, urlsplit, urlunsplit
 from itertools import izip, izip_longest
 import datetime, sys, re, feedparser, traceback
 from operator import itemgetter
@@ -613,7 +613,8 @@ def get_new_dossiers():
     if not f:
         return
     for item in f.entries:
-        yield (item.link, item.title)
+        url=urljoin(BASE_URL, urlunsplit(('','')+urlsplit(item.link)[2:]))
+        yield (url, item.title)
 
 def get_all_dossiers():
     for year in xrange(datetime.date.today().year, 1972, -1):
@@ -738,7 +739,7 @@ def save(data, stats):
             msg = Message("[PT] %s %s" % (data['procedure']['reference'],data['procedure']['title']),
                           sender = "parltrack@parltrack.euwiki.org",
                           bcc = g['active_emails'])
-            msg.html = htmldiff(data,d)
+            #msg.html = htmldiff(data,d)
             msg.body = makemsg(data,d)
             mail.send(msg)
         #logger.info(htmldiff(data,d))
@@ -761,7 +762,7 @@ if __name__ == "__main__":
     null=False
     if 'null' in args:
         null=True
-    if len(sys.argv)!=2:
+    if len(sys.argv)<2:
         print "%s full|fullseq|new|update|updateseq|test" % (sys.argv[0])
     if sys.argv[1]=="full":
         crawl(get_all_dossiers(), threads=4)
@@ -778,7 +779,7 @@ if __name__ == "__main__":
     elif sys.argv[1]=="url":
         #print jdump(scrape(sys.argv[2])).encode('utf8')
         res=scrape(sys.argv[2])
-        print >>sys.stderr, pprint.pformat(res)
+        #print >>sys.stderr, pprint.pformat(res)
         save(res,[0,0])
     elif sys.argv[1]=="test":
         save(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397"),[0,0]) # telecoms package

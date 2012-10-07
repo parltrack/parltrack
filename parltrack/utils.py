@@ -369,7 +369,14 @@ def fetch_raw(url, retries=5, ignore=[], params=None):
     return f
 
 def fetch(url, retries=5, ignore=[], params=None):
-    return parse(fetch_raw(url, retries, ignore, params))
+    try:
+        return parse(fetch_raw(url, retries, ignore, params))
+    except:
+        if retries>0:
+            time.sleep(4*(6-retries))
+            return fetch(url,retries-1, ignore=ignore)
+        else:
+            raise
 
 from multiprocessing import Pool, Process, JoinableQueue, log_to_stderr
 from multiprocessing.sharedctypes import Value
