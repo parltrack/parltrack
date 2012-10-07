@@ -595,7 +595,7 @@ def active_dossiers():
 @cache.cached()
 @app.route('/committee/<string:c_id>/atom')
 def committee_changes(c_id):
-    c_id=id.upper()
+    c_id=c_id.upper()
     c=committee(c_id)
     if not c:
         abort(404)
@@ -617,7 +617,7 @@ def committee_changes(c_id):
 @cache.cached()
 @app.route('/committee/<string:c_id>')
 def view_committee(c_id):
-    c_id=id.upper()
+    c_id=c_id.upper()
     c=committee(c_id)
     #c['dossiers']=[listdossiers(d) for d in c['dossiers']]
     if not c:
