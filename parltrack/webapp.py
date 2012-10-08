@@ -686,9 +686,9 @@ def asmep(value):
         mep=mepcache[value]
     else:
         db = connect_db()
-        mep=db.ep_meps2.find_one({'_id': value})
+        mep=db.ep_meps2.find_one({'_id': value}, {'changes': False})
         if not mep:
-            mep=db.ep_meps.find_one({'_id': value})
+            mep=db.ep_meps.find_one({'_id': value}, {'changes': False})
         if not mep:
             return value
         mepcache[value]=mep
