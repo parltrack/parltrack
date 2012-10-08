@@ -300,6 +300,9 @@ def render_meps(query={},kwargs={}):
 @cache.cached()
 @app.route('/meps/<string:country>/<path:group>')
 def mepfilter(country, group):
+    if ("%s/%s" % (country, group)) in groupids:
+        # fix for "gue/ngl" and "verts/ale"
+        return mepsbygroup("%s/%s" % (country, group))
     args={}
     date=getDate()
     if country.upper() in COUNTRIES.keys():
