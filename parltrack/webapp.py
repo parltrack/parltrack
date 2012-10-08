@@ -40,6 +40,7 @@ app.config.from_object(default_settings)
 app.config.from_envvar('PARLTRACK_SETTINGS', silent=True)
 cache = Cache(app)
 mail = Mail(app)
+mepcache={}
 
 #@app.context_processor
 
@@ -681,12 +682,16 @@ def asPE(obj): # should have a new and old item
 
 @app.template_filter()
 def asmep(value):
-    db = connect_db()
-    mep=db.ep_meps2.find_one({'_id': value})
-    if not mep:
-        mep=db.ep_meps.find_one({'_id': value})
-    if not mep:
-        return value
+    if value in mepcache:
+        mep=mepcache[value]
+    else:
+        db = connect_db()
+        mep=db.ep_meps2.find_one({'_id': value})
+        if not mep:
+            mep=db.ep_meps.find_one({'_id': value})
+        if not mep:
+            return value
+        mepcache[value]=mep
     return u'<a href="/mep/%s">%s</a>' % (mep['Name']['full'],mep['Name']['full'])
 
 @app.template_filter()
