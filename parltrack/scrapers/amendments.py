@@ -328,11 +328,12 @@ def parse_block(block, url, reference, date, committee):
                 j-=1
             if j>2: i=j
             seq=True; key='old'
-        elif unws(block[i])=='Text proposed by the Commission' or unws(block[i]) in types:
+        elif unws(block[i])=='Text proposed by the Commission' or block[i].strip() in types:
             seq=True; key='old'
         # throw headers
         del block[i]
         while i<len(block) and not unws(block[i]): del block[i]        # skip blank lines
+        mid=max([len(x) for x in block])/2
         while i<len(block):
             if seq:
                 if unws(block[i]) in ["Amendment", "Amendment by Parliament", "Text Amended"]:
@@ -357,7 +358,7 @@ def parse_block(block, url, reference, date, committee):
                 del block[i]
                 continue
             #mid=len(block[i])/2
-            mid=40
+            #mid=40
             lsep=block[i].rfind('  ', 0, mid)
             # todo calculate both, and use the one closer to the center
             rsep=block[i].find('  ', mid)
