@@ -283,7 +283,7 @@ def committee(id):
     for d in db.dossiers2.find({'activities.committees.committee': id, 'procedure.stage_reached': {'$in': STAGES}}):
         tmp=[c for c in d['committees'] if c['committee']==id]
         if len(tmp)>0:
-            d['crole']=0 if tmp[0]['responsible'] else 1
+            d['crole']=1 if tmp[0]['responsible'] else 0
             d['rapporteur']=[m for c in d['committees'] if c['responsible'] for m in c.get('rapporteur',[])]
             for act in d['activities']:
                 if act.get('type') in ['Non-legislative initial document',
