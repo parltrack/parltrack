@@ -32,7 +32,8 @@ BASE_URL = 'http://www.europarl.europa.eu'
 
 import unicodedata
 from parltrack.db import db
-from parltrack.scrapers.ipex import IPEXMAP
+#from parltrack.scrapers.ipex import IPEXMAP
+IPEXMAP={}
 
 def getMEPRef(name, retfields=['_id']):
     if not name: return
@@ -381,7 +382,7 @@ def scrape(url):
         procedure=scrape_basic(tree)
         if not procedure: return
         ipext=[]
-        for ipexd in (IPEXMAP[procedure['reference']] or {}).get('Dates',[]):
+        for ipexd in IPEXMAP.get(procedure['reference'], {}).get('Dates',[]):
             skip=False
             for event in forecasts+events:
                 if event['type'] in ipexevents.get(ipexd['type'],{}).get('oeil',[]) and event['date']==ipexd['date']:
@@ -499,7 +500,7 @@ def scrape_docs(tree):
                     except: continue
                     doc[u'text']=[unicode(tostring(x)) for x in summary.xpath('//div[@id="summary"]')]
                 res.append(doc)
-        elif inst != 'All documents':
+        elif inst != 'All':
             logger.warn(u"[!] unrecognized tab in documents %s" % inst)
     return res
 
