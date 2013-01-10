@@ -587,7 +587,7 @@ def save(data, stats):
                     u"  Date: %s\n"
                     u"\non OEIL.\n"
                     u"\nPlease follow this URL:\n"
-                    u"  %s/dossier/%s#amendments\n"
+                    u"  %s/dossier/%s#ams\n"
                     u"  to see the dossier.\n"
                     u"\nOr this URL to see the original PDF:\n"
                     u"  %s\n"
