@@ -43,7 +43,7 @@
 <b>{{dossier.procedure.title}}</b> <a href="/dossier/{{dossier.procedure.reference}}">{{dossier.procedure.reference}}</a><br>
 {% for fc in dossier.activities if fc.date>now_date %}
    {% if loop.first %}
-      <a href="/dossier/{{dossier.procedure.reference}}#activities">Next event</a>: <b>{{fc.type}}</b> <abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr>
+      <a href="/dossier/{{dossier.procedure.reference}}#activities">Next event</a>: <b><abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr></b> {{fc.type}}
       {% break %}
    {%endif%}
 {% endfor %}
@@ -92,9 +92,8 @@
    </tr>
 </table>
 {%endif%}
-{% if dossier.procedure.dossier_of_the_committee %}Lead committee dossier:  <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&amp;body={{dossier.procedure.committee}}&amp;language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}<br>
-{% if dossier.procedure.legal_basis %}
-Legal Basis {%for sub in dossier.procedure.legal_basis%}{{sub}}{% if not loop.last %}, {%endif%}{%endfor%}
+{% if dossier.procedure.dossier_of_the_committee %}Lead committee dossier:  <a href="http://www.europarl.europa.eu/committees/en/libe/documents-search.html?linkedDocument=true&ufolderComCode={{dossier.procedure.committee}}&ufolderLegId={{dossier.procedure.dossier_of_the_committee.split('/')[1]}}&ufolderId={{dossier.procedure.dossier_of_the_committee.split('/')[2]}}&urefProcYear=&urefProcNum=&urefProcCode=">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}<br>
+{% if dossier.procedure.legal_basis %}Legal basis: {%for sub in dossier.procedure.legal_basis%}{{sub}}{% if not loop.last %}, {%endif%}{%endfor%}
 {% endif %}
 </div>
 
@@ -153,7 +152,7 @@ Legal Basis {%for sub in dossier.procedure.legal_basis%}{{sub}}{% if not loop.la
   </tr>
   {% if loop.last %}</table>{% endif %}
   {%endfor%}
-     {% if dossier.procedure.dossier_of_the_committee %}Lead committee dossier:  <a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&amp;body={{dossier.procedure.committee}}&amp;language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}<br>
+     {% if dossier.procedure.dossier_of_the_committee %}Lead committee dossier:  <a href="http://www.europarl.europa.eu/committees/en/libe/documents-search.html?linkedDocument=true&ufolderComCode={{dossier.procedure.committee}}&ufolderLegId={{dossier.procedure.dossier_of_the_committee.split('/')[1]}}&ufolderId={{dossier.procedure.dossier_of_the_committee.split('/')[2]}}&urefProcYear=&urefProcNum=&urefProcCode=">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}<br>
    {% if dossier.procedure.legal_basis %}
    Legal Basis
      {%for sub in dossier.procedure.legal_basis%}{{sub}}{% if not loop.last %}, {%endif%}{%endfor%}
@@ -240,7 +239,7 @@ Legal Basis {%for sub in dossier.procedure.legal_basis%}{{sub}}{% if not loop.la
              <strong>{% if agent.committee|length == 4 %}<a href="/committee/{{agent.committee}}">{{agent.committee}}</a>
                {%elif committee_map[agent.committee]|length == 4 %}<a href="/committee/{{committee_map[agent.committee]}}">{{agent.committee}}</a>
                {%else%}{{agent.committee}}{%endif%}</strong>
-             {%if dossier.procedure.dossier_of_the_committee and dossier.procedure.dossier_of_the_committee[:4]==agent.committee %}<a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{dossier.procedure.dossier_of_the_committee}}&amp;body={{dossier.procedure.committee}}&amp;language=EN">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
+             {%if dossier.procedure.dossier_of_the_committee and dossier.procedure.dossier_of_the_committee[:4]==agent.committee %}<a href="http://www.europarl.europa.eu/committees/en/libe/documents-search.html?linkedDocument=true&ufolderComCode={{dossier.procedure.committee}}&ufolderLegId={{dossier.procedure.dossier_of_the_committee.split('/')[1]}}&ufolderId={{dossier.procedure.dossier_of_the_committee.split('/')[2]}}&urefProcYear=&urefProcNum=&urefProcCode=">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
           {%else%}
              {% if agent.committee|length == 4 %}<a href="/committee/{{agent.committee}}">{{agent.committee}}</a>
              {%elif committee_map[agent.committee]|length == 4 %}<a href="/committee/{{committee_map[agent.committee]}}">{{agent.committee}}</a>
