@@ -341,11 +341,12 @@ def scrape(f):
                 if not mep:
                     print >>sys.stderr, '[?] warning unknown MEP', vote['ts'], name.encode('utf8')
                     vote[k]['correctional'].append(name)
-        q={'title': vote['title']}
+        q={'title': vote['title'],
+           'ts':    vote['ts']}
         db.ep_votes.update(q, {"$set": vote}, upsert=True)
         res.append(vote)
     return res
 
 if __name__ == "__main__":
-    scrape(sys.argv[1])
-    #print json.dumps(scrape(sys.argv[1]),indent=1, default=dateJSONhandler)
+    #scrape(sys.argv[1])
+    print json.dumps(scrape(sys.argv[1]),indent=1, default=dateJSONhandler)
