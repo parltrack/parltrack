@@ -633,7 +633,7 @@ def get_active_dossiers():
     for doc in db.dossiers2.find({ 'procedure.stage_reached' : { '$not' : { '$in': [ "Procedure completed",
                                                                                           "Procedure rejected",
                                                                                           "Procedure lapsed or withdrawn"
-                                                                                          ] }} }):
+                                                                                          ] }} }, timeout=False):
         yield (doc['meta']['source'],doc['procedure']['title'])
 
 def crawl(urls, threads=4):
