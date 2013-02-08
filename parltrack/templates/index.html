@@ -1,46 +1,79 @@
 {% extends "base.html" %}
+{% block scripts %}
+<script type="text/javascript">
+   $(document).ready(function() {
+      $("#tabs").tabs();
+  });
+ </script>
+{% endblock %}
 {% block content %}
-{% if latest %}
-   <div style="float:right; width: 225px; margin: 1em;">
-      <img alt="image of EP plenary" src="/static/images/ep.jpg"/>
-      <h4>DB Stats</h4>
-      <ul style="list-style-type: none; margin: ; padding: 0;">
-         <li>Number of MEPs: {{ meps_num }}</li>
-         <li>Number of Dossiers: {{ dossiers_num }}</li>
-         <li>Number of Votes: {{ votes_num }}</li>
-      </ul>
-      <h4>Newest Dossiers</h4>
-      <ul style="overflow-x: auto; max-height: 30em; list-style-type: none; margin: ; padding: 0;">
-         {% for i in latest %}
-            <li style="margin-bottom: .6em;">{{i.meta.created|asdate}} <a href="/dossier/{{i.procedure.reference}}" title="{{i.procedure.title}}">{{i.procedure.reference}}</a> {{i.procedure.title}}</li>
-         {% endfor %}
-      </ul>
-   </div>
-{% endif %}
+<h2>Support Parltrack</h2>
+
+<p class='center'><a href="http://www.indiegogo.com/parltrack2013/">Parltrack is fundraising</a> for maintenance, useful new features and a nicer design. If you ever used Parltrack please consider our support. Your appreciation is much reciprocated. Thank you.</p>
+<div id="tabs">
+  <ul>
+    <li><a href="#about">About</a></li>
+    <li><a href="#sources">Sources</a></li>
+    <li><a href="#legal">Legal</a></li>
+    <li><a href="#privacy">Privacy</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#credit">Credit</a></li>
+    <li><a href="#stats">Statistics</a></li>
+    <li><a href="#newest">Additions</a></li>
+  </ul>
+<div style="float:right; width: 600px; margin: 1em;">
+   <img alt="image of EP plenary" src="/static/images/ep.png"/>
+</div>
+<span style="break: both;" />
+
+<div id="about" class="index-tab">
 <h2>About Parltrack</h2>
-
+ 
 <p>Parltrack is a European initiative to improve the transparency of legislative processes. It combines dossiers, MEPs, vote results and committee agendas into a unique database and allows the tracking of dossiers using email and RSS. Most of the data displayed is also available for further processing in JSON format. Using Parltrack it's easy to see at a glance which dossiers are being handled by committees and MEPs.</p>
-
+</div>
+<div id='sources' class="index-tab">
 <h2>Sources</h2>
 <p>Parltrack currently monitors the European law-making using the data available from europarl.europa.eu. The data is being scraped from <a href="http://www.europarl.europa.eu/oeil/">OEIL</a>, <a href="http://www.europarl.europa.eu/activities/plenary/pv/calendar.do?language=EN&amp;LEG_ID=7">EP plenary minutes</a>, <a href="http://www.europarl.europa.eu/members/public/geoSearch.do?language=EN">online MEP profiles</a>, <a href="http://www.ipex.eu/IPEXL-WEB/epdoc.do">IPEX</a> and parliamentary <a href="http://www.europarl.europa.eu/activities/committees/committeesList.do?language=EN">committee agendas</a>.</p>
-
+</div>
+<div id="legal" class="index-tab">
 <h2>Legal</h2>
 <h3>Copyright</h3>
-<p>The EP releases this data under the <a href="http://www.europarl.europa.eu/tools/disclaimer/default_en.htm#copyright">following terms</a>:</p>
-<blockquote><p>Reproduction of textual data and multimedia items which are the property of the European Union (identified by the words '© European Union, [year(s)] – Source: European Parliament' or '© European Union, [year(s)] – EP' ) or of third parties (© External source, [year(s)]) and for which the European Union holds the rights of use is authorised for non-commercial purposes only provided that the entire item is reproduced and the source is acknowledged.</p></blockquote>
+<p>The EP releases this data under the <a href="http://www.europarl.europa.eu/portal/en/legal-notice">following terms</a>:</p>
+<blockquote><p>As a general rule, the reuse (reproduction or use) of textual data and multimedia items which are the property of the European Union (identified by the words '© European Union, [year(s)] – Source: European Parliament' or '© European Union, [year(s)] – EP' ) or of third parties (© External source, [year(s)]), and for which the European Union holds the rights of use, is authorised, for personal use or for further non-commercial or commercial dissemination, provided that the entire item is reproduced and the source is acknowledged.</p></blockquote>
 <p>As long as the European institutions do not provide everything as raw data in open machine-processable formats, there can always be some errors in the data being scraped, so all warranties for the fitness of this data are void.</p>
 
 <p>The <a href="/dumps">data available as JSON</a> from Parltrack is available under the <a href="http://www.opendatacommons.org/licenses/odbl/">Open Database License v1.0</a> (ODBL). Parltrack is <a href="https://github.com/pudo/parltrack/">available</a> as free software under the <a href="http://www.gnu.org/licenses/agpl.html">Affero GPL v3+</a> license.</p>
 
-<p>The image of the EP plenary is by Alina Zienowicz, from <a href="https://secure.wikimedia.org/wikipedia/en/wiki/File:2007_07_16_parlament_europejski_bruksela_40.JPG">Wikipedia</a> under the <a href="http://creativecommons.org/licenses/by-sa/3.0/deed.en">Creative Commons Attribution-Share Alike 3.0 Unported</a> license.</p>
-
+<p>The image of the EP plenary is by Stefan Marsiske, under the <a href="http://creativecommons.org/licenses/by-sa/3.0/deed.en">Creative Commons Attribution-Share Alike 3.0 Unported</a> license.</p>
+</div>
+<div id="privacy" class="index-tab">
 <h3>Privacy</h3>
-<p>Parltrack currently does not use cookies, the only private information stored are the email addresses of the users of the monitoring feature. These email addresses are used for the sole purpose of monitoring dossiers. Web server access logs are stored for a maximum of one year for statistical purposes only.</p>
-
+<p>Parltrack currently does not use cookies per default, the preferences of the users however are stored in cookies, this allows total control over your settings, setting your email address would allow tracking which we never do. The only private information stored are the email addresses of the users of the monitoring feature. These email addresses are used for the sole purpose of monitoring dossiers. Web server access logs are stored for a maximum of one year for statistical purposes only.</p>
+</div>
+<div id='contact' class="index-tab">
 <h3>Contact</h3>
 {{"stefan.marsiske@gmail.com"|protect_email|safe}}
-<p>-- </p>
+</div>
+<div id='credit' class="index-tab">
+<h3>Credit</h3>
 <p>Parltrack is inspired by <a href="http://euwiki.org/Tratten">Tratten</a>.</p>
-
-<p>Please support our work: <a href="http://flattr.com/thing/308984/Parltrack"><img style="vertical-align: middle" src="/static/images/flattr-badge-large.png" alt="Flattr this" title="Flattr this" /></a></p>
+</div>
+<div id='stats' class="index-tab">
+<h3>Statistics</h3>
+   <ul style="list-style-type: none; margin: ; padding: 0;">
+      <li>Number of MEPs: {{ meps_num }}</li>
+      <li>Number of Dossiers: {{ dossiers_num }}</li>
+      <li>Number of Votes: {{ votes_num }}</li>
+   </ul>
+</div>
+<div id='newest' class="index-tab">
+   <h4>Newest Dossiers</h4>
+   <ul style="overflow-x: auto; max-height: 30em; list-style-type: none; margin: ; padding: 0;">
+      {% for i in latest %}
+         <li style="margin-bottom: .6em;">{{i.meta.created|asdate}} <a href="/dossier/{{i.procedure.reference}}" title="{{i.procedure.title}}">{{i.procedure.reference}}</a> {{i.procedure.title}}</li>
+      {% endfor %}
+   </ul>
+</div>
+</div>
+<!--<p>Please support our work: <a href="http://flattr.com/thing/308984/Parltrack"><img style="vertical-align: middle" src="/static/images/flattr-badge-large.png" alt="Flattr this" title="Flattr this" /></a></p>-->
 {% endblock %}

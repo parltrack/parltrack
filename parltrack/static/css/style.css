@@ -379,3 +379,5 @@ table.amendments {
 
 .hover .anchorLink { color: white; }
 .hover:hover .anchorLink { color: blue; }
+
+.index-tab { min-height: 350px; }
