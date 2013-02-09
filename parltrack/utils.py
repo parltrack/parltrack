@@ -377,6 +377,15 @@ def fetch(url, retries=5, ignore=[], params=None):
             return fetch(url,retries-1, ignore=ignore)
         else:
             raise
+    
+    try:
+        return parse(f)
+    except:
+        if retries>0:
+            time.sleep(4*(6-retries))
+            return fetch(url,retries-1, ignore=ignore)
+        else:
+            raise
 
 from multiprocessing import Pool, Process, JoinableQueue, log_to_stderr
 from multiprocessing.sharedctypes import Value
