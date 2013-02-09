@@ -141,7 +141,7 @@ def lst2obj(table,fields,offset=0):
 def form2obj(table,headers=None):
     res={}
     if table==None: return res
-    for row in table.xpath('.//tr'):
+    for row in table.xpath('./tbody/tr'):
         k,v=row.xpath('td')
         k=toText(k)
         if headers and k in headers: k=headers[k]
