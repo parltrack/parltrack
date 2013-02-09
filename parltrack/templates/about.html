@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Support Parltrack</h2>
+
+<p class='center'><a href="http://www.indiegogo.com/parltrack2013/">Parltrack is fundraising</a> for maintenance, useful new features and a nicer design. If you ever used Parltrack please consider our support. Your appreciation is much reciprocated. Thank you.</p>
+
+<div id="slideshow">
+
+   <div class="pitch-slide">
+   <img class="pitch-pic" src="/static/images/ep.png" title="The Plenary of the European Parliament in Strassbourg">
+   <h2>European Union</h2>
+
+   <div class="pitch-text">
+   <p>The European Union is an powerful tool for the troubled citizen. Victories like
+   the Software Patent Directive, the Telekoms Package or just recently ACTA - the
+   Anti-Counterfeiting Trade Agreement* - show that it plays an important rule in
+   protecting civil liberties. And also that we need more such victories.</p>
+   <p class="small">* There surely are victories in other policy areas, it just happens the developers of this service have a strong background in digital issues</p>
+
+   </div>
+   </div>
+
+   <div class="pitch-slide">
+   <div class="pitch-pic">
+      <div class='pt-logo'>
+      <div id="logo"><img src="/static/images/parltrack.png" title="parltrack logo" /></div>
+      <h1>Parltrack</h1>
+      </div>
+   </div>
+   <h2>Parltrack</h2>
+
+   <div class="pitch-text">
+   <p>Parltrack is a tool for civil society to improve its efficiency in
+   positively influencing global policy. Initially Parltrack was created to
+   gather information during the campaign on ACTA. Data provided by Parltrack
+   allowed the campaigners to approach the issue more efficiently.</p>
+
+   </div>
+   </div>
+
+   <div class="pitch-slide">
+   <img class="pitch-pic" src="/static/images/pt-aggr.jpg" title="Combining data from OEIL with Committee and MEP data, provides new details.">
+   <h2>Aggregated databases</h2>
+
+   <div class="pitch-text">
+   <p>The most important feature of Parltrack is the
+   aggregated presentation. Data such as the <a target="_blank" href="http://parltrack.euwiki.org/mep/Amelia%20ANDERSDOTTER#dossiers">list of
+   legislative dossiers a MEP took responsibility for</a> or a list of all <a target="_blank" href="http://parltrack.euwiki.org/mep/Amelia%20ANDERSDOTTER#amendments">
+   amendments</a> a MEP authored is not easily available on the EU websites. On Parltrack this
+   data-mined information allows the concerned citizen to assess the topics and
+   positions the scrutinized MEPs are most active with.</p>
+
+   </div>
+   </div>
+
+   <div class="pitch-slide">
+   <img class="pitch-pic" src="/static/images/pt-opendata.jpg" title="A snippet of the data available in a machine-readable format.">
+   <h2>Open Data</h2>
+
+   <div class="pitch-text">
+   <p>The information liberated by Parltrack is also
+   available as <a target="_blank" href="/dumps">Open Data bulk-downloads</a> and a lightweight
+   API for developers. This data is reused for example by La Quadrature du Nets
+   tool <a href="http://memopol.lqdn.fr">Political Memory</a>, which extends the Parltrack-data with the policy
+   alignment of the MEPs based on their own recommendations and the MEPs voting
+   records. Besides the Parltrack database being Open Data, the source code is
+   also completely free.</p>
+
+   </div>
+   </div>
+
+   <div class="pitch-slide">
+   <img class="pitch-pic" src="/static/images/pt-monitor.jpg" title='the "track" in Parltrack, monitor changes to dossiers using email.'>
+   <h2>Notifications</h2>
+
+   <div class="pitch-text">
+   <p>Parltrack also offers email and RSS notifications on changes in the
+   legislative process, to keep track of what is happening. This is a
+   feature with lots of potential developments. For example the
+   representation of the changes in emails could be improved, but also 
+   notifications on certain topics or keywords could be added in future
+   developments.</p>
+
+   </div>
+   </div>
+
+   <div class="pitch-slide">
+   <img class="pitch-pic" src="/static/images/pt-history.jpg" title="Events and changes to records are recorded and shown.">
+   <h2>Historical events</h2>
+
+   <div class="pitch-text">
+
+   <p>Parltrack not only detects changes, it also stores
+   them. Before the end of 2011 the EU websites provided a rough account of
+   historical data on committee and delegation membership of the MEPs. This
+   information was lost in the revamp of this web-site in November of 2011. The way
+   Parltrack stores this data is now much more detailed and captures also
+   historical data in other data-sets. All this data further
+   improves the <a target="_blank" href="http://parltrack.euwiki.org/mep/Amelia%20ANDERSDOTTER#history">profiles
+   on MEPs</a> and the detailed history of <a target="_blank" href="http://parltrack.euwiki.org/dossier/2011/0167(NLE)#history">legislative dossiers</a>.</p>
+
+   </div>
+   </div>
+
+   <div class="pitch-slide">
+   <img class="pitch-pic" src="/static/images/pt-mine.jpg" title="Immunity procedures against Members of the European Parliament.">
+   <h2>Data-mining</h2>
+
+   <div class="pitch-text">
+   <p>The data available from Parltrack, provides with interesting data-mining prospects.
+   This data allows for new insights, which were previously difficult
+   to prepare. For example by matching the names in the titles of the dossiers
+   regarding parliamentary immunity with the names of the MEPs, Parltrack presents
+   an up to date <a target="_blank" href="http://parltrack.euwiki.org/datasets/imm/">dashboard</a>
+   on all immunity procedures against MEPs. Many useful possibilities exist for
+   further data-mining, for example forecasting of upcoming events, based on
+   historical averages and alerts on deviations.</p>
+
+   </div>
+   </div>
+
+   <div class="pitch-slide">
+   <img class="pitch-pic" src="/static/images/pt-ams.jpg" title="An amendment with changes shown inline">
+   <h2>Liberated Amendments</h2>
+
+   <div class="pitch-text">
+   <p>Since late 2012 Parltrack also provides all amendments
+   posted in the current parliamentary term (e.g. <a
+   target="_blank" href="http://parltrack.euwiki.org/dossier/2012/0011%28COD%29#am-112-PE-500.695">this
+   amendment</a>).  Previously <a target="_blank" href="http://parltrack.euwiki.org/dossier/2011/0167(NLE)#ams">such
+   amendments</a> have been only published in unwieldy PDF or Word files sometimes
+   containing multiple hundred amendments. With Parltrack these amendments each
+   have their unique hyperlink and can thus be easily tweeted or referred to
+   other involved citizens) are attached to their appropriate <a target="_blank" href="http://parltrack.euwiki.org/dossier/2011/0167(NLE)#ams">dossiers</a> and
+   listed also in the submitting MEPs profile pages.</p>
+
+   </div> </div>
+
+   <div class="pitch-slide">
+   <img class="pitch-pic" src="/static/images/pt-impact.jpg" title="ACTA - Consent: DENIED!" >
+   <h2>Impact</h2>
+
+   <div class="pitch-text">
+   <p>The casual citizen might not often consult the services of Parltrack
+   directly, however the results of effective representation of civil society are
+   enjoyed by everyone. Parltrack can be useful finding out, if a representative
+   should be re-elected during the next elections. If mostly indirectly, Parltrack
+   tries to have a positive impact on European and global policy and also the
+   casual citizens life.</p>
+
+   </div>
+   </div>
+
+   <div class="pitch-slide centered">
+      <h2>Support Parltrack</h2>
+      <div class="pitch-text" style="display: block; min-height: 0px;">
+         <p>... and Parltrack supports you.</p>
+         <p>Parltrack is provided by volunteers and needs your support to keep it running and independent.</p>
+         <p class="centered huge"><a href="http://www.indiegogo.com/parltrack2013/">Please Donate</a></p>
+      </div>
+   </div>
+
+</div>
+<div class="centered"><a id='prev' class='button hidden'>Prev</a> <a id='playpause' class='button hidden'>Pause</a> <a id='next' class='button hidden'>Next</a></div>
+{% endblock %}
+{% block scripts %}
+<script type="text/javascript">
+   $(document).ready(function() {
+      var interval='';
+      $("#slideshow").addClass('js');
+      $("#prev").removeClass('hidden');
+      $("#next").removeClass('hidden');
+      $("#playpause").removeClass('hidden');
+      $(".pitch-slide").hide();
+      $(".pitch-slide:first").show();
+
+      $("#next").click(function() { 
+        $('.pitch-slide:first')
+          .fadeOut(1000)
+          .next()
+          .fadeIn(1000)
+          .end()
+          .appendTo('#slideshow');
+        if(!interval=='') {
+           stop();
+           play();
+        }
+      });
+      $("#prev").click(function() { 
+        $('.pitch-slide:first')
+          .fadeOut(1000)
+        $('.pitch-slide:last')
+          .fadeIn(1000)
+          .prependTo('#slideshow');
+        if(!interval=='') {
+           stop();
+           play();
+        }
+      });
+      $("#playpause").click(function() { 
+         if(interval=='') {
+            play();
+            $("#playpause").text('Pause')
+         } else {
+            stop();
+            $("#playpause").text('Play')
+         }
+      });
+
+      function stop() {
+         clearInterval(interval);
+         interval='';
+      }
+      function play() {
+         interval=setInterval(function() { 
+           $('.pitch-slide:first')
+             .fadeOut(1000)
+             .next()
+             .fadeIn(1000)
+             .end()
+             .appendTo('#slideshow');
+         },  20000);
+      };
+      play();
+  });
+ </script>
+{% endblock %}
