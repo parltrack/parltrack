@@ -63,6 +63,11 @@ def inject_data():
                 )
 
 @cache.cached()
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+@cache.cached()
 @app.route('/')
 def index():
     db = connect_db()

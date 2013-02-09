@@ -21,15 +21,15 @@
     <li><a href="#stats">Statistics</a></li>
     <li><a href="#newest">Additions</a></li>
   </ul>
-<div style="float:right; width: 600px; margin: 1em;">
+<div style="float:right; width: 542px; margin: 1em;">
    <img alt="image of EP plenary" src="/static/images/ep.png"/>
 </div>
 <span style="break: both;" />
 
 <div id="about" class="index-tab">
 <h2>About Parltrack</h2>
- 
-<p>Parltrack is a European initiative to improve the transparency of legislative processes. It combines dossiers, MEPs, vote results and committee agendas into a unique database and allows the tracking of dossiers using email and RSS. Most of the data displayed is also available for further processing in JSON format. Using Parltrack it's easy to see at a glance which dossiers are being handled by committees and MEPs.</p>
+
+<p>Parltrack is a European initiative to improve the transparency of legislative processes. It combines information on dossiers, representatives, vote results and committee agendas into a unique database and allows the tracking of dossiers using email and RSS. Most of the data presented is also available for further processing in JSON format. Using Parltrack it's easy to see at a glance which dossiers are being handled by committees and MEPs.</p>
 </div>
 <div id='sources' class="index-tab">
 <h2>Sources</h2>
@@ -37,7 +37,7 @@
 </div>
 <div id="legal" class="index-tab">
 <h2>Legal</h2>
-<h3>Copyright</h3>
+<h2>Copyright</h2>
 <p>The EP releases this data under the <a href="http://www.europarl.europa.eu/portal/en/legal-notice">following terms</a>:</p>
 <blockquote><p>As a general rule, the reuse (reproduction or use) of textual data and multimedia items which are the property of the European Union (identified by the words '© European Union, [year(s)] – Source: European Parliament' or '© European Union, [year(s)] – EP' ) or of third parties (© External source, [year(s)]), and for which the European Union holds the rights of use, is authorised, for personal use or for further non-commercial or commercial dissemination, provided that the entire item is reproduced and the source is acknowledged.</p></blockquote>
 <p>As long as the European institutions do not provide everything as raw data in open machine-processable formats, there can always be some errors in the data being scraped, so all warranties for the fitness of this data are void.</p>
@@ -47,19 +47,20 @@
 <p>The image of the EP plenary is by Stefan Marsiske, under the <a href="http://creativecommons.org/licenses/by-sa/3.0/deed.en">Creative Commons Attribution-Share Alike 3.0 Unported</a> license.</p>
 </div>
 <div id="privacy" class="index-tab">
-<h3>Privacy</h3>
-<p>Parltrack currently does not use cookies per default, the preferences of the users however are stored in cookies, this allows total control over your settings, setting your email address would allow tracking which we never do. The only private information stored are the email addresses of the users of the monitoring feature. These email addresses are used for the sole purpose of monitoring dossiers. Web server access logs are stored for a maximum of one year for statistical purposes only.</p>
+<h2>Privacy</h2>
+<p>Parltrack currently does not use cookies per default. The preferences of the users however are stored in cookies. These do not allow tracking, except setting your email address would - but we never do*. The only private information stored are the email addresses of the users of the monitoring feature. These email addresses are used for the sole purpose of notifying users of changes. Web server access logs are stored for a maximum of one year for statistical purposes only.</p>
+<p class="small">* we opt to ask you to <a href="http://www.indiegogo.com/parltrack2013/">donate</a> instead of selling your private data.
 </div>
 <div id='contact' class="index-tab">
-<h3>Contact</h3>
+<h2>Contact</h2>
 {{"stefan.marsiske@gmail.com"|protect_email|safe}}
 </div>
 <div id='credit' class="index-tab">
-<h3>Credit</h3>
+<h2>Credit</h2>
 <p>Parltrack is inspired by <a href="http://euwiki.org/Tratten">Tratten</a>.</p>
 </div>
 <div id='stats' class="index-tab">
-<h3>Statistics</h3>
+<h2>Statistics</h2>
    <ul style="list-style-type: none; margin: ; padding: 0;">
       <li>Number of MEPs: {{ meps_num }}</li>
       <li>Number of Dossiers: {{ dossiers_num }}</li>
@@ -67,7 +68,7 @@
    </ul>
 </div>
 <div id='newest' class="index-tab">
-   <h4>Newest Dossiers</h4>
+   <h2>Newest Dossiers</h2>
    <ul style="overflow-x: auto; max-height: 16em; list-style-type: none; margin: ; padding: 0;">
       {% for i in newdocs %}
          <li style="margin-bottom: .6em;">{{i.meta.created|asdate}} <a href="/dossier/{{i.procedure.reference}}" title="{{i.procedure.title}}">{{i.procedure.reference}}</a> {{i.procedure.title}}</li>
