@@ -56,11 +56,11 @@
 <body>
 <div id="topbar">{% block topbar %}{% endblock %} <a href="/preferences">Preferences</a></div>
 <div id="monolith">
-   <div id="logo"><img src="/static/images/parltrack.png" alt="parltrack logo" /></div>
+   <div id="logo"><a href="/"><img src="/static/images/parltrack.png" alt="parltrack logo" /></a></div>
    <h1>Parltrack</h1>
    <div id="menu">
      <div id="search"><form action="/search" method="get"><p><input type="hidden" value="checked" name="s_meps"/><input type="hidden" value="checked" name="s_dossiers"/><input type="text" value="//search" id="search_input" name="q"/></p></form></div>
-     <a href="/">Home</a>
+     <a href="/about">About</a>
      <a href="/dossiers">Dossiers</a>
      <a href="/meps/?date={{ now_date.strftime('%d/%m/%Y') }}">MEPs</a>
      <a class="more">Committees</a>
