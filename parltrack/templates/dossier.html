@@ -93,7 +93,14 @@
 </table>
 {%endif%}
 {% if dossier.procedure.dossier_of_the_committee %}Lead committee dossier:  <a href="http://www.europarl.europa.eu/committees/en/libe/documents-search.html?linkedDocument=true&ufolderComCode={{dossier.procedure.committee}}&ufolderLegId={{dossier.procedure.dossier_of_the_committee.split('/')[1]}}&ufolderId={{dossier.procedure.dossier_of_the_committee.split('/')[2]}}&urefProcYear=&urefProcNum=&urefProcCode=">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}<br>
-{% if dossier.procedure.legal_basis %}Legal basis: {%for sub in dossier.procedure.legal_basis%}{{sub}}{% if not loop.last %}, {%endif%}{%endfor%}
+{% if dossier.procedure.legal_basis %}
+Legal basis: {%for sub in dossier.procedure.legal_basis%}
+    {% if sub[:48] == "Rules of Procedure of the European Parliament EP" %}
+    <a href="http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//TEXT+RULES-EP+20120110+RULE-{{sub[49:51]}}+DOC+XML+V0//EN">RoP {{sub[48:]}}</a>
+    {% else %}
+    {{sub}}
+    {% endif %}
+{% if not loop.last %}, {%endif%}{%endfor%}
 {% endif %}
 </div>
 
