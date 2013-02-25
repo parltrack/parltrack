@@ -229,6 +229,7 @@ stage2inst={ 'Debate in Council': u'CSL',
              'Commission draft budget published': u'EC',
              'Amended legislative proposal for reconsultation published': u'EC',
              'Commission preliminary draft budget published': u'EC',
+             'Proposal withdrawn by Commission': u'EC',
              
              'Results of vote in Parliament': u'EP',
              'Debate in Parliament': u'EP',
