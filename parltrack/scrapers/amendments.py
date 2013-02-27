@@ -275,7 +275,7 @@ def parse_block(block, url, reference, date, committee):
     except ValueError:
         am[u'seq']=unws(block[0]).split()[1]
     except IndexError:
-        logger.warn("%s wrong seq" % (datetime.now().isoformat()), block[0])
+        logger.warn("%s wrong seq %s" % (datetime.now().isoformat()), block[0])
         am[u'seq']=unws(block[0])
     del block[0]
 
@@ -545,7 +545,6 @@ def getComAms(leg=7, update=False):
                 if len(k)==4 and k not in ['CODE', 'RETT', 'CLIM', 'TDIP']):
         url=urltpl % (com)
         i=0
-        amendments=[]
         logger.info('%s crawling %s' % (datetime.now().isoformat(), com))
         root=fetch(url, params=postdata)
         prev=[]
