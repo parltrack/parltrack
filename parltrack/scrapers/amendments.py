@@ -521,7 +521,7 @@ def scrape(url):
             if (reference and
                 not date):
                 try:
-                    date = parse(unws(line))
+                    date = parse(unws(line), dayfirst=True)
                 except ValueError:
                     pass
             continue
