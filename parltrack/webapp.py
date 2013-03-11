@@ -62,13 +62,13 @@ def inject_data():
                 countries=SEIRTNUOC,
                 )
 
-@cache.cached()
 @app.route('/about')
+@cache.cached()
 def about():
     return render_template('about.html')
 
-@cache.cached()
 @app.route('/')
+@cache.cached()
 def index():
     db = connect_db()
     #tmp=dict([(x[u'procedure.stage_reached'],int(x['count'])) for x in db.dossiers.group({'procedure.stage_reached': True},
@@ -167,8 +167,8 @@ def listdossiers(d):
             d['activities'].insert(0,{'type': '(%s) Tabling Deadline' % item['committee'], 'body': 'EP', 'date': item['tabling_deadline']})
     return d
 
-@cache.cached()
 @app.route('/notification/<string:g_id>')
+@cache.cached()
 def notification_view_or_create(g_id):
     db = connect_db()
     # TODO g_id validation
@@ -303,8 +303,8 @@ def render_meps(query={},kwargs={}):
                            url=request.base_url,
                            **kwargs)
 
-@cache.cached()
 @app.route('/meps/<string:country>/<path:group>')
+@cache.cached()
 def mepfilter(country, group):
     if ("%s/%s" % (country, group)) in groupids:
         # fix for "gue/ngl" and "verts/ale"
@@ -325,8 +325,8 @@ def mepfilter(country, group):
         abort(404)
     return render_meps(query, args)
 
-@cache.cached()
 @app.route('/meps/<path:p1>')
+@cache.cached()
 def mepsbygroup(p1):
     query={}
     args={}
@@ -344,8 +344,8 @@ def mepsbygroup(p1):
         abort(404)
     return render_meps(query, args)
 
-@cache.cached()
 @app.route('/meps/')
+@cache.cached()
 def ranking():
     query={}
     date=getDate()
@@ -367,8 +367,8 @@ def ranking():
            }
     return render_meps(query)
 
-@cache.cached()
 @app.route('/mep/<string:d_id>/atom')
+@cache.cached()
 def mep_changes(d_id):
     c=mep(d_id,None)
     if not c:
@@ -380,8 +380,8 @@ def mep_changes(d_id):
     changes=[{'changes': {date: change}} for date, change in sorted(changes, key=itemgetter(0), reverse=True)]
     return render_template('changes_atom.xml', updated=updated, changes=changes, path='/mep/%s' % d_id)
 
-@cache.cached()
 @app.route('/mep/<string:d_id>')
+@cache.cached()
 def view_mep(d_id):
     date=None
     if request.args.get('date'):
@@ -411,8 +411,8 @@ def toJit(tree, name):
             "data": { "$area": w},
             "children": res}
 
-@cache.cached()
 @app.route('/datasets/imm/')
+@cache.cached()
 def immunity_view():
     res=immunity()
     if request.args.get('format','')=='tree':
@@ -442,8 +442,8 @@ def immunity_view():
                            url=request.base_url)
 
 # Broken by oeilv6 - needs more dates - or a total rewrite
-#@cache.cached()
 #@app.route('/datasets/subjects/')
+#@cache.cached()
 #def subjects_view():
 #    (res,tree)=subjects() or ([],{})
 #    if request.args.get('format','')=='json' or request.headers.get('X-Requested-With') or request.headers.get('Accept')=='text/json':
@@ -468,8 +468,8 @@ def immunity_view():
 def dossier_path(d, y, ctr):
     return redirect('/dossier/%s/%04d(%s)' % (y,int(ctr),d))
 
-@cache.cached()
 @app.route('/dossier/atom/<path:d_id>')
+@cache.cached()
 def dossier_changes(d_id):
     c=dossier(d_id, without_changes=False)
     if not c:
@@ -481,8 +481,8 @@ def dossier_changes(d_id):
     changes=[{'changes': {date: change}} for date, change in sorted(changes, key=itemgetter(0), reverse=True)]
     return render_template('changes_atom.xml', updated=updated, changes=changes, path='/dossier/%s' % d_id)
 
-@cache.cached()
 @app.route('/dossier/<path:d_id>')
+@cache.cached()
 def view_dossier(d_id):
     d=dossier(d_id, without_changes=False)
     if not d:
@@ -501,38 +501,38 @@ def atom(db, order, tpl, path):
         return jsonify(tojson(d))
     return render_template(tpl, dossiers=list(d), path=path)
 
-@cache.cached()
 @app.route('/new/')
+@cache.cached()
 def new_docs():
     return atom(connect_db().dossiers2, 'meta.created', 'atom.xml', 'new')
 
-@cache.cached()
 @app.route('/changed/')
+@cache.cached()
 def changed():
     return atom(connect_db().dossiers2, 'meta.updated', 'atom.xml', 'changed')
 
-@cache.cached()
 @app.route('/meps/new/')
+@cache.cached()
 def new_meps():
     return atom(connect_db().ep_meps2, 'meta.created', 'mep_atom.xml', 'new')
 
-@cache.cached()
 @app.route('/meps/changed/')
+@cache.cached()
 def changed_meps():
     return atom(connect_db().ep_meps2, 'meta.updated', 'mep_atom.xml', 'changed')
 
-@cache.cached()
 @app.route('/committees/new/')
+@cache.cached()
 def new_coms():
     return atom(connect_db().ep_comagendas, 'meta.created', 'com_atom.xml', 'new')
 
-@cache.cached()
 @app.route('/committees/changed/')
+@cache.cached()
 def changed_com():
     return atom(connect_db().ep_comagendas, 'meta.updated', 'com_atom.xml', 'changed')
 
-@cache.cached()
 @app.route('/atom/<path:nid>')
+@cache.cached()
 def rss(nid):
     db = connect_db()
     ng=db.notifications.find_one({'id': nid})
@@ -554,8 +554,8 @@ def rss(nid):
         return jsonify(tojson(res))
     return render_template('atom.xml', dossiers=res, path="changed")
 
-@cache.cached()
 @app.route('/dossiers')
+@cache.cached()
 def active_dossiers():
     db = connect_db()
     query={'procedure.stage_reached': { "$in": STAGES } }
@@ -601,8 +601,8 @@ def active_dossiers():
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 
 
-@cache.cached()
 @app.route('/committee/<string:c_id>/atom')
+@cache.cached()
 def committee_changes(c_id):
     c_id=c_id.upper()
     c=committee(c_id)
@@ -623,8 +623,8 @@ def committee_changes(c_id):
                            changes=changes,
                            path='/committee/%s' % c_id)
 
-@cache.cached()
 @app.route('/committee/<string:c_id>')
+@cache.cached()
 def view_committee(c_id):
     c_id=c_id.upper()
     c=committee(c_id)
@@ -643,8 +643,8 @@ def view_committee(c_id):
                            c=c_id,
                            url=request.base_url)
 
-@cache.cached()
 @app.route('/amendments/<path:owner>')
+@cache.cached()
 def view_amendments(owner):
     c, ismep, obj=amendments(owner)
     if not c:
@@ -661,8 +661,8 @@ def view_amendments(owner):
                            today=datetime.now().isoformat().split('T')[0],
                            url=request.base_url)
 
-@cache.cached()
 @app.route('/preferences')
+@cache.cached()
 def prefs():
     return render_template('prefs.html')
 
