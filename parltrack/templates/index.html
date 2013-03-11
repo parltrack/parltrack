@@ -7,9 +7,6 @@
  </script>
 {% endblock %}
 {% block content %}
-<h2>Support Parltrack</h2>
-
-<p class='center'><a href="http://www.indiegogo.com/parltrack2013/">Parltrack is fundraising</a> for maintenance, useful new features and a nicer design. If you ever used Parltrack please consider our support. Your appreciation is much reciprocated. Thank you.</p>
 <div id="tabs">
   <ul>
     <li><a href="#about">About</a></li>
@@ -20,6 +17,7 @@
     <li><a href="#credit">Credit</a></li>
     <li><a href="#stats">Statistics</a></li>
     <li><a href="#newest">Additions</a></li>
+    <li><a href="#donate">Please Donate</a></li>
   </ul>
 <div style="float:right; width: 542px; margin: 1em;">
    <img alt="image of EP plenary" src="/static/images/ep.png"/>
@@ -58,7 +56,7 @@
 <div id='credit' class="index-tab">
 <h2>Credit</h2>
 <p>Parltrack is inspired by <a href="http://euwiki.org/Tratten">Tratten</a>.</p>
-<p>The following persons have earned eternal gratefulness for directly contributing to Parltrack Erik, Peter, Asciimoo, Smari, Sandra, Niels, Andreas, Xavier, Jeremie, Bram, Pudo, Kirsten, Karsten, Javier, Rejo, Ante, Walter, Benjamin, Glyn, Ton.</p>
+<p>The following persons have earned eternal gratefulness for directly contributing to Parltrack Erik, Peter, Asciimoo, Smari, Sandra, Niels, Andreas, Rufus, Michel, Eric, Xavier, Jeremie, Bram, Pudo, Kirsten, Karsten, Javier, Rejo, Ante, Walter, Benjamin, Glyn, Ton, Gijs, Felix, Anne, Theodora, Danya, Matthias, André, Cory, Marco.</p>
 <p>The maintainer(s) of Parltrack would like to express their deepest datalove to its supporters during the <a href="http://indiegogo.com/parltrack2013/" target="_blank">Parltrack 2013</a> funding campaign: András Veres-Szentkirályi, Julien Rabier, Rafael F.Font, tilmann_ch, Yoann, lowry1, Mélissa Richard, Mael Bunet, Karsten Gerloff, Rémont, Fabian Hanneforth, Tomas Hecker, Markus Ostenried, Felix Erckenbrecht, Walter van Holst, Mario Gustke, Lucie Post, David Gayou, Jacques Kreitmann, Sara Magdalena Goldberger, Felix Treguer and a bunch of anonymous supporters.</p>
 </div>
 <div id='stats' class="index-tab">
@@ -77,6 +75,18 @@
       {% endfor %}
    </ul>
 </div>
+<div id='donate' class="index-tab">
+   <p class="centered small">Give some datalove back to the maintainer.</p>
+   <p class="centered small">Parltrack is provided by a volunteer and needs your support to keep it running and independent.</p>
+   <p class="centered">Please Donate</p>
+   <p class="centered"><a href="https://flattr.com/donation/give/to/stf"><img src="/static/images/flattr-logo.png" /></a></p>
+   <form class="centered" action="https://www.paypal.com/cgi-bin/webscr" method="post">
+      <input type="hidden" name="cmd" value="_s-xclick">
+      <input type="hidden" name="hosted_button_id" value="6SWAFD6RK2C78">
+      <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
+      <img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
+   </form>
+   <p class="centered small">...and also please tell your friends about this. Your support is much appreciated, thanks!</p>
 </div>
 <!--<p>Please support our work: <a href="http://flattr.com/thing/308984/Parltrack"><img style="vertical-align: middle" src="/static/images/flattr-badge-large.png" alt="Flattr this" title="Flattr this" /></a></p>-->
 {% endblock %}
