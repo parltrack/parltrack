@@ -203,7 +203,11 @@ def dossier(id, without_changes=True):
                               ('committee',c['committee'])])
                        for x in c.get('rapporteur',[])])
     dossier['procedure']['agents']=sorted([dict(x) for x in agents],key=itemgetter('name'))
-    dossier['amendments']=db.ep_ams.find({'reference': dossier['procedure']['reference']},{'changes': False})
+    #dossier['amendments']=db.ep_ams.find({'reference': dossier['procedure']['reference']},{'changes': False})
+    # workaround for typo in reference
+    amlink={'2012/0011(COD)': {'reference': { '$in': ['2012/0011(COD)', '2012/2011(COD)']}}}
+    q=amlink.get(dossier['procedure']['reference'],{'reference': dossier['procedure']['reference']})
+    dossier['amendments']=db.ep_ams.find(q,{'changes': False})
 
     return dossier
 
