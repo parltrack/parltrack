@@ -469,7 +469,8 @@ def amendment(seq, committee, dossier):
     res=db.ep_ams.find_one({'seq': seq,
                             'committee': committee,
                             'reference': dossier})
-    res['path']=' - '.join(tuple(res['location'][0][1].split(u' \u2013 ')))
+    if res:
+        res['path']=' - '.join(tuple(res['location'][0][1].split(u' \u2013 ')))
     return res
 
 import sys, unicodedata
