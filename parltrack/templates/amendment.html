@@ -9,7 +9,6 @@
       <td class="reference">
          <div class="amendment">
             <div class="authors">{% for a in am.meps%}{{a|asmep|safe}}{% if not loop.last %}, {%endif%}{%endfor%}</div>
-            <div class="location">{% for d,l in am.location%}<div>{{d}}<br />{{l}}</div>{%endfor%}</ul></div>
             <div class="diff">{{am|asdiff|safe}}</div>
          </div>
          <hr />
