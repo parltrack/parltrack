@@ -643,22 +643,18 @@ def view_committee(c_id):
                            c=c_id,
                            url=request.base_url)
 
-@app.route('/amendments/<path:owner>')
+@app.route('/amendment/<path:dossier>/<string:committee>/<int:seq>')
 @cache.cached()
-def view_amendments(owner):
-    c, ismep, obj=amendments(owner)
-    if not c:
+def view_amendment(seq, committee, dossier):
+    am=amendment(seq, committee, dossier)
+    if not am:
         abort(404)
     if (request.args.get('format','')=='json' or
         request.headers.get('X-Requested-With') or
         request.headers.get('Accept')=='text/json'):
-        return jsonify(tojson({'data': c}))
-    return render_template('amendments.html',
-                           owner=owner,
-                           ismep=ismep,
-                           amendments=c,
-                           obj=obj,
-                           today=datetime.now().isoformat().split('T')[0],
+        return jsonify(tojson({'data': am}))
+    return render_template('amendment.html',
+                           am=am,
                            url=request.base_url)
 
 @app.route('/preferences')
@@ -802,7 +798,7 @@ def reftopath(ref):
     return "%s/%s" % (ref[-4:-1], ref[:9])
 
 from parltrack.scrapers.mappings import ALL_STAGES, STAGES, STAGEMAP, groupids, COUNTRIES, SEIRTNUOC, COMMITTEE_MAP
-from parltrack.views.views import mepRanking, mep, immunity, committee, subjects, dossier, clean_lb, amendments
+from parltrack.views.views import mepRanking, mep, immunity, committee, subjects, dossier, clean_lb, amendment
 COMMITTEES=[x for x in connect_db().ep_comagendas.distinct('committee') if x not in ['Security and Defence', 'SURE'] ]
 
 if __name__ == '__main__':

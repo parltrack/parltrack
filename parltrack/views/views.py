@@ -461,23 +461,12 @@ def subjects():
     return (csv,tree)
     #print u'\n'.join([u'\t'.join([unicode(y) for y in x]) for x in sorted(csv,reverse=True)]).encode('utf8')
 
-def amendments(owner):
-    mep=getMep(owner,None)
-    ismep=False
-    if mep:
-        query={'meps': mep['_id']}
-        ismep=True
-    else:
-        dossier=db.dossiers2.find_one({'procedure.reference': owner })
-        if not dossier:
-            return []
-        query={'reference': owner}
-    return (db.ep_ams.find(query,
-                           sort=[('reference', pymongo.DESCENDING),
-                                 ('date', pymongo.DESCENDING),
-                                 ('title', pymongo.ASCENDING)]),
-            ismep,
-            mep or dossier)
+def amendment(seq, committee, dossier):
+    res=db.ep_ams.find_one({'seq': seq,
+                            'committee': committee,
+                            'reference': dossier})
+    res['path']=' - '.join(tuple(res['location'][0][1].split(u' \u2013 ')))
+    return res
 
 import sys, unicodedata
 from datetime import datetime
