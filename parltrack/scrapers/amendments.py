@@ -496,7 +496,7 @@ def scrape(url):
                                 (datetime.now().isoformat(),
                                  unws([x for x in text[:20] if unws(x)][2])))
                     # marking as scraped though
-                    db.ep_ams.save({'src': url})
+                    db.ep_ams.save({'src': url, 'error': "couldn't find reference in source pdf"})
                     return []
                 if date==None or committee==[]:
                     raise ValueError

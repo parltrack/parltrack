@@ -84,6 +84,7 @@ def mepRanking(date,query={}):
         rankedMeps.append((score,sorted(ranks, reverse=True),mep))
     return [x for x in sorted(rankedMeps,reverse=True)]
 
+# shorten legal bases
 def clean_lb(dossier):
     for lbstrip, prefix in [("Treaty on the Functioning of the EU ", 'TFEU'),
                             ("Rules of Procedure of the European Parliament EP ", 'RoP')]:
@@ -109,11 +110,13 @@ def dossier(id, without_changes=True):
         clean_lb(dossier)
     if 'changes' in dossier and without_changes: del dossier['changes']
     for act in dossier['activities']:
-        if act.get('type') in ['Non-legislative initial document', 'Commission/Council: initial legislative document']:
+        if act.get('type') in ['Non-legislative initial document',
+                               'Commission/Council: initial legislative document']:
             if 'comdoc' in dossier:
                 print 'WTF? there is already a comdoc'
                 raise
-            dossier['comdoc']={'title': act['docs'][0]['title'], 'url': act['docs'][0].get('url'), }
+            dossier['comdoc']={'title': act['docs'][0]['title'],
+                               'url': act['docs'][0].get('url'), }
         if act.get('type')=='Final legislative act':
             cid=act['docs'][0].get('title','')
             dossier['celexid']="CELEX:%s:EN" % cid
@@ -126,12 +129,19 @@ def dossier(id, without_changes=True):
                                                      cid[1:5],
                                                      int(cid[st:]))
     if 'ipex' in dossier:
-        dossier['ipex']['Rapporteur']=[[db.ep_meps2.find_one({'_id': id}),group] for id,group,name in dossier['ipex'].get('Rapporteur',[])]
-        dossier['ipex']['Shadows']=[[db.ep_meps2.find_one({'_id': id}), group] for id,group,name in dossier['ipex'].get('Shadows',[])]
+        dossier['ipex']['Rapporteur']=[[db.ep_meps2.find_one({'_id': id}),group]
+                                       for id,group,name
+                                       in dossier['ipex'].get('Rapporteur',[])]
+        dossier['ipex']['Shadows']=[[db.ep_meps2.find_one({'_id': id}), group]
+                                    for id,group,name
+                                    in dossier['ipex'].get('Shadows',[])]
     # find related votes
     votes=list(db.ep_votes.find({'epref': dossier['procedure']['reference']}))
     for vote in votes:
-        groups=[x['group'] for new in ['For','Against','Abstain'] if new in vote for x in vote[new]['groups']]
+        groups=[x['group']
+                for new in ['For','Against','Abstain']
+                if new in vote
+                for x in vote[new]['groups']]
         vote['groups']=sorted(set(groups))
         t,r=vote.get('title'),vote.get('report')
         if t and r:
@@ -193,8 +203,12 @@ def dossier(id, without_changes=True):
                               ('committee',c['committee'])])
                        for x in c.get('rapporteur',[])])
     dossier['procedure']['agents']=sorted([dict(x) for x in agents],key=itemgetter('name'))
+    #dossier['amendments']=db.ep_ams.find({'reference': dossier['procedure']['reference']},{'changes': False})
+    # workaround for typo in reference
+    amlink={'2012/0011(COD)': {'reference': { '$in': ['2012/0011(COD)', '2012/2011(COD)']}}}
+    q=amlink.get(dossier['procedure']['reference'],{'reference': dossier['procedure']['reference']})
+    dossier['amendments']=db.ep_ams.find(q,{'changes': False})
 
-    dossier['amendments']=db.ep_ams.find({'reference': dossier['procedure']['reference']},{'changes': False})
     return dossier
 
 def getMep(text, date, idonly=False):
@@ -451,23 +465,12 @@ def subjects():
     return (csv,tree)
     #print u'\n'.join([u'\t'.join([unicode(y) for y in x]) for x in sorted(csv,reverse=True)]).encode('utf8')
 
-def amendments(owner):
-    mep=getMep(owner,None)
-    ismep=False
-    if mep:
-        query={'meps': mep['_id']}
-        ismep=True
-    else:
-        dossier=db.dossiers2.find_one({'procedure.reference': owner })
-        if not dossier:
-            return []
-        query={'reference': owner}
-    return (db.ep_ams.find(query,
-                           sort=[('reference', pymongo.DESCENDING),
-                                 ('date', pymongo.DESCENDING),
-                                 ('title', pymongo.ASCENDING)]),
-            ismep,
-            mep or dossier)
+def amendment(seq, committee, dossier):
+    res=db.ep_ams.find_one({'seq': seq,
+                            'committee': committee,
+                            'reference': dossier})
+    res['path']=' - '.join(tuple(res['location'][0][1].split(u' \u2013 ')))
+    return res
 
 import sys, unicodedata
 from datetime import datetime

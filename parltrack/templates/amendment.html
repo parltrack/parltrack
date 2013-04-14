@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}AM {{am.seq}} - {{ am.committee[0]}} - {{ am.reference}} - {{ am.path }} | {% endblock %}
+{% block content %}
+<h2>{{ am.reference}} - {{ am.committee[0]}} - AM {{am.seq}}</h2>
+<h3>{{ am.path }}</h3>
+<div id="ams">
+<table class="tablesorter amendments">
+   <tr>
+      <td class="reference">
+         <div class="amendment">
+            <div class="authors">{% for a in am.meps%}{{a|asmep|safe}}{% if not loop.last %}, {%endif%}{%endfor%}</div>
+            <div class="location">{% for d,l in am.location%}<div>{{d}}<br />{{l}}</div>{%endfor%}</ul></div>
+            <div class="diff">{{am|asdiff|safe}}</div>
+         </div>
+         <hr />
+         <div class="source">source: <a href="{{am.src}}">{{am.src|asPE}}</a></div>
+      </td>
+   </tr>
+</table>
+</div>
+{% endblock %}
+

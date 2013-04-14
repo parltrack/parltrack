@@ -480,12 +480,12 @@ def textdiff(d):
     res=[]
     for di in sorted(d,key=itemgetter('path')):
         if 'text' in di['path'] or 'summary' in di['path']:
-            res.append(u'\nsummary text changed in %s' % '/'.join([str(x) for x in di['path']]))
+            res.append(u'\nsummary text changed in %s' % u'/'.join([str(x) for x in di['path']]))
             continue
         if di['type']=='changed':
-            res.append(u'\nchanged %s from:\n\t%s\n  to:\n\t%s' % ('/'.join([str(x) for x in di['path']]),di['data'][0],printdict(di['data'][1])))
+            res.append(u'\nchanged %s from:\n\t%s\n  to:\n\t%s' % (u'/'.join([str(x) for x in di['path']]),di['data'][0],printdict(di['data'][1])))
             continue
-        res.append(u"\n%s %s:\t%s" % (di['type'], '/'.join([str(x) for x in di['path']]), printdict(di['data'])))
+        res.append(u"\n%s %s:\t%s" % (di['type'], u'/'.join([str(x) for x in di['path']]), printdict(di['data'])))
     return '\n'.join(res)
 
 if __name__ == "__main__":
