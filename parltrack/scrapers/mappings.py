@@ -237,6 +237,8 @@ COUNTRIES = {'BE': u'Belgium',
              'FI': u'Finland',
              'SE': u'Sweden',
              'UK': u'United Kingdom',
+             'GB': u'United Kingdom',
+             'HR': u'Croatia',
              }
 
 SEIRTNUOC = {'Belgium': u'BE',
@@ -345,6 +347,7 @@ group_map={ u"Confederal Group of the European United Left - Nordic Green Left":
             u'Union for a Europe of Nations Group': u'UEN',
             u'Union for Europe of the Nations Group': u'UEN',
             u'Group of the Greens / European Free Alliance': u'Verts/ALE',
+            u'The Green Group in the European Parliament': u'Verts/ALE',
             u'Greens/EFA': u'Verts/ALE',
             }
 groupids=[]

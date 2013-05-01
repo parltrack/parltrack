@@ -102,7 +102,6 @@
       <ul class="hidden">
    {%endif%}
    <li>
-    <img class="group_icon" alt="icon: {{countries[c.country]}}" src="/static/images/{{countries[c.country]|lower}}.gif" /> {{c.country}}
     {% if c.groupid %}
     {% if c.groupid.__iter__ %}
       {% if not c.start or c.start >= group_cutoff %}
