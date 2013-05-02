@@ -167,9 +167,6 @@ def dossier(id, without_changes=True):
                     if r not in item['Rapporteur']['rapporteurs']:
                         item['Rapporteur']['rapporteurs'].append(r)
                     continue
-                r=db.ep_meps.find_one({'_id': mep})
-                if r and r not in item['Rapporteur']['rapporteurs']:
-                    item['Rapporteur']['rapporteurs'].append(r)
             item['Committees'][item['committee']]=item['Rapporteur']['rapporteurs']
         for com in item.get('Opinions',[]):
             if 'committees' in com and 'committee' not in com:
@@ -183,9 +180,6 @@ def dossier(id, without_changes=True):
                         if r not in com['rapporteurs']:
                             com['rapporteurs'].append(r)
                         continue
-                    r=db.ep_meps.find_one({'_id': mep})
-                    if r and r not in com['rapporteurs']:
-                        com['rapporteurs'].append(r)
                 item['Committees'][com['committee']]=com['rapporteurs']
         if 'tabling_deadline' in item and item['tabling_deadline']>=datetime.now():
             deadline={'type': '(%s) Tabling Deadline' % item['committee'],
@@ -227,41 +221,20 @@ def getMep(text, date, idonly=False):
     if idonly:
         fields=['_id']
     mep=db.ep_meps2.find_one(query,fields)
-    #mep5=None
-    #if not mep:
-    #    mep5=db.ep_meps.find_one(query,fields)
-    if not (mep): # or mep5):
+    if not (mep):
         if u'ß' in text:
             query['Name.aliases']=''.join(unicodedata.normalize('NFKD', unicode(text.replace(u'ß','ss').strip())).encode('ascii','ignore').split()).lower()
             mep=db.ep_meps2.find_one(query,fields)
-            #if not mep:
-            #    mep5=db.ep_meps.find_one(query,fields)
         else:
             query={'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in name]),re.I)}
             mep=db.ep_meps2.find_one(query,fields)
-            #if not mep:
-            #    mep5=db.ep_meps.find_one(query,fields)
-    if not (mep): # or mep5):
+    if not (mep):
         #print >>sys.stderr, '[$] lookup oops:', text.encode('utf8')
         #print >>sys.stderr, query, '\n', mep
         return
 
     if idonly and mep: return mep['_id']
-    #if idonly and mep5: return mep5['_id']
-
-    # merge with v5 mep db
-    #if mep:
-    #    mep5=db.ep_meps.find_one({'UserID': str(mep['UserID'])})
-    #    if not mep5:
-    #        return mep
-    #for field in [u'Constituencies', u'Groups', u'Delegations', u'Committees', u'Staff']:
-    #    for item in sorted(mep5.get(field,[]),key=itemgetter('start')):
-    #        if item['start']>=datetime(2009,7,13):
-    #            continue
-    #        elif mep:
-    #            if not field in mep: mep[field]=[]
-    #            mep[field].append(item)
-    return mep# or mep5
+    return mep
 
 def mep(id,date):
     mep=getMep(id,date)
@@ -364,14 +337,10 @@ def immunity():
             if text.startswith(head):
                 text=text[len(head):]
         name=''.join(unicodedata.normalize('NFKD', unicode(text)).encode('ascii','ignore').split()).lower()
-        mep=db.ep_meps.find_one({'Name.aliases': name })
-        if not mep:
-            mep=db.ep_meps2.find_one({'Name.aliases': name })
+        mep=db.ep_meps2.find_one({'Name.aliases': name })
         if not mep and u'ß' in text:
             name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(u'ß','ss').strip())).encode('ascii','ignore').split()).lower()
-            mep=db.ep_meps.find_one({'Name.aliases': name })
-            if not mep:
-                mep=db.ep_meps2.find_one({'Name.aliases': name })
+            mep=db.ep_meps2.find_one({'Name.aliases': name })
         if not mep:
             print '[0] not found', d['procedure']['reference'].split('/')[1], text.encode('utf8')
             continue
@@ -432,7 +401,6 @@ def getCountry(mep,date):
 def subjects():
     all={}
     fullmeps=dict([(x['_id'],(x['Constituencies'])) for x in db.ep_meps2.find({},['Constituencies'])])
-    fullmeps.update(dict([(x['_id'],(x['Constituencies'])) for x in db.ep_meps.find({},['Constituencies'])]))
     tree={}
     for d in db.dossiers2.find():
         subs=[fetchsubj(x) for x in d['procedure'].get('subject',[]) if x]
