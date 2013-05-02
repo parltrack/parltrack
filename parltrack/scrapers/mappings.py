@@ -359,6 +359,7 @@ group_map={ u"Confederal Group of the European United Left - Nordic Green Left":
             u'Technical Group of Independent Members': u'TDI',
             u'Group indépendence/Démocratie': u'UEN',
             u'Union for a Europe of Nations Group': u'UEN',
+            u'Europe of Nations Group (Coordination Group)': u'UEN',
             u'Union for Europe of the Nations Group': u'UEN',
             u'Group of the Greens / European Free Alliance': u'Verts/ALE',
             u'The Green Group in the European Parliament': u'Verts/ALE',
