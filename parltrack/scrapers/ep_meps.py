@@ -153,7 +153,7 @@ def parseMember(userid):
                     u'start':     datetime.strptime(unws(start), u"%d.%m.%Y"),
                     u'end':       datetime.strptime(unws(end), u"%d.%m.%Y"),
                     })
-        elif key in ['Member', 'Substitute', 'Chair', 'Vice-Chair', 'Co-President', 'President', 'Vice-President', 'Observer']:
+        elif key in ['Member', 'Substitute', 'Chair', 'Vice-Chair', 'Co-President', 'President', 'Vice-President', 'Observer', 'Quaestor']:
             # memberships in various committees, delegations and EP mgt
             for constlm in section.xpath('./following-sibling::ul[@class="events_collection bullets"][1]/li'):
                 line=unws(u' '.join([unicode(x) for x in constlm.xpath('.//text()')]))
@@ -416,7 +416,7 @@ meplists={
     'out':      'http://www.europarl.europa.eu/meps/en/xml.html?query=inout&type=out',
     'observer': 'http://www.europarl.europa.eu/meps/en/xml.html?query=observer',
     'all':      'http://www.europarl.europa.eu/meps/en/xml.html?query=full&filter=&leg=0',
-    'current':  'http://www.europarl.europa.eu/meps/en/xml.html?query=full&filter=',
+    'current':  'http://www.europarl.europa.eu/meps/en/xml.html?query=full&filter=&leg=%s' % current_term,
 }
 
 def getmeps(query='current'):
