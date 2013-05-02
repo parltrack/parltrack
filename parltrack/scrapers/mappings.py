@@ -322,6 +322,7 @@ group_map={ u"Confederal Group of the European United Left - Nordic Green Left":
             u"Confederal Group of the European United Left-Nordic Green Left": u'GUE/NGL',
             u'Confederal Group of the European United Left / Nordic Green Left': u'GUE/NGL',
             u'Confederal Group of the European United Left/Nordic Green Left': u'GUE/NGL',
+            u'Confederal Group of the European United Left': u'GUE/NGL',
             u"European Conservatives and Reformists": u'ECR',
             u'European Conservatives and Reformists Group': u'ECR',
             u"Europe of freedom and democracy Group": u'EFD',
