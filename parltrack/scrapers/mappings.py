@@ -333,6 +333,7 @@ group_map={ u"Confederal Group of the European United Left - Nordic Green Left":
             u'European Democratic Group': u'EDG',
             u'Liberal and Democratic Group': u'ALDE',
             u'Technical Group of the European Right': u'DR',
+            u'Group of the European Radical Alliance': u'ERA',
             u'Group of the European Democratic Alliance': u'EDA',
             u"Group of the Greens/European Free Alliance": u"Verts/ALE",
             u"Group of the Progressive Alliance of Socialists and Democrats in the European Parliament": u"S&D",
