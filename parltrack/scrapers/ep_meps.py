@@ -181,7 +181,12 @@ def parseMember(userid):
             for constlm in section.xpath('./following-sibling::ul[@class="events_collection bullets"][1]/li'):
                 line=unws(u' '.join([unicode(x) for x in constlm.xpath('.//text()')]))
                 interval, org = line.split(' : ',1)
-                org, role = org.split(u' - ',1)
+                try:
+                    org, role = org.split(u' - ',1)
+                except:
+                    if org.endswith(' -'):
+                        org=org[:-2]
+                        role=''
                 tmp = interval.split(' / ')
                 if len(tmp)==2:
                     (start, end) = tmp
