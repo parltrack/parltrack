@@ -395,6 +395,7 @@ group_map={ u"Confederal Group of the European United Left - Nordic Green Left":
             u'Left Unity': u'LU',
             u'European United Left': u'EUL',
             u'European United Left–Nordic Green Left': u'EUL/NGL',
+            u'Technical Group of Independent Members - mixed group': u'TGI',
             }
 groupids=[]
 for item in group_map.values():
