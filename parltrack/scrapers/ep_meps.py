@@ -181,12 +181,15 @@ def parseMember(userid):
             for constlm in section.xpath('./following-sibling::ul[@class="events_collection bullets"][1]/li'):
                 line=unws(u' '.join([unicode(x) for x in constlm.xpath('.//text()')]))
                 interval, org = line.split(' : ',1)
-                try:
-                    org, role = org.split(u' - ',1)
-                except:
-                    if org.endswith(' -'):
+                tmp = org.split(u' - ')
+                if len(tmp)>1:
+                    org = ' - '.join(tmp[:-1])
+                    role = tmp[-1]
+                elif org.endswith(' -'):
                         org=org[:-2]
                         role=''
+                else:
+                    logger.error('[!] political group line %s' % line)
                 tmp = interval.split(' / ')
                 if len(tmp)==2:
                     (start, end) = tmp
@@ -195,11 +198,11 @@ def parseMember(userid):
                     end = "31.12.9999"
                 if not u'Groups' in data: data[u'Groups']=[]
                 data[u'Groups'].append(
-                    {u'role': role,
+                    {u'role':         role,
                      u'Organization': org,
-                     u'groupid': group_map[org],
-                     u'start':     datetime.strptime(unws(start), u"%d.%m.%Y"),
-                     u'end':       datetime.strptime(unws(end), u"%d.%m.%Y"),
+                     u'groupid':      group_map[org],
+                     u'start':        datetime.strptime(unws(start), u"%d.%m.%Y"),
+                     u'end':          datetime.strptime(unws(end), u"%d.%m.%Y"),
                      })
         else:
             logger.error('[!] unknown field %s' % key)
@@ -291,9 +294,8 @@ def scrape(userid):
     mep['Gender'] = getMEPGender(userid)
 
     # set active for all meps having a contituency without an enddate
-    # TODO set active is dependend on end which now always is 31.12.9999
     for c in mep['Constituencies']:
-        if 'end' not in c:
+        if c['end'] == datetime.strptime("31.12.9999", u"%d.%m.%Y"):
             mep['active']=True
             break
     return mep
@@ -449,9 +451,12 @@ if __name__ == "__main__":
 
     if sys.argv[1]=="test":
         import pprint
-        print jdump(scrape('108570')).encode('utf8')
-        print jdump(scrape('1934')).encode('utf8')
-        print jdump(scrape('96919')).encode('utf8')
+        print jdump(scrape('28215')).encode('utf8')
+        print jdump(scrape('113959')).encode('utf8')
+
+        #print jdump(scrape('108570')).encode('utf8')
+        #print jdump(scrape('1934')).encode('utf8')
+        #print jdump(scrape('96919')).encode('utf8')
         #import code; code.interact(local=locals());
         sys.exit(0)
         print jdump(scrape("http://www.europarl.europa.eu/meps/en/1934/get.html"),None)
