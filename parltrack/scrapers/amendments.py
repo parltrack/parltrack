@@ -262,7 +262,7 @@ def strip(block):
     while len(block) and not unws(block[-1]):
         del block[-1]
 
-def parse_block(block, url, reference, date, committee):
+def parse_block(block, url, reference, date, committee, rapporteur):
     am={u'src': url,
         u'reference': reference,
         u'date': date,
@@ -414,6 +414,15 @@ def parse_block(block, url, reference, date, committee):
                     logger.info("fix %s" % text)
             del block[:i]
             strip(block)
+        elif rapporteur:
+            am['authors']=rapporteur
+            for text in filter(None,splitNames(rapporteur)):
+                mep=getMep(text,None,True)
+                if mep:
+                    try: am['meps'].append(mep)
+                    except KeyError: am['meps']=[mep]
+                else:
+                    logger.info("fix %s" % text)
         else:
             logger.info("%s no authors in Amendment %s" % (datetime.now().isoformat(), am['seq']))
     else:
@@ -465,7 +474,7 @@ def parse_block(block, url, reference, date, committee):
 
 refre=re.compile(r'[0-9]{4}/[0-9]{4}\([A-Z]*\)')
 amstart=re.compile(r' *(Emendamenti|Amende?ment)\s*[0-9A-Z]+( a|/PP)?$')
-def scrape(url):
+def scrape(url, rapporteur=None):
     if (url in ['http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-%2f%2fEP%2f%2fNONSGML%2bCOMPARL%2bPE-483.680%2b02%2bDOC%2bPDF%2bV0%2f%2fEN',
                 'http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-%2f%2fEP%2f%2fNONSGML%2bCOMPARL%2bPE-454.387%2b01%2bDOC%2bPDF%2bV0%2f%2fEN',
                 'http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-%2f%2fEP%2f%2fNONSGML%2bCOMPARL%2bPE-456.679%2b01%2bDOC%2bPDF%2bV0%2f%2fEN',
@@ -528,12 +537,12 @@ def scrape(url):
 
         if amstart.match(line):
             # parse block
-            res.append(parse_block(block, url, reference, date, committee))
+            res.append(parse_block(block, url, reference, date, committee, rapporteur))
             block=[line]
             continue
         block.append(line)
     if block and filter(None,block):
-        res.append(parse_block(block, url, reference, date, committee))
+        res.append(parse_block(block, url, reference, date, committee, rapporteur))
     return res
 
 #from lxml.etree import tostring
@@ -547,21 +556,21 @@ def getComAms(leg=7, update=False):
                     if len(k)==4 and k not in ['CODE', 'RETT', 'CLIM', 'TDIP']):
             url=urltpl % (com)
             i=0
-            logger.info('%s crawling %s' % (datetime.now().isoformat(), com))
+            logger.info('%s %s crawling %s' % (datetime.now().isoformat(), doctype, com))
             root=fetch(url, params=postdata)
             prev=[]
             while True:
                 logger.info("%s %s" % (datetime.now().isoformat(), url))
                 #logger.info(tostring(root))
-                tmp=[a.get('href')
+                tmp={a.get('href'): ' '.join(a.xpath('../../../p[@class="rapporteurs"]//text()')) if doctype != 'AMCO' else None
                      for a in root.xpath('//a[@title="open this PDF in a new window"]')
-                     if (len(a.get('href',''))>13)]
+                     if (len(a.get('href',''))>13)}
                 if not tmp or prev==tmp:
                     break
                 prev=tmp
-                for u in tmp:
+                for u, v in sorted(tmp.items()):
                     if db.ep_ams.find_one({'src': u}): continue
-                    yield u
+                    yield u, v
                 if update: break
                 i+=1
                 url=nexttpl % (com,i)
@@ -611,11 +620,11 @@ def save(data, stats):
 
 def crawler(saver=jdump, update=False):
     stats=[0,0]
-    for pdf in getComAms(update=update):
+    for pdf, rapporteur in getComAms(update=update):
         logger.info(datetime.now().isoformat()+" "+pdf)
         ctr=[0,0]
         try:
-            saver(scrape(pdf), ctr)
+            saver(scrape(pdf, rapporteur), ctr)
         except:
             # ignore failed scrapes
             logger.warn("[!] %s failed to scrape: %s" % (datetime.now().isoformat(), pdf))
@@ -635,7 +644,7 @@ if __name__ == "__main__":
         debug=True
         while len(sys.argv)>1:
             logger.info(sys.argv[1])
-            pprint.pprint(scrape(sys.argv[1]))
+            pprint.pprint(scrape(sys.argv[1], sys.argv[2]))
             del sys.argv[1]
         sys.exit(0)
     crawler(saver=save)
