@@ -539,31 +539,33 @@ def scrape(url):
 #from lxml.etree import tostring
 def getComAms(leg=7, update=False):
     urltpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html"
-    postdata="clean=false&leg=%s&docType=AMCO&miType=text" % leg
-    nexttpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?action=%s&tabActif=tabResult#sidesForm"
-    for com in (k for k in COMMITTEE_MAP.keys()
-                if len(k)==4 and k not in ['CODE', 'RETT', 'CLIM', 'TDIP']):
-        url=urltpl % (com)
-        i=0
-        logger.info('%s crawling %s' % (datetime.now().isoformat(), com))
-        root=fetch(url, params=postdata)
-        prev=[]
-        while True:
-            logger.info("%s %s" % (datetime.now().isoformat(), url))
-            #logger.info(tostring(root))
-            tmp=[a.get('href')
-                 for a in root.xpath('//a[@title="open this PDF in a new window"]')
-                 if (len(a.get('href',''))>13)]
-            if not tmp or prev==tmp:
-                break
-            prev=tmp
-            for u in tmp:
-                if db.ep_ams.find_one({'src': u}): continue
-                yield u
-            if update: break
-            i+=1
-            url=nexttpl % (com,i)
-            root=fetch(url)
+    # todo add to searchRPCD, OPCD
+    for doctype in ['AMCO', 'RPCD', 'OPCD']:
+        postdata="clean=false&leg=%s&docType=%s&miType=text" % (leg, doctype)
+        nexttpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?action=%s&tabActif=tabResult#sidesForm"
+        for com in (k for k in COMMITTEE_MAP.keys()
+                    if len(k)==4 and k not in ['CODE', 'RETT', 'CLIM', 'TDIP']):
+            url=urltpl % (com)
+            i=0
+            logger.info('%s crawling %s' % (datetime.now().isoformat(), com))
+            root=fetch(url, params=postdata)
+            prev=[]
+            while True:
+                logger.info("%s %s" % (datetime.now().isoformat(), url))
+                #logger.info(tostring(root))
+                tmp=[a.get('href')
+                     for a in root.xpath('//a[@title="open this PDF in a new window"]')
+                     if (len(a.get('href',''))>13)]
+                if not tmp or prev==tmp:
+                    break
+                prev=tmp
+                for u in tmp:
+                    if db.ep_ams.find_one({'src': u}): continue
+                    yield u
+                if update: break
+                i+=1
+                url=nexttpl % (com,i)
+                root=fetch(url)
 
 def save(data, stats):
     if len(data)<1: return stats
