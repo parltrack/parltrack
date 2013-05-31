@@ -13,7 +13,7 @@ db=conn.parltrack
 
 def jdump(obj):
    return json.dumps(obj,
-         indent=1, default=dateJSONhandler, ensure_ascii=False).encode('utf8')
+         default=dateJSONhandler, ensure_ascii=False).encode('utf8')
 
 dbmap={'meps': db.ep_meps2,
       'oeil': db.dossiers2,
