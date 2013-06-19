@@ -205,7 +205,7 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
   {% if dossier.celexid %}<li>The final text on <a href="http://pippi.euwiki.org/doc/{{dossier.celexid}}">Pippi Longstrings</a></li>{% endif %}
   <li><a href="{{dossier.meta.source}}">OEIL</a></li>
   <li><a href="http://www.google.com/search?q={{dossier.procedure.title}}+-europarl.europa.eu">Google</a></li>
-  <li><a href="http://www.europarl.europa.eu/RegistreWeb/search/simple.htm?fulltext={{dossier.procedure.reference}}">EP Register of documents</a></li>
+  <li><a href="http://www.europarl.europa.eu/RegistreWeb/search/simple.htm?language=EN&fulltext=&reference={{dossier.procedure.reference}}&relName=&auteurSearch=&codeTypeDocuSearch=&datepickerStart=&datepickerEnd=">EP Register of documents</a></li>
   {% if dossier.ipex and dossier.ipex.Scrutiny %}<li><a href="{{dossier.ipex.Scrutiny}}">IPEX National Scrutiny</a></li>{% endif %}
 </ul></div>
 </div>
