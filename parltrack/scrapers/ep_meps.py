@@ -134,7 +134,7 @@ def parseMember(userid):
     # scrape main content
     for section in root.xpath('//div[@id="content_left"]/div[@class="boxcontent nobackground"]/h4'):
         key=unws(''.join(section.xpath('.//text()')))
-        if not len(key):
+        if key=="National parties":
             # constituencies
             key='Constituencies'
             for constlm in section.xpath('./following-sibling::ul[@class="events_collection bullets"][1]/li'):
