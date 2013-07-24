@@ -413,18 +413,33 @@ def save(data, stats):
     if stats: return stats
     else: return data
 
+unlisted=[ 1018, 26833, 1040, 1002, 2046, 23286, 28384, 1866, 28386,
+           1275, 2187, 34004, 28309, 1490, 28169, 28289, 28841, 1566,
+           2174, 4281, 28147, 28302, ]
 meplists={
     'in':       'http://www.europarl.europa.eu/meps/en/xml.html?query=inout&type=in',
     'out':      'http://www.europarl.europa.eu/meps/en/xml.html?query=inout&type=out',
     'observer': 'http://www.europarl.europa.eu/meps/en/xml.html?query=observer',
-    'all':      'http://www.europarl.europa.eu/meps/en/xml.html?query=full&filter=&leg=0',
-    'current':  'http://www.europarl.europa.eu/meps/en/xml.html?query=full&filter=&leg=%s' % current_term,
+    #'all':      'http://www.europarl.europa.eu/meps/en/xml.html?query=full&filter=&leg=0', # returns limited to only 80 records per default :/
+    'all':      'http://www.europarl.europa.eu/meps/en/xml.html?query=full&filter=%s&leg=0', # we have to page by starting letters :/
+    #'current':  'http://www.europarl.europa.eu/meps/en/xml.html?query=full&filter=&leg=%s' % current_term,
+    'current':  'http://www.europarl.europa.eu/meps/en/xml.html?leg=0', # automatically returns the latest
 }
 
 def getmeps(query='current'):
-    root=fetch(meplists[query], ignore=[500])
-    for meplm in root.xpath('//id/text()'):
-        yield int(meplm)
+    if query=='all':
+        for mep in unlisted:
+            yield mep
+        for letter in xrange(26):
+            tmp=meplists[query]
+            a=ord('A')
+            root=fetch(tmp%chr(a+letter), ignore=[500])
+            for meplm in root.xpath('//id/text()'):
+                yield int(meplm)
+    else:
+        root=fetch(meplists[query], ignore=[500])
+        for meplm in root.xpath('//id/text()'):
+            yield int(meplm)
 
 def crawler(meps,saver=jdump,threads=4):
     m=Multiplexer(scrape,saver,threads=threads)
