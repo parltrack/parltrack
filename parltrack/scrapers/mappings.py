@@ -317,7 +317,9 @@ GROUPS=[
    'Technical Group of Independent Members - mixed group',
    'Technical Group of the European Right',
    'The Green Group in the European Parliament',
-   'Union for Europe of the Nations Group', ]
+   'Union for Europe of the Nations Group',
+   'Communist and Allies Group',
+   ]
 
 group_map={ u"Confederal Group of the European United Left - Nordic Green Left": u'GUE/NGL',
             u"Confederal Group of the European United Left-Nordic Green Left": u'GUE/NGL',
@@ -396,6 +398,7 @@ group_map={ u"Confederal Group of the European United Left - Nordic Green Left":
             u'European United Left': u'EUL',
             u'European United Left–Nordic Green Left': u'EUL/NGL',
             u'Technical Group of Independent Members - mixed group': u'TGI',
+            u'Communist and Allies Group': u'COM',
             }
 groupids=[]
 for item in group_map.values():
