@@ -71,7 +71,10 @@ def getMEPGender(id):
         return 'n/a'
     borntxt=mepraw.xpath('//div[@class="zone_info_mep_transparent_mep_details"]//span[@class="more_info"]/text()')
     if len(borntxt)>0:
-        hint=borntxt[-1].replace(u"\u00A0",' ').split()[0]
+        if unws(borntxt[-1]).startswith(u'décédé'):
+            hint=borntxt[-2].replace(u"\u00A0",' ').split()[0]
+        else:
+            hint=borntxt[-1].replace(u"\u00A0",' ').split()[0]
         if hint==u"Née":
             return "F"
         elif hint==u"Né":
@@ -99,7 +102,15 @@ def parseMember(userid):
 
     borntxt=mepdiv.xpath('.//span[@class="more_info"]/text()')
     if len(borntxt)>0:
-        (d, p) = borntxt[-1].split(',', 1)
+        if unws(borntxt[-1]).startswith('died on '):
+            try:
+                data[u'Death'] = datetime.strptime(unws(borntxt[-1]), u"died on %d %B %Y")
+            except ValueError:
+                logger.warn('[!] failed to scrape birth data %s' % url)
+                logger.warn(traceback.format_exc())
+            (d, p) = borntxt[-2].split(',', 1)
+        else:
+            (d, p) = borntxt[-1].split(',', 1)
         try:
             data[u'Birth'] = { u'date': datetime.strptime(unws(d), u"Born on %d %B %Y"),
                                u'place': unws(p) }
@@ -424,12 +435,14 @@ meplists={
     'all':      'http://www.europarl.europa.eu/meps/en/xml.html?query=full&filter=%s&leg=0', # we have to page by starting letters :/
     #'current':  'http://www.europarl.europa.eu/meps/en/xml.html?query=full&filter=&leg=%s' % current_term,
     'current':  'http://www.europarl.europa.eu/meps/en/xml.html?leg=0', # automatically returns the latest
+    'unlisted': None,
 }
 
 def getmeps(query='current'):
-    if query=='all':
+    if query=='unlisted':
         for mep in unlisted:
             yield mep
+    elif query=='all':
         for letter in xrange(26):
             tmp=meplists[query]
             a=ord('A')
