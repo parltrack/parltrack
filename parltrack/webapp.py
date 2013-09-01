@@ -471,6 +471,7 @@ def immunity_view():
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 
 @app.route('/dossier/<string:d>/<int:y>/<int:ctr>')
+@cache.cached(key_prefix=make_cache_key)
 def dossier_path(d, y, ctr):
     return redirect('/dossier/%s/%04d(%s)' % (y,int(ctr),d))
 
