@@ -43,7 +43,6 @@ com_positions={"Chair": 4,
                "Substitute": 1,
                u'Observer': 0,
                }
-               }
 staff_positions={"President": 7,
                  "Chair": 6,
                  "Vice-President": 6,
