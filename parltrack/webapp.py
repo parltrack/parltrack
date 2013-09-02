@@ -69,7 +69,7 @@ def make_cache_key(*args, **kwargs):
     return (path + args + lang).encode('utf-8')
 
 @app.route('/about')
-@cache.cached(key_prefix=make_cache_keykey_prefix=make_cache_key)
+@cache.cached(key_prefix=make_cache_key)
 def about():
     return render_template('about.html')
 
