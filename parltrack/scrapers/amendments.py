@@ -525,6 +525,9 @@ def scrape(url, rapporteur=None):
                   not reference and
                   re.match(refre, line)):
                 reference=line
+                if url == 'http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-%2f%2fEP%2f%2fNONSGML%2bCOMPARL%2bPE-506.166%2b03%2bDOC%2bPDF%2bV0%2f%2fEN':
+                    logger.info("adjusting reference to eudatap")
+                    reference="2012/0011(COD)"
                 continue
 
             if (reference and
@@ -645,6 +648,7 @@ if __name__ == "__main__":
         while len(sys.argv)>1:
             logger.info(sys.argv[1])
             pprint.pprint(scrape(sys.argv[1], sys.argv[2]))
+            del sys.argv[2]
             del sys.argv[1]
         sys.exit(0)
     crawler(saver=save)
