@@ -160,7 +160,7 @@ def listdossiers(d):
                                'Commission/Council: initial legislative document',
                                "Legislative proposal",
                                "Legislative proposal published"]:
-            if 'title' in act['docs'][0]:
+            if 'title' in act.get('docs',[{}])[0]:
                 d['comdoc']={'title': act['docs'][0]['title'],
                              'url': act['docs'][0].get('url'), }
         if 'date' not in act:
