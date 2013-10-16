@@ -405,6 +405,7 @@ group_map={ u"Confederal Group of the European United Left - Nordic Green Left":
             u'Technical Coordination and Defence of Independent Groups and Members': u'CDI',
             u'Forza Europa Group': u'FE',
             u'Christian-Democratic Group': u'CD',
+            u"Christian-Democratic Group (Group of the European People's Party)": u'CD',
             u'European Conservative Group': u'C',
             }
 groupids=[]
