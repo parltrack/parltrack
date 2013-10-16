@@ -404,6 +404,7 @@ group_map={ u"Confederal Group of the European United Left - Nordic Green Left":
             u'Group for the Technical Coordination and Defence of Indipendent Groups and Members': u'CDI',
             u'Technical Coordination and Defence of Independent Groups and Members': u'CDI',
             u'Forza Europa Group': u'FE',
+            u'Christian-Democratic Group': u'CD',
             }
 groupids=[]
 for item in group_map.values():
