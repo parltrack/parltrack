@@ -456,25 +456,24 @@ def immunity_view():
                            url=request.base_url)
 immunity_view.make_cache_key = make_cache_key
 
-# Broken by oeilv6 - needs more dates - or a total rewrite
-#@app.route('/datasets/subjects/')
-#@cache.cached(key_prefix=make_cache_key)
-#def subjects_view():
-#    (res,tree)=subjects() or ([],{})
-#    if request.args.get('format','')=='json' or request.headers.get('X-Requested-With') or request.headers.get('Accept')=='text/json':
-#        return jsonify(tojson({'count': len(res), 'data': res}))
-#    if request.args.get('format','')=='csv' or request.headers.get('Accept')=='text/csv':
-#        fd = cStringIO.StringIO()
-#        writer = csv.writer(fd,dialect='excel')
-#        writer.writerow(['count', 'subj_id','party','subj_title','group','country'])
-#        writer.writerows([[row[0]]+[v.encode('utf8') for v in row[1:]] for row in sorted(res,reverse=True)])
-#        fd.seek(0)
-#        return Response( response=fd.read(), mimetype="text/csv" )
-#    if request.args.get('format','')=='tree':
-#        return jsonify(tojson(tree))
-#    return render_template('subjects.html',
-#                           data=res,
-#                           url=request.base_url)
+@app.route('/datasets/subjects/')
+@cache.cached(key_prefix=make_cache_key)
+def subjects_view():
+    (res,tree)=subjects() or ([],{})
+    if request.args.get('format','')=='json' or request.headers.get('X-Requested-With') or request.headers.get('Accept')=='text/json':
+        return jsonify(tojson({'count': len(res), 'data': res}))
+    if request.args.get('format','')=='csv' or request.headers.get('Accept')=='text/csv':
+        fd = cStringIO.StringIO()
+        writer = csv.writer(fd,dialect='excel')
+        writer.writerow(['count', 'subj_id','party','subj_title','group','country'])
+        writer.writerows([[row[0]]+[v.encode('utf8') for v in row[1:]] for row in sorted(res,reverse=True)])
+        fd.seek(0)
+        return Response( response=fd.read(), mimetype="text/csv" )
+    if request.args.get('format','')=='tree':
+        return jsonify(tojson(tree))
+    return render_template('subjects.html',
+                           data=res,
+                           url=request.base_url)
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|
 #               Dossiers
 #-[+++++++++++++++++++++++++++++++++++++++++++++++|

@@ -174,7 +174,10 @@ def parseMember(userid):
             # memberships in various committees, delegations and EP mgt
             for constlm in section.xpath('./following-sibling::ul[@class="events_collection bullets"][1]/li'):
                 line=unws(u' '.join([unicode(x) for x in constlm.xpath('.//text()')]))
-                interval, org = line.split(' : ',1)
+                try:
+                    interval, org = line.split(' : ',1)
+                except ValueError:
+                    continue
                 tmp = interval.split(' / ')
                 if len(tmp)==2:
                     (start, end) = tmp
