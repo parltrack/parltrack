@@ -28,6 +28,15 @@ $(document).ready(function() {
   if(getCookie('epheader')) {
    $('.epheader').toggleClass('hidden');
   }
+  var mw=getCookie('mediawiki');
+  if(mw) {
+    $('#wikinotes').attr('href',mw+$('#wikinotes').attr('href'));
+    $('#wikinotes').toggleClass('hidden');
+  }
+  var mail=getCookie('email');
+  if(mail) {
+    $('#emailinput').attr('value',mail);
+  }
   $('#toggle_ep').click(function() {
    $('.epheader').toggleClass('hidden');
    if(getCookie('epheader')) {

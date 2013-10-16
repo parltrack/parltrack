@@ -22,7 +22,7 @@
     <div>
         <form method="get" action="" id="notif_form">
            <div>
-              E-mail: <input type="text" name="address" {%if request.cookies.email %}value="{{request.cookies.email}}"{%endif%}/><br />
+              E-mail: <input id='emailinput' type="text" name="address" value=""/><br />
               //required<br />
               Collection name: <input type="text" name="group" /><br />
               //generated if empty<br />
@@ -32,7 +32,7 @@
     </div>
     </div>
 </div>
-{% if request.cookies.mediawiki %}<a href="{{request.cookies.mediawiki}}/{{dossier.procedure.reference|reftopath}}">Notes</a>{% endif %}
+<a class="hidden" id="wikinotes" href="{{dossier.procedure.reference|reftopath}}">Notes</a>
 {% endblock %}
 {% block content %}
 <h2 class="epheader">{{ dossier.procedure.reference }}</h2>
