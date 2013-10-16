@@ -407,6 +407,7 @@ group_map={ u"Confederal Group of the European United Left - Nordic Green Left":
             u'Christian-Democratic Group': u'CD',
             u"Christian-Democratic Group (Group of the European People's Party)": u'CD',
             u'European Conservative Group': u'C',
+            u'Group of European Progressive Democrats': u'DEP',
             }
 groupids=[]
 for item in group_map.values():
