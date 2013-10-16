@@ -401,6 +401,10 @@ def getCountry(mep,date):
     if len(mep)==1:
         return (mep[0]['country'],mep[0]['party'])
 
+def tonewmep(oid):
+    omep = db.ep_meps.find_one({'_id': oid}, ['UserID'])
+    return db.ep_meps2.find_one({'UserID': int(omep['UserID'])},[])['_id']
+
 def subjects():
     all={}
     fullmeps=dict([(x['_id'],(x['Constituencies'])) for x in db.ep_meps2.find({},['Constituencies'])])
@@ -416,7 +420,7 @@ def subjects():
             if actor in buck: continue
             buck.append(actor)
             if type(committee.get('date'))==type(list()):
-                (country,party)=getCountry(fullmeps[actor['mepref']],
+                (country,party)=getCountry(fullmeps.get(actor['mepref'],fullmeps[tonewmep(actor['mepref'])]),
                                            committee.get('date')[committee['rapporteur'].index(actor)])
             else:
                 (country,party)=getCountry(fullmeps[actor['mepref']],committee.get('date'))
