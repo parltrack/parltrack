@@ -20,9 +20,6 @@
     <script type="text/javascript" src="/static/js/jquery-ui.js"> </script>
     <script type="text/javascript">
      jQuery(document).ready(function() {
-       jQuery('#search_input').click(function() {
-        if(jQuery(this).attr('value') == '//search') jQuery(this).attr('value', '');
-       });
        jQuery('.more').click(function() {
          jQuery(this).next().toggleClass('hidden');
        });
@@ -48,9 +45,9 @@
     </script>
     {% block scripts %}
     {% endblock %}
-    <link rel="stylesheet" href="/static/css/style.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="/static/css/jquery-ui.css" />
     <link rel="stylesheet" href="/static/css/bootstrap.css" type="text/css" />
+    <link rel="stylesheet" href="/static/css/style.css" type="text/css" />
     {% block styles %}
     {% endblock %}
 </head>
