@@ -20,9 +20,6 @@
     <script type="text/javascript" src="/static/js/jquery-ui.js"> </script>
     <script type="text/javascript">
      jQuery(document).ready(function() {
-       jQuery('#search_input').click(function() {
-        if(jQuery(this).attr('value') == '//search') jQuery(this).attr('value', '');
-       });
        jQuery('.more').click(function() {
          jQuery(this).next().toggleClass('hidden');
        });
@@ -48,21 +45,16 @@
     </script>
     {% block scripts %}
     {% endblock %}
-    <link rel="stylesheet" href="/static/css/style.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="/static/css/jquery-ui.css" />
     <link rel="stylesheet" href="/static/css/bootstrap.css" type="text/css" />
+    <link rel="stylesheet" href="/static/css/style.css" type="text/css" />
     {% block styles %}
     {% endblock %}
 </head>
 <body>
 <div class="navbar navbar-inverse">
-          <a class="navbar-brand" href="/" class="active">Parltrack</a>
-          <ul class="nav navbar-nav">
-              <!--
-                      <li>
-     <form action="/search" method="get"><p><input type="hidden" value="checked" name="s_meps"/><input type="hidden" value="checked" name="s_dossiers"/><input type="text" value="//search" id="search_input" name="q"/></p></form>
-     </li>
-     -->
+    <a class="navbar-brand" href="/" class="active">Parltrack</a>
+    <ul class="nav navbar-nav">
      <li>
      <a href="/about">About</a>
      </li>
@@ -98,6 +90,10 @@
      {% block menu %}
      {% endblock %}
      </ul>
+
+                  <form class="navbar-form navbar-right" action="/search" method="get">
+     <input type="hidden" value="checked" name="s_meps"/><input type="hidden" value="checked" name="s_dossiers"/><input type="text" class="form-control col-lg-8" placeholder="Search" name="q"/>
+                  </form>
    {% block header %}
    {% endblock %}
 </div>

@@ -1,4 +1,4 @@
-body, h1 { padding: 0; margin: 0; color: #777777; }
+body, h1 { padding: 0; margin: 0; }
 html, body { height:100%; font-family:Trebuchet MS,Tahoma,Verdana,Arial,sans-serif; }
 
 a { color: #1A67B8; text-decoration: none; }
@@ -402,7 +402,7 @@ table.amendments {
 
 #slideshow.js { 
     position: relative; 
-    height: 400px; 
+    height: 300px; 
 }
 
 #slideshow.js > div { 
