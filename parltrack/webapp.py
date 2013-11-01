@@ -18,9 +18,9 @@
 
 # (C) 2011 by Adam Tauber, <asciimoo@gmail.com>, Stefan Marsiske <stefan.marsiske@gmail.com>
 
-import os, re, copy, csv, cStringIO, json, sys, itertools, diff_match_patch, urllib
+import os, re, copy, csv, cStringIO, json, diff_match_patch, urllib
 from pymongo import Connection
-from flaskext.mail import Mail, Message
+from flask.ext.mail import Mail, Message
 from flask.ext.cache import Cache
 from flask import Flask, render_template, request, jsonify, abort, redirect, Response
 from datetime import datetime, date, timedelta
@@ -28,9 +28,7 @@ from random import randint, choice, shuffle, randrange
 from hashlib import sha1
 from werkzeug import ImmutableDict
 from bson.objectid import ObjectId
-from bson.code import Code
 from operator import itemgetter
-from itertools import chain
 from collections import defaultdict
 from parltrack import default_settings
 
@@ -825,7 +823,7 @@ def formatdiff(dossier):
 def reftopath(ref):
     return "%s/%s" % (ref[-4:-1], ref[:9])
 
-from parltrack.scrapers.mappings import ALL_STAGES, STAGES, STAGEMAP, groupids, COUNTRIES, SEIRTNUOC, COMMITTEE_MAP
+from parltrack.scrapers.mappings import STAGES, STAGEMAP, groupids, COUNTRIES, SEIRTNUOC, COMMITTEE_MAP
 from parltrack.views.views import mepRanking, mep, immunity, committee, subjects, dossier, clean_lb, amendment
 COMMITTEES=[x for x in connect_db().ep_comagendas.distinct('committee') if x not in ['Security and Defence', 'SURE'] ]
 
