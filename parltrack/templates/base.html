@@ -50,51 +50,70 @@
     {% endblock %}
     <link rel="stylesheet" href="/static/css/style.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="/static/css/jquery-ui.css" />
+    <link rel="stylesheet" href="/static/css/bootstrap.css" type="text/css" />
     {% block styles %}
     {% endblock %}
 </head>
 <body>
-<div id="topbar">{% block topbar %}{% endblock %} <a href="/preferences">Preferences</a></div>
-<div id="monolith">
-   <div id="logo"><a href="/"><img src="/static/images/parltrack.png" alt="parltrack logo" /></a></div>
-   <h1>Parltrack</h1>
-   <div id="menu">
-     <div id="search"><form action="/search" method="get"><p><input type="hidden" value="checked" name="s_meps"/><input type="hidden" value="checked" name="s_dossiers"/><input type="text" value="//search" id="search_input" name="q"/></p></form></div>
+<div class="navbar navbar-inverse">
+          <a class="navbar-brand" href="/" class="active">Parltrack</a>
+          <ul class="nav navbar-nav">
+              <!--
+                      <li>
+     <form action="/search" method="get"><p><input type="hidden" value="checked" name="s_meps"/><input type="hidden" value="checked" name="s_dossiers"/><input type="text" value="//search" id="search_input" name="q"/></p></form>
+     </li>
+     -->
+     <li>
      <a href="/about">About</a>
+     </li>
+     <li>
      <a href="/dossiers">Dossiers</a>
+     </li>
+     <li>
      <a href="/meps/?date={{ now_date.strftime('%d/%m/%Y') }}">MEPs</a>
-     <a class="more">Committees</a>
-     <div class="submenu hidden grid">
+     </li>
+     <li class="dropdown">
+     <a data-toggle="dropdown" class="dropdown-toggle">Committees<span class="caret"></span></a>
+     <ul class="dropdown-menu">
         {%for c in committees|sort%}
+            <li>
             {% if c|length != 4 %}<a href="/committee/{{committee_map[c]}}" title="{{c}}">{{committee_map[c]}}</a>
             {%elif committee_map[c]|length != 4 %}<a href="/committee/{{c}}" title="{{committee_map[c]}}">{{c}}</a>
             {%endif%}
+            </li>
         {%endfor%}
-     </div>
-     <a class="more">Datasets</a>
-     <div class="submenu hidden">
-        <a href="/datasets/imm">Immunity waivers</a>
-        <a href="/dumps/schema.html">DB Schema</a>
-        <a href="/dumps/">Complete dump</a>
-     </div>
+     </ul>
+     </li>
+     <li class="dropdown">
+     <a href="#" data-toggle="dropdown" class="dropdown-toggle">Datasets<span class="caret"></span></a>
+     <ul class="dropdown-menu">
+         <li><a href="/datasets/imm">Immunity waivers</a></li>
+         <li><a href="/dumps/schema.html">DB Schema</a></li>
+         <li><a href="/dumps/">Complete dump</a></li>
+     </ul>
+     </li>
+     <li>
      <a href="http://flattr.com/thing/308984/Parltrack"><img style="vertical-align: middle" src="/static/images/flattr-badge-large.png" alt="Flattr this" title="Flattr this"/></a>
+     </li>
      {% block menu %}
      {% endblock %}
-   </div>
+     </ul>
    {% block header %}
    {% endblock %}
 </div>
-<div id="right-content">
   <div id="content">
+     <ul class="nav navbar-nav navbar-right">
+        {% block topbar %}{% endblock %} <a href="/preferences">Preferences</a>
+     </ul>
       {% block content %}
       {% endblock %}
   </div>
-  <div id="footer">
+  <div>
      {% block footer %} {% endblock %}
      <hr />
      <div class="centered"><a href="https://github.com/pudo/parltrack/">code</a> <a href="http://www.gnu.org/licenses/agpl.html">AGPLv3.0+</a>, <a href="/dumps">data</a> <a href="http://www.opendatacommons.org/licenses/odbl/">ODBLv1.0</a>, site-content <a href="http://creativecommons.org/licenses/by-sa/3.0/">CC-By-Sa-3.0</a></div>
      <div class="centered"><a href="http://www.europarl.europa.eu/tools/disclaimer/default_en.htm">© European Union, 2011 – Source: European Parliament</a></div>
   </div>
-</div>
 </body>
+<script src="/static/js/bootstrap.min.js"> </script>
 </html>
