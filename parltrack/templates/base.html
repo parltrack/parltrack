@@ -56,13 +56,8 @@
 </head>
 <body>
 <div class="navbar navbar-inverse">
-          <a class="navbar-brand" href="/" class="active">Parltrack</a>
-          <ul class="nav navbar-nav">
-              <!--
-                      <li>
-     <form action="/search" method="get"><p><input type="hidden" value="checked" name="s_meps"/><input type="hidden" value="checked" name="s_dossiers"/><input type="text" value="//search" id="search_input" name="q"/></p></form>
-     </li>
-     -->
+    <a class="navbar-brand" href="/" class="active">Parltrack</a>
+    <ul class="nav navbar-nav">
      <li>
      <a href="/about">About</a>
      </li>
@@ -98,6 +93,10 @@
      {% block menu %}
      {% endblock %}
      </ul>
+
+                  <form class="navbar-form navbar-right" action="/search" method="get">
+     <input type="hidden" value="checked" name="s_meps"/><input type="hidden" value="checked" name="s_dossiers"/><input type="text" class="form-control col-lg-8" placeholder="Search" name="q"/>
+                  </form>
    {% block header %}
    {% endblock %}
 </div>
