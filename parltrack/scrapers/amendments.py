@@ -21,12 +21,12 @@ import os, re, sys
 from parltrack.utils import fetch_raw, fetch, unws, logger, jdump, diff
 from parltrack.views.views import getMep
 from tempfile import mkstemp
-from pbs import pdftotext
+from sh import pdftotext
 from mappings import COMMITTEE_MAP
 from datetime import datetime
 from parltrack.db import db
 from dateutil.parser import parse
-from flaskext.mail import Message
+from flask.ext.mail import Message
 from parltrack.default_settings import ROOT_URL
 from parltrack.webapp import mail
 from urllib import quote_plus

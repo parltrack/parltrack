@@ -20,7 +20,7 @@
 
 import os, re, copy, csv, cStringIO, json, sys, itertools, diff_match_patch, urllib
 from pymongo import Connection
-from flaskext.mail import Mail, Message
+from flask.ext.mail import Mail, Message
 from flask.ext.cache import Cache
 from flask import Flask, render_template, request, jsonify, abort, redirect, Response
 from datetime import datetime, date, timedelta
