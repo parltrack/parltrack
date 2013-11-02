@@ -1,4 +1,4 @@
-body, h1 { padding: 0; margin: 0; color: #777777; }
+body, h1 { padding: 0; margin: 0; }
 html, body { height:100%; font-family:Trebuchet MS,Tahoma,Verdana,Arial,sans-serif; }
 
 a { color: #1A67B8; text-decoration: none; }
@@ -12,7 +12,7 @@ input { border: 1px solid #CDCDCD; color: #777777;}
 
 .hidden { display: none !important; }
 dl, dd, dt { vertical-align:top;}
-dt { display: inline-block; width: 80px; }
+dt { display: inline-block; width: 180px; }
 dd { display: inline-block; }
 .mepshot { float: right; }
 
@@ -204,16 +204,13 @@ background-color: #8dbdd8;
 .changelog-entries { width: 98%; }
 .changelog-type {
    vertical-align: top;
-   width: 6%;
 }
 .changelog-path {
    vertical-align: top;
-   width: 20%;
 }
 .changelog-data {
    /*display: inline-block;*/
    vertical-align: middle;
-   width: 60%;
 }
 .changelog-data dl {
    margin: 0;
@@ -226,7 +223,6 @@ background-color: #8dbdd8;
 }
 .changelog-old,
 .changelog-new {
-   width: 49%;
    display: inline-block;
 }
 
@@ -406,7 +402,7 @@ table.amendments {
 
 #slideshow.js { 
     position: relative; 
-    height: 400px; 
+    height: 300px; 
 }
 
 #slideshow.js > div { 
