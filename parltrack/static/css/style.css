@@ -449,3 +449,5 @@ table.amendments {
    font-weight: bold;
    font-size: 2em;
 }
+
+#content a { padding-left: 20px; }
