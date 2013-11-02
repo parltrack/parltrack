@@ -6,11 +6,10 @@ a:hover { text-decoration: underline; }
 input { border: 1px solid #CDCDCD; color: #777777;}
 
 #track_dossier { display: inline; position: relative; z-index: 20; }
-#track_dossier:hover > div { display: block !important; }
-#track_dossier:hover { display: block !important; }
+#track_dossier:hover .nondisplayed { display: block !important; }
 #notif_subscr { position: absolute; right: 0; border: 2px solid #454545; padding: 10px; background: #F7F7F7; }
 
-.hidden { display: none !important; }
+.nondisplayed { display: none; }
 dl, dd, dt { vertical-align:top;}
 dt { display: inline-block; width: 180px; }
 dd { display: inline-block; }
@@ -450,5 +449,5 @@ table.amendments {
    font-size: 2em;
 }
 
-#content a { padding-left: 20px; }
+#content .navbar-nav a { margin-left: 20px; }
 #pivot_content .h1,.h2,.h3,.h4,.h5 { font-size: 1em; }
