@@ -449,3 +449,6 @@ table.amendments {
    font-weight: bold;
    font-size: 2em;
 }
+
+#content a { padding-left: 20px; }
+#pivot_content .h1,.h2,.h3,.h4,.h5 { font-size: 1em; }
