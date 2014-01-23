@@ -154,7 +154,7 @@ def scrape(celexid, path):
 
 def save(data, stats):
     if not data: return stats
-    print jdump(data)
+    #print jdump(data)
     res=db.eurlex.find_one({ 'id.celexid' : data['id']['celexid'] }) or {}
     d=diff(dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes']]),
            dict([(k,v) for k,v in data.items() if not k in ['_id', 'meta', 'changes',]]))
