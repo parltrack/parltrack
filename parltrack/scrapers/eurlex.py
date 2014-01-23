@@ -193,7 +193,12 @@ def sources(url, path):
 def crawl(saver=jdump, null=False):
     for celexid, data in sources("%s/index.htm" % crawlroot, []):
         if (null and db.eurlex.find_one({'id.celexid': celexid},['_id'])==None) or not null:
-            yield saver(scrape(celexid, data),[0,0])
+            try:
+                tmp = saver(scrape(celexid, data),[0,0])
+            except:
+                logger.warn("[!] failed to scrape %s" % celexid)
+                continue
+            yield tmp
 
 if __name__ == "__main__":
     if len(sys.argv)<2:
