@@ -91,7 +91,7 @@ def scrape(celexid, path):
     for y in dates:
         if not unws(y): continue
         title, rest=unws(y).split(": ",1)
-        item={u'type': title}
+        item={}
         date=rest[:10]
         tail=rest[10:]
         if tail.startswith('; '):
@@ -107,9 +107,9 @@ def scrape(celexid, path):
         if len(tail):
             item['note']=tail
         try:
-            eurlex['dates'].append(item)
+            eurlex['dates'][title]=item
         except:
-            eurlex['dates']=[item]
+            eurlex['dates']={title: item}
 
     for t,l in GENERIC_FIELDS:
         try:
@@ -117,11 +117,11 @@ def scrape(celexid, path):
         except:
             continue
         if not len(s): continue
-        tmp=dict([(field, [{u'text': unws(x),
-                            u'url': x.getparent().get('href')}
-                           for x in s.xpath('./li/strong[text()="%s"]/..//text()' % field)
-                           if unws(x) and unws(x)!='/'][1:])
-                  for field in l])
+        tmp=dict([(field, [{u'text': unws(x), u'url': x.getparent().get('href')}
+                           for x in s.xpath('./li/strong[text()="%s"]/..//text()' % field)[2:]
+                           if unws(x) and unws(x)!='/'])
+                  for field in l
+                  if field is not "Directory code:"])
 
         # merge multi-text items into one dict
         for k in ['Amended by:', "Legal basis:", 'Amendment to:']:
@@ -135,12 +135,26 @@ def scrape(celexid, path):
             if tmp1:
                 tmp[k]=tmp1.values()
 
-        if len(tmp.keys()):
+        if "Directory code:" in l:
+            code = None
+            dc = []
+            for x in s.xpath('./li/strong[text()="Directory code:"]/../*'):
+                if x.tag == 'em':
+                    if code:
+                        dc.append(code)
+                    code = {'code': unws(' '.join(x.xpath('.//text()'))),
+                            'path': []}
+                elif x.tag == 'a':
+                    code['path'].append(unws(' '.join(x.xpath('.//text()'))))
+            tmp["Directory code:"]=dc
+
+        if len(tmp):
             eurlex[t]=tmp
     return eurlex
 
 def save(data, stats):
     if not data: return stats
+    #print jdump(data)
     res=db.eurlex.find_one({ 'id.celexid' : data['id']['celexid'] }) or {}
     d=diff(dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes']]),
            dict([(k,v) for k,v in data.items() if not k in ['_id', 'meta', 'changes',]]))
@@ -152,7 +166,7 @@ def save(data, stats):
             if stats: stats[0]+=1
         else:
             logger.info(('updating %s' % (data['id']['celexid'])).encode('utf8'))
-            logger.warn(d)
+            #logger.warn(d)
             data['meta']['updated']=now
             if stats: stats[1]+=1
             data['_id']=res['_id']
