@@ -209,6 +209,17 @@ def dossier(id, without_changes=True):
     return dossier
 
 def getMep(text, date, idonly=False):
+    fields=None
+    if idonly:
+        fields=['_id']
+
+    if(text.isdigit()): # search by userid instead of name
+        query={'UserID': int(text)}
+        mep=db.ep_meps2.find_one(query,fields)
+        if idonly and mep: return mep['_id']
+        return mep
+
+    # try to match a name
     name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(',','').strip())).encode('ascii','ignore').split()).lower()
 
     if not name: return
@@ -220,9 +231,6 @@ def getMep(text, date, idonly=False):
                                    }}}
     else:
         query={'Name.aliases': name}
-    fields=None
-    if idonly:
-        fields=['_id']
     mep=db.ep_meps2.find_one(query,fields)
     if not (mep):
         if u'ß' in text:
@@ -462,9 +470,10 @@ except:
 from operator import itemgetter
 
 if __name__ == "__main__":
-    dossier('COD/2007/0247')
-    date='24/11/2010'
-    print committee('LIBE')
+    #dossier('COD/2007/0247')
+    #date='24/11/2010'
+    #print committee('LIBE')
+    print getMep('108570',None)
     #date='02/06/2011'
     #data=mepRanking(date)
     ## from bson.objectid import ObjectId
