@@ -16,6 +16,8 @@
 #    along with parltrack  If not, see <http://www.gnu.org/licenses/>.
 
 # (C) 2011 by Stefan Marsiske, <stefan.marsiske@gmail.com>
+from bson.objectid import ObjectId
+
 
 SHORTCUTMAP={'L': 'Directive',
              'R': 'Regulation',
@@ -209,21 +211,25 @@ def dossier(id, without_changes=True):
     return dossier
 
 def getMep(text, date, idonly=False):
-    name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(',','').strip())).encode('ascii','ignore').split()).lower()
-
-    if not name: return
-    if date:
-        query={'Name.aliases': name,
-               "Constituencies": {'$elemMatch' :
-                                  {'start' : {'$lte': date},
-                                   "end" : {'$gte': date},
-                                   }}}
-    else:
-        query={'Name.aliases': name}
-    fields=None
+    mep, fields=None, None
     if idonly:
         fields=['_id']
-    mep=db.ep_meps2.find_one(query,fields)
+    if len(text) == 24: #looks like an ID
+        mep  = db.ep_meps2.find_one({'_id': ObjectId(text)}, fields)
+    if mep is None:
+        name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(',','').strip())).encode('ascii','ignore').split()).lower()
+
+        if not name: return
+        if date:
+            query={'Name.aliases': name,
+                   "Constituencies": {'$elemMatch' :
+                                      {'start' : {'$lte': date},
+                                       "end" : {'$gte': date},
+                                       }}}
+        else:
+            query={'Name.aliases': name}
+
+        mep=db.ep_meps2.find_one(query,fields)
     if not (mep):
         if u'ß' in text:
             query['Name.aliases']=''.join(unicodedata.normalize('NFKD', unicode(text.replace(u'ß','ss').strip())).encode('ascii','ignore').split()).lower()
