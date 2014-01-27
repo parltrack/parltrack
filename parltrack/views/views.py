@@ -101,6 +101,11 @@ def dossier(id, without_changes=True):
                        {'activites.docs.title': id },
                        {'procedure.docs.title': id },
                        ]
+    dossier_idqueries.insert(0, {'_id': ObjectId(id)})
+    try: # to prepend searching for the dossier by objectid
+        dossier_idqueries.insert(0, {'_id': ObjectId(id)})
+    except:
+        pass
     for query in dossier_idqueries:
         dossier=db.dossiers2.find_one(query)
         if dossier:
@@ -209,14 +214,21 @@ def dossier(id, without_changes=True):
     return dossier
 
 def getMep(text, date, idonly=False):
+    mep = None
     fields=None
     if idonly:
         fields=['_id']
-
     if(text.isdigit()): # search by userid instead of name
         query={'UserID': int(text)}
         mep=db.ep_meps2.find_one(query,fields)
-        if idonly and mep: return mep['_id']
+
+    if not mep: # try by objectid
+        query = {'_id': ObjectId(text)}
+        mep=db.ep_meps2.find_one(query,fields)
+
+    if mep:
+        if idonly:
+            return mep['_id']
         return mep
 
     # try to match a name
@@ -461,6 +473,7 @@ def amendment(seq, committee, dossier):
 import sys, unicodedata
 from datetime import datetime
 import pymongo, re
+from bson.objectid import ObjectId
 from parltrack.scrapers.mappings import STAGES, COMMITTEE_MAP
 try:
     from parltrack.webapp import connect_db
@@ -473,7 +486,9 @@ if __name__ == "__main__":
     #dossier('COD/2007/0247')
     #date='24/11/2010'
     #print committee('LIBE')
-    print getMep('108570',None)
+    #print getMep('108570',None)
+    #print getMep('4f1ac460b819f2589600000c',None)
+    print dossier('50b940a3865c0c2a834251fc')
     #date='02/06/2011'
     #data=mepRanking(date)
     ## from bson.objectid import ObjectId
