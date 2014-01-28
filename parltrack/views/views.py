@@ -224,8 +224,13 @@ def getMep(text, date, idonly=False):
 
     if not mep and len(text) == 24: #looks like an ID
         # try by objectid
-        query = {'_id': ObjectId(text)}
-        mep=db.ep_meps2.find_one(query,fields)
+        query = None
+        try:
+            query = {'_id': ObjectId(text)}
+        except:
+            pass
+        if query:
+            mep=db.ep_meps2.find_one(query,fields)
 
     if mep:
         if idonly:
