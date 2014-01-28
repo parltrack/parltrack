@@ -101,7 +101,6 @@ def dossier(id, without_changes=True):
                        {'activites.docs.title': id },
                        {'procedure.docs.title': id },
                        ]
-    dossier_idqueries.insert(0, {'_id': ObjectId(id)})
     try: # to prepend searching for the dossier by objectid
         dossier_idqueries.insert(0, {'_id': ObjectId(id)})
     except:
