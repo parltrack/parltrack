@@ -16,6 +16,8 @@
 #    along with parltrack  If not, see <http://www.gnu.org/licenses/>.
 
 # (C) 2011 by Stefan Marsiske, <stefan.marsiske@gmail.com>
+from bson.objectid import ObjectId
+
 
 SHORTCUTMAP={'L': 'Directive',
              'R': 'Regulation',
@@ -222,7 +224,8 @@ def getMep(text, date, idonly=False):
         query={'UserID': int(text)}
         mep=db.ep_meps2.find_one(query,fields)
 
-    if not mep: # try by objectid
+    if not mep and len(text) == 24: #looks like an ID
+        # try by objectid
         query = {'_id': ObjectId(text)}
         mep=db.ep_meps2.find_one(query,fields)
 
