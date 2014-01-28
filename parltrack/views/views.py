@@ -222,9 +222,15 @@ def getMep(text, date, idonly=False):
         query={'UserID': int(text)}
         mep=db.ep_meps2.find_one(query,fields)
 
-    if not mep: # try by objectid
-        query = {'_id': ObjectId(text)}
-        mep=db.ep_meps2.find_one(query,fields)
+    if not mep and len(text) == 24: #looks like an ID
+        # try by objectid
+        query = None
+        try:
+            query = {'_id': ObjectId(text)}
+        except:
+            pass
+        if query:
+            mep=db.ep_meps2.find_one(query,fields)
 
     if mep:
         if idonly:
