@@ -16,8 +16,6 @@
 #    along with parltrack  If not, see <http://www.gnu.org/licenses/>.
 
 # (C) 2011 by Stefan Marsiske, <stefan.marsiske@gmail.com>
-from bson.objectid import ObjectId
-
 
 SHORTCUTMAP={'L': 'Directive',
              'R': 'Regulation',
