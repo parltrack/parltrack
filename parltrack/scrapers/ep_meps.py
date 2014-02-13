@@ -31,7 +31,7 @@ BASE_URL = 'http://www.europarl.europa.eu'
 def getAddress(root):
     res={}
     for div in root.xpath('../following-sibling::div[@class="boxcontent" or @class="boxcontent nobordertop"]/ul[@class="contact"]'):
-        key=unws(''.join(div.xpath('./h4/text()')))
+        key=unws(''.join(div.xpath('./preceding-sibling::h4/text()')))
         if key not in ['Bruxelles', 'Strasbourg', 'Postal address', 'Luxembourg']:
             continue
         if key=='Bruxelles': key=u'Brussels'

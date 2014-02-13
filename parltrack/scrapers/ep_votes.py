@@ -239,9 +239,7 @@ def scrape(f):
                         if len([x for x in name if ord(x)>128]):
                             queries.append(({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in name]),re.I)},5))
                         for query,q in queries:
-                            mep=db.ep_meps.find_one(query,['_id'])
-                            if not mep:
-                                mep=db.ep_meps2.find_one(query,['_id'])
+                            mep=db.ep_meps2.find_one(query,['_id'])
                             if mep:
                                 vtmp.append({'id': mep['_id'], 'orig': name})
                                 #if q>2: print >>sys.stderr, '[!] weak mep', q, vote['ts'], group, name.encode('utf8')
@@ -322,9 +320,7 @@ def scrape(f):
                 if len([x for x in name if ord(x)>128]):
                     queries.append(({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in name]),re.I)},5))
                 for query,q in queries:
-                    mep=db.ep_meps.find_one(query)
-                    if not mep:
-                        mep=db.ep_meps2.find_one(query)
+                    mep=db.ep_meps2.find_one(query)
                     if mep:
                         vote[k]['correctional'].append({'id': mep['_id'], 'q': q, 'orig': name})
                         break
