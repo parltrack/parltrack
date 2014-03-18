@@ -645,6 +645,7 @@ if __name__ == "__main__":
             crawler(saver=save,update=True)
             sys.exit(0)
         debug=True
+        ctr=[0,0]
         while len(sys.argv)>1:
             logger.info(sys.argv[1])
             pprint.pprint(scrape(sys.argv[1], sys.argv[2]))

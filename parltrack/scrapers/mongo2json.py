@@ -15,12 +15,13 @@ def jdump(obj):
    return json.dumps(obj,
          default=dateJSONhandler, ensure_ascii=False).encode('utf8')
 
-dbmap={'meps': db.ep_meps2,
-      'oeil': db.dossiers2,
-      'com': db.ep_comagendas,
-      'votes': db.ep_votes,
-      'eurlex': db.eurlex,
-      'ams': db.ep_ams,
+dbmap={'meps1': db.ep_meps,
+       'meps': db.ep_meps2,
+       'oeil': db.dossiers2,
+       'com': db.ep_comagendas,
+       'votes': db.ep_votes,
+       'eurlex': db.eurlex,
+       'ams': db.ep_ams,
       }
 
 all=dbmap[sys.argv[1]].find({})
