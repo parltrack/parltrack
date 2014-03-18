@@ -503,7 +503,8 @@ if __name__ == "__main__":
         print jdump(scrape("http://www.europarl.europa.eu/meps/en/28269/Jerzy_BUZEK.html"), None)
         print jdump(scrape("http://www.europarl.europa.eu/meps/en/1186/Astrid_LULLING.html"), None)
     elif sys.argv[1]=='mepid' and sys.argv[2]:
-        print jdump(scrape(sys.argv[2])).encode('utf8')
+        save(scrape(sys.argv[2]), None)
+        #print jdump(scrape(sys.argv[2])).encode('utf8')
         sys.exit(0)
 
     elif sys.argv[1] in meplists.keys():
