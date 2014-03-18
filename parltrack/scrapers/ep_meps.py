@@ -176,7 +176,7 @@ def parseMember(userid):
                 line=unws(u' '.join([unicode(x) for x in constlm.xpath('.//text()')]))
                 try:
                     interval, org = line.split(' : ',1)
-                except ValueError:
+                except:
                     continue
                 tmp = interval.split(' / ')
                 if len(tmp)==2:
