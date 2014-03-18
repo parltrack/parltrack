@@ -648,7 +648,12 @@ if __name__ == "__main__":
         ctr=[0,0]
         while len(sys.argv)>1:
             logger.info(sys.argv[1])
+<<<<<<< Updated upstream
             pprint.pprint(scrape(sys.argv[1], sys.argv[2]))
+=======
+            save(scrape(sys.argv[1], sys.argv[2]), ctr)
+            #pprint.pprint(scrape(sys.argv[1], sys.argv[2]))
+>>>>>>> Stashed changes
             del sys.argv[2]
             del sys.argv[1]
         sys.exit(0)
