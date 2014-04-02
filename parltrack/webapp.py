@@ -93,7 +93,7 @@ def index():
                            #stages=stages,
                            dossiers_num=db.dossiers2.find().count(),
                            votes_num=db.ep_votes.find().count(),
-                           meps_num=db.ep_meps2.find().count()+db.ep_meps.find({"Constituencies.start": {'$lt': datetime(2009,07,14)}}).count(),
+                           meps_num=db.ep_meps2.find().count(),
                            newdocs=newdocs,
                            newmeps=newmeps,
                            newcoms=newcoms,
