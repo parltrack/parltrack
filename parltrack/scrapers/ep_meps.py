@@ -82,6 +82,19 @@ def getMEPGender(id):
     logger.warn('[!] no birth/gender data http://www.europarl.europa.eu/meps/fr/%s/get.html' % id)
     return 'n/a'
 
+
+def getMEPDeclarations(id):
+    try:
+        dom = fetch("http://www.europarl.europa.eu/meps/en/%s/_declarations.html" % (id), ignore=[500])
+    except Exception, e:
+        logger.error("mepdeclaration %s" % e)
+        return []
+    pdf_links = dom.xpath('//ul[@class="link_collection_noborder"]//a[@class="link_pdf"]/@href')
+    if not pdf_links:
+        logger.warn('[!] no declaration data http://www.europarl.europa.eu/meps/en/%s/_declarations.html' % id)
+    return pdf_links
+
+
 def parseMember(userid):
     url='http://www.europarl.europa.eu/meps/en/%s/_history.html' % userid
     logger.info("scraping %s" % url)
