@@ -20,9 +20,9 @@
 
 from datetime import datetime
 from mappings import COMMITTEE_MAP, buildings, group_map, COUNTRIES
-from urlparse import urlparse, urljoin
-import unicodedata, traceback, urllib2, sys
-from parltrack.utils import diff, htmldiff, fetch, dateJSONhandler, unws, Multiplexer, logger, jdump
+from urlparse import urljoin
+import unicodedata, traceback, sys
+from parltrack.utils import diff, fetch, unws, Multiplexer, logger, jdump
 from parltrack.db import db
 
 current_term=7
@@ -500,7 +500,6 @@ if __name__ == "__main__":
         null=True
 
     if sys.argv[1]=="test":
-        import pprint
         print jdump(scrape('28215')).encode('utf8')
         print jdump(scrape('113959')).encode('utf8')
 
