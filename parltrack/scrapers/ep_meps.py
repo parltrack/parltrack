@@ -170,7 +170,10 @@ def parseMember(userid):
             key='Constituencies'
             for constlm in section.xpath('./following-sibling::ul[@class="events_collection bullets"][1]/li'):
                 line=unws(u' '.join([unicode(x) for x in constlm.xpath('.//text()')]))
-                interval, party = line.split(' : ',1)
+                try:
+                    interval, party = line.split(' : ',1)
+                except ValueError:
+                    continue
                 tmp = interval.split(' / ')
                 if not key in data: data[key]=[]
                 if len(tmp)==2:
@@ -224,6 +227,7 @@ def parseMember(userid):
                         role=''
                 else:
                     logger.error('[!] political group line %s' % line)
+                    continue
                 tmp = interval.split(' / ')
                 if len(tmp)==2:
                     (start, end) = tmp
@@ -326,7 +330,10 @@ def mangleName(name):
 def scrape(userid):
     mep=parseMember(userid)
     mep['UserID']=userid
-    mep['Gender'] = getMEPGender(userid)
+    try:
+        mep['Gender'] = getMEPGender(userid)
+    except:
+        pass
 
     # set active for all meps having a contituency without an enddate
     for c in mep['Constituencies']:
