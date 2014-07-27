@@ -274,7 +274,7 @@ def getComAgendas():
     postdata="docType=AGEN&leg=7&miType=text&tabActif=tabResult#sidesForm"
     nexttpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?action=%s&tabActif=tabResult#sidesForm"
     for com in (k for k in COMMITTEE_MAP.keys()
-                if len(k)==4 and k not in ['CODE', 'RETT', 'CLIM', 'TDIP']):
+                if len(k)==4 and k not in ['CODE', 'RETT', 'CLIM', 'TDIP', 'SURE']):
         url=urltpl % (com)
         i=0
         agendas=[]
