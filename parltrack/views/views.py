@@ -48,7 +48,7 @@ staff_positions={"President": 7,
                  "Vice-President": 6,
                  "Quaestor": 5,
                  "Member": 4,
-                 u'Observer': 0,
+                 'Observer': 0,
                  }
 def mepRanking(date,query={}):
     meps=db.ep_meps2.find(query)
