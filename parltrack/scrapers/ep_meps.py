@@ -24,6 +24,7 @@ from urlparse import urlparse, urljoin
 import unicodedata, traceback, urllib2, sys
 from parltrack.utils import diff, htmldiff, fetch, dateJSONhandler, unws, Multiplexer, logger, jdump
 from parltrack.db import db
+from lxml import etree
 
 current_term=7
 BASE_URL = 'http://www.europarl.europa.eu'
@@ -164,9 +165,9 @@ def parseMember(userid):
                 else:
                     start = interval.split()[0]
                     end = "31.12.9999"
+                #print etree.tostring(constlm, pretty_print=True)
                 data[key].append({
                     u'party':     party,
-                    u'country':   COUNTRIES.get(unws(constlm.get('class')).upper(), 'unknown country: %s' % unws(constlm.get('class'))),
                     u'start':     datetime.strptime(unws(start), u"%d.%m.%Y"),
                     u'end':       datetime.strptime(unws(end), u"%d.%m.%Y"),
                     })
@@ -220,6 +221,7 @@ def parseMember(userid):
                 data[u'Groups'].append(
                     {u'role':         role,
                      u'Organization': org,
+                     u'country':      COUNTRIES.get(unws(constlm.get('class')).upper(), 'unknown country: %s' % unws(constlm.get('class'))),
                      u'groupid':      group_map[org],
                      u'start':        datetime.strptime(unws(start), u"%d.%m.%Y"),
                      u'end':          datetime.strptime(unws(end), u"%d.%m.%Y"),
@@ -503,7 +505,7 @@ if __name__ == "__main__":
         print jdump(scrape("http://www.europarl.europa.eu/meps/en/28269/Jerzy_BUZEK.html"), None)
         print jdump(scrape("http://www.europarl.europa.eu/meps/en/1186/Astrid_LULLING.html"), None)
     elif sys.argv[1]=='mepid' and sys.argv[2]:
-        print jdump(scrape(sys.argv[2])).encode('utf8')
+        print saver(scrape(sys.argv[2])).encode('utf8')
         sys.exit(0)
 
     elif sys.argv[1] in meplists.keys():
