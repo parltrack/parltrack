@@ -119,7 +119,7 @@ def search():
     ret = []
     if request.args.get('s_meps'):
         ret.extend(db.ep_meps2.find({'Name.full': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
-        ret.extend(db.ep_meps.find({'Name.full': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
+        #ret.extend(db.ep_meps.find({'Name.full': {'$regex': re.compile('.*'+re.escape(q)+'.*', re.I | re.U)}}))
     if request.args.get('s_dossiers'):
         m=celexre.match(q)
         if m:
