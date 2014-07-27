@@ -561,7 +561,7 @@ def scrape_epagents(table):
         if not committee in shadows: shadows[committee]=[]
         if group=='NI': group=u'NI'
         mep={u'name': unicode(shadow.xpath('text()')[0]),
-             u'group': group}
+             u'group': unicode(group)}
         tmp=getMEPRef(shadow.xpath('text()')[0])
         if tmp:
            mep[u'mepref']=tmp
