@@ -41,14 +41,14 @@ com_positions={"Chair": 4,
                "Vice-Chair": 3,
                "Member": 2,
                "Substitute": 1,
-               u'Observer': 0,
+               'Observer': 0,
                }
 staff_positions={"President": 7,
                  "Chair": 6,
                  "Vice-President": 6,
                  "Quaestor": 5,
                  "Member": 4,
-                 u'Observer': 0,
+                 'Observer': 0,
                  }
 def mepRanking(date,query={}):
     meps=db.ep_meps2.find(query)
