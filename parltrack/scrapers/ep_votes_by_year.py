@@ -36,6 +36,7 @@ def getDates(params):
     i=10
     while dates and dates!=prevdates:
         for date in dates:
+            if not date.strip(): continue
             yield datetime.strptime(date.strip(), "%d-%m-%Y").strftime("%Y%m%d")
 
         root=fetch(URL, params="%s&startValue=%s" % (params,i))
