@@ -275,7 +275,7 @@ def parse_block(block, url, reference, date, committee, rapporteur):
     except ValueError:
         am[u'seq']=unws(block[0]).split()[1]
     except IndexError:
-        logger.warn("%s wrong seq %s" % (datetime.now().isoformat()), block[0])
+        logger.warn("%s wrong seq %s" % (datetime.now().isoformat(), block[0]))
         am[u'seq']=unws(block[0])
     del block[0]
 
@@ -508,7 +508,8 @@ def scrape(url, rapporteur=None):
                     db.ep_ams.save({'src': url, 'error': "couldn't find reference in source pdf"})
                     return []
                 if date==None or committee==[]:
-                    raise ValueError
+                    return []
+                    #raise ValueError
                 block=[line]
                 prolog=False
                 continue

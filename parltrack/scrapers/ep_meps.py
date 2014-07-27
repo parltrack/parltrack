@@ -20,10 +20,11 @@
 
 from datetime import datetime
 from mappings import COMMITTEE_MAP, buildings, group_map, COUNTRIES
-from urlparse import urlparse, urljoin
-import unicodedata, traceback, urllib2, sys
-from parltrack.utils import diff, htmldiff, fetch, dateJSONhandler, unws, Multiplexer, logger, jdump
+from urlparse import urljoin
+import unicodedata, traceback, sys
+from parltrack.utils import diff, fetch, unws, Multiplexer, logger, jdump
 from parltrack.db import db
+from lxml import etree
 
 current_term=7
 BASE_URL = 'http://www.europarl.europa.eu'
@@ -81,6 +82,19 @@ def getMEPGender(id):
             return "M"
     logger.warn('[!] no birth/gender data http://www.europarl.europa.eu/meps/fr/%s/get.html' % id)
     return 'n/a'
+
+
+def getMEPDeclarations(id):
+    try:
+        dom = fetch("http://www.europarl.europa.eu/meps/en/%s/_declarations.html" % (id), ignore=[500])
+    except Exception, e:
+        logger.error("mepdeclaration %s" % e)
+        return []
+    pdf_links = dom.xpath('//ul[@class="link_collection_noborder"]//a[@class="link_pdf"]/@href')
+    if not pdf_links:
+        logger.warn('[!] no declaration data http://www.europarl.europa.eu/meps/en/%s/_declarations.html' % id)
+    return pdf_links
+
 
 def parseMember(userid):
     url='http://www.europarl.europa.eu/meps/en/%s/_history.html' % userid
@@ -156,7 +170,10 @@ def parseMember(userid):
             key='Constituencies'
             for constlm in section.xpath('./following-sibling::ul[@class="events_collection bullets"][1]/li'):
                 line=unws(u' '.join([unicode(x) for x in constlm.xpath('.//text()')]))
-                interval, party = line.split(' : ',1)
+                try:
+                    interval, party = line.split(' : ',1)
+                except ValueError:
+                    continue
                 tmp = interval.split(' / ')
                 if not key in data: data[key]=[]
                 if len(tmp)==2:
@@ -164,9 +181,9 @@ def parseMember(userid):
                 else:
                     start = interval.split()[0]
                     end = "31.12.9999"
+                #print etree.tostring(constlm, pretty_print=True)
                 data[key].append({
                     u'party':     party,
-                    u'country':   COUNTRIES.get(unws(constlm.get('class')).upper(), 'unknown country: %s' % unws(constlm.get('class'))),
                     u'start':     datetime.strptime(unws(start), u"%d.%m.%Y"),
                     u'end':       datetime.strptime(unws(end), u"%d.%m.%Y"),
                     })
@@ -210,6 +227,7 @@ def parseMember(userid):
                         role=''
                 else:
                     logger.error('[!] political group line %s' % line)
+                    continue
                 tmp = interval.split(' / ')
                 if len(tmp)==2:
                     (start, end) = tmp
@@ -220,6 +238,7 @@ def parseMember(userid):
                 data[u'Groups'].append(
                     {u'role':         role,
                      u'Organization': org,
+                     u'country':      COUNTRIES.get(unws(constlm.get('class')).upper(), 'unknown country: %s' % unws(constlm.get('class'))),
                      u'groupid':      group_map[org],
                      u'start':        datetime.strptime(unws(start), u"%d.%m.%Y"),
                      u'end':          datetime.strptime(unws(end), u"%d.%m.%Y"),
@@ -311,7 +330,10 @@ def mangleName(name):
 def scrape(userid):
     mep=parseMember(userid)
     mep['UserID']=userid
-    mep['Gender'] = getMEPGender(userid)
+    try:
+        mep['Gender'] = getMEPGender(userid)
+    except:
+        pass
 
     # set active for all meps having a contituency without an enddate
     for c in mep['Constituencies']:
@@ -487,7 +509,6 @@ if __name__ == "__main__":
         null=True
 
     if sys.argv[1]=="test":
-        import pprint
         print jdump(scrape('28215')).encode('utf8')
         print jdump(scrape('113959')).encode('utf8')
 
