@@ -270,6 +270,7 @@ SEIRTNUOC = {'Belgium': u'BE',
              'Finland': u'FI',
              'Sweden': u'SE',
              'United Kingdom': u'GB',
+             'Croatia': u'HR',
              }
 
 GROUPS=[
