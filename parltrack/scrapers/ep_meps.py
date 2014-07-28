@@ -19,11 +19,12 @@
 
 
 from datetime import datetime
-from mappings import COMMITTEE_MAP, buildings, group_map, COUNTRIES
+from mappings import COMMITTEE_MAP, buildings, group_map, COUNTRIES, SEIRTNUOC
 from urlparse import urljoin
 import unicodedata, traceback, sys
 from parltrack.utils import diff, fetch, unws, Multiplexer, logger, jdump
 from parltrack.db import db
+import findecl
 from lxml import etree
 
 current_term=7
@@ -83,7 +84,6 @@ def getMEPGender(id):
     logger.warn('[!] no birth/gender data http://www.europarl.europa.eu/meps/fr/%s/get.html' % id)
     return 'n/a'
 
-
 def getMEPDeclarations(id):
     try:
         dom = fetch("http://www.europarl.europa.eu/meps/en/%s/_declarations.html" % (id), ignore=[500])
@@ -94,7 +94,6 @@ def getMEPDeclarations(id):
     if not pdf_links:
         logger.warn('[!] no declaration data http://www.europarl.europa.eu/meps/en/%s/_declarations.html' % id)
     return pdf_links
-
 
 def parseMember(userid):
     url='http://www.europarl.europa.eu/meps/en/%s/_history.html' % userid
@@ -181,9 +180,17 @@ def parseMember(userid):
                 else:
                     start = interval.split()[0]
                     end = "31.12.9999"
+                cstart = party.rfind(' (')
+                if party[cstart+2:-1] in SEIRTNUOC:
+                    country = party[cstart+2:-1]
+                    party = party[:cstart]
+                else:
+                    logger.warn('unknown country: %s' % party[cstart+2:-1])
+                    country='unknown'
                 #print etree.tostring(constlm, pretty_print=True)
                 data[key].append({
                     u'party':     party,
+                    u'country':   country,
                     u'start':     datetime.strptime(unws(start), u"%d.%m.%Y"),
                     u'end':       datetime.strptime(unws(end), u"%d.%m.%Y"),
                     })
@@ -334,6 +341,7 @@ def scrape(userid):
         mep['Gender'] = getMEPGender(userid)
     except:
         pass
+    mep['Financial Declarations']=[findecl.scrape(url) for url in getMEPDeclarations(userid)]
 
     # set active for all meps having a contituency without an enddate
     for c in mep['Constituencies']:
