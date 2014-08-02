@@ -164,7 +164,7 @@ def scrape(url):
                                               for mep in group.xpath('PoliticalGroup.Member.Name')]}
                                    for group in type.xpath('Result.PoliticalGroup.List')]}
         # save
-        q={'title': res['title'],
+        q={'title': res['voteid'],
            'ts':    res['ts']}
         db.ep_votes.update(q, {"$set": res}, upsert=True)
         votes.append(res)
