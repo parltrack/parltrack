@@ -15,45 +15,13 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with parltrack.  If not, see <http://www.gnu.org/licenses/>.
 
-# (C) 2011 by Stefan Marsiske, <stefan.marsiske@gmail.com>
+# (C) 2014 Stefan Marsiske
 
-# externally depends on wvHtml
-
-from lxml.html.soupparser import parse
-from lxml.etree import tostring
-from tempfile import mkdtemp, mkstemp
-import urllib2, json, sys, subprocess, os, re, unicodedata
-from cStringIO import StringIO
-from parltrack.utils import dateJSONhandler
 from datetime import datetime
-from mappings import group_map, groupids as Groupids
-from bson.objectid import ObjectId
+from lxml import etree
+from parltrack.utils import fetch, fetch_raw, jdump
 from parltrack.db import db
-
-def fetchVotes(d):
-    url="%s%s%s" % ("http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+PV+",
-                    d,
-                    "+RES-RCV+DOC+WORD+V0//EN&language=EN")
-    print >>sys.stderr, url
-    try:
-        f=urllib2.urlopen(url)
-    except (urllib2.HTTPError, urllib2.URLError):
-        try:
-            f=urllib2.urlopen(url)
-        except (urllib2.HTTPError, urllib2.URLError):
-            try:
-                f=urllib2.urlopen(url)
-            except (urllib2.HTTPError, urllib2.URLError):
-                return ''
-    tmp=mkstemp()
-    fd=os.fdopen(tmp[0],'w')
-    fd.write(f.read())
-    fd.close()
-    f.close()
-    res=subprocess.Popen(['/usr/bin/wvHtml', tmp[1], '-'],
-                     stdout=subprocess.PIPE).communicate()[0]
-    os.unlink(tmp[1])
-    return parse(StringIO(res))
+import re, sys, unicodedata
 
 mepCache={}
 def getMep(text,date):
@@ -66,26 +34,32 @@ def getMep(text,date):
     # TODO add date constraints based on groups.start/end
     mep=db.ep_meps2.find_one({'Name.aliases': name,
                              "Constituencies.start" : {'$lt': date},
-                             "Constituencies.end" : {'$gt': date}},['_id'])
+                             "Constituencies.end" : {'$gt': date}},['UserID'])
     if not mep and u'ß' in text:
         name=''.join(unicodedata.normalize('NFKD', unicode(text.replace(u'ß','ss').strip())).encode('ascii','ignore').split()).lower()
         mep=db.ep_meps2.find_one({'Name.aliases': name,
                                   "Constituencies.start" : {'$lt': date},
-                                  "Constituencies.end" : {'$gt': date}},['_id'])
+                                  "Constituencies.end" : {'$gt': date}},['UserID'])
     if not mep and len([x for x in text if ord(x)>128]):
-        mep=db.ep_meps2.find_one({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in text]),re.I)},['_id'])
+        mep=db.ep_meps2.find_one({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in text]),re.I)},['UserID'])
     if not mep:
-        print >>sys.stderr, '[$] lookup oops:', text.encode('utf8')
         mepCache['name']=None
     else:
-        mepCache['name']=mep['_id']
-        return mep['_id']
+        mepCache['name']=mep['UserID']
+        return mep['UserID']
 
 def splitMeps(text, res, date):
-    for q in text.split('/'):
-        mep=getMep(q,date)
-        if mep:
-           res['rapporteur'].append({'name': q, 'ref': mep})
+    ok = False
+    splitters=['/',' et ']
+    for splitter in splitters:
+       for q in text.split(splitter):
+           mep=getMep(q,date)
+           if mep:
+              res['rapporteur'].append({'name': q, 'ref': mep})
+              ok=True
+       if ok: return True
+    print >>sys.stderr, '[$] lookup oops:', text.encode('utf8')
+    return ok
 
 def scanMeps(text, res, date):
     tmp=text.split(':')
@@ -134,6 +108,9 @@ def votemeta(line, date):
         return res
     if line.endswith('()'):
         line=line[:-2].strip()
+
+    if scanMeps(line, res, date):
+        return res
     m=rapportre.search(line)
     if m:
         # handle mep
@@ -143,196 +120,73 @@ def votemeta(line, date):
             scanMeps(m.group(1),res, date)
     return res
 
-reportre=re.compile(r'(Report: .*) ?- ?(.*)$')
-kmap={'0':'Abstain','+':'For','-':'Against'}
-def scrape(f):
-    tree=fetchVotes(f)
+# 'http://www.europarl.europa.eu/plenary/en/minutes.html?clean=false&leg=7&refSittingDateStart=01/01/2011&refSittingDateEnd=31/12/2011&miType=title&miText=Roll-call+votes&tabActif=tabResult&startValue=10'
+def crawl(year, term):
+    listurl = 'http://www.europarl.europa.eu/plenary/en/minutes.html'
+    PARAMS = 'clean=false&leg=%s&refSittingDateStart=01/01/%s&refSittingDateEnd=31/12/%s&miType=title&miText=Roll-call+votes&tabActif=tabResult'
+    voteurl = 'http://www.europarl.europa.eu/RegData/seance_pleniere/proces_verbal/%s/votes_nominaux/xml/P%s_PV%s(RCV)_XC.xml'
+    params = PARAMS % (term, year, year)
+    root=fetch(listurl, params=params)
+    prevdates=None
+    dates=root.xpath('//span[@class="date"]/text()')
+    i=10
+    while dates and dates!=prevdates:
+        for date in dates:
+            if not date.strip(): continue
+            date = datetime.strptime(date.strip(), "%d-%m-%Y")
+            yield voteurl % (date.strftime("%Y/%m-%d"), term, date.strftime("(%Y)%m-%d"))
 
-    res=[]
-    items=tree.xpath('//div[@name="Heading 1"]')
-    if not items:
-        items=tree.xpath('//div[@name="VOTE INFO TITLE"]')
-    for issue in items:
-        # get rapporteur, report id and report type
-        tmp=issue.xpath('string()').strip()
-        vote={}
-        # get timestamp
-        vote['ts']= datetime.strptime(issue.xpath('following::td')[0].xpath('string()').strip().replace('.000',''),
-                          "%d/%m/%Y %H:%M:%S")
-        vote['title']=tmp
-        vote.update(votemeta(tmp, vote['ts']))
-        # get the +/-/0 votes
-        for decision in issue.xpath('ancestor::table')[0].xpath("following::table")[0:3]:
-            tmp=[x.strip() for x in decision.xpath('.//text()') if x.strip()]
-            total,k=tmp[0],''.join(tmp[1:])
-            vtype=''.join([x.strip() for x in k.split('-')])
-            if u'Υπέρ' in vtype or u'ΥΠΕΡ' in vtype:
-                k="+"
-            if u'Κατά' in vtype or u'ΚΑΤΑ' in vtype:
-                k="-"
-            if u'Απoχές' in vtype or u'ΑΠOΧΕΣ' in vtype:
-                k="0"
-            if k not in kmap: continue
-            k=kmap[k]
-            vote[k]={'total': total, 'groups': []}
-            for cur in decision.xpath('../following-sibling::*'):
-                group=cur.xpath('.//b/text()')
-                if group and ''.join([x.strip() for x in group]) in Groupids:
-                    next=group[0].getparent().xpath('following-sibling::*/text()')
-                    if next and next[0]==group[1]:
-                        group=''.join(group[:2]).strip()
-                    else:
-                        group=group[0].strip()
-                    voters=[x.strip() for x in cur.xpath('.//b/following-sibling::text()')[0].split(',') if x.strip()]
-                    if not voters: continue
-                    # strip of ":    " after the group name
-                    if voters[0][0]==':': voters[0]=voters[0][1:].strip()
-                    vtmp=[]
-                    for name in voters:
-                        mep=None
-                        if name in mepCache.keys():
-                            if mepCache[name]:
-                                vtmp.append({'id': mepCache[name], 'orig': name})
-                            else:
-                                vtmp.append(name)
-                            continue
-                        try:
-                            queries=[({'Name.familylc': name.lower(),
-                                       "Groups.groupid": group,
-                                       "Groups.start" : {'$lt': vote['ts']},
-                                       "Groups.end" : {'$gt': vote['ts']} },1),
-                                     ({'Name.aliases': ''.join(name.split()).lower(),
-                                       "Groups.groupid": group,
-                                       "Groups.start" : {'$lt': vote['ts']},
-                                       "Groups.end" : {'$gt': vote['ts']}},2),
-                                     ({'Name.familylc': re.compile(name,re.I),
-                                       "Groups.groupid": group,
-                                       "Groups.start" : {'$lt': vote['ts']},
-                                       "Groups.end" : {'$gt': vote['ts']}},2),
-                                     ({'Name.familylc': name.lower()},3),
-                                     ({'Name.aliases': re.compile(name,re.I)},4),
-                                     ]
-                        except:
-                            if name==u'+-Montalto':
-                                queries.extend(
-                                    ({'Name.familylc': re.compile(re.escape('montalto'),re.I),
-                                      "Groups.groupid": group,
-                                      "Groups.start" : {'$lt': vote['ts']},
-                                      "Groups.end" : {'$gt': vote['ts']}},2),)
-                            else:
-                                raise
-                        if u'ß' in name:
-                            queries.extend([({'Name.familylc': name.replace(u'ß','ss').lower(),
-                                   "Groups.groupid": group,
-                                   "Groups.start" : {'$lt': vote['ts']},
-                                   "Groups.end" : {'$gt': vote['ts']} },1),
-                                 ({'Name.aliases': ''.join(name.split()).replace(u'ß','ss').lower(),
-                                   "Groups.groupid": group,
-                                   "Groups.start" : {'$lt': vote['ts']},
-                                   "Groups.end" : {'$gt': vote['ts']}},2),
-                                 ({'Name.familylc': re.compile(name.replace(u'ß','ss'),re.I),
-                                   "Groups.groupid": group,
-                                   "Groups.start" : {'$lt': vote['ts']},
-                                   "Groups.end" : {'$gt': vote['ts']}},2),
-                                 ({'Name.familylc': name.replace(u'ß','ss').lower()},3),
-                                 ({'Name.aliases': re.compile(name.replace(u'ß','ss'),re.I)},4)])
-                        if len([x for x in name if ord(x)>128]):
-                            queries.append(({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in name]),re.I)},5))
-                        for query,q in queries:
-                            mep=db.ep_meps2.find_one(query,['_id'])
-                            if mep:
-                                vtmp.append({'id': mep['_id'], 'orig': name})
-                                #if q>2: print >>sys.stderr, '[!] weak mep', q, vote['ts'], group, name.encode('utf8')
-                                break
-                        if not mep:
-                            print >>sys.stderr, '[?] warning unknown MEP',vote['ts'] , group.encode('utf8'), name.encode('utf8')
-                            vtmp.append(name)
-                        mepCache['name']=mep or None
-                    vote[k]['groups'].append({'group': group, 'votes': vtmp})
-                if cur.xpath('.//table'):
-                    break
-        # get the correctional votes
-        try:
-            cor=issue.xpath('ancestor::table')[0].xpath("following::table")[3]
-        except IndexError:
-            q={'title': vote['title']}
-            db.ep_votes.update(q, {"$set": vote}, upsert=True)
-            res.append(vote)
-            continue
-        try:
-            has_corr=' '.join([x for x in cor.xpath('tr')[0].xpath('.//text()')
-                               if x.strip()]).find(u"ПОПРАВКИ В ПОДАДЕНИТЕ ГЛАСОВЕ И НАМЕРЕНИЯ ЗА ГЛАСУВАНЕ")!=-1
-        except IndexError:
-            has_corr=None
-        if not has_corr:
-            q={'title': vote['title']}
-            db.ep_votes.update(q, {"$set": vote}, upsert=True)
-            res.append(vote)
-            continue
-        skip=False
-        for row in cor.xpath('tr')[1:]:
-            if skip:
-                skip=False
-                continue
-            try:
-                k,voters=[x.xpath('string()').strip()
-                          for x in row.xpath('td')
-                          if x.xpath('string()').find(u"ПОПРАВКИ В ПОДАДЕНИТЕ ГЛАСОВЕ И НАМЕРЕНИЯ ЗА ГЛАСУВАНЕ")==-1]
-            except ValueError:
-                # votes between 2006 and 2007 have another correction table format with separate tr-s
-                vtype=''.join([x.xpath('string()').strip()
-                               for x in row.xpath('td')
-                               if x.xpath('string()').find(u"ПОПРАВКИ В ПОДАДЕНИТЕ ГЛАСОВЕ И НАМЕРЕНИЯ ЗА ГЛАСУВАНЕ")==-1])
-                if u'Υπέρ' in vtype or u'ΥΠΕΡ' in vtype:
-                    k="+"
-                if u'Κατά' in vtype or u'ΚΑΤΑ' in vtype:
-                    k="-"
-                if u'Απoχές' in vtype or u'ΑΠOΧΕΣ' in vtype:
-                    k="0"
-                try:
-                    voters=row.xpath('following-sibling::tr')[0].xpath('string()').strip()
-                except IndexError:
-                    voters=""
-                skip=True
+        root=fetch(listurl, params="%s&startValue=%s" % (params,i))
+        prevdates=dates
+        i+=10
+        dates=root.xpath('//span[@class="date"]/text()')
 
-            if k not in ['0','+','-']: continue
-            k=kmap[k]
-            voters=[x.strip() for x in voters.split(',') if x.strip()]
-            if not voters:
-                continue
-            vote[k]['correctional']=[]
-            for name in voters:
-                mep=None
-                queries=[({'Name.familylc': name.lower(),
-                           "Constituencies.start" : {'$lt': vote['ts']},
-                           "Constituencies.end" : {'$gt': vote['ts']} }, 1),
-                         ({'Name.aliases': ' '.join(name.split()).lower(),
-                           "Constituencies.start" : {'$lt': vote['ts']},
-                           "Constituencies.end" : {'$gt': vote['ts']} },2),
-                         ]
-                if u'ß' in name:
-                    queries.extend([({'Name.familylc': name.replace(u'ß','ss').lower(),
-                           "Constituencies.start" : {'$lt': vote['ts']},
-                           "Constituencies.end" : {'$gt': vote['ts']} }, 1),
-                         ({'Name.aliases': ' '.join(name.split()).replace(u'ß','ss').lower(),
-                           "Constituencies.start" : {'$lt': vote['ts']},
-                           "Constituencies.end" : {'$gt': vote['ts']} },2)])
-                if len([x for x in name if ord(x)>128]):
-                    queries.append(({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in name]),re.I)},5))
-                for query,q in queries:
-                    mep=db.ep_meps2.find_one(query)
-                    if mep:
-                        vote[k]['correctional'].append({'id': mep['_id'], 'q': q, 'orig': name})
-                        break
-                if not mep:
-                    print >>sys.stderr, '[?] warning unknown MEP', vote['ts'], name.encode('utf8')
-                    vote[k]['correctional'].append(name)
-        q={'title': vote['title'],
-           'ts':    vote['ts']}
-        db.ep_votes.update(q, {"$set": vote}, upsert=True)
-        res.append(vote)
-    return res
+def scrape(url):
+    print "scraping", url
+    root=etree.parse(fetch_raw(url))
+    # root is:
+    #PV.RollCallVoteResults EP.Number="PE 533.923" EP.Reference="P7_PV(2014)04-17" Sitting.Date="2014-04-17" Sitting.Identifier="1598443"
+    votes=[]
+    for vote in root.xpath('//RollCallVote.Result'):
+        res={u"ts": datetime.strptime(vote.get('Date'), "%Y-%m-%d %H:%M:%S"),
+             u"voteid": vote.get('Identifier'),
+             u"title": vote.xpath("RollCallVote.Description.Text/text()")[0]}
+        res.update(votemeta(res['title'], res['ts']))
+        for type, stype in [('Result.For','For'), ('Result.Against','Against'), ('Result.Abstention','Abstain')]:
+            type = vote.xpath(type)
+            if not type: continue
+            if len(type)>1: print "[pff] more than one", stype, "entry in vote"
+            type = type[0]
+            res[stype]={u'total': type.get('Number'),
+                        u'groups': [{u'group': group.get('Identifier'),
+                                     u'votes': [{u'userid': int(mep.get('MepId')),
+                                                 u'name': mep.xpath('text()')[0]}
+                                              for mep in group.xpath('PoliticalGroup.Member.Name')]}
+                                   for group in type.xpath('Result.PoliticalGroup.List')]}
+        # save
+        q={'title': res['title'],
+           'ts':    res['ts']}
+        db.ep_votes.update(q, {"$set": res}, upsert=True)
+        votes.append(res)
+    return votes
 
-if __name__ == "__main__":
-    #scrape(sys.argv[1])
-    print json.dumps(scrape(sys.argv[1]),indent=1, default=dateJSONhandler)
+if __name__ == '__main__':
+    #res = scrape("http://www.europarl.europa.eu/RegData/seance_pleniere/proces_verbal/2014/03-13/votes_nominaux/xml/P7_PV(2014)03-13(RCV)_XC.xml")
+    #print jdump(res).encode('utf8')
+    #exit(0)
+    try:
+        year = int(sys.argv[1])
+    except:
+        sys.stderr.write('[!] usage: %s [year(2004-2014)]\n' % sys.argv[0])
+        sys.exit(1)
+    if year >= 2004 and year < 2009:
+        map(scrape, crawl(year, 6))
+    elif year == 2009:
+        map(scrape, crawl(year, 6))
+        map(scrape, crawl(year, 7))
+    elif year < 2014:
+        print jdump(map(scrape, crawl(year, 7))).encode('utf8')
+        #map(scrape, crawl(year, 7))
+    else:
+        map(scrape, crawl(year, 7))
+        map(scrape, crawl(year, 8))

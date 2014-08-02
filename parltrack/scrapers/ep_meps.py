@@ -21,11 +21,11 @@
 from datetime import datetime
 from mappings import COMMITTEE_MAP, buildings, group_map, COUNTRIES, SEIRTNUOC
 from urlparse import urljoin
-import unicodedata, traceback, sys
-from parltrack.utils import diff, fetch, unws, Multiplexer, logger, jdump
+import unicodedata, traceback, sys, json
+from parltrack.utils import diff, fetch, fetch_raw, unws, Multiplexer, logger, jdump
 from parltrack.db import db
 import findecl
-from lxml import etree
+#from lxml import etree
 
 current_term=7
 BASE_URL = 'http://www.europarl.europa.eu'
@@ -94,6 +94,37 @@ def getMEPDeclarations(id):
     if not pdf_links:
         logger.warn('[!] no declaration data http://www.europarl.europa.eu/meps/en/%s/_declarations.html' % id)
     return pdf_links
+
+activitymap={"CRE" : "Speeches",
+             "REPORT" : "Reports",
+             "REPORT-SHADOW" : "Shadow reports",
+             "MOTION" : "Motions for resolution",
+             "COMPARL" : "Opinion",
+             "COMPARL-SHADOW" : "Opinion shadow",
+             "WDECL" : "Written declarations",
+             "QP" : "Parlamentiary questions"}
+
+def getactivities(mepid, terms=[8]):
+    urltpl = 'http://www.europarl.europa.eu/meps/en/%s/see_more.html?type=%s&leg=%s&index=%s'
+    #ctjson={'content-type': 'application/json'}
+    actions={}
+    for type in activitymap.keys():
+        actions[type]={}
+        for term in terms:
+            actions[type][term]=[]
+            idx=0
+            while True:
+                res=fetch_raw(urltpl % (mepid,type,term,idx)) #, headers=ctjson)
+                ret=json.load(res)
+                actions[type][term].extend(ret['documentList'])
+                idx=ret['nextIndex']
+                if idx in [-1,0]: break
+            if not actions[type][term]:
+                del actions[type][term]
+        if not actions[type]:
+            del actions[type]
+
+    return actions
 
 def parseMember(userid):
     url='http://www.europarl.europa.eu/meps/en/%s/_history.html' % userid
@@ -342,6 +373,7 @@ def scrape(userid):
     except:
         pass
     mep['Financial Declarations']=[findecl.scrape(url) for url in getMEPDeclarations(userid)]
+    mep['activities']=getactivities(userid)
 
     # set active for all meps having a contituency without an enddate
     for c in mep['Constituencies']:
