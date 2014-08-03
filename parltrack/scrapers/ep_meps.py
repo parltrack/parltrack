@@ -111,6 +111,7 @@ def getactivities(mepid, terms=[8]):
     for type in activitymap.keys():
         actions[type]={}
         for term in terms:
+            term=str(term)
             actions[type][term]=[]
             idx=0
             while True:
