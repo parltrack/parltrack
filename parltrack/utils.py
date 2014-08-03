@@ -84,8 +84,8 @@ def difflist(old, new, path):
         oldset=set([hashabledict(x) if type(x) == dict else x for x in old])
         oldorder=dict([(hashabledict(e) if type(e) == dict else e, i) for i, e in enumerate(old)])
     elif list in [type(x) for x in old]:
-        oldset=set([tuple(x) if type(x) == dict else x for x in old])
-        oldorder=dict([(tuple(e) if type(e) == dict else e, i) for i, e in enumerate(old)])
+        oldset=set([tuple(x) if type(x) == list else x for x in old])
+        oldorder=dict([(tuple(e) if type(e) == list else e, i) for i, e in enumerate(old)])
     else:
         oldset=set(old)
         oldorder=dict([(e,i) for i, e in enumerate(old)])
@@ -96,8 +96,8 @@ def difflist(old, new, path):
         newset=set([hashabledict(x) if type(x) == dict else x for x in new])
         neworder=dict([(hashabledict(e) if type(e) == dict else e, i) for i, e in enumerate(new)])
     elif list in [type(x) for x in new]:
-        newset=set([tuple(x) if type(x) == dict else x for x in new])
-        neworder=dict([(tuple(e) if type(e) == dict else e, i) for i, e in enumerate(new)])
+        newset=set([tuple(x) if type(x) == list else x for x in new])
+        neworder=dict([(tuple(e) if type(e) == list else e, i) for i, e in enumerate(new)])
     else:
         newset=set(new)
         neworder=dict([(e,i) for i, e in enumerate(new)])
