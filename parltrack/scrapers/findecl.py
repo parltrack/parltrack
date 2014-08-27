@@ -168,7 +168,7 @@ def issectionhead(decl, text,ptr,curstate,state, ids):
 
 def scrape(decl):
     mep_id = decl.split('/')[-1].split('_')[0]
-    data = {'mep_id': mep_id, 'url': decl}
+    data = {'mep_id': mep_id, 'url': decl, 'date': ''}
     logger.info("findecl scraping %s" % mep_id)
 
     text=getraw(decl).split('\n')
@@ -302,7 +302,7 @@ def scrape(decl):
             while True:
                 tmp = text[ptr].split()
                 if len(tmp)==3:
-                    # date=tmp[1] could be preserved in data
+                    data['date']=tmp[1]
                     del tmp[1]
                     if tmp in iendsigs:
                         break
