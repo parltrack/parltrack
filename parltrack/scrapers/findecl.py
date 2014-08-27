@@ -168,7 +168,7 @@ def issectionhead(decl, text,ptr,curstate,state, ids):
 
 def scrape(decl):
     mep_id = decl.split('/')[-1].split('_')[0]
-    data = {'mep_id': mep_id}
+    data = {'mep_id': mep_id, 'url': decl}
     logger.info("findecl scraping %s" % mep_id)
 
     text=getraw(decl).split('\n')
