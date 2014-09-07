@@ -391,6 +391,7 @@ group_map={ u"Confederal Group of the European United Left - Nordic Green Left":
             u'European Radical Alliance': u'ERA',
             u'Alliance of Liberals and Democrats for Europe': u'ALDE',
             u'European Democratic Union': u'UDE',
+            u'European Democratic Union Group': u'UDE',
             u'European Progressive Democrats': u'EPD',
             u'European Democratic Alliance': u'EDA',
             u'Group Union for Europe': u'UFE',
