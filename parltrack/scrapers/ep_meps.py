@@ -51,12 +51,12 @@ def getAddress(root):
             res[key][u'Address']=dict(zip([u'Organization',u'Building', u'Office', u'Street',u'Zip1', u'Zip2'],tmp))
             res[key][u'Address']['City']=res[key]['Address']['Zip2'].split()[1]
             res[key][u'Address']['Zip2']=res[key]['Address']['Zip2'].split()[0]
-            res[key][u'Address']['building_code']=buildings[res[key]['Address']['Building']]
+            res[key][u'Address']['building_code']=buildings.get(res[key]['Address']['Building'])
         elif key=='Brussels':
             res[key][u'Address']=dict(zip([u'Organization',u'Building', u'Office', u'Street',u'Zip'],tmp))
             res[key][u'Address']['City']=res[key]['Address']['Zip'].split()[1]
             res[key][u'Address']['Zip']=res[key]['Address']['Zip'].split()[0]
-            res[key][u'Address']['building_code']=buildings[res[key]['Address']['Building']]
+            res[key][u'Address']['building_code']=buildings.get(res[key]['Address']['Building'])
         elif key=='Luxembourg':
             res[key][u'Address']=tmp
         elif key=='Postal':
