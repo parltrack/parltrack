@@ -153,13 +153,13 @@ def parseMember(userid):
             except ValueError:
                 logger.warn('[!] failed to scrape birth data %s' % url)
                 logger.warn(traceback.format_exc())
-            (d, p) = borntxt[-2].split(',', 1)
+            tmp = borntxt[-2].split(',', 1)
         else:
             tmp = borntxt[-1].split(',', 1)
-            if len(tmp)==2:
-                (d, p) = tmp
-            else:
-                d,p = tmp[0], None
+        if len(tmp)==2:
+            (d, p) = tmp
+        else:
+            d,p = tmp[0], None
         try:
             data[u'Birth'] = { u'date': datetime.strptime(unws(d), u"Born on %d %B %Y")}
         except ValueError:
