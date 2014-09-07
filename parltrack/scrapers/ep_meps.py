@@ -377,7 +377,7 @@ def scrape(userid):
     mep['activities']=getactivities(userid)
 
     # set active for all meps having a contituency without an enddate
-    for c in mep['Constituencies']:
+    for c in mep.get('Constituencies',[]):
         if c['end'] == datetime.strptime("31.12.9999", u"%d.%m.%Y"):
             mep['active']=True
             break
