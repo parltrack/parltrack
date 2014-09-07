@@ -275,6 +275,7 @@ SEIRTNUOC = {'Belgium': u'BE',
 
 GROUPS=[
    'Communist and Allies Group',
+   'Communist and Allies Group (SF, Ind. Sin.)',
    'European Conservative Group',
    'European Conservatives and Reformists',
    'European Democratic Group',
@@ -398,6 +399,7 @@ group_map={ u"Confederal Group of the European United Left - Nordic Green Left":
             u'Rainbow Group': u'RBW',
             u'The Green Group': u'G',
             u'Communists and Allies': u'COM',
+            u'Communist and Allies Group (SF, Ind. Sin.)': u'COM',
             u'European United Left': u'EUL',
             u'Left Unity': u'LU',
             u'European United Left': u'EUL',
