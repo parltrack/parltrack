@@ -167,7 +167,10 @@ def parseMember(userid):
             logger.warn(traceback.format_exc())
         finally:
             if p:
-                data[u'Birth'][u'place'] = unws(p)
+                if 'Birth' in data:
+                    data[u'Birth'][u'place'] = unws(p)
+                else:
+                    data[u'Birth'] = unws(p)
     else:
         logger.warn('[!] no birth data %s' % url)
 
