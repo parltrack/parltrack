@@ -27,7 +27,7 @@ mepCache={}
 def getMep(text,date):
     name=''.join(unicodedata.normalize('NFKD', unicode(text.strip())).encode('ascii','ignore').split()).lower()
     if name in mepCache:
-        return mepCache['name']
+        return mepCache[name]
 
     if not name: return
     if name.endswith('('): name=name[:-1].strip()
@@ -43,9 +43,9 @@ def getMep(text,date):
     if not mep and len([x for x in text if ord(x)>128]):
         mep=db.ep_meps2.find_one({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in text]),re.I)},['UserID'])
     if not mep:
-        mepCache['name']=None
+        mepCache[name]=None
     else:
-        mepCache['name']=mep['UserID']
+        mepCache[name]=mep['UserID']
         return mep['UserID']
 
 def splitMeps(text, res, date):
@@ -149,6 +149,7 @@ def scrape(url):
     votes=[]
     for vote in root.xpath('//RollCallVote.Result'):
         res={u"ts": datetime.strptime(vote.get('Date'), "%Y-%m-%d %H:%M:%S"),
+             u"url": url,
              u"voteid": vote.get('Identifier'),
              u"title": vote.xpath("RollCallVote.Description.Text/text()")[0]}
         res.update(votemeta(res['title'], res['ts']))
