@@ -27,7 +27,7 @@ from parltrack.db import db
 import findecl
 #from lxml import etree
 
-current_term=7
+current_term=8
 BASE_URL = 'http://www.europarl.europa.eu'
 
 def getAddress(root):
