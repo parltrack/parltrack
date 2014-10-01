@@ -557,7 +557,7 @@ def getComAms(leg=7, update=False):
         postdata="clean=false&leg=%s&docType=%s&miType=text" % (leg, doctype)
         nexttpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?action=%s&tabActif=tabResult#sidesForm"
         for com in (k for k in COMMITTEE_MAP.keys()
-                    if len(k)==4 and k not in ['CODE', 'RETT', 'CLIM', 'TDIP']):
+                    if len(k)==4 and k not in ['CODE', 'RETT', 'CLIM', 'TDIP', 'SURE', 'CRIM', 'CRIS']):
             url=urltpl % (com)
             i=0
             logger.info('%s %s crawling %s' % (datetime.now().isoformat(), doctype, com))
@@ -649,12 +649,8 @@ if __name__ == "__main__":
         ctr=[0,0]
         while len(sys.argv)>1:
             logger.info(sys.argv[1])
-<<<<<<< Updated upstream
-            pprint.pprint(scrape(sys.argv[1], sys.argv[2]))
-=======
             save(scrape(sys.argv[1], sys.argv[2]), ctr)
             #pprint.pprint(scrape(sys.argv[1], sys.argv[2]))
->>>>>>> Stashed changes
             del sys.argv[2]
             del sys.argv[1]
         sys.exit(0)
