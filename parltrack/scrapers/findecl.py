@@ -42,6 +42,7 @@ iendsigs = [['Date:','Signature:'],
 
 rownum_re = re.compile(r'^[1-9][0-9]*\. ')
 def parse_table(rows, threshold=3):
+    rows.append('\n') # in case last row is non-empty we need to terminate it
     ret = []
     columns = rows[0]
     column_index = {x:columns.find(str(x)) for x in range(1, 5)}
