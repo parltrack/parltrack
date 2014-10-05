@@ -64,7 +64,7 @@ def parse_table(rows, threshold=3):
                         if x_pos <= v + threshold and x_pos >= v - threshold:
                             pos = i
                             break
-                    ret.append((rownum_re.sub('', row_text), pos))
+                    ret.append((rownum_re.sub('', row_text).strip(), pos))
             row_texts = []
             continue
 
@@ -82,7 +82,7 @@ def parse_table_b(rows, num_of_spaces=10):
                 row_text = ' '.join(x.strip() for x in row_texts)
 
                 if len(row_text) > 5:
-                    ret.append((rownum_re.sub('', row_text), ' '.join(row_vals)))
+                    ret.append((rownum_re.sub('', row_text).strip(), ' '.join(row_vals)))
             row_texts = []
             row_vals = []
             continue
@@ -121,12 +121,17 @@ def parse_table_f(rows, threshold=2):
                 x_pos = max(len(l) for l in row_texts) - 1
                 trows = ([], [])
                 for trow in row_texts:
-                    l = len(trow)/2
-                    trows[0].append(trow[:l].strip())
-                    if x_pos > min(column_index.values()) - threshold:
-                        trows[1].append(trow[l:-1].strip())
+                    if len(trow) < column_index[1] / 2:
+                        trows[0].append(trow.strip())
+                    elif len(trow.lstrip()) < column_index[1] / 2:
+                        trows[1].append(trow.strip())
                     else:
-                        trows[1].append(trow[l:].strip())
+                        l = len(trow)/2
+                        trows[0].append(trow[:l].strip())
+                        if x_pos > min(column_index.values()) - threshold:
+                            trows[1].append(trow[l:-1].strip())
+                        else:
+                            trows[1].append(trow[l:].strip())
 
                 r1 = ' '.join(trows[0])
                 r2 = ' '.join(trows[1])
@@ -136,7 +141,7 @@ def parse_table_f(rows, threshold=2):
                         if x_pos <= v + threshold and x_pos >= v - threshold:
                             pos = i
                             break
-                    ret.append((rownum_re.sub('', r1), r2, pos))
+                    ret.append((rownum_re.sub('', r1).strip(), r2, pos))
 
             row_texts = []
             continue
