@@ -40,10 +40,10 @@ def getAddress(root):
         elif key=='Postal address': key=u'Postal'
         res[key]={}
         if key in ['Brussels', 'Strasbourg', 'Luxembourg']:
-            tmp=div.xpath('./li[@class="phone"]/text()')
+            tmp=div.xpath('./following-sibling::ul[@class="link_collection_noborder"]//span[@class="phone"]/text()')
             if tmp:
                 res[key][u'Phone'] = unws(tmp[0]).replace('(0)','')
-            tmp=div.xpath('./li[@class="fax"]/text()')
+            tmp=div.xpath('./following-sibling::ul[@class="link_collection_noborder"]//span[@class="fax"]/text()')
             if tmp:
                 res[key][u'Fax'] = unws(tmp[0]).replace('(0)','')
         tmp=[unws(x) for x in div.xpath('./li[@class="address"]//text()') if len(unws(x))]
