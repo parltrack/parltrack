@@ -156,8 +156,14 @@ def dossier(id, without_changes=True):
             if i>=0:
                 tmp=r.replace('/','-').split('-')
                 rid='-'.join((tmp[0],tmp[2],tmp[1]))
-                vote['linkedtitle']='%s<a href="http://www.europarl.europa.eu/sides/getDoc.do?type=REPORT&amp;mode=XML&amp;reference=%s&amp;language=EN">%s</a>%s' \
-                                     % (t[:i], rid, r, t[i+len(r):])
+                if rid[0] == 'A':
+                    type = 'REPORT'
+                elif rid[0] == 'B':
+                    type = 'MOTION'
+                else:
+                    print >>sys.stderr, '[$] unkown vote reference type:', r
+                vote['linkedtitle']='%s<a href="http://www.europarl.europa.eu/sides/getDoc.do?type=%s&amp;mode=XML&amp;reference=%s&amp;language=EN">%s</a>%s' \
+                                     % (t[:i], type, rid, r, t[i+len(r):])
         for dec in [x for x in ['For','Against','Abstain'] if x in vote]:
             for g in groups:
                 if g not in [x['group'] for x in vote[dec]['groups']]:
