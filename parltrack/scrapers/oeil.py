@@ -712,14 +712,19 @@ def tocelex(title):
     if m:
         return "CELEX:5%sSC%s:EN" % (m.group(1),m.group(2))
 
+seenurls={}
 def checkUrl(url):
     if not url: return False
+    if url in seenurls:
+        return seenurls[url]
     try:
         res=fetch(url)
     except Exception, e:
         #print >>sys.stderr, "[!] checkurl failed in %s\n%s" % (url, e)
-        return False
-    return (res.xpath('//h1/text()') or [''])[0]!="Not available in English." # TODO check this
+        seenurls[url]=False
+    else:
+        seenurls[url]=(res.xpath('//h1/text()') or [''])[0]!="Not available in English."
+    return seenurls[url]
 
 def save(data, stats):
     if not data: return stats
