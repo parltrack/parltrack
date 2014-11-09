@@ -311,7 +311,6 @@ def mangleName(name):
     family=[]
     tmp=name.split(' ')
     for i,token in enumerate(tmp):
-        if token == 'de': print len(tmp), i
         if (token.isupper() or
             token == 'de' or
             (token[:2]=='Mc' and token[2:].isupper())):
