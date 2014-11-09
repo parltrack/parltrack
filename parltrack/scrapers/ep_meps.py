@@ -310,6 +310,7 @@ def mangleName(name):
     sur=[]
     family=[]
     tmp=name.split(' ')
+    title=None
     for i,token in enumerate(tmp):
         if ((token.isupper() and token not in ['E.', 'K.', 'A.']) or
             token in ['de', 'van', 'von', 'del'] or
@@ -321,10 +322,9 @@ def mangleName(name):
             sur.append(token)
     sur=' '.join(sur)
     family=' '.join(family)
-    title=None
     for t in Titles:
-        if family.startswith(t):
-            family=family[len(t)+1:]
+        if sur.endswith(t):
+            sur=sur[:-len(t)]
             title=t
             break
     res= { u'full': name,
@@ -355,6 +355,7 @@ def mangleName(name):
                                 (u''.join(("%s%s%s" % (title, sur, family)).split())).strip(),
                                 (u''.join(("%s%s%s" % (sur, title, family)).split())).strip(),
                                 (u''.join(("%s%s%s" % (sur, family, title)).split())).strip(),
+                                u''.join(("%s%s" % (title, family)).split()).lower().strip(),
                                 u''.join(("%s%s%s" % (family, sur, title)).split()).lower().strip(),
                                 u''.join(("%s%s%s" % (family, title, sur)).split()).lower().strip(),
                                 u''.join(("%s%s%s" % (title, family, sur)).split()).lower().strip(),
@@ -476,6 +477,7 @@ Titles=['Sir',
         'Earl',
         'Duke',
         'The Earl of',
+        '(The Earl of)',
         'The Lord',
         'Professor Sir']
 
