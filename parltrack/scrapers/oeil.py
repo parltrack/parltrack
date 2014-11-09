@@ -573,8 +573,8 @@ def scrape_epagents(table):
         tmp=getMEPRef(shadow.xpath('text()')[0])
         if tmp:
            mep[u'mepref']=tmp
-        else:
-            raise IndexError
+        #else:
+        #    raise IndexError
         shadows[committee].append(mep)
     # delete the uneccessary shadow elements - so the following regular lst2obj get's what it expects
     for todel in table.xpath('//a[@id="shadowRapporteurHeader"]/..'):
