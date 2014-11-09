@@ -313,6 +313,7 @@ def mangleName(name):
     for i,token in enumerate(tmp):
         if (token.isupper() or
             token == 'de' or
+            (token == 'in' and tmp[i+1]=="'t" ) or
             (token[:2]=='Mc' and token[2:].isupper())):
             family=tmp[i:]
             break
