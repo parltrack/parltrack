@@ -632,7 +632,7 @@ def get_all_dossiers():
     for year in xrange(datetime.date.today().year, 1972, -1):
         tree=fetch('http://www.europarl.europa.eu/oeil/widgets/resultwidget.do?lang=en&noHeader=false&q=objectReferenceN:N-%s/????\(*\)'
                    % (year))
-        count=int(tree.xpath('//span[@class="resultNumber"]/text()')[0].strip())
+        count=int(tree.xpath('//span[@class="ep_title resultNum pdfHide"]/text()')[0].strip()[len('Results found: '):])
         tree=fetch('http://www.europarl.europa.eu/oeil/widgets/resultwidget.do?lang=en&limit=%s&noHeader=false&q=objectReferenceN:N-%s/????\(*\)'
                    % (count,year))
         links=tree.xpath('//a[@class="reference rssEntry_id rssEntry_title rssEntry_updated"]')
