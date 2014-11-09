@@ -34,6 +34,7 @@ import unicodedata
 from parltrack.db import db
 #from parltrack.scrapers.ipex import IPEXMAP
 IPEXMAP={}
+NOMAIL=False
 
 def getMEPRef(name, retfields=['_id']):
     if not name: return
@@ -750,16 +751,17 @@ def save(data, stats):
             stats[1]+=1
             data['_id']=res['_id']
             logger.info(jdump(d))
-        m=db.notifications.find({'dossiers': data['procedure']['reference']},['active_emails'])
-        for g in m:
-            if len(g['active_emails'])==0:
-                continue
-            msg = Message("[PT] %s %s" % (data['procedure']['reference'],data['procedure']['title']),
-                          sender = "parltrack@parltrack.euwiki.org",
-                          bcc = g['active_emails'])
-            #msg.html = htmldiff(data,d)
-            msg.body = makemsg(data,d)
-            mail.send(msg)
+        if not NOMAIL:
+            m=db.notifications.find({'dossiers': data['procedure']['reference']},['active_emails'])
+            for g in m:
+                if len(g['active_emails'])==0:
+                    continue
+                msg = Message("[PT] %s %s" % (data['procedure']['reference'],data['procedure']['title']),
+                              sender = "parltrack@parltrack.euwiki.org",
+                              bcc = g['active_emails'])
+                #msg.html = htmldiff(data,d)
+                msg.body = makemsg(data,d)
+                mail.send(msg)
         #logger.info(htmldiff(data,d))
         #logger.info(makemsg(data,d))
         data['changes']=res.get('changes',{})
@@ -783,8 +785,10 @@ if __name__ == "__main__":
     if len(sys.argv)<2:
         print "%s full|fullseq|new|update|updateseq|test" % (sys.argv[0])
     if sys.argv[1]=="full":
+        NOMAIL=True
         crawl(get_all_dossiers(), threads=4)
     elif sys.argv[1]=="fullseq":
+        NOMAIL=True
         crawlseq(get_all_dossiers(), null=null)
     elif sys.argv[1]=="newseq":
         crawlseq(get_new_dossiers(), null=null)
