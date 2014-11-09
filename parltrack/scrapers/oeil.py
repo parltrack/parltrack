@@ -600,7 +600,8 @@ def scrape_epagents(table):
                                  u'group': mep['group'],
                                  u'name': mep['name']})
                 else:
-                    raise IndexError
+                    meps.append({u'group': mep['group'],
+                                 u'name': mep['name']})
             agent[u'rapporteur']=meps
 
         abbr=agent['committee'][:4]
