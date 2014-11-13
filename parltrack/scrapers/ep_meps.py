@@ -469,18 +469,18 @@ meps_aliases={
     u'GOROSTIAGA ATXALANDABASO, Koldo': [u'Koldo Gorostiaga', u'koldo gorostiaga', u'koldogorostiaga'],
     }
 
-Titles=['Sir',
-        'Lady',
-        'Baroness',
-        'Baron',
-        'Lord',
-        'Gräfin von',
-        'Earl',
-        'Duke',
-        'The Earl of',
-        '(The Earl of)',
-        'The Lord',
-        'Professor Sir']
+Titles=[u'Sir',
+        u'Lady',
+        u'Baroness',
+        u'Baron',
+        u'Lord',
+        u'Gräfin von',
+        u'Earl',
+        u'Duke',
+        u'The Earl of',
+        u'(The Earl of)',
+        u'The Lord',
+        u'Professor Sir']
 
 def save(data, stats):
     res=db.ep_meps2.find_one({ 'UserID' : data['UserID'] }) or {}
