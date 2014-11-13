@@ -335,6 +335,7 @@ group_map={ u"Confederal Group of the European United Left - Nordic Green Left":
             u"European Conservatives and Reformists": u'ECR',
             u'European Conservatives and Reformists Group': u'ECR',
             u"Europe of freedom and democracy Group": u'EFD',
+            u'Europe of Freedom and Direct Democracy Group': u"EFDD",
             u'Europe of Freedom and Democracy Group': u'EFD',
             u'Europe of freedom and direct democracy Group': u'EFD',
             u"Group of the Alliance of Liberals and Democrats for Europe": u'ALDE',
