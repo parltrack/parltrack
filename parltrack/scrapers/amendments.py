@@ -406,10 +406,10 @@ def parse_block(block, url, reference, date, committee, rapporteur):
 
             # convert to pt mep _ids
             for text in filter(None,splitNames(names)):
-                mep=getMep(text,None,True)
+                mep=getMep(text,None,False)
                 if mep:
-                    try: am['meps'].append(mep)
-                    except KeyError: am['meps']=[mep]
+                    try: am['meps'].append(mep['UserID'])
+                    except KeyError: am['meps']=[mep['UserID']]
                 else:
                     logger.info("fix %s" % text)
             del block[:i]
@@ -417,10 +417,10 @@ def parse_block(block, url, reference, date, committee, rapporteur):
         elif rapporteur:
             am['authors']=rapporteur
             for text in filter(None,splitNames(rapporteur)):
-                mep=getMep(text,None,True)
+                mep=getMep(text,None,False)
                 if mep:
-                    try: am['meps'].append(mep)
-                    except KeyError: am['meps']=[mep]
+                    try: am['meps'].append(mep['UserID'])
+                    except KeyError: am['meps']=[mep['UserID']]
                 else:
                     logger.info("fix %s" % text)
         else:
@@ -654,4 +654,5 @@ if __name__ == "__main__":
             del sys.argv[2]
             del sys.argv[1]
         sys.exit(0)
-    crawler(saver=save)
+    else:
+        crawler(saver=save)
