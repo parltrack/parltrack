@@ -287,7 +287,7 @@ def mep(id,date):
         if c['start']>=datetime(2009,07,13):
             mep['term7']=True
         mep['dossiers']=sorted(docs,key=lambda a: itemgetter('reference')(itemgetter('procedure')(itemgetter(0)(a))), reverse=True)
-    mep['amendments']=db.ep_ams.find({'meps': mep['_id']},{'changes': False})
+    mep['amendments']=db.ep_ams.find({'meps': mep['UserID']},{'changes': False})
     return mep
 
 def committee(id):
