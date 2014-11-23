@@ -31,6 +31,7 @@ from parltrack.default_settings import ROOT_URL
 from parltrack.webapp import mail
 from urllib import quote_plus
 
+TERM=8
 debug=False
 
 def getraw(pdf):
@@ -550,7 +551,7 @@ def scrape(url, rapporteur=None):
     return res
 
 #from lxml.etree import tostring
-def getComAms(leg=7, update=False):
+def getComAms(leg=TERM, update=False):
     urltpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html"
     # todo add to searchRPCD, OPCD
     for doctype in ['AMCO', 'RPCD', 'OPCD']:
