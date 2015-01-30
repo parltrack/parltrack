@@ -364,7 +364,7 @@ def addCelex(doc):
     if (doc.get('title') and
         candre.match(doc.get('title'))):
         celexid=tocelex(doc.get('title'))
-        if (celexid and checkUrl("http://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=%s:HTML" % celexid)):
+        if (celexid and checkUrl("http://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=%s:EN:HTML" % celexid)):
             doc[u'celexid']=celexid
     return doc
 
@@ -707,7 +707,7 @@ def tocelex(title):
                   "CELEX:5%sPC%s(01):EN" % (m.group(1),m.group(2)),
                   "CELEX:5%sDC%s(02):EN" % (m.group(1),m.group(2)),
                   "CELEX:5%sDC%s(01):EN" % (m.group(1),m.group(2))]:
-            if checkUrl("http://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=%s:HTML" % u):
+            if checkUrl("http://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=%s:EN:HTML" % u):
                 return u
         return
     m=secre.match(title) or secepre.match(title)
