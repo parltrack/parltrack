@@ -1,0 +1,3 @@
+xf.py - is a generic filter iterating and transforming the votes dump.
+ams.py - generates a committee voting list for a dossier.
+dump_schema.py dumps the schema of a list of input jsons, or mongo parltrack tables.

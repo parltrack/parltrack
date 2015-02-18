@@ -89,16 +89,15 @@ for vote in db.ep_votes.find({'ts' : {'$gte': _8th}}).sort([('ts', -1)]):
         print >>sys.stderr, "[!] vtotal!=total"
     seen.add(vote['ts'].isoformat())
 
-print 'name,voted,votes,percent,active'
+print 'name,id,voted,votes,percent,active'
 for mep in sorted(((mep['name'],
                     mep['voted'],
                     mep['votes'],
                     (mep['voted']*100)/float(mep['votes']),
                     mep['active'],
+                    id,
                     ((mep['voted']*-100)/float(mep['votes']),mep['last']))
-                  for mep in meps.values()),
-                  #key=itemgetter(3),
-                  key=itemgetter(5)):
-    #print (u"%-50s %5s/%-5s %3.2f" % (mep[0],mep[1], mep[2], mep[3])).encode('utf8')
-    print (u'"%s",%s,%s,%3.2f,%s' % (mep[0],mep[1], mep[2], mep[3], mep[4])).encode('utf8')
+                  for id, mep in meps.items()),
+                  key=itemgetter(6)):
+    print (u'"%s",%s,%s,%s,%3.2f,%s' % (mep[0], mep[5], mep[1], mep[2], mep[3], mep[4])).encode('utf8')
 #print len(_404), u', '.join(sorted(_404)).encode('utf8')
