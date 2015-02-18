@@ -251,17 +251,11 @@ def scrape(url, comid):
 
 def getMEPRef(name, retfields=['_id']):
     if not name: return
-    mep=db.ep_meps.find_one({'Name.aliases': ''.join(name.split()).lower()},retfields)
-    if not mep and u'ß' in name:
-        mep=db.ep_meps.find_one({'Name.aliases': ''.join(name.replace(u'ß','ss').split()).lower()},retfields)
-    if not mep and unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore')!=name:
-        mep=db.ep_meps.find_one({'Name.aliases': ''.join(unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore').split()).lower()},retfields)
-    if not mep:
-        mep=db.ep_meps.find_one({'Name.aliases': re.compile(''.join([x if x<128 else '.' for x in name]),re.I)},retfields)
-    if not mep:
-        mep=db.ep_meps2.find_one({'Name.aliases': ''.join(name.split()).lower()},retfields)
+    mep=db.ep_meps2.find_one({'Name.aliases': ''.join(name.split()).lower()},retfields)
     if not mep and u'ß' in name:
         mep=db.ep_meps2.find_one({'Name.aliases': ''.join(name.replace(u'ß','ss').split()).lower()},retfields)
+    if not mep and unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore')!=name:
+        mep=db.ep_meps2.find_one({'Name.aliases': ''.join(unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore').split()).lower()},retfields)
     if not mep:
         mep=db.ep_meps2.find_one({'Name.aliases': re.compile(''.join([x if x<128 else '.' for x in name]),re.I)},retfields)
     if mep:
@@ -271,10 +265,10 @@ def getMEPRef(name, retfields=['_id']):
 
 def getComAgendas():
     urltpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html"
-    postdata="docType=AGEN&leg=7&miType=text&tabActif=tabResult#sidesForm"
+    postdata="docType=AGEN&leg=8&miType=text&tabActif=tabResult#sidesForm"
     nexttpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?action=%s&tabActif=tabResult#sidesForm"
     for com in (k for k in COMMITTEE_MAP.keys()
-                if len(k)==4 and k not in ['CODE', 'RETT', 'CLIM', 'TDIP', 'SURE', 'CRIM']):
+                if len(k)==4 and k not in ['CODE', 'RETT', 'CLIM', 'TDIP', 'SURE', 'CRIM', 'CRIS']):
         url=urltpl % (com)
         i=0
         agendas=[]
