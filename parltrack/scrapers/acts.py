@@ -41,15 +41,8 @@ def fetch_raw(url, retries=5, ignore=[], params=None):
     return r.text
 
 def fetch(url, retries=5, ignore=[], params=None):
-    try:
-        f = fetch_raw(url, retries, ignore, params)
-    except:
-        raise
-    
-    try:
-        return fromstring(f)
-    except:
-        raise
+    f = fetch_raw(url, retries, ignore, params)
+    return fromstring(f)
 
 def gettext(url, path):
     if not url: return ''
@@ -99,7 +92,7 @@ for mep in meps.find({'active': True},['activities', 'Name.full']):
                     else:
                         nok += 1
                 elif typ == 'QP' and 'text' not in act:
-                    act['text']=gettext(act['titleUrl'],'//td[@class="contents"]/*')
+                    act['text']=gettext(act['titleUrl'],'//td[@class="contents"]')
                     ok += 1
                     dirty = True
                 elif typ == 'CRE' and 'text' not in act:
