@@ -51,7 +51,7 @@ staff_positions={"President": 7,
                  'Observer': 0,
                  }
 def mepRanking(date,query={}):
-    meps=db.ep_meps2.find(query)
+    meps=db.ep_meps2.find(query, {'changes': False, 'activities': False})
     rankedMeps=[]
     for mep in meps:
         score=0
@@ -284,8 +284,10 @@ def mep(id,date):
         if 'end' in c and c['start']>=datetime(2004,07,20) and c['end']<=datetime(2009,07,13):
             mep['term6']=True
         # term 7 started on 14.07.2009 / ...
-        if c['start']>=datetime(2009,07,13):
+        if 'end' in c and c['start']>datetime(2009,07,13) and c['end']<datetime(2014,07,01):
             mep['term7']=True
+        if c['start']>=datetime(2014,07,01):
+            mep['term8']=True
         mep['dossiers']=sorted(docs,key=lambda a: itemgetter('reference')(itemgetter('procedure')(itemgetter(0)(a))), reverse=True)
     mep['amendments']=db.ep_ams.find({'meps': mep['UserID']},{'changes': False})
     return mep
@@ -319,7 +321,25 @@ def committee(id):
                 clean_lb(d)
             if d not in dossiers: dossiers.append(d)
     # get members of committee
-    query={"Committees.abbr": id, "active": True}
+    date=datetime.now()
+    query={"Committees.abbr": id,
+           "active": True,
+           '$or':
+               [{"Constituencies":
+                {'$elemMatch' :
+                 {'start' : {'$lte': date},
+                  'end' : {'$gte': date}
+                  }
+                 }
+                },
+               {"Constituencies":
+                {'$elemMatch' :
+                 {'start' : {'$lte': date},
+                  'end' : { '$exists': False }
+                  }
+                 }
+                }]
+           }
     rankedMeps=[]
     for mep in db.ep_meps2.find(query):
         for c in mep['Committees']:

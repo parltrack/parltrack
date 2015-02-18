@@ -7,7 +7,7 @@ input { border: 1px solid #CDCDCD; color: #777777;}
 
 #track_dossier { display: inline; position: relative; z-index: 20; }
 #track_dossier:hover .nondisplayed { display: block !important; }
-#notif_subscr { position: absolute; right: 0; border: 2px solid #454545; padding: 10px; background: #F7F7F7; }
+#notif_subscr { position: absolute; right: 0; top: 14px; border: 2px solid #454545; padding: 10px; background: #F7F7F7; }
 
 .nondisplayed { display: none; }
 dl, dd, dt { vertical-align:top;}

@@ -202,7 +202,7 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
 
 <div>Links
 <ul>
-  {% if dossier.celexid %}<li>The final text on <a href="http://pippi.euwiki.org/doc/{{dossier.celexid}}">Pippi Longstrings</a></li>{% endif %}
+  {% if dossier.celexid %}<li>The final text on <a href="http://eur-lex.europa.eu/legal-content/EN/TXT/?uri={{dossier.celexid[:-3]}}">Eurlex</a></li>{% endif %}
   <li><a href="{{dossier.meta.source}}">OEIL</a></li>
   <li><a href="http://www.google.com/search?q={{dossier.procedure.title}}+-europarl.europa.eu">Google</a></li>
   <li><a href="http://www.europarl.europa.eu/RegistreWeb/search/simple.htm?language=EN&fulltext=&reference={{dossier.procedure.reference}}&relName=&auteurSearch=&codeTypeDocuSearch=&datepickerStart=&datepickerEnd=">EP Register of documents</a></li>
@@ -223,7 +223,7 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
      {%for doc in act.docs%}
         <li>
         {%if doc.celexid %}
-          <a href="http://pippi.euwiki.org/doc/{{doc.celexid}}">{{doc.title}}</a>
+          <a href="http://eur-lex.europa.eu/legal-content/EN/TXT/?uri={{doc.celexid[:-3]}}">{{doc.title}}</a>
         {%elif doc.url %}
           <a href="{{doc.url}}">{{doc.title}}</a>
         {%else%}
@@ -271,7 +271,7 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
       {%for doc in act.docs%}
          <li>{{doc.type}}: 
          {%if doc.celexid %}
-            <a href='http://pippi.euwiki.org/doc/{{doc.celexid}}'>{{doc.title}}</a>
+            <a href='http://eur-lex.europa.eu/legal-content/EN/TXT/?uri={{doc.celexid[:-3]}}'>{{doc.title}}</a>
          {%else%}
             {%if doc.url %}<a href='{{doc.url}}'>{%endif%}{{doc.title}}{%if doc.url %}</a>{%endif%}
          {%endif%}
@@ -290,7 +290,7 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
      <li>
      {{doc.type}}
      {% if doc.celexid %}
-       <a href="http://pippi.euwiki.org/doc/{{doc.celexid}}">{{doc.title}}</a>
+       <a href="http://eur-lex.europa.eu/legal-content/EN/TXT/?uri={{doc.celexid[:-3]}}">{{doc.title}}</a>
        {% elif doc.url  %}<a href="{{doc.url}}">{{doc.title}}</a>
      {%else%}{{doc.title}}{% endif %}
      {%if doc.summary%}

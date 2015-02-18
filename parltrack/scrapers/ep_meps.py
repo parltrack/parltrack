@@ -32,7 +32,7 @@ BASE_URL = 'http://www.europarl.europa.eu'
 
 def getAddress(root):
     res={}
-    for div in root.xpath('../following-sibling::div[@class="boxcontent" or @class="boxcontent nobordertop"]/ul[@class="contact"]'):
+    for div in root.xpath('../following-sibling::div[@class="boxcontent " or @class="boxcontent nobordertop"]/ul[@class="contact"]'):
         key=unws(''.join(div.xpath('./preceding-sibling::h4/text()')))
         if key not in ['Bruxelles', 'Strasbourg', 'Postal address', 'Luxembourg']:
             continue
@@ -147,9 +147,9 @@ def parseMember(userid):
 
     borntxt=mepdiv.xpath('.//span[@class="more_info"]/text()')
     if len(borntxt)>0:
-        if unws(borntxt[-1]).startswith('died on '):
+        if unws(borntxt[-1]).startswith('Date of death:'):
             try:
-                data[u'Death'] = datetime.strptime(unws(borntxt[-1]), u"died on %d %B %Y")
+                data[u'Death'] = datetime.strptime(unws(borntxt[-1]), u"Date of death: %d %B %Y")
             except ValueError:
                 logger.warn('[!] failed to scrape birth data %s' % url)
                 logger.warn(traceback.format_exc())
@@ -161,9 +161,8 @@ def parseMember(userid):
         else:
             d,p = tmp[0], None
         try:
-            data[u'Birth'] = { u'date': datetime.strptime(unws(d), u"Born on %d %B %Y")}
+            data[u'Birth'] = { u'date': datetime.strptime(unws(d), u"Date of birth: %d %B %Y")}
         except ValueError:
-            logger.warn('[!] failed to scrape birth data %s' % url)
             logger.warn(traceback.format_exc())
         finally:
             if p:
@@ -375,10 +374,10 @@ def mangleName(name):
 def scrape(userid):
     mep=parseMember(userid)
     mep['UserID']=userid
-    try:
-        mep['Gender'] = getMEPGender(userid)
-    except:
-        pass
+    #try:
+        #mep['Gender'] = getMEPGender(userid)
+    #except:
+    #    pass
     mep['Financial Declarations']=[findecl.scrape(url) for url in getMEPDeclarations(userid)]
     mep['activities']=getactivities(userid)
 
@@ -484,6 +483,7 @@ Titles=[u'Sir',
 
 def save(data, stats):
     res=db.ep_meps2.find_one({ 'UserID' : data['UserID'] }) or {}
+    if 'Gender' not in data and 'Gender' in res: data['Gender']=res['Gender']
     d=diff(dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes']]),
            dict([(k,v) for k,v in data.items() if not k in ['_id', 'meta', 'changes',]]))
     if d:
@@ -501,7 +501,10 @@ def save(data, stats):
         data['changes']=res.get('changes',{})
         data['changes'][now.isoformat()]=d
         db.ep_meps2.save(data)
-    if stats: return stats
+    del res
+    if stats: 
+        del data
+        return stats
     else: return data
 
 unlisted=[ 1018, 26833, 1040, 1002, 2046, 23286, 28384, 1866, 28386,
@@ -573,7 +576,8 @@ if __name__ == "__main__":
         print jdump(scrape("http://www.europarl.europa.eu/meps/en/28269/Jerzy_BUZEK.html"), None)
         print jdump(scrape("http://www.europarl.europa.eu/meps/en/1186/Astrid_LULLING.html"), None)
     elif sys.argv[1]=='mepid' and sys.argv[2]:
-        print saver(scrape(int(sys.argv[2]))).encode('utf8')
+        #print saver(scrape(int(sys.argv[2]))).encode('utf8')
+        print jdump(scrape(int(sys.argv[2]))).encode('utf8')
         sys.exit(0)
 
     elif sys.argv[1] in meplists.keys():

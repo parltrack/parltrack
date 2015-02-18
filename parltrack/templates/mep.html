@@ -337,8 +337,17 @@
   </ul>
   {% if mep.term7 or mep.term6 %}
      <h3>Activities</h3>
+     {% if mep.term8 %}
+     <h4>Term 8 01.07.2014 / ...</h4>
+     <ul>
+        <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=QP&amp;language=EN&amp;term=8&amp;author={{mep.UserID}}">Questions</a></li>
+        <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=MOTION&amp;language=EN&amp;term=8&amp;author={{mep.UserID}}">Motions for resolutions</a></li>
+        <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=CRE&amp;language=EN&amp;term=8&amp;author={{mep.UserID}}">Speeches in plenary</a></li>
+        <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=WDECL&amp;language=EN&amp;term=8&amp;author={{mep.UserID}}">Written declarations</a></li>
+     </ul>
+     {%endif%}
      {% if mep.term7%}
-     <h4>Term 7 14.07.2009 / ...</h4>
+     <h4>Term 7 14.07.2009 / 31.06.2014 </h4>
      <ul>
         <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=QP&amp;language=EN&amp;term=7&amp;author={{mep.UserID}}">Questions</a></li>
         <li><a href="http://www.europarl.europa.eu/sidesSearch/search.do?type=MOTION&amp;language=EN&amp;term=7&amp;author={{mep.UserID}}">Motions for resolutions</a></li>
