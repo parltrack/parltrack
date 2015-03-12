@@ -90,10 +90,11 @@ def getMEPDeclarations(id):
     except Exception, e:
         logger.error("mepdeclaration %s" % e)
         return []
-    pdf_links = dom.xpath('//ul[@class="link_collection_noborder"]//a[@class="link_pdf"]/@href')
-    if not pdf_links:
+    dif_links = dom.xpath('//h3[@id="sectionDIF"]/following-sibling::div//ul[@class="link_collection_noborder"]//a[@class="link_pdf"]/@href')
+    dat_links = dom.xpath('//h3[@id="sectionDAT"]/following-sibling::div//ul[@class="link_collection_noborder"]//a[@class="link_pdf"]/@href')
+    if not dif_links:
         logger.warn('[!] no declaration data http://www.europarl.europa.eu/meps/en/%s/_declarations.html' % id)
-    return pdf_links
+    return dif_links, dat_links
 
 activitymap={"CRE" : "Speeches",
              "REPORT" : "Reports",
@@ -378,7 +379,9 @@ def scrape(userid):
         #mep['Gender'] = getMEPGender(userid)
     #except:
     #    pass
-    mep['Financial Declarations']=[findecl.scrape(url) for url in getMEPDeclarations(userid)]
+    difurls, daturls = getMEPDeclarations(userid)
+    mep['Declarations of Participation'] = daturls
+    mep['Financial Declarations']=[findecl.scrape(url) for url in difurls]
     mep['activities']=getactivities(userid)
 
     # set active for all meps having a contituency without an enddate
