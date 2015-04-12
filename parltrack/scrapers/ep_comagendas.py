@@ -122,16 +122,17 @@ def getactors(node):
             continue
         if ax[0] in ["Opinions", "Responsible"] and tmp:
             tmp1=tmp.split(u' –',1)
+            print tmp1
             if len(tmp1)==2:
                 (comid, rest)=tmp1
             elif len(tmp1)==1:
                 if len(tmp1[0])==4 and tmp1[0].isupper():
                     (comid, rest)=(tmp1,'')
-                elif len(tmp1[0])>4 and tmp1[0][4] in ['-', u'–', u':'] and tmp1[0][:4].isupper():
+                elif len(tmp1[0])>4 and tmp1[0][4] in ['-', u'–', u':', u'*'] and tmp1[0][:4].isupper():
                     (comid, rest)=(tmp1[:4],tmp1[5:])
                 else:
                     skip=False
-                    for com in tmp.split(' ,'):
+                    for com in tmp.split(', '):
                         if com in COMMITTEE_MAP and len(com)==4:
                             ax[1].append({u'comid': com})
                             skip=True
@@ -160,6 +161,7 @@ def getactors(node):
                         item[u'docs']=getdoclist(cells[3])
             ax[1].append(item)
     if ax[0] and ax[1]: res[ax[0]]=sorted(ax[1])
+    print res,'\n'
     return res
 
 def scrape(url, comid):
@@ -266,9 +268,11 @@ def getMEPRef(name, retfields=['_id']):
         logger.warn('[!] lookup oops %s' % name.encode('utf8'))
 
 def getComAgendas():
-    urltpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html"
+    #urltpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html"
+    urltpl="http://www.europarl.europa.eu/committees/en/%s/search-in-documents.html"
     postdata="docType=AGEN&leg=8&miType=text&tabActif=tabResult#sidesForm"
-    nexttpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?action=%s&tabActif=tabResult#sidesForm"
+    #nexttpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?action=%s&tabActif=tabResult#sidesForm"
+    nexttpl="http://www.europarl.europa.eu/committees/en/%s/search-in-documents.html?action=%s&tabActif=tabResult#sidesForm"
     for com in (k for k in COMMITTEE_MAP.keys()
                 if len(k)==4 and k not in ['CODE', 'RETT', 'CLIM', 'TDIP', 'SURE', 'CRIM', 'CRIS']):
         url=urltpl % (com)
