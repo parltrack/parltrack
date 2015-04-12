@@ -125,7 +125,9 @@ def getactors(node):
             if len(tmp1)==2:
                 (comid, rest)=tmp1
             elif len(tmp1)==1:
-                if len(tmp1[0])>4 and tmp1[0][4] in ['-', u'–', u':'] and tmp1[0][:4].isupper():
+                if len(tmp1[0])==4 and tmp1[0].isupper():
+                    (comid, rest)=(tmp1,'')
+                elif len(tmp1[0])>4 and tmp1[0][4] in ['-', u'–', u':'] and tmp1[0][:4].isupper():
                     (comid, rest)=(tmp1[:4],tmp1[5:])
                 else:
                     skip=False
