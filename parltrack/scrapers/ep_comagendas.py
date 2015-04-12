@@ -122,7 +122,6 @@ def getactors(node):
             continue
         if ax[0] in ["Opinions", "Responsible"] and tmp:
             tmp1=tmp.split(u' –',1)
-            print tmp1
             if len(tmp1)==2:
                 (comid, rest)=tmp1
             elif len(tmp1)==1:
@@ -161,7 +160,6 @@ def getactors(node):
                         item[u'docs']=getdoclist(cells[3])
             ax[1].append(item)
     if ax[0] and ax[1]: res[ax[0]]=sorted(ax[1])
-    print res,'\n'
     return res
 
 def scrape(url, comid):
