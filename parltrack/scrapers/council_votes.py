@@ -15,7 +15,7 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with parltrack  If not, see <http://www.gnu.org/licenses/>.
 
-# (C) 2015 by Stefan Marsiske, <stefan.marsiske@gmail.com>, Asciimoo
+# (C) 2015 by Stefan Marsiske, <stefan.marsiske@gmail.com>
 
 import rdflib, csv, sys, json
 from rdflib.namespace import RDF
