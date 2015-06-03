@@ -279,7 +279,7 @@ def mep(id,date):
     docs=[(x, 'Responsible') for x in db.dossiers2.find({ 'activities.committees': { '$elemMatch': {'rapporteur.name': "%s %s" % (mep['Name']['family'],mep['Name']['sur']), 'responsible': True}}})]
     docs.extend([(x, 'Opinion') for x in db.dossiers2.find({ 'activities.committees': { '$elemMatch': {'rapporteur.name': "%s %s" % (mep['Name']['family'],mep['Name']['sur']), 'responsible': False}}})])
     docs.extend([(x, 'Shadow') for x in db.dossiers2.find({ 'activities.committees.shadows.name': "%s %s" % (mep['Name']['family'],mep['Name']['sur'])})])
-    for c in mep['Constituencies']:
+    for c in mep.get('Constituencies',[]):
         # term 6 20.07.2004 / 13.07.2009
         if 'end' in c and c['start']>=datetime(2004,07,20) and c['end']<=datetime(2009,07,13):
             mep['term6']=True
