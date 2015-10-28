@@ -38,6 +38,7 @@ iendsigs = [['Date:','Signature:'],
             [u'Datum:', u'Unterschrift:'],
             [u'Дата:', u'Подпис:'],
             [u'Ημερομηνία:', u'υπογραφή:'],
+            [u'Ημερομηνία:', u'Υπογραφή:'],
             [u'Kelt:', u'Aláírás:']]
 
 rownum_re = re.compile(r'^[1-9][0-9]*\. ')
