@@ -538,6 +538,8 @@ def scrape(url, rapporteur=None):
                     date = parse(unws(line), dayfirst=True)
                 except ValueError:
                     pass
+                except TypeError:
+                    pass
             continue
 
         if amstart.match(line):
@@ -552,13 +554,14 @@ def scrape(url, rapporteur=None):
 
 #from lxml.etree import tostring
 def getComAms(leg=TERM, update=False):
+    #urltpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html"
     urltpl="http://www.europarl.europa.eu/committees/en/%s/search-in-documents.html"
     # todo add to searchRPCD, OPCD
     for doctype in ['AMCO', 'RPCD', 'OPCD']:
         postdata="clean=false&leg=%s&docType=%s&miType=text" % (leg, doctype)
         nexttpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html?action=%s&tabActif=tabResult#sidesForm"
         for com in (k for k in COMMITTEE_MAP.keys()
-                    if len(k)==4 and k not in ['CODE', 'RETT', 'CLIM', 'TDIP']):
+                    if len(k)==4 and k not in ['CODE', 'RETT', 'CLIM', 'TDIP', 'SURE', 'CRIM', 'CRIS']):
             url=urltpl % (com)
             i=0
             logger.info('%s %s crawling %s' % (datetime.now().isoformat(), doctype, com))
@@ -647,9 +650,11 @@ if __name__ == "__main__":
             crawler(saver=save,update=True)
             sys.exit(0)
         debug=True
+        ctr=[0,0]
         while len(sys.argv)>1:
             logger.info(sys.argv[1])
-            pprint.pprint(scrape(sys.argv[1], sys.argv[2]))
+            save(scrape(sys.argv[1], sys.argv[2]), ctr)
+            #pprint.pprint(scrape(sys.argv[1], sys.argv[2]))
             del sys.argv[2]
             del sys.argv[1]
         sys.exit(0)
