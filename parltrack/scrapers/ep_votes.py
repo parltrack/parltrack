@@ -70,7 +70,7 @@ def scanMeps(text, res, date):
     else:
         print >>sys.stderr, 'huh', line
 
-docre=re.compile(u'(.*)((?:[AB]|RC)[67]\s*-\s*[0-9]{3,4}\/[0-9]{4})(.*)')
+docre=re.compile(u'(.*)((?:[AB]|RC)[678]\s*-\s*[0-9]{3,4}\/[0-9]{4})(.*)')
 tailre=re.compile(r'^(?:\s*-\s*)?(.*)\s*-\s*([^-]*$)')
 junkdashre=re.compile(r'^[ -]*(.*)[ -]*$')
 rapportre=re.compile(r'(.*)(?:recommendation|rapport|report):?\s?(.*)',re.I)
@@ -173,6 +173,7 @@ def scrape(url):
 
 if __name__ == '__main__':
     #res = scrape("http://www.europarl.europa.eu/RegData/seance_pleniere/proces_verbal/2014/03-13/votes_nominaux/xml/P7_PV(2014)03-13(RCV)_XC.xml")
+    #res = scrape("http://www.europarl.europa.eu/RegData/seance_pleniere/proces_verbal/2015/10-27/votes_nominaux/xml/P8_PV(2015)10-27(RCV)_XC.xml")
     #print jdump(res).encode('utf8')
     #exit(0)
     try:
