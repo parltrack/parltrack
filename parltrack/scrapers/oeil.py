@@ -364,7 +364,7 @@ def addCelex(doc):
     if (doc.get('title') and
         candre.match(doc.get('title'))):
         celexid=tocelex(doc.get('title'))
-        if (celexid and checkUrl("http://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=%s:EN:HTML" % celexid)):
+        if (celexid and checkUrl("http://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=%s:HTML" % celexid)):
             doc[u'celexid']=celexid
     return doc
 
@@ -707,7 +707,7 @@ def tocelex(title):
                   "CELEX:5%sPC%s(01):EN" % (m.group(1),m.group(2)),
                   "CELEX:5%sDC%s(02):EN" % (m.group(1),m.group(2)),
                   "CELEX:5%sDC%s(01):EN" % (m.group(1),m.group(2))]:
-            if checkUrl("http://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=%s:EN:HTML" % u):
+            if checkUrl("http://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=%s:HTML" % u):
                 return u
         return
     m=secre.match(title) or secepre.match(title)
@@ -799,10 +799,10 @@ if __name__ == "__main__":
     elif sys.argv[1]=="updateseq":
         crawlseq(get_active_dossiers(), null=null)
     elif sys.argv[1]=="url":
-        #print jdump(scrape(sys.argv[2])).encode('utf8')
-        res=scrape(sys.argv[2])
+        print jdump(scrape(sys.argv[2])).encode('utf8')
+        #res=scrape(sys.argv[2])
         #print >>sys.stderr, pprint.pformat(res)
-        save(res,[0,0])
+        #save(res,[0,0])
     elif sys.argv[1]=="test":
         save(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397"),[0,0]) # telecoms package
         #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=575084"))
