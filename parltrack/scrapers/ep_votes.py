@@ -161,6 +161,7 @@ def scrape(url):
             res[stype]={u'total': type.get('Number'),
                         u'groups': [{u'group': group.get('Identifier'),
                                      u'votes': [{u'userid': int(mep.get('MepId')),
+                                                 u'ep_id': getMep(mep.xpath('text()')[0].strip(), res['ts']),
                                                  u'name': mep.xpath('text()')[0]}
                                               for mep in group.xpath('PoliticalGroup.Member.Name')]}
                                    for group in type.xpath('Result.PoliticalGroup.List')]}
