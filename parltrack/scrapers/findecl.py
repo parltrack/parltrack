@@ -171,6 +171,7 @@ def issectionhead(decl, text,ptr,curstate,state, ids):
                                             '_IT.pdf',
                                             '_DA.pdf') and text[ptr].strip().startswith('%s) ' % ids[0])) or
          (state==6 and decl.endswith('_MT.pdf') and text[ptr].strip().startswith(u'G)')) or
+         (decl.endswith('_SV.pdf') and text[ptr].strip().startswith(u'%s. ' % ids[0])) or
          (decl.endswith('_BG.pdf') and text[ptr].strip().startswith(u'%s.' % ids[1])) or
          (decl.endswith('_EL.pdf') and text[ptr].strip().startswith(u'(%s)' % ids[2]))))
 
@@ -316,8 +317,10 @@ def scrape(decl):
                         break
                 elif len(tmp)==5:
                     # date=tmp[2] could be preserved in data
+                    tmpdate=tmp[2]
                     del tmp[2]
                     if tmp in [['Date', ':','Signature', ':']]:
+                        data['date']=tmpdate
                         break
                 ptr+=1
                 if ptr>=len(text):
