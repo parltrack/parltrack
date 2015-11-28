@@ -65,7 +65,7 @@ def parse_table(rows, threshold=3):
                         break
 
                 if x_found:
-                    row_text = ' '.join(x[:cut_pos].strip() for x in row_texts)
+                    row_text = ' '.join(x.strip()[:cut_pos] for x in row_texts)
                 else:
                     row_text = ' '.join(x.strip() for x in row_texts)
 
