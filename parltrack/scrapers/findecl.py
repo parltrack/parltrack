@@ -53,15 +53,23 @@ def parse_table(rows, threshold=3):
     for row in rows[1:]:
         if not row.strip():
             if row_texts:
-                x_pos = max(len(l) for l in row_texts) - 1
+                cut_pos = x_pos = max(len(l) for l in row_texts) - 1
+                pos = -1
 
-                if x_pos > min(column_index.values()) - threshold:
-                    row_text = ' '.join(x[:x_pos-1].strip() for x in row_texts)
+                x_found = False
+                for row in row_texts:
+                    if row.strip().endswith('   X'):
+                        x_found = True
+                        cut_pos = len(row[:-1].strip()) + 1
+                        pos = 0
+                        break
+
+                if x_found:
+                    row_text = ' '.join(x.strip()[:cut_pos] for x in row_texts)
                 else:
                     row_text = ' '.join(x.strip() for x in row_texts)
 
                 if len(row_text) > 5:
-                    pos = -1
                     for i,v in column_index.items():
                         if x_pos <= v + threshold and x_pos >= v - threshold:
                             pos = i
