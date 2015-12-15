@@ -84,7 +84,8 @@ groupurlmap={'http://www.guengl.eu/?request_locale=en': u"GUE/NGL",
              'http://www.greens-efa.org/cms/default/rubrik/6/6270.htm?request_locale=en': u'Verts/ALE',
              'http://www.efdgroup.eu/?request_locale=en': u'EFD',
              'http://www.ecrgroup.eu/?request_locale=en': u'ECR',
-             'http://www.socialistsanddemocrats.eu/gpes/index.jsp?request_locale=en': u'S&D'}
+             'http://www.socialistsanddemocrats.eu/gpes/index.jsp?request_locale=en': u'S&D',
+             '/oeil/IMG?t=pg&i=568000&l=en': u'ENF'} # todo fix when website available
 def toMEP(node):
     tips=[t.xpath('text()')[0]
           if len(t.xpath('text()'))>0
@@ -562,7 +563,12 @@ def scrape_epagents(table):
 
     # handle shadows
     shadowelems=table.xpath('//a[@id="shadowRapporteurHeader"]/../following-sibling::div/p//span[@class="players_rapporter_text"]/a')
-    tips=[t.xpath('text()')[0] if len(t.xpath('text()'))>0 else groupurlmap[t.xpath("a")[0].get('href')]
+    tips=[t.xpath('text()')[0]
+          if len(t.xpath('text()'))>0
+          else
+              groupurlmap[t.xpath("a")[0].get('href')]
+              if len(t.xpath("a"))>0
+              else groupurlmap[t.xpath("img")[0].get('src')]
           for t in table.xpath('//a[@id="shadowRapporteurHeader"]/../following-sibling::div//span[@class="tiptip"]')]
     shadows={}
     for shadow, group in izip_longest(shadowelems, tips):
