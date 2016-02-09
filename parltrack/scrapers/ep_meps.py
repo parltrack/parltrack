@@ -188,12 +188,7 @@ def parseMember(userid):
     # contact information
     for span in root.xpath('//div[@id="content_right"]//h3'):
         title=unws(''.join(span.xpath('.//text()')))
-        if title in ['Accredited assistants', 'Local assistants']:
-            if not 'assistants' in data: data['assistants']={}
-            addif(data['assistants'],
-                  title.lower().split()[0],
-                  [unws(x) for x in span.xpath('../following-sibling::div[@class="boxcontent"][1]//li/text()')])
-        elif title == "Contacts":
+        if title == "Contacts":
             addif(data,u'Addresses',getAddress(span))
 
     # scrape main content
@@ -299,6 +294,23 @@ def parseMember(userid):
     cvurl='http://www.europarl.europa.eu/meps/en/%s/_cv.html' % userid
     root = fetch(cvurl, ignore=[500])
     data[u'CV']=[unws(x) for x in root.xpath('//p[@class="details_cv"]/text()')]
+
+    # get assistants also on a separate page :/
+    assurl='http://www.europarl.europa.eu/meps/en/%s/_assistants.html' % userid
+    root = fetch(assurl, ignore=[500])
+    for h3 in root.xpath('//h3[@id="section"]'):
+        title=unws(''.join(h3.xpath('.//text()')))
+        if title in ['Accredited assistants', 'Local assistants']:
+            if not 'assistants' in data: data['assistants']={}
+            addif(data['assistants'],
+                  title.lower().split()[0],
+                  [unws(x) for x in h3.xpath('../following-sibling::div[1]//li/text()')])
+        elif title in ['Accredited assistants (grouping)', 'Local assistants (grouping)',
+                       'Service providers', ' Trainees', 'Paying agents (grouping)', 'Paying agents']:
+            if not 'assistants' in data: data['assistants']={}
+            addif(data['assistants'],
+                  title.lower(),
+                  [unws(x) for x in h3.xpath('../following-sibling::div[1]//li/text()')])
 
     return data
 
@@ -487,8 +499,8 @@ Titles=[u'Sir',
 def save(data, stats):
     res=db.ep_meps2.find_one({ 'UserID' : data['UserID'] }) or {}
     if 'Gender' not in data and 'Gender' in res: data['Gender']=res['Gender']
-    d=diff(dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes']]),
-           dict([(k,v) for k,v in data.items() if not k in ['_id', 'meta', 'changes',]]))
+    d=diff(dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes', 'activities',]]),
+           dict([(k,v) for k,v in data.items() if not k in ['_id', 'meta', 'changes', 'activities',]]))
     if d:
         now=datetime.utcnow().replace(microsecond=0)
         if not res:
