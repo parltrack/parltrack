@@ -349,6 +349,16 @@ def scrape(decl):
         logger.error('[wtf] did not reach final state %s' % state)
         return {}
     else:
+        if (len(data['occupation'])>1 and
+            data['occupation'][-1][0] in [u"No occupation held during the three years preceding the current mandate",
+                                          u"Καμία επαγγελματική δραστηριότητα κατά τη διάρκεια των τριών ετών που προηγήθηκαν της τρέχουσας εντολής",
+                                          u"Atividade Liberal como autor/outras atividades artísticas (remuneração inferior a 500 € na totalidade dos 3 anos anteriores)",
+                                          u"Brak działalności zawodowej w okresie trzech lat poprzedzających obecną kadencję",
+                                          u"Geen beroep uitgeoefend gedurende de drie jaar voorafgaand aan de huidige zittingsperiode",
+                                          u"Nessuna attività svolta durante i tre anni precedenti l'attuale mandato",
+                                          u"Keine Berufstätigkeit während des Dreijahreszeitraums vor der laufenden Wahlperiode",
+            ]):
+            del data['occupation'][-1]
         return data
 
 if __name__ == "__main__":
