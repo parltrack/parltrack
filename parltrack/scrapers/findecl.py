@@ -357,6 +357,17 @@ def scrape(decl):
                                           u"Geen beroep uitgeoefend gedurende de drie jaar voorafgaand aan de huidige zittingsperiode",
                                           u"Nessuna attività svolta durante i tre anni precedenti l'attuale mandato",
                                           u"Keine Berufstätigkeit während des Dreijahreszeitraums vor der laufenden Wahlperiode",
+					  u"Aucune activité professionnelle au cours des trois années ayant précédé le présent mandat",
+					  u"Sin ocupación durante los tres años anteriores al actual mandato",
+					  u"Intet erhvervsarbejde i de tre år forud for det nuværende mandate",
+					  u"Nicio activitate profesională în ultimii trei ani dinaintea preluării mandatului actual",
+					  u"Har inte utövat någon yrkesmässig verksamhet under de tre år som föregick det nuvarande mandatet",
+					  u"Sem atividade profissional durante os três anos que precederam o atual mandato",
+					  u"Nepostojanje profesionalne djelatnosti tijekom tri godine prije aktualnog mandata",
+					  u"Ei ammatillista toimintaa kolmena nykyistä edustajantointa edeltävänä vuotena",
+					  u"A jelenlegi megbízatást megelőző három évben nem végzett foglalkozást.",
+					  u"Без професионална дейност по време на трите години, предшестващи текущия мандат",
+					  u"Během tří let před současným mandátem jsem nevykonával(a) žádnou profesní činnost.",
             ]):
             del data['occupation'][-1]
         return data
