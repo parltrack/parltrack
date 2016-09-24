@@ -25,6 +25,7 @@ iendsigs = [['Date:','Signature:'],
             [u'Päiväys:', u'Allekirjoitus:'],
             [u'Kuupäev:', u'Allkiri:'],
             [u'Datums:', u'Paraksts:'],
+            [u'Data:', u'Parašas:'],
             [u'Data', u'Parašas:'],
             [u'Data:', u'Semnătura:'],
             [u'Datum:', u'Handtekening:'],
@@ -157,6 +158,9 @@ def parse_table_f(rows, threshold=2):
             continue
 
         row_texts.append(row)
+    for i, row in enumerate(ret):
+        if len((row[0]+row[1]).strip()) < 5: continue
+        ret[i]=(row[0]+row[1],)+row[2:]
     return ret
 
 def getraw(pdf):
@@ -374,4 +378,4 @@ def scrape(decl):
 
 if __name__ == "__main__":
     DEBUG=True
-    print jdump(scrape(sys.argv[1]))
+    print jdump(scrape(sys.argv[1])).encode('utf8')
