@@ -44,11 +44,11 @@ iendsigs = [['Date:','Signature:'],
             [u'Kelt:', u'Aláírás:']]
 
 rownum_re = re.compile(r'^[1-9][0-9]*\. ')
-def parse_table(rows, threshold=3):
+def parse_table(rows, threshold=3, cols=5):
     rows.append('\n') # in case last row is non-empty we need to terminate it
     ret = []
     columns = rows[0]
-    column_index = {x:columns.find(str(x)) for x in range(1, 5)}
+    column_index = {x:columns.find(str(x)) for x in range(1, cols)}
     row_texts = []
 
     for row in rows[1:]:
@@ -207,6 +207,9 @@ def scrape(decl):
                 if ptr>=len(text):
                     logger.error('[meh] %s table not found' % state)
                     raise IndexError
+            if state!=6:
+                if text[ptr].split()[-5:]==[u'1',u'2',u'3',u'4',u'5']: cols=6
+                else: cols=5
             start=ptr
             # skip empty lines
             while not text[ptr].split():
@@ -232,7 +235,7 @@ def scrape(decl):
             if state == 6:
                 t = parse_table_f(text[start:end])
             else:
-                t = parse_table(text[start:end])
+                t = parse_table(text[start:end], cols=cols)
             data[state_map[state]] = t
             if DEBUG:
                 print "\t%s" % ('\n\t'.join((repr(x) for x in t)) or "none"), state
@@ -377,3 +380,4 @@ def scrape(decl):
 if __name__ == "__main__":
     DEBUG=True
     print jdump(scrape(sys.argv[1])).encode('utf8')
+    #scrape(sys.argv[1])
