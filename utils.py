@@ -49,8 +49,8 @@ def sanitizeHtml(value, base_url=None):
     return soup.renderContents().decode('utf8')
 
 def diff(old, new, path=[]):
-    if type(old) == type(str()): old=unicode(old,'utf8')
-    if type(new) == type(str()): new=unicode(new,'utf8')
+    if type(old) == str: old=unicode(old)
+    if type(new) == str: new=unicode(new)
     if old==None and new!=None:
         return [{'type': 'added', 'data': new, 'path': path}]
     elif new==None and old!=None:
@@ -59,7 +59,7 @@ def diff(old, new, path=[]):
         return [{'type': 'changed', 'data': (old, new), 'path': path}]
     elif hasattr(old,'keys'):
         res=[]
-        for k in set(old.keys() + (new or {}).keys()):
+        for k in set(list(old.keys()) + list((new or {}).keys())):
             r=diff(old.get(k),(new or {}).get(k), path+[k])
             if r:
                 res.extend(r)
@@ -145,14 +145,17 @@ def difflist(old, new, path):
         ret.extend(sorted([{'type': u'deleted', 'data': e, 'path': path + [oldorder[e]]} for e in oldunique], key=itemgetter('path')))
     return ret
 
-from bson.objectid import ObjectId
+#ObjectId = int
+
 def dateJSONhandler(obj):
     if hasattr(obj, 'isoformat'):
         return unicode(obj.isoformat())
-    elif type(obj)==ObjectId:
-        return unicode(obj)
+    elif type(obj)==bytes:
+        return obj.decode('utf-8')
+    #elif type(obj)==ObjectId:
+    #    return unicode(obj)
     else:
-        raise TypeError, 'Object of type %s with value of %s is not JSON serializable' % (type(obj), repr(obj))
+        raise TypeError('Object of type {0} with value of {1} is not JSON serializable'.format(type(obj), repr(obj)))
 
 def printdict(d,i=0):
     if type(d)==type(list()):
@@ -168,9 +171,9 @@ def printdict(d,i=0):
 def showdiff(item,diffs):
     if debug: pprint.pprint(diffs)
     #pprint.pprint(diffs)
-    if debug: print
+    if debug: print()
     if debug: pprint.pprint(item)
-    if debug: print
+    if debug: print()
     if debug: pprint.pprint(offsetd)
     res={}
     for change in diffs:
@@ -195,9 +198,9 @@ def showdiff(item,diffs):
             except (KeyError, IndexError):
                 # whoops, should not happen, really.
                 deleted=True
-                print "!!!Deleted", k
-                print change
-                print elem
+                print("!!!Deleted", k)
+                print(change)
+                print(elem)
                 break
         if debug: pprint.pprint( elem )
         if not deleted:
@@ -205,7 +208,7 @@ def showdiff(item,diffs):
                 res[tuple(change['path'][:-1])]=(elem, [])
             res[tuple(change['path'][:-1])][1].append(change)
             if debug: pprint.pprint(elem[change['path'][-1]])
-        if debug: print
+        if debug: print()
     # print result as ascii
     result=[]
     for path, (elem, changes) in sorted(res.items()):
@@ -235,7 +238,7 @@ def showdiff(item,diffs):
             if type(elem)==type(dict()) and c['path'][-1] in elem:
                 del elem[c['path'][-1]]
         if not skip and not type(elem)==type(list()):
-            result.append( printdict(elem))
+            result.append(printdict(elem))
     return '\n'.join(result)
 
 def getorder(d):
@@ -288,16 +291,16 @@ def htmldiff(item,diffs):
             except (KeyError, IndexError):
                 # whoops, should not happen, really.
                 deleted=True
-                print "!!!Deleted", k
-                print change
-                print elem
+                print("!!!Deleted", k)
+                print(change)
+                print(elem)
                 break
         if not deleted:
             if not tuple(change['path'][:-1]) in res:
                 res[tuple(change['path'][:-1])]=(elem, [])
             res[tuple(change['path'][:-1])][1].append(change)
             if debug: pprint.pprint(elem[change['path'][-1]])
-        if debug: print
+        if debug: print()
     # generate html result
     result=['<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">\n<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">\n<head>\n<title></title></head><body><p>Parltrack has detected a change in %s %s on OEIL.\n\nPlease follow this URL: %s/dossier/%s to see the dossier.\n\nsincerly,\nYour Parltrack team"</p><dl style="font-family:Trebuchet MS,Tahoma,Verdana,Arial,sans-serif; font-size: .8em;">' %
             (item['procedure']['reference'],
@@ -346,9 +349,9 @@ def test_diff():
 opener=None
 def init_opener():
     global opener
-    #opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
-    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()),
-                                  urllib2.ProxyHandler({'http': 'http://localhost:8123/'}))
+    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
+    #opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()),
+    #                              urllib2.ProxyHandler({'http': 'http://localhost:8123/'}))
     opener.addheaders = [('User-agent', 'parltrack/0.6')]
 
 def fetch_raw(url, retries=5, ignore=[], params=None):
@@ -357,7 +360,7 @@ def fetch_raw(url, retries=5, ignore=[], params=None):
     # url to etree
     try:
         f=opener.open(url, params)
-    except (urllib2.HTTPError, urllib2.URLError), e:
+    except (urllib2.HTTPError, urllib2.URLError) as e:
         if hasattr(e, 'code') and e.code>=400 and e.code not in [504, 502]+ignore:
             logger.warn("[!] %d %s" % (e.code, url))
             raise
@@ -370,8 +373,12 @@ def fetch_raw(url, retries=5, ignore=[], params=None):
 
 def fetch(url, retries=5, ignore=[], params=None):
     try:
-        return parse(fetch_raw(url, retries, ignore, params))
-    except:
+        xml = fetch_raw(url, retries, ignore, params).read().decode('utf-8')
+        # cut <?xml [..] ?> part
+        xml = xml[xml.find('?>')+2:]
+        return fromstring(xml)
+    except Exception as e:
+        print('Fetch error: {0}'.format(e))
         if retries>0:
             time.sleep(4*(6-retries))
             return fetch(url,retries-1, ignore=ignore)
@@ -381,7 +388,10 @@ def fetch(url, retries=5, ignore=[], params=None):
 from multiprocessing import Pool, Process, JoinableQueue, log_to_stderr
 from multiprocessing.sharedctypes import Value
 from ctypes import c_bool
-from Queue import Empty
+try:
+    from Queue import Empty
+except:
+    from queue import Empty
 from logging import DEBUG, WARN, INFO
 import traceback
 logger = log_to_stderr()
@@ -437,22 +447,34 @@ class Multiplexer(object):
         logger.info('added/updated: %s' % param)
 
 
-from BeautifulSoup import BeautifulSoup, Comment
-from itertools import izip_longest
+import pprint
+try:
+    import urllib2
+    import cookielib
+except:
+    import urllib.request as urllib2
+    import http.cookiejar as cookielib
+import sys, time, json
+from bs4 import BeautifulSoup, Comment
+try:
+    from itertools import izip_longest
+except:
+    from itertools import zip_longest as izip_longest
 from copy import deepcopy
 from collections import defaultdict
-from views.views import dossier
 from operator import itemgetter
-from parltrack.default_settings import ROOT_URL
-from lxml.html.soupparser import parse
-import pprint
-import urllib2, cookielib, sys, time, json
+from lxml.html.soupparser import fromstring
+from config import ROOT_URL
+from model import Dossier
+
+if sys.version[0] == '3':
+    unicode = str
 
 def jdump(d, stats=None):
     # simple json dumper default for saver
     res=json.dumps(d, indent=1, default=dateJSONhandler, ensure_ascii=False)
     if stats:
-        print res.encode('utf-8')
+        print(res.encode('utf-8'))
         stats[0]+=1
         return stats
     else:
@@ -505,11 +527,11 @@ if __name__ == "__main__":
     ##print sorted(d['changes'].keys(),reverse=True)
     #print showdiff(d,sorted(d['changes'].items(),reverse=True)[0][1]).encode('utf8')
 
-    d=dossier('CNS/2011/0111',without_changes=False)
+    d=Dossier.get_by_id('CNS/2011/0111')
     #d=dossier('NLE/2008/0137',without_changes=False)
     #print '\n', d['procedure']['reference'], d['procedure']['title']
     ##print sorted(d['changes'].keys(),reverse=True)
-    print htmldiff(d,sorted(d['changes'].items(),reverse=True)[0][1]).encode('utf8')
+    print(htmldiff(d,sorted(d.data['changes'].items(),reverse=True)[0][1]).encode('utf8'))
 
     #print d['procedure']['reference'], d['procedure']['title']
     #d=dossier('NLE/2011/0102',without_changes=False)

@@ -1,10 +1,13 @@
 import os
 
+ROOT_URL = '/'
+
 # Grabs the folder where the script runs.
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 # Enable debug mode.
 DEBUG = True
+DB_DEBUG = False
 
 #SECRET_KEY = os.environ.get('SECRET', 'my precious')
 DB_USER = os.environ.get('DB_USER', '')

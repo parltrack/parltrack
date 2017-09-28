@@ -20,10 +20,15 @@
 
 from datetime import datetime
 from mappings import COMMITTEE_MAP, buildings, group_map, COUNTRIES, SEIRTNUOC
-from urlparse import urljoin
+try:
+    from urlparse import urljoin
+except:
+    unicode = str
+    xrange = range
+    from urllib.parse import urljoin
 import unicodedata, traceback, sys, json
-from parltrack.utils import diff, fetch, fetch_raw, unws, Multiplexer, logger, jdump
-from parltrack.db import db
+from utils import diff, fetch, fetch_raw, unws, Multiplexer, logger, jdump
+from model import Mep
 import findecl
 #from lxml import etree
 
@@ -68,7 +73,7 @@ def getAddress(root):
 def getMEPGender(id):
     try:
         mepraw=fetch("http://www.europarl.europa.eu/meps/fr/%s/_home.html" % (id), ignore=[500])
-    except Exception, e:
+    except Exception as e:
         logger.error("mepgender %s" % e)
         return 'n/a'
     borntxt=mepraw.xpath('//div[@class="zone_info_mep_transparent_mep_details"]//span[@class="more_info"]/text()')
@@ -87,7 +92,7 @@ def getMEPGender(id):
 def getMEPDeclarations(id):
     try:
         dom = fetch("http://www.europarl.europa.eu/meps/en/%s/_declarations.html" % (id), ignore=[500])
-    except Exception, e:
+    except Exception as e:
         logger.error("mepdeclaration %s" % e)
         return []
     dif_links = dom.xpath('//h3[@id="sectionDIF"]/following-sibling::div//ul[@class="link_collection_noborder"]//a[@class="link_pdf"]/@href')
@@ -117,7 +122,7 @@ def getactivities(mepid, terms=[8]):
             idx=0
             while True:
                 res=fetch_raw(urltpl % (mepid,type,term,idx)) #, headers=ctjson)
-                ret=json.load(res)
+                ret=json.loads(res.read().decode('utf-8'))
                 actions[type][term].extend(ret['documentList'])
                 idx=ret['nextIndex']
                 if idx in [-1,0]: break
@@ -497,7 +502,7 @@ Titles=[u'Sir',
         u'Professor Sir']
 
 def save(data, stats):
-    res=db.ep_meps2.find_one({ 'UserID' : data['UserID'] }) or {}
+    res=Mep.get_by_id(data['UserID']) or {}
     if 'Gender' not in data and 'Gender' in res: data['Gender']=res['Gender']
     d=diff(dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes', 'activities',]]),
            dict([(k,v) for k,v in data.items() if not k in ['_id', 'meta', 'changes', 'activities',]]))
@@ -515,9 +520,9 @@ def save(data, stats):
             data['_id']=res['_id']
         data['changes']=res.get('changes',{})
         data['changes'][now.isoformat()]=d
-        db.ep_meps2.save(data)
+        Mep.upsert(data)
     del res
-    if stats: 
+    if stats:
         del data
         return stats
     else: return data
@@ -562,11 +567,11 @@ def crawler(meps,saver=jdump,threads=4):
 def seqcrawl(meps, term=current_term,saver=jdump, scraper=scrape, null=False):
     return [saver(scraper(mepid),None)
             for mepid in meps
-            if (null and db.ep_meps2.find_one({'UserID': mepid},['_id'])==None) or not null]
+            if (null and Mep.get_by_id(mepid)==None) or not null]
 
 if __name__ == "__main__":
     if len(sys.argv)<2:
-        print "%s full|test|mepid <mepid> [<seq>] [<dry>]" % (sys.argv[0])
+        print("{0} full|test|mepid <mepid> [<seq>] [<dry>]".format(sys.argv[0]))
     args=set(sys.argv[1:])
     saver=save
     null=False
@@ -576,23 +581,23 @@ if __name__ == "__main__":
         null=True
 
     if sys.argv[1]=="test":
-        print jdump(scrape('28215')).encode('utf8')
-        print jdump(scrape('113959')).encode('utf8')
+        print(jdump(scrape('28215')).encode('utf8'))
+        print(jdump(scrape('113959')).encode('utf8'))
 
         #print jdump(scrape('108570')).encode('utf8')
         #print jdump(scrape('1934')).encode('utf8')
         #print jdump(scrape('96919')).encode('utf8')
         #import code; code.interact(local=locals());
         sys.exit(0)
-        print jdump(scrape("http://www.europarl.europa.eu/meps/en/1934/get.html"),None)
-        print jdump(scrape("http://www.europarl.europa.eu/meps/en/28576/get.html"), None)
-        print jdump(scrape("http://www.europarl.europa.eu/meps/en/1263/Elmar_BROK.html"), None)
-        print jdump(scrape("http://www.europarl.europa.eu/meps/en/96739/Reinhard_B%C3%9CTIKOFER.html"), None)
-        print jdump(scrape("http://www.europarl.europa.eu/meps/en/28269/Jerzy_BUZEK.html"), None)
-        print jdump(scrape("http://www.europarl.europa.eu/meps/en/1186/Astrid_LULLING.html"), None)
+        print(jdump(scrape("http://www.europarl.europa.eu/meps/en/1934/get.html"),None))
+        print(jdump(scrape("http://www.europarl.europa.eu/meps/en/28576/get.html"), None))
+        print(jdump(scrape("http://www.europarl.europa.eu/meps/en/1263/Elmar_BROK.html"), None))
+        print(jdump(scrape("http://www.europarl.europa.eu/meps/en/96739/Reinhard_B%C3%9CTIKOFER.html"), None))
+        print(jdump(scrape("http://www.europarl.europa.eu/meps/en/28269/Jerzy_BUZEK.html"), None))
+        print(jdump(scrape("http://www.europarl.europa.eu/meps/en/1186/Astrid_LULLING.html"), None))
     elif sys.argv[1]=='mepid' and sys.argv[2]:
         #print saver(scrape(int(sys.argv[2]))).encode('utf8')
-        print jdump(scrape(int(sys.argv[2]))).encode('utf8')
+        print(jdump(scrape(int(sys.argv[2]))).encode('utf8'))
         sys.exit(0)
 
     elif sys.argv[1] in meplists.keys():
@@ -601,6 +606,6 @@ if __name__ == "__main__":
         if 'seq' in args:
             res=seqcrawl(meps,saver=saver, null=null)
             if 'dry' in args:
-                print "[%s]" % ',\n'.join(res).encode('utf8')
+                print("[%s]" % ',\n'.join(res).encode('utf8'))
         else:
             crawler(meps,saver=saver)

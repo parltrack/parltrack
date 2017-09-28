@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from parltrack.utils import fetch_raw, jdump, logger
+from utils import fetch_raw, jdump, logger
 from tempfile import mkstemp
 from sh import pdftotext
 import sys, os, re
+
+if sys.version[0] == '3':
+    unicode = str
 
 DEBUG=False
 state_map = {1: "occupation",
@@ -124,7 +127,7 @@ def parse_table_f(rows, threshold=2):
             column_index = {x:row.find(str(x)) for x in range(1, 5)}
 
     if not column_index:
-        print '>>>> meeeh, missing column index'
+        print('>>>> meeeh, missing column index')
 
     for row in rows[header_rows:]:
         if not row.strip():
@@ -165,7 +168,7 @@ def parse_table_f(rows, threshold=2):
 
 def getraw(pdf):
     (fd, fname)=mkstemp()
-    fd=os.fdopen(fd, 'w')
+    fd=os.fdopen(fd, 'wb')
     fd.write(fetch_raw(pdf).read())
     fd.close()
     text=pdftotext('-nopgbrk',
@@ -238,7 +241,7 @@ def scrape(decl):
                 t = parse_table(text[start:end], cols=cols)
             data[state_map[state]] = t
             if DEBUG:
-                print "\t%s" % ('\n\t'.join((repr(x) for x in t)) or "none"), state
+                print("\t%s" % ('\n\t'.join((repr(x) for x in t)) or "none"), state)
         elif issectionhead(decl, text,ptr,state,1,('B',u'Б', u'B')):
             while len([x for x in text[ptr].split(' ' * 10) if x]) != 2:
                 ptr+=1
@@ -263,7 +266,7 @@ def scrape(decl):
             state+=1
             t = parse_table_b(text[start:end])
             if DEBUG:
-                print "\t%s" % ('\n\t'.join((repr(x) for x in t)) or "none"), state
+                print("\t%s" % ('\n\t'.join((repr(x) for x in t)) or "none"), state)
             data[state_map[state]] = t
         elif state==6:
             while not issectionhead(decl, text,ptr,state,6,('G',u'Ж',u'Ζ')):
@@ -286,7 +289,7 @@ def scrape(decl):
                 ptr+=1
             gend=ptr-1
             if DEBUG:
-                print "\t", text[gstart:gend], state
+                print("\t", text[gstart:gend], state)
             data[state_map[state]] = '\n'.join(x for x in map(unicode.strip, text[gstart:gend]) if x)
             # skip continuation lines
             while text[ptr].split():
@@ -306,7 +309,7 @@ def scrape(decl):
                 ptr+=1
             hend=ptr-1
             if DEBUG:
-                print "\t", text[hstart:hend], state
+                print("\t", text[hstart:hend], state)
             data[state_map[state]] = '\n'.join(x for x in map(unicode.strip, text[hstart:hend]) if x)
             # skip continuation lines
             while text[ptr].split():
@@ -339,18 +342,18 @@ def scrape(decl):
                 if ptr>=len(text):
                     logger.error('[meh] fail find end in I')
                     if DEBUG:
-                        print 'meh\n>>>%s' % '\n>>>'.join(text[istart:istart+14]).encode('utf8')
+                        print('meh\n>>>%s' % '\n>>>'.join(text[istart:istart+14]).encode('utf8'))
                     raise IndexError
             state+=1
             if DEBUG:
-                print >> sys.stderr, state
+                print(state, file=sys.stderr)
                 #print >> sys.stderr, "\t", text[istart:ptr], state
             data[state_map[state]] = '\n'.join(x for x in map(unicode.strip, text[istart:ptr]) if x)
         #else:
             #print >> sys.stderr, '>>>>>>>>', line.encode('utf8')
         ptr+=1
     if state!=9:
-        print >> sys.stderr, '>>>>>>>>', "wtfwtf", state
+        print('>>>>>>>>', "wtfwtf", state, file=sys.stderr)
         logger.error('[wtf] did not reach final state %s' % state)
         return {}
     else:
@@ -379,5 +382,5 @@ def scrape(decl):
 
 if __name__ == "__main__":
     DEBUG=True
-    print jdump(scrape(sys.argv[1])).encode('utf8')
+    print(jdump(scrape(sys.argv[1])).encode('utf8'))
     #scrape(sys.argv[1])
