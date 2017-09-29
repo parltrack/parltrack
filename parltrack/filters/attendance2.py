@@ -125,30 +125,45 @@ for day in votingdays(_8th):
        print >>sys.stderr, "wtf, not present/excused, where expected", url
        print >>sys.stderr, len(data), repr(data[0].xpath(".//text()")), repr(data[2].xpath(".//text()"))
        raise
-    allmeps=set([x['UserID'] for x in getmeps(day,['UserID'])])
+    allmeps={x['UserID']: x['active'] for x in getmeps(day,['UserID', 'active'])}
     for text in data[1].xpath('.//text()')[0].split(', '):
        mep=getMep(text,day)
        if not mep:
           print >>sys.stderr, 'illegal MEP', day, text, mep, url
           continue
           #raise
-       if not mep in meps: meps[mep]={'name': text,'present': 0, 'excused':0, 'awol': 0}
+       if not mep in meps: meps[mep]={'name': text,'present': 0, 'excused':0, 'awol': 0, 'active': allmeps[mep]}
        if not meps[mep]['name']: meps[mep]['name']=text
        meps[mep]['present']+=1
-       allmeps.remove(mep)
+       del allmeps[mep]
     for text in data[3].xpath('.//text()')[0].split(', '):
        mep=getMep(text,day)
        if not mep:
           print >>sys.stderr, "meh, no mep", url, text, day
           continue
           #raise
-       if not mep in meps: meps[mep]={'name': text,'present': 0, 'excused':0, 'awol': 0}
+       if not mep in meps: meps[mep]={'name': text,'present': 0, 'excused':0, 'awol': 0, 'active': allmeps[mep]}
        if not meps[mep]['name']: meps[mep]['name']=text
        meps[mep]['excused']+=1
-       allmeps.remove(mep)
+       del allmeps[mep]
     for mep in allmeps:
-       if not mep in meps: meps[mep]={'name': '','present': 0, 'excused':0, 'awol': 0}
+       if not mep in meps: meps[mep]={'name': '','present': 0, 'excused':0, 'awol': 0, 'active': 'unknown'}
        meps[mep]['awol']+=1
 
-for mep, cnts in sorted(meps.items()):
-    print "%s\t%s\t%s\t%s\t%s" % (cnts['present'], cnts['excused'], cnts['awol'], mep, cnts['name'].encode('utf8'))
+#for mep, cnts in sorted(meps.items()):
+#    print "%s\t%s\t%s\t%s\t%s" % (cnts['present'], cnts['excused'], cnts['awol'], mep, cnts['name'].encode('utf8'))
+
+print 'name,id,voted,votes,percent,active,excused,awol'
+
+for mep in sorted(((mep['name'],
+                    mep['present'],
+                    mep['present']+mep['excused']+mep['awol'],
+                    (mep['present']*100)/float(mep['present']+mep['excused']+mep['awol']),
+                    mep['active'],
+                    id,
+                    ((mep['present']*-100)/float(mep['present']+mep['excused']+mep['awol']),mep['name']),
+                    mep['excused'],
+                    mep['awol'])
+                  for id, mep in meps.items()),
+                  key=itemgetter(6)):
+    print (u'"%s",%s,%s,%s,%3.2f,%s,%s,%s' % (mep[0], mep[5], mep[1], mep[2], mep[3], mep[4], mep[7], mep[8])).encode('utf8')
