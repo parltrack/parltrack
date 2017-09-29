@@ -41,6 +41,8 @@ var colormap={
    'IND/DEM': '#F7AF20',
    'UEN': '#5d4fa5',
    'EFD': '#2ca8be',
+   'EFDD': '#2ca8be',
+   'ENF': '#8B4513',
 }
 $(document).ready(function() {
   //init data
