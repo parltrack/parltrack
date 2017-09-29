@@ -73,31 +73,34 @@ def diff(old, new, path=[]):
     return
 
 class hashabledict(dict):
+    val=None
     def __hash__(self):
-        return hash(str(sorted(self.iteritems())))
+        if not self.val:
+            self.val=hash(str(sorted(self.iteritems())))
+        return self.val
 
 def difflist(old, new, path):
     if not old:
         oldset=set()
         oldorder=dict()
-    elif dict in [type(x) for x in old]:
-        oldset=set([hashabledict(x) if type(x) == dict else x for x in old])
-        oldorder=dict([(hashabledict(e) if type(e) == dict else e, i) for i, e in enumerate(old)])
-    elif list in [type(x) for x in old]:
-        oldset=set([tuple(x) if type(x) == list else x for x in old])
-        oldorder=dict([(tuple(e) if type(e) == list else e, i) for i, e in enumerate(old)])
+    elif dict in {type(x) for x in old}:
+        oldset={hashabledict(x) if isinstance(x,dict) else x for x in old}
+        oldorder=dict([(hashabledict(e) if isinstance(e,dict) else e, i) for i, e in enumerate(old)])
+    elif list in {type(x) for x in old}:
+        oldset=set([tuple(x) if isinstance(x, list) else x for x in old])
+        oldorder=dict([(tuple(e) if isinstance(e, list) else e, i) for i, e in enumerate(old)])
     else:
         oldset=set(old)
         oldorder=dict([(e,i) for i, e in enumerate(old)])
     if not new:
         newset=set()
         neworder=dict()
-    elif dict in [type(x) for x in new]:
-        newset=set([hashabledict(x) if type(x) == dict else x for x in new])
-        neworder=dict([(hashabledict(e) if type(e) == dict else e, i) for i, e in enumerate(new)])
-    elif list in [type(x) for x in new]:
-        newset=set([tuple(x) if type(x) == list else x for x in new])
-        neworder=dict([(tuple(e) if type(e) == list else e, i) for i, e in enumerate(new)])
+    elif dict in {type(x) for x in new}:
+        newset=set([hashabledict(x) if isinstance(x, dict) else x for x in new])
+        neworder=dict([(hashabledict(e) if isinstance(e, dict) else e, i) for i, e in enumerate(new)])
+    elif list in {type(x) for x in new}:
+        newset={tuple(x) if isinstance(x, list) else x for x in new}
+        neworder=dict([(tuple(e) if isinstance(e, list) else e, i) for i, e in enumerate(new)])
     else:
         newset=set(new)
         neworder=dict([(e,i) for i, e in enumerate(new)])
@@ -468,7 +471,7 @@ def textdiff(d):
         if di['type']=='changed':
             res.append(u'\nchanged %s from:\n\t%s\n  to:\n\t%s' % (u'/'.join([str(x) for x in di['path']]),di['data'][0],printdict(di['data'][1])))
             continue
-        res.append(u"\n%s %s:\t%s" % (di['type'], u'/'.join([str(x) for x in di['path']]), printdict(di['data'])))
+        res.append(u"\n%s %s:\t%s" % (di['type'], u'/'.join([unicode(x) for x in di['path']]), printdict(di['data'])))
     return '\n'.join(res)
 
 if __name__ == "__main__":

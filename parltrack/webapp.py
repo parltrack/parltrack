@@ -597,11 +597,12 @@ def active_dossiers():
     for d in db.dossiers2.find(query):
         ds.append(listdossiers(d))
         if d['procedure']['reference'][-4:-1] in ['APP', 'COD', 'CNS'] and 'stage_reached' in d['procedure']:
+            dates=[x.get('date').strftime("%Y-%m-%d") if type(x.get('date'))==type(datetime.now()) else x.get('date') for x in d['activities']]
+            if dates == []: continue
             dstat.append((d['procedure']['reference'][-4:-1],
                           d['procedure']['stage_reached'],
                           d['procedure']['dossier_of_the_committee'].split('/')[0] if 'dossier_of_the_committee' in d['procedure'] else "",
-                          )+tuple(max([x.get('date').strftime("%Y-%m-%d") if type(x.get('date'))==type(datetime.now()) else x.get('date')
-                                       for x in d['activities']]).split('-')))
+                          )+tuple(max(dates).split('-')))
             stages[d['procedure']['stage_reached']][d['procedure']['reference'][-4:-1]]+=1
     stages={ 'label': ['APP', 'COD', 'CNS'],
              'values': [x[1] for x in
