@@ -19,11 +19,20 @@
 
 from datetime import datetime
 from lxml import etree
+from lxml.etree import tostring
 from parltrack.utils import fetch, fetch_raw, jdump
 from parltrack.db import db
 import re, sys, unicodedata
 
-mepCache={}
+mepCache={'vanbuitenen': 28264, 'devilliers': 2212, 'matoadrover': 28383, 'kinnock': 2123, 'merkies': 96910, 'morin': 38596, 'valenciano': 4334,
+        'vitkauskaite': 30475, 'kleva': 23413, 'manner': 96685, "scotta'": 96996, 'briardauconie': 96862, 'obiols': 4328, 'vozemberg': 125065,
+        'thunundhohenstein': 96776, 'iglesias': 125031, 'mathieu': 4412, 'landsbergis': 23746, 'nedelcheva': 96848, 'iturgaiz': 28398,
+        'auconie': 96862, 'mihaylova': 125128, 'obiolsigerma': 4328, 'valencianomartinez-orozco': 4334, 'stassen': 96905, 'larsen-jensen':
+        122404, 'degroen-kouwenhoven': 28265, 'cronberg': 107973, 'vanderkammen': 115868, 'vonwogau': 1224, 'jensen': 4440,
+        'jordancizelj': 28291, 'glezos': 1654, 'gentvilas': 28283, 'meyerpleite': 28407, 'devits': 28259, 'jukneviciene': 28273, 'jordan':
+        28291, 'savisaar': 97308, 'miranda': 24942, 'vandenburg': 4483, 'ceballos': 124993, 'demagistris': 97129, 'vanderstoep': 96946,
+        'meyer': 28407, 'pakarinen': 96685, 'iturgaizangulo': 28398, 'barracciu': 116823, 'dossantos': 21918, 'gabriel': 96848,
+        'hutchinson': 28282, 'valero': 124993, 'tsoukalas': 96898, 'krupa': 28334, 'scotta': 96996, 'piecha': 124874}
 def getMep(text,date):
     name=''.join(unicodedata.normalize('NFKD', unicode(text.strip())).encode('ascii','ignore').split()).lower()
     if name in mepCache:
@@ -41,8 +50,13 @@ def getMep(text,date):
                                   "Constituencies.start" : {'$lt': date},
                                   "Constituencies.end" : {'$gt': date}},['UserID'])
     if not mep and len([x for x in text if ord(x)>128]):
-        mep=db.ep_meps2.find_one({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in text]),re.I)},['UserID'])
+        try:
+            mep=db.ep_meps2.find_one({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in text]),re.I)},['UserID'])
+        except:
+            print >>sys.stderr, '[$] regexp oops:', text.encode('utf8')
+            pass
     if not mep:
+        print >>sys.stderr, "[x] couldn't find ep_id for", repr(name)
         mepCache[name]=None
     else:
         mepCache[name]=mep['UserID']
@@ -70,7 +84,7 @@ def scanMeps(text, res, date):
     else:
         print >>sys.stderr, 'huh', line
 
-docre=re.compile(u'(.*)((?:[AB]|RC)[67]\s*-\s*[0-9]{3,4}\/[0-9]{4})(.*)')
+docre=re.compile(u'(.*)((?:[AB]|RC)[678]\s*-\s*[0-9]{3,4}\/[0-9]{4})(.*)')
 tailre=re.compile(r'^(?:\s*-\s*)?(.*)\s*-\s*([^-]*$)')
 junkdashre=re.compile(r'^[ -]*(.*)[ -]*$')
 rapportre=re.compile(r'(.*)(?:recommendation|rapport|report):?\s?(.*)',re.I)
@@ -123,32 +137,42 @@ def votemeta(line, date):
 # 'http://www.europarl.europa.eu/plenary/en/minutes.html?clean=false&leg=7&refSittingDateStart=01/01/2011&refSittingDateEnd=31/12/2011&miType=title&miText=Roll-call+votes&tabActif=tabResult&startValue=10'
 def crawl(year, term):
     listurl = 'http://www.europarl.europa.eu/plenary/en/minutes.html'
+    nexturl = '%s?action=%%s&tabActif=tabResult#sidesForm' % listurl
     PARAMS = 'clean=false&leg=%s&refSittingDateStart=01/01/%s&refSittingDateEnd=31/12/%s&miType=title&miText=Roll-call+votes&tabActif=tabResult'
-    voteurl = 'http://www.europarl.europa.eu/RegData/seance_pleniere/proces_verbal/%s/votes_nominaux/xml/P%s_PV%s(RCV)_XC.xml'
+    #voteurl = 'http://www.europarl.europa.eu/RegData/seance_pleniere/proces_verbal/%s/votes_nominaux/xml/P%s_PV%s(RCV)_XC.xml'
+    voteurl = 'http://www.europarl.europa.eu/RegData/seance_pleniere/proces_verbal/%s/liste_presence/P%s_PV%s(RCV)_XC.xml'
     params = PARAMS % (term, year, year)
     root=fetch(listurl, params=params)
     prevdates=None
     dates=root.xpath('//span[@class="date"]/text()')
-    i=10
+    i=1
     while dates and dates!=prevdates:
         for date in dates:
             if not date.strip(): continue
             date = datetime.strptime(date.strip(), "%d-%m-%Y")
             yield voteurl % (date.strftime("%Y/%m-%d"), term, date.strftime("(%Y)%m-%d"))
 
-        root=fetch(listurl, params="%s&startValue=%s" % (params,i))
+        root=fetch(nexturl % i)
         prevdates=dates
-        i+=10
+        i+=1
         dates=root.xpath('//span[@class="date"]/text()')
 
 def scrape(url):
     print "scraping", url
-    root=etree.parse(fetch_raw(url))
+    try:
+        root=etree.parse(fetch_raw(url))
+    except:
+        print "could not scrape", url
+        return []
     # root is:
     #PV.RollCallVoteResults EP.Number="PE 533.923" EP.Reference="P7_PV(2014)04-17" Sitting.Date="2014-04-17" Sitting.Identifier="1598443"
     votes=[]
     for vote in root.xpath('//RollCallVote.Result'):
-        res={u"ts": datetime.strptime(vote.get('Date'), "%Y-%m-%d %H:%M:%S"),
+        try:
+            d=datetime.strptime(vote.get('Date'), "%Y-%m-%d %H:%M:%S")
+        except:
+            d=datetime.strptime(vote.get('Date'), "%Y-%d-%m %H:%M:%S")
+        res={u"ts": d,
              u"url": url,
              u"voteid": vote.get('Identifier'),
              u"title": vote.xpath("RollCallVote.Description.Text/text()")[0]}
@@ -161,24 +185,37 @@ def scrape(url):
             res[stype]={u'total': type.get('Number'),
                         u'groups': [{u'group': group.get('Identifier'),
                                      u'votes': [{u'userid': int(mep.get('MepId')),
+                                                 u'ep_id': getMep(mep.xpath('text()')[0].strip(), res['ts']),
                                                  u'name': mep.xpath('text()')[0]}
                                               for mep in group.xpath('PoliticalGroup.Member.Name')]}
                                    for group in type.xpath('Result.PoliticalGroup.List')]}
         # save
-        q={'title': res['voteid'],
+        q={'title': res['title'],
            'ts':    res['ts']}
         db.ep_votes.update(q, {"$set": res}, upsert=True)
+        #db.ep_votes.update(q, res, upsert=True)
+        #obj = db.ep_votes.find_one(q)
+        #if obj:
+        #    print "updating", res['title']
+        #    obj.update(res)
+        #    db.ep_votes.update({"_id": obj['_id']}, obj)
+        #else:
+        #    print "inserting", res['title']
+        #    db.ep_votes.save(res)
         votes.append(res)
     return votes
 
 if __name__ == '__main__':
     #res = scrape("http://www.europarl.europa.eu/RegData/seance_pleniere/proces_verbal/2014/03-13/votes_nominaux/xml/P7_PV(2014)03-13(RCV)_XC.xml")
+    #res = scrape("http://www.europarl.europa.eu/RegData/seance_pleniere/proces_verbal/2015/10-27/votes_nominaux/xml/P8_PV(2015)10-27(RCV)_XC.xml")
+    #res = scrape("http://www.europarl.europa.eu/RegData/seance_pleniere/proces_verbal/2016/04-13/liste_presence/P8_PV(2016)04-13(RCV)_XC.xml")
+    #res = scrape("http://www.europarl.europa.eu/RegData/seance_pleniere/proces_verbal/2016/07-07/liste_presence/P8_PV(2016)07-07(RCV)_XC.xml")
     #print jdump(res).encode('utf8')
     #exit(0)
     try:
         year = int(sys.argv[1])
     except:
-        sys.stderr.write('[!] usage: %s [year(2004-2014)]\n' % sys.argv[0])
+        sys.stderr.write('[!] usage: %s [year(2004-2015)]\n' % sys.argv[0])
         sys.exit(1)
     if year >= 2004 and year < 2009:
         map(scrape, crawl(year, 6))
@@ -186,8 +223,10 @@ if __name__ == '__main__':
         map(scrape, crawl(year, 6))
         map(scrape, crawl(year, 7))
     elif year < 2014:
-        print jdump(map(scrape, crawl(year, 7))).encode('utf8')
-        #map(scrape, crawl(year, 7))
-    else:
+        #print jdump(map(scrape, crawl(year, 7))).encode('utf8')
         map(scrape, crawl(year, 7))
+    elif year == 2014:
+        map(scrape, crawl(year, 7))
+        map(scrape, crawl(year, 8))
+    else:
         map(scrape, crawl(year, 8))

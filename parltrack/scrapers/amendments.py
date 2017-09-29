@@ -538,6 +538,8 @@ def scrape(url, rapporteur=None):
                     date = parse(unws(line), dayfirst=True)
                 except ValueError:
                     pass
+                except TypeError:
+                    pass
             continue
 
         if amstart.match(line):
@@ -552,7 +554,8 @@ def scrape(url, rapporteur=None):
 
 #from lxml.etree import tostring
 def getComAms(leg=TERM, update=False):
-    urltpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html"
+    #urltpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html"
+    urltpl="http://www.europarl.europa.eu/committees/en/%s/search-in-documents.html"
     # todo add to searchRPCD, OPCD
     for doctype in ['AMCO', 'RPCD', 'OPCD']:
         postdata="clean=false&leg=%s&docType=%s&miType=text" % (leg, doctype)

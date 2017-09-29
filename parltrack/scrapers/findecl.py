@@ -22,8 +22,10 @@ iendsigs = [['Date:','Signature:'],
             [u'Data:', u'Firma:'],
             [u'Päivä:', u'Allekirjoitus:'],
             [u'Päivä:', u'Allekirjoitus:'],
+            [u'Päiväys:', u'Allekirjoitus:'],
             [u'Kuupäev:', u'Allkiri:'],
             [u'Datums:', u'Paraksts:'],
+            [u'Data:', u'Parašas:'],
             [u'Data', u'Parašas:'],
             [u'Data:', u'Semnătura:'],
             [u'Datum:', u'Handtekening:'],
@@ -38,28 +40,37 @@ iendsigs = [['Date:','Signature:'],
             [u'Datum:', u'Unterschrift:'],
             [u'Дата:', u'Подпис:'],
             [u'Ημερομηνία:', u'υπογραφή:'],
+            [u'Ημερομηνία:', u'Υπογραφή:'],
             [u'Kelt:', u'Aláírás:']]
 
 rownum_re = re.compile(r'^[1-9][0-9]*\. ')
-def parse_table(rows, threshold=3):
+def parse_table(rows, threshold=3, cols=5):
     rows.append('\n') # in case last row is non-empty we need to terminate it
     ret = []
     columns = rows[0]
-    column_index = {x:columns.find(str(x)) for x in range(1, 5)}
+    column_index = {x:columns.find(str(x)) for x in range(1, cols)}
     row_texts = []
 
     for row in rows[1:]:
         if not row.strip():
             if row_texts:
-                x_pos = max(len(l) for l in row_texts) - 1
+                cut_pos = x_pos = max(len(l) for l in row_texts) - 1
+                pos = -1
 
-                if x_pos > min(column_index.values()) - threshold:
-                    row_text = ' '.join(x[:x_pos-1].strip() for x in row_texts)
+                x_found = False
+                for row in row_texts:
+                    if row.strip().endswith('   X'):
+                        x_found = True
+                        cut_pos = len(row[:-1].strip()) + 1
+                        pos = 0
+                        break
+
+                if x_found:
+                    row_text = ' '.join(x.strip()[:cut_pos] for x in row_texts)
                 else:
                     row_text = ' '.join(x.strip() for x in row_texts)
 
                 if len(row_text) > 5:
-                    pos = -1
                     for i,v in column_index.items():
                         if x_pos <= v + threshold and x_pos >= v - threshold:
                             pos = i
@@ -147,6 +158,9 @@ def parse_table_f(rows, threshold=2):
             continue
 
         row_texts.append(row)
+    for i, row in enumerate(ret):
+        if len((row[0]+row[1]).strip()) < 5: continue
+        ret[i]=(row[0]+row[1],)+row[2:]
     return ret
 
 def getraw(pdf):
@@ -164,11 +178,9 @@ def getraw(pdf):
 def issectionhead(decl, text,ptr,curstate,state, ids):
     return (curstate==state and
         (text[ptr].strip().startswith('(%s) ' % ids[0]) or
-         (decl[-len('_ES.pdf'):] in ('_ES.pdf',
-                                            '_SV.pdf',
-                                            '_IT.pdf',
-                                            '_DA.pdf') and text[ptr].strip().startswith('%s) ' % ids[0])) or
+         text[ptr].strip().startswith('%s) ' % ids[0]) or
          (state==6 and decl.endswith('_MT.pdf') and text[ptr].strip().startswith(u'G)')) or
+         (decl.endswith('_SV.pdf') and text[ptr].strip().startswith(u'%s. ' % ids[0])) or
          (decl.endswith('_BG.pdf') and text[ptr].strip().startswith(u'%s.' % ids[1])) or
          (decl.endswith('_EL.pdf') and text[ptr].strip().startswith(u'(%s)' % ids[2]))))
 
@@ -189,11 +201,15 @@ def scrape(decl):
             issectionhead(decl, text,ptr,state,4,('E',u'Д',u'E')) or
             issectionhead(decl, text,ptr,state,5,('F',u'Е',u'ΣΤ'))):
             # skip to table
-            while (text[ptr].split()[-4:]!=['1','2','3','4']):
+            while (text[ptr].split()[-4:]!=['1','2','3','4'] and
+                   text[ptr].split()[-5:]!=['1','2','3','4','5']):
                 ptr+=1
                 if ptr>=len(text):
                     logger.error('[meh] %s table not found' % state)
                     raise IndexError
+            if state!=6:
+                if text[ptr].split()[-5:]==[u'1',u'2',u'3',u'4',u'5']: cols=6
+                else: cols=5
             start=ptr
             # skip empty lines
             while not text[ptr].split():
@@ -219,7 +235,7 @@ def scrape(decl):
             if state == 6:
                 t = parse_table_f(text[start:end])
             else:
-                t = parse_table(text[start:end])
+                t = parse_table(text[start:end], cols=cols)
             data[state_map[state]] = t
             if DEBUG:
                 print "\t%s" % ('\n\t'.join((repr(x) for x in t)) or "none"), state
@@ -314,8 +330,10 @@ def scrape(decl):
                         break
                 elif len(tmp)==5:
                     # date=tmp[2] could be preserved in data
+                    tmpdate=tmp[2]
                     del tmp[2]
                     if tmp in [['Date', ':','Signature', ':']]:
+                        data['date']=tmpdate
                         break
                 ptr+=1
                 if ptr>=len(text):
@@ -336,8 +354,30 @@ def scrape(decl):
         logger.error('[wtf] did not reach final state %s' % state)
         return {}
     else:
+        if (len(data['occupation'])>1 and
+            data['occupation'][-1][0] in [u"No occupation held during the three years preceding the current mandate",
+                                          u"Καμία επαγγελματική δραστηριότητα κατά τη διάρκεια των τριών ετών που προηγήθηκαν της τρέχουσας εντολής",
+                                          u"Atividade Liberal como autor/outras atividades artísticas (remuneração inferior a 500 € na totalidade dos 3 anos anteriores)",
+                                          u"Brak działalności zawodowej w okresie trzech lat poprzedzających obecną kadencję",
+                                          u"Geen beroep uitgeoefend gedurende de drie jaar voorafgaand aan de huidige zittingsperiode",
+                                          u"Nessuna attività svolta durante i tre anni precedenti l'attuale mandato",
+                                          u"Keine Berufstätigkeit während des Dreijahreszeitraums vor der laufenden Wahlperiode",
+                                          u"Aucune activité professionnelle au cours des trois années ayant précédé le présent mandat",
+                                          u"Sin ocupación durante los tres años anteriores al actual mandato",
+                                          u"Intet erhvervsarbejde i de tre år forud for det nuværende mandate",
+                                          u"Nicio activitate profesională în ultimii trei ani dinaintea preluării mandatului actual",
+                                          u"Har inte utövat någon yrkesmässig verksamhet under de tre år som föregick det nuvarande mandatet",
+                                          u"Sem atividade profissional durante os três anos que precederam o atual mandato",
+                                          u"Nepostojanje profesionalne djelatnosti tijekom tri godine prije aktualnog mandata",
+                                          u"Ei ammatillista toimintaa kolmena nykyistä edustajantointa edeltävänä vuotena",
+                                          u"A jelenlegi megbízatást megelőző három évben nem végzett foglalkozást.",
+                                          u"Без професионална дейност по време на трите години, предшестващи текущия мандат",
+                                          u"Během tří let před současným mandátem jsem nevykonával(a) žádnou profesní činnost.",
+            ]):
+            del data['occupation'][-1]
         return data
 
 if __name__ == "__main__":
     DEBUG=True
-    print jdump(scrape(sys.argv[1]))
+    print jdump(scrape(sys.argv[1])).encode('utf8')
+    #scrape(sys.argv[1])

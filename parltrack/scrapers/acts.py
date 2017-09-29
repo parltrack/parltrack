@@ -69,7 +69,7 @@ def getdossier(ref):
 
 ok = 0
 nok = 0
-for mep in meps.find({'active': True},['activities', 'Name.full']):
+for mep in list(meps.find({'active': True},['activities', 'Name.full'])):
     acts = mep.get('activities')
     if not acts: continue
     dirty = False

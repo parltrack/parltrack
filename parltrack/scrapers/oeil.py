@@ -82,9 +82,12 @@ groupurlmap={'http://www.guengl.eu/?request_locale=en': u"GUE/NGL",
              'http://www.eppgroup.eu/home/en/default.asp?lg1=en': u"EPP",
              'http://www.alde.eu/?request_locale=en': u'ALDE',
              'http://www.greens-efa.org/cms/default/rubrik/6/6270.htm?request_locale=en': u'Verts/ALE',
+             'http://www.greens-efa.eu/?request_locale=en': u'Verts/ALE',
              'http://www.efdgroup.eu/?request_locale=en': u'EFD',
+             'http://www.enfgroup-ep.eu/': u"ENF",
              'http://www.ecrgroup.eu/?request_locale=en': u'ECR',
-             'http://www.socialistsanddemocrats.eu/gpes/index.jsp?request_locale=en': u'S&D'}
+             'http://www.socialistsanddemocrats.eu/gpes/index.jsp?request_locale=en': u'S&D',
+             '/oeil/IMG?t=pg&i=568000&l=en': u'ENF'} # todo fix when website available
 def toMEP(node):
     tips=[t.xpath('text()')[0]
           if len(t.xpath('text()'))>0
@@ -364,7 +367,7 @@ def addCelex(doc):
     if (doc.get('title') and
         candre.match(doc.get('title'))):
         celexid=tocelex(doc.get('title'))
-        if (celexid and checkUrl("http://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=%s:EN:HTML" % celexid)):
+        if (celexid and checkUrl("http://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=%s:HTML" % celexid)):
             doc[u'celexid']=celexid
     return doc
 
@@ -562,7 +565,12 @@ def scrape_epagents(table):
 
     # handle shadows
     shadowelems=table.xpath('//a[@id="shadowRapporteurHeader"]/../following-sibling::div/p//span[@class="players_rapporter_text"]/a')
-    tips=[t.xpath('text()')[0] if len(t.xpath('text()'))>0 else groupurlmap[t.xpath("a")[0].get('href')]
+    tips=[t.xpath('text()')[0]
+          if len(t.xpath('text()'))>0
+          else
+              groupurlmap[t.xpath("a")[0].get('href')]
+              if len(t.xpath("a"))>0
+              else groupurlmap[t.xpath("img")[0].get('src')]
           for t in table.xpath('//a[@id="shadowRapporteurHeader"]/../following-sibling::div//span[@class="tiptip"]')]
     shadows={}
     for shadow, group in izip_longest(shadowelems, tips):
@@ -707,7 +715,7 @@ def tocelex(title):
                   "CELEX:5%sPC%s(01):EN" % (m.group(1),m.group(2)),
                   "CELEX:5%sDC%s(02):EN" % (m.group(1),m.group(2)),
                   "CELEX:5%sDC%s(01):EN" % (m.group(1),m.group(2))]:
-            if checkUrl("http://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=%s:EN:HTML" % u):
+            if checkUrl("http://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=%s:HTML" % u):
                 return u
         return
     m=secre.match(title) or secepre.match(title)
@@ -799,10 +807,10 @@ if __name__ == "__main__":
     elif sys.argv[1]=="updateseq":
         crawlseq(get_active_dossiers(), null=null)
     elif sys.argv[1]=="url":
-        #print jdump(scrape(sys.argv[2])).encode('utf8')
-        res=scrape(sys.argv[2])
+        print jdump(scrape(sys.argv[2])).encode('utf8')
+        #res=scrape(sys.argv[2])
         #print >>sys.stderr, pprint.pformat(res)
-        save(res,[0,0])
+        #save(res,[0,0])
     elif sys.argv[1]=="test":
         save(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397"),[0,0]) # telecoms package
         #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=575084"))
