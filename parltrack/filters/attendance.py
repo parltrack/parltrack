@@ -76,12 +76,21 @@ for vote in db.ep_votes.find({'ts' : {'$gte': _8th}}).sort([('ts', -1)]):
     total = 0
     vtotal = 0
     for iv in ['For', 'Against', 'Abstain']:
+        if iv not in vote: continue
         vtotal+=int(vote[iv]['total'])
         for group in vote[iv]['groups']:
             for mep in group['votes']:
                 mepid = getMep(mep['name'], mep['userid'], day)
                 if mepid:
-                    meps[mepid]['voted']+=1
+                    if mepid not in meps:
+                        m = db.ep_meps2.find_one({'UserID': mepid},['active', 'UserID', 'Name.family', 'Name.full'])
+                        meps[mepid]={'name': m['Name']['full'],
+                                     'last': m['Name']['family'],
+                                     'active': m['active'],
+                                     'votes': 1,
+                                     'voted': 1}
+                    else:
+                        meps[mepid]['voted']+=1
                 else:
                     _404.add(mep['name'])
                 total+=1
