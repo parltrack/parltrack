@@ -44,6 +44,7 @@ def index(db):
 
     db.ep_votes.ensure_index([('epref', 1)])
     db.ep_votes.ensure_index([('dossierid', 1)])
+    db.ep_votes.ensure_index([('ts', 1)])
 
     db.eurlex.ensure_index([('id.celexid', 1)])
 
