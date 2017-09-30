@@ -20,7 +20,9 @@ for mep in db.ep_meps2.find():
         if const['start']>=datetime(2014,07,01):
             party=const['party']
             country=const['country']
+            start=const['start']
+            end=const['end']
             break
     for sec in mep['CV']:
         for line in mep['CV'][sec]:
-            print ("%s\t%s\t%s\t%s\t%s" % (name, country, party, sec, line)).encode('utf8')
+            print ("%s\t%s\t%s\t%s\t%s\t%s\t%s" % (name, country, party, sec, line, start, end)).encode('utf8')
