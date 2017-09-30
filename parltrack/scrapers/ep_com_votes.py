@@ -119,67 +119,68 @@ def scrape(url, date, committee, doc, ep_ref):
             print >>sys.stderr, tc, "!=", count, 'for', vtype
     return rcv if found else None
 
-startyear=datetime(2016,4,28)
-stats=[0,0]
-seen=set([])
-for dossier in comvotes():
-    url=None
-    date=None
-    com=None
-    errors=[]
-    for act in dossier['activities']:
-        if act['type']=="Vote in committee, 1st reading/single reading":
-            if(date and date!=act['date']): errors.append(' '.join(("already had date", dossier['procedure']['reference'], repr(date), repr(act['date']))))
-            date=act['date']
-            continue
-        if act['type']=="Committee report tabled for plenary, 1st reading/single reading":
-            for doc in act.get('docs',[]):
-                if not doc['type']=="Committee report tabled for plenary, 1st reading/single reading": continue
-                if('url' in doc):
-                    if(url and url!=doc['url']): errors.append(' '.join(("already had url", dossier['procedure']['reference'], url)))
-                    url=doc['url']
-            for c in act.get('committees',[]):
-                if c['responsible']==True:
-                    if(com and com!=c['committee']): errors.append(' '.join(("already had com", dossier['procedure']['reference'], repr(com), repr(c['committee']))))
-                    com=c['committee']
-    if not date: continue
-    if(date<=startyear): continue
-    if not url: continue
-    if url in seen: continue
-    seen.add(url)
-    vote=scrape(url,date, com, dossier['procedure']['title'], dossier['procedure']['reference'])
-    if vote:
-        #print >>sys.stderr, date, url
-        logger.info(url)
-        if errors: print >>sys.stderr, '\n'.join(errors)
-        if not com: print >>sys.stderr, "no com!!!"
-        #print >>sys.stderr, jdump(vote).encode('utf8')
-        q={'url': vote['url'],
-           'ts':  vote['ts']}
-        obj = db.ep_com_votes.find_one(q) or {}
+if __name__ == "__main__":
+    startyear=datetime(2016,4,28)
+    stats=[0,0]
+    seen=set([])
+    for dossier in comvotes():
+        url=None
+        date=None
+        com=None
+        errors=[]
+        for act in dossier['activities']:
+            if act['type']=="Vote in committee, 1st reading/single reading":
+                if(date and date!=act['date']): errors.append(' '.join(("already had date", dossier['procedure']['reference'], repr(date), repr(act['date']))))
+                date=act['date']
+                continue
+            if act['type']=="Committee report tabled for plenary, 1st reading/single reading":
+                for doc in act.get('docs',[]):
+                    if not doc['type']=="Committee report tabled for plenary, 1st reading/single reading": continue
+                    if('url' in doc):
+                        if(url and url!=doc['url']): errors.append(' '.join(("already had url", dossier['procedure']['reference'], url)))
+                        url=doc['url']
+                for c in act.get('committees',[]):
+                    if c['responsible']==True:
+                        if(com and com!=c['committee']): errors.append(' '.join(("already had com", dossier['procedure']['reference'], repr(com), repr(c['committee']))))
+                        com=c['committee']
+        if not date: continue
+        if(date<=startyear): continue
+        if not url: continue
+        if url in seen: continue
+        seen.add(url)
+        vote=scrape(url,date, com, dossier['procedure']['title'], dossier['procedure']['reference'])
+        if vote:
+            #print >>sys.stderr, date, url
+            logger.info(url)
+            if errors: print >>sys.stderr, '\n'.join(errors)
+            if not com: print >>sys.stderr, "no com!!!"
+            #print >>sys.stderr, jdump(vote).encode('utf8')
+            q={'url': vote['url'],
+               'ts':  vote['ts']}
+            obj = db.ep_com_votes.find_one(q) or {}
 
-        d=diff(dict([(k,v) for k,v in obj.items() if not k in ['_id', 'meta', 'changes']]),
-               dict([(k,v) for k,v in vote.items() if not k in ['_id', 'meta', 'changes',]]))
-        if d:
-            now=datetime.utcnow().replace(microsecond=0)
-            if not 'meta' in vote: vote[u'meta']={}
-            if not obj:
-                logger.info((u'adding %s%s %s' % (u'%s ' % vote['ep_ref'] if 'ep_ref' in vote else '',
-                                                    vote['committee'],
-                                                    vote['doc'])).encode('utf8'))
-                vote['meta']['created']=now
-                if stats: stats[0]+=1
-                #notify(vote,None)
-            else:
-                logger.info((u'updating %s%s %s' % (u'%s ' % vote['ep_ref'] if 'ep_ref' in vote else '',
-                                                    vote['committee'],
-                                                    vote['doc'])).encode('utf8'))
-                logger.info(d)
-                vote['meta']['updated']=now
-                if stats: stats[1]+=1
-                vote['_id']=obj['_id']
-                #notify(vote,d)
-            vote['changes']=vote.get('changes',{})
-            vote['changes'][now.isoformat()]=d
-            db.ep_com_votes.save(vote)
-print >>sys.stderr, "com_votes added/updated:", stats
+            d=diff(dict([(k,v) for k,v in obj.items() if not k in ['_id', 'meta', 'changes']]),
+                   dict([(k,v) for k,v in vote.items() if not k in ['_id', 'meta', 'changes',]]))
+            if d:
+                now=datetime.utcnow().replace(microsecond=0)
+                if not 'meta' in vote: vote[u'meta']={}
+                if not obj:
+                    logger.info((u'adding %s%s %s' % (u'%s ' % vote['ep_ref'] if 'ep_ref' in vote else '',
+                                                        vote['committee'],
+                                                        vote['doc'])).encode('utf8'))
+                    vote['meta']['created']=now
+                    if stats: stats[0]+=1
+                    #notify(vote,None)
+                else:
+                    logger.info((u'updating %s%s %s' % (u'%s ' % vote['ep_ref'] if 'ep_ref' in vote else '',
+                                                        vote['committee'],
+                                                        vote['doc'])).encode('utf8'))
+                    logger.info(d)
+                    vote['meta']['updated']=now
+                    if stats: stats[1]+=1
+                    vote['_id']=obj['_id']
+                    #notify(vote,d)
+                vote['changes']=vote.get('changes',{})
+                vote['changes'][now.isoformat()]=d
+                db.ep_com_votes.save(vote)
+    print >>sys.stderr, "com_votes added/updated:", stats
