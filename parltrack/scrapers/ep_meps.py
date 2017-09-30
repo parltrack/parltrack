@@ -22,10 +22,10 @@ from datetime import datetime
 from mappings import COMMITTEE_MAP, buildings, group_map, COUNTRIES, SEIRTNUOC
 from urlparse import urljoin
 import unicodedata, traceback, sys, json
-from parltrack.utils import diff, fetch, fetch_raw, unws, Multiplexer, logger, jdump
+from parltrack.utils import diff, unws, Multiplexer, logger, jdump
+from ep_com_votes import fetch, fetch_raw # todo this is a mess, put it into utils.py
 from parltrack.db import db
 import findecl
-#from lxml import etree
 
 current_term=8
 BASE_URL = 'http://www.europarl.europa.eu'
@@ -117,7 +117,7 @@ def getactivities(mepid, terms=[8]):
             idx=0
             while True:
                 res=fetch_raw(urltpl % (mepid,type,term,idx)) #, headers=ctjson)
-                ret=json.load(res)
+                ret=json.loads(res)
                 actions[type][term].extend(ret['documentList'])
                 idx=ret['nextIndex']
                 if idx in [-1,0]: break
