@@ -3,22 +3,22 @@
 import json, sys
 
 print sys.stdin.read(1) # skip leading [
+print '\t'.join(['mep','group','vote','report','issue','voteid','ep_title','mepid'])
 for rec in sys.stdin:
-    raw = json.loads(rec[:rec.rfind('}')+1].decode('utf8'))
+    line = rec[:rec.rfind('}')+1].decode('utf8')
+    if not line: continue
+    raw = json.loads(line)
     votes = []
     for act in ['Abstain', 'For', 'Against']:
+        if not act in raw: continue
         for grp in raw[act]['groups']:
             for mep in grp['votes']:
-                res = {"group":  grp['group'],
-                       "vote":   act}
-                if type(mep) == dict:
-                    res["mep"] = mep['orig']
-                    res["mepid"] = mep['id']
-                else:
-                    res['mep'] = mep
-                votes.append(res)
-    raw['votes'] = votes
-    del raw['For']; del raw['Abstain']; del raw['Against']
-    # print json.dumps(raw, indent=1, ensure_ascii=False).encode('utf8'), ','
-    print json.dumps(raw, ensure_ascii=False).encode('utf8'), ','
-print ']'
+                print u'\t'.join([
+                    mep['name'],
+                    grp.get('group',''),
+                    act,
+                    raw.get('report',''),
+                    raw.get('issue_type',''),
+                    raw.get('voteid',''),
+                    raw.get('eptitle',''),
+                    str(mep['ep_id'])]).encode('utf8')
