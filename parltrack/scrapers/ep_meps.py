@@ -116,7 +116,9 @@ def getactivities(mepid, terms=[8]):
             actions[type][term]=[]
             idx=0
             while True:
-                res=fetch_raw(urltpl % (mepid,type,term,idx)) #, headers=ctjson)
+                res=fetch_raw(urltpl % (mepid,type,term,idx), ignore=[500]) #, headers=ctjson)
+                if not res: break
+                if '<h2>Error while collecting data</h2>' in res: break
                 ret=json.loads(res)
                 actions[type][term].extend(ret['documentList'])
                 idx=ret['nextIndex']
