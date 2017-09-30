@@ -116,7 +116,11 @@ def getactivities(mepid, terms=[8]):
             actions[type][term]=[]
             idx=0
             while True:
-                res=fetch_raw(urltpl % (mepid,type,term,idx), ignore=[500]) #, headers=ctjson)
+                _url = urltpl % (mepid,type,term,idx)
+                try: res=fetch_raw(_url, ignore=[500]) #, headers=ctjson)
+                except: 
+                    logger.warn("failed to fetch %s" % _url)
+                    break
                 if not res: break
                 if '<h2>Error while collecting data</h2>' in res: break
                 ret=json.loads(res)
@@ -127,7 +131,6 @@ def getactivities(mepid, terms=[8]):
                 del actions[type][term]
         if not actions[type]:
             del actions[type]
-
     return actions
 
 def parseMember(userid):
@@ -226,7 +229,7 @@ def parseMember(userid):
                     u'start':     datetime.strptime(unws(start), u"%d.%m.%Y"),
                     u'end':       datetime.strptime(unws(end), u"%d.%m.%Y"),
                     })
-        elif key in ['Member', 'Substitute', 'Chair', 'Vice-Chair', 'Co-President', 'President', 'Vice-President', 'Observer', 'Quaestor']:
+        elif key in ['Member', 'Substitute', 'Chair', 'Vice-Chair', 'Co-President', 'President', 'Vice-President', 'Observer', 'Quaestor', 'Substitute observer']:
             # memberships in various committees, delegations and EP mgt
             for constlm in section.xpath('./following-sibling::ul[@class="events_collection bullets"][1]/li'):
                 line=unws(u' '.join([unicode(x) for x in constlm.xpath('.//text()')]))
