@@ -63,6 +63,13 @@ mepmap={
         u'Valcárcel': u'VALCÁRCEL SISO',
         u'Valenciano Martínez-Orozco': u'Valenciano ',
         u'Vozemberg': u'VOZEMBERG-VRIONIDI',
+        u'Flašíková Beňová': u'BEŇOVÁ',
+        u'Sebastià': u'SEBASTIA TALAVERA',
+        u'Grigule': u'GRIGULE-PĒTERSE',
+        u'Paunova': u'MAYDELL',
+        u'Ceballos': u'VALERO',
+        u'Gill CBE': u'GILL',
+        u'Али': u'ALI',
         }
 
 mepCache={}
@@ -135,7 +142,9 @@ for day in votingdays(_8th):
        if not mep in meps: meps[mep]={'name': text,'present': 0, 'excused':0, 'awol': 0, 'active': allmeps[mep]}
        if not meps[mep]['name']: meps[mep]['name']=text
        meps[mep]['present']+=1
-       del allmeps[mep]
+       try: del allmeps[mep]
+       except:
+           print >>sys.stderr, '1', day,mep,text
     for text in data[3].xpath('.//text()')[0].split(', '):
        mep=getMep(text,day)
        if not mep:
@@ -145,7 +154,9 @@ for day in votingdays(_8th):
        if not mep in meps: meps[mep]={'name': text,'present': 0, 'excused':0, 'awol': 0, 'active': allmeps[mep]}
        if not meps[mep]['name']: meps[mep]['name']=text
        meps[mep]['excused']+=1
-       del allmeps[mep]
+       try: del allmeps[mep]
+       except:
+           print >>sys.stderr, '2', day,mep,text
     for mep in allmeps:
        if not mep in meps: meps[mep]={'name': '','present': 0, 'excused':0, 'awol': 0, 'active': 'unknown'}
        meps[mep]['awol']+=1
@@ -153,7 +164,7 @@ for day in votingdays(_8th):
 #for mep, cnts in sorted(meps.items()):
 #    print "%s\t%s\t%s\t%s\t%s" % (cnts['present'], cnts['excused'], cnts['awol'], mep, cnts['name'].encode('utf8'))
 
-print 'name,id,voted,votes,percent,active,excused,awol'
+print 'name,id,present,total,percent,active,excused,awol'
 
 for mep in sorted(((mep['name'],
                     mep['present'],
