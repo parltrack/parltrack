@@ -439,6 +439,7 @@ def inc(dct,fld,sfl):
     dct[fld][sfl]+=1
 
 def getCountry(mep,date):
+    if not mep: return "unknown","unknown"
     if type(date) in [type(str()), type(unicode())]:
         date=datetime.strptime(date,"%Y-%m-%d")
     for c in mep:
@@ -454,6 +455,7 @@ def getCountry(mep,date):
             return (c['country'],c['party'])
     if len(mep)==1:
         return (mep[0]['country'],mep[0]['party'])
+    return "unknown","unknown"
 
 def tonewmep(oid):
     omep = db.ep_meps.find_one({'_id': oid}, ['UserID'])
@@ -462,7 +464,12 @@ def tonewmep(oid):
 
 def subjects():
     all={}
-    fullmeps=dict([(x['_id'],(x['Constituencies'])) for x in db.ep_meps2.find({},['Constituencies'])])
+    #fullmeps=dict([(x['_id'],(x['Constituencies'])) for x in db.ep_meps2.find({},['Constituencies'])])
+    fullmeps={}
+    for x in db.ep_meps2.find({},['Constituencies']):
+        try: fullmeps[x['_id']]=x['Constituencies']
+        except: pass
+
     tree={}
     for d in db.dossiers2.find():
         subs=[fetchsubj(x) for x in d['procedure'].get('subject',[]) if x]
@@ -474,12 +481,11 @@ def subjects():
                                  if hasattr(a,'keys') and committee.get('responsible') and a.get('mepref')]:
             if actor in buck: continue
             buck.append(actor)
-            if type(committee.get('date'))==type(list()):
-                (country,party)=getCountry(fullmeps.get(actor['mepref']) or fullmeps[tonewmep(actor['mepref'])],
+            if isinstance(committee.get('date'), list):
+                (country,party)=getCountry(fullmeps.get(actor['mepref']),
                                            committee.get('date')[committee['rapporteur'].index(actor)])
             else:
-                (country,party)=getCountry(fullmeps.get(actor['mepref']) or fullmeps[tonewmep(actor['mepref'])],
-                                           committee.get('date'))
+                (country,party)=getCountry(fullmeps.get(actor['mepref']), committee.get('date'))
             [inc(all,(party, actor['group'], country),sub) for sub in subs]
             inc(all,(party, actor['group'], country),'total')
             group=actor['group']
