@@ -73,31 +73,34 @@ def diff(old, new, path=[]):
     return
 
 class hashabledict(dict):
+    val = None
     def __hash__(self):
-        return hash(str(sorted(self.iteritems())))
+        if not self.val:
+            self.val=hash(str(sorted(self.items())))
+        return self.val
 
 def difflist(old, new, path):
     if not old:
         oldset=set()
         oldorder=dict()
-    elif dict in [type(x) for x in old]:
-        oldset=set([hashabledict(x) if type(x) == dict else x for x in old])
-        oldorder=dict([(hashabledict(e) if type(e) == dict else e, i) for i, e in enumerate(old)])
-    elif list in [type(x) for x in old]:
-        oldset=set([tuple(x) if type(x) == list else x for x in old])
-        oldorder=dict([(tuple(e) if type(e) == list else e, i) for i, e in enumerate(old)])
+    elif dict in {type(x) for x in old}:
+        oldset={hashabledict(x) if isinstance(x,dict) else x for x in old}
+        oldorder=dict([(hashabledict(e) if isinstance(e,dict) else e, i) for i, e in enumerate(old)])
+    elif list in {type(x) for x in old}:
+        oldset=set([tuple(x) if isinstance(x, list) else x for x in old])
+        oldorder=dict([(tuple(e) if isinstance(e, list) else e, i) for i, e in enumerate(old)])
     else:
         oldset=set(old)
         oldorder=dict([(e,i) for i, e in enumerate(old)])
     if not new:
         newset=set()
         neworder=dict()
-    elif dict in [type(x) for x in new]:
-        newset=set([hashabledict(x) if type(x) == dict else x for x in new])
-        neworder=dict([(hashabledict(e) if type(e) == dict else e, i) for i, e in enumerate(new)])
-    elif list in [type(x) for x in new]:
-        newset=set([tuple(x) if type(x) == list else x for x in new])
-        neworder=dict([(tuple(e) if type(e) == list else e, i) for i, e in enumerate(new)])
+    elif dict in {type(x) for x in new}:
+        newset=set([hashabledict(x) if isinstance(x, dict) else x for x in new])
+        neworder=dict([(hashabledict(e) if isinstance(e, dict) else e, i) for i, e in enumerate(new)])
+    elif list in {type(x) for x in new}:
+        newset={tuple(x) if isinstance(x, list) else x for x in new}
+        neworder=dict([(tuple(e) if isinstance(e, list) else e, i) for i, e in enumerate(new)])
     else:
         newset=set(new)
         neworder=dict([(e,i) for i, e in enumerate(new)])
@@ -377,8 +380,7 @@ def fetch(url, retries=5, ignore=[], params=None):
         # cut <?xml [..] ?> part
         xml = xml[xml.find('?>')+2:]
         return fromstring(xml)
-    except Exception as e:
-        print('Fetch error: {0}'.format(e))
+    except:
         if retries>0:
             time.sleep(4*(6-retries))
             return fetch(url,retries-1, ignore=ignore)

@@ -121,11 +121,20 @@ def getactivities(mepid, terms=[8]):
             actions[type][term]=[]
             idx=0
             while True:
-                res=fetch_raw(urltpl % (mepid,type,term,idx)) #, headers=ctjson)
-                ret=json.loads(res.read().decode('utf-8'))
+                _url = urltpl % (mepid,type,term,idx)
+                try:
+                    res=fetch_raw(_url, ignore=[500]) #, headers=ctjson)
+                except:
+                    logger.warn("failed to fetch %s" % _url)
+                    break
+                if not res:
+                    break
+                if '<h2>Error while collecting data</h2>' in res: break
+                ret=json.loads(res)
                 actions[type][term].extend(ret['documentList'])
                 idx=ret['nextIndex']
-                if idx in [-1,0]: break
+                if idx in [-1,0]:
+                    break
             if not actions[type][term]:
                 del actions[type][term]
         if not actions[type]:
@@ -229,7 +238,7 @@ def parseMember(userid):
                     u'start':     datetime.strptime(unws(start), u"%d.%m.%Y"),
                     u'end':       datetime.strptime(unws(end), u"%d.%m.%Y"),
                     })
-        elif key in ['Member', 'Substitute', 'Chair', 'Vice-Chair', 'Co-President', 'President', 'Vice-President', 'Observer', 'Quaestor']:
+        elif key in ['Member', 'Substitute', 'Chair', 'Vice-Chair', 'Co-President', 'President', 'Vice-President', 'Observer', 'Quaestor', 'Substitute observer']:
             # memberships in various committees, delegations and EP mgt
             for constlm in section.xpath('./following-sibling::ul[@class="events_collection bullets"][1]/li'):
                 line=unws(u' '.join([unicode(x) for x in constlm.xpath('.//text()')]))
@@ -298,7 +307,13 @@ def parseMember(userid):
     # get CV - page (is on separate http path :/)
     cvurl='http://www.europarl.europa.eu/meps/en/%s/_cv.html' % userid
     root = fetch(cvurl, ignore=[500])
-    data[u'CV']=[unws(x) for x in root.xpath('//p[@class="details_cv"]/text()')]
+    data[u'CV']={}
+    for sec in root.xpath('//h3[@class="collapsible"]'):
+        section=unws(''.join(sec.xpath('.//text()')))
+        data[u'CV'][section]=[]
+        for line in sec.xpath('./following-sibling::div[1]//li'):
+            data[u'CV'][section].append(unws(''.join(line.xpath('.//text()'))))
+
 
     # get assistants also on a separate page :/
     assurl='http://www.europarl.europa.eu/meps/en/%s/_assistants.html' % userid
