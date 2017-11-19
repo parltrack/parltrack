@@ -123,14 +123,14 @@ def getactivities(mepid, terms=[8]):
             while True:
                 _url = urltpl % (mepid,type,term,idx)
                 try:
-                    res=fetch_raw(_url, ignore=[500]) #, headers=ctjson)
+                    res=fetch(_url, ignore=[500]) #, headers=ctjson)
                 except:
                     logger.warn("failed to fetch %s" % _url)
                     break
                 if not res:
                     break
                 if '<h2>Error while collecting data</h2>' in res: break
-                ret=json.loads(res)
+                ret=json.loads(res.read())
                 actions[type][term].extend(ret['documentList'])
                 idx=ret['nextIndex']
                 if idx in [-1,0]:
@@ -546,8 +546,8 @@ unlisted=[ 1018, 26833, 1040, 1002, 2046, 23286, 28384, 1866, 28386,
            1275, 2187, 34004, 28309, 1490, 28169, 28289, 28841, 1566,
            2174, 4281, 28147, 28302, ]
 meplists={
-    'in':       'http://www.europarl.europa.eu/meps/en/xml.html?query=inout&type=in',
-    'out':      'http://www.europarl.europa.eu/meps/en/xml.html?query=inout&type=out',
+    'in':        'http://www.europarl.europa.eu/meps/en/incoming-outgoing-xml.html?type=in',
+    'out':       'http://www.europarl.europa.eu/meps/en/incoming-outgoing-xml.html?type=out',
     'observer': 'http://www.europarl.europa.eu/meps/en/xml.html?query=observer',
     #'all':      'http://www.europarl.europa.eu/meps/en/xml.html?query=full&filter=&leg=0', # returns limited to only 80 records per default :/
     'all':      'http://www.europarl.europa.eu/meps/en/xml.html?query=full&filter=%s&leg=0', # we have to page by starting letters :/
