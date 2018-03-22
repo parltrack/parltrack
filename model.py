@@ -1,7 +1,7 @@
 from sqlalchemy import (
     create_engine,
     Column,
-    Integer,
+    Integer, String
 )
 from json import dumps
 from sqlalchemy.dialects.postgresql import JSON
@@ -83,6 +83,11 @@ class Amendment(Base):
     id = Column(Integer, primary_key=True)
     data = Column(JSON)
 
+class Etags(Base):
+    __tablename__ = 'etags'
+
+    url = Column(String,primary_key=True)
+    etag = Column(String)
 
 if __name__ == '__main__':
     print("Creating database")
