@@ -15,7 +15,7 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with parltrack  If not, see <http://www.gnu.org/licenses/>.
 
-# (C) 2011 by Stefan Marsiske, <stefan.marsiske@gmail.com>, Asciimoo
+# (C) 2011,2018 by Stefan Marsiske, <stefan.marsiske@gmail.com>, Asciimoo
 
 
 from datetime import datetime
@@ -27,7 +27,8 @@ except:
     xrange = range
     from urllib.parse import urljoin
 import unicodedata, traceback, sys, json
-from utils import diff, fetch, fetch_raw, unws, Multiplexer, logger, jdump
+from utils.utils import diff, fetch, fetch_raw, unws, logger, jdump
+from utils.multiplexer import Multiplexer
 from model import Mep
 import findecl
 #from lxml import etree
@@ -69,25 +70,6 @@ def getAddress(root):
         else:
             logger.error("wtf %s" % key)
     return res
-
-def getMEPGender(id):
-    try:
-        mepraw=fetch("http://www.europarl.europa.eu/meps/fr/%s/_home.html" % (id), ignore=[500])
-    except Exception as e:
-        logger.error("mepgender %s" % e)
-        return 'n/a'
-    borntxt=mepraw.xpath('//div[@class="zone_info_mep_transparent_mep_details"]//span[@class="more_info"]/text()')
-    if len(borntxt)>0:
-        if unws(borntxt[-1]).startswith(u'décédé'):
-            hint=borntxt[-2].replace(u"\u00A0",' ').split()[0]
-        else:
-            hint=borntxt[-1].replace(u"\u00A0",' ').split()[0]
-        if hint==u"Née":
-            return "F"
-        elif hint==u"Né":
-            return "M"
-    logger.warn('[!] no birth/gender data http://www.europarl.europa.eu/meps/fr/%s/get.html' % id)
-    return 'n/a'
 
 def getMEPDeclarations(id):
     try:
@@ -407,10 +389,6 @@ def mangleName(name):
 def scrape(userid):
     mep=parseMember(userid)
     mep['UserID']=userid
-    #try:
-        #mep['Gender'] = getMEPGender(userid)
-    #except:
-    #    pass
     difurls, daturls = getMEPDeclarations(userid)
     mep['Declarations of Participation'] = daturls
     mep['Financial Declarations']=[findecl.scrape(url) for url in difurls]
@@ -518,8 +496,8 @@ Titles=[u'Sir',
 
 def save(data, stats):
     res=Mep.get_by_id(data['UserID']) or {}
-    if 'Gender' not in data and 'Gender' in res: data['Gender']=res['Gender']
-    d=diff(dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes', 'activities',]]),
+    if 'Gender' not in data and 'Gender' in res.data: data['Gender']=res['Gender']
+    d=diff(dict([(k,v) for k,v in res.data.items() if not k in ['_id', 'meta', 'changes', 'activities',]]),
            dict([(k,v) for k,v in data.items() if not k in ['_id', 'meta', 'changes', 'activities',]]))
     if d:
         now=datetime.utcnow().replace(microsecond=0)
@@ -532,8 +510,8 @@ def save(data, stats):
             logger.warn(jdump(d))
             data['meta']['updated']=now
             if stats: stats[1]+=1
-            data['_id']=res['_id']
-        data['changes']=res.get('changes',{})
+            data['_id']=res.data['_id']
+        data['changes']=res.data.get('changes',{})
         data['changes'][now.isoformat()]=d
         Mep.upsert(data)
     del res
@@ -556,7 +534,7 @@ meplists={
     'unlisted': None,
 }
 
-def getmeps(query='current'):
+def crawler(query='current'):
     if query=='unlisted':
         for mep in unlisted:
             yield mep
@@ -572,29 +550,10 @@ def getmeps(query='current'):
         for meplm in root.xpath('//id/text()'):
             yield int(meplm)
 
-def crawler(meps,saver=jdump,threads=4):
-    m=Multiplexer(scrape,saver,threads=threads)
-    m.start()
-    [m.addjob(mepid) for mepid in meps]
-    m.finish()
-    logger.info('end of crawl')
-
-def seqcrawl(meps, term=current_term,saver=jdump, scraper=scrape, null=False):
-    return [saver(scraper(mepid),None)
-            for mepid in meps
-            if (null and Mep.get_by_id(mepid)==None) or not null]
-
 if __name__ == "__main__":
     if len(sys.argv)<2:
-        print("{0} full|test|mepid <mepid> [<seq>] [<dry>]".format(sys.argv[0]))
+        print("{0} full|test|mepid <mepid>".format(sys.argv[0]))
     args=set(sys.argv[1:])
-    saver=save
-    null=False
-    if 'dry' in args:
-        saver=jdump
-    if 'null' in args:
-        null=True
-
     if sys.argv[1]=="test":
         print(jdump(scrape('28215')).encode('utf8'))
         print(jdump(scrape('113959')).encode('utf8'))
@@ -610,17 +569,13 @@ if __name__ == "__main__":
         print(jdump(scrape("http://www.europarl.europa.eu/meps/en/96739/Reinhard_B%C3%9CTIKOFER.html"), None))
         print(jdump(scrape("http://www.europarl.europa.eu/meps/en/28269/Jerzy_BUZEK.html"), None))
         print(jdump(scrape("http://www.europarl.europa.eu/meps/en/1186/Astrid_LULLING.html"), None))
+
     elif sys.argv[1]=='mepid' and sys.argv[2]:
-        #print saver(scrape(int(sys.argv[2]))).encode('utf8')
         print(jdump(scrape(int(sys.argv[2]))).encode('utf8'))
         sys.exit(0)
 
     elif sys.argv[1] in meplists.keys():
-        logger.info('\n\tsaver: %s\n\tseq: %s' % (saver, 'seq' in args))
-        meps=getmeps(sys.argv[1])
-        if 'seq' in args:
-            res=seqcrawl(meps,saver=saver, null=null)
-            if 'dry' in args:
-                print("[%s]" % ',\n'.join(res).encode('utf8'))
-        else:
-            crawler(meps,saver=saver)
+        s=Multiplexer(scrape,save,threads=2)
+        def _crawler():
+            return crawler(sys.argv[1])
+        s.run(_crawler)
