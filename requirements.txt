@@ -3,3 +3,5 @@ flask
 psycopg2
 sh
 sqlalchemy
+requests
+lxml
