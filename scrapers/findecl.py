@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from utils import fetch_raw, jdump, logger
+from utils.utils import fetch_raw, jdump, logger
 from tempfile import mkstemp
 from sh import pdftotext
 import sys, os, re
