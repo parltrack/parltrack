@@ -48,7 +48,11 @@ def sanitizeHtml(value, base_url=None):
 
     return soup.renderContents().decode('utf8')
 
+unicode = str
 def diff(old, new, path=[]):
+    print(type(old), old)
+    print(type(new), new)
+    print(path)
     if type(old) == str: old=unicode(old)
     if type(new) == str: new=unicode(new)
     if old==None and new!=None:
@@ -80,6 +84,10 @@ class hashabledict(dict):
         return self.val
 
 def difflist(old, new, path):
+    print('difflist')
+    print(type(old), old)
+    print(type(new), new)
+    print(path)
     if not old:
         oldset=set()
         oldorder=dict()
@@ -118,7 +126,7 @@ def difflist(old, new, path):
                                          if type(ne)==type(list())
                                          else neworder[ne]]))
                             for ne in list(newunique)],
-                           cmp=lambda a,b: cmp(len(a[2]),len(b[2])))
+                           key=lambda a: len(a[2]))
         # find deep matches firs
         skip=False
         for c in candidates:
@@ -349,43 +357,38 @@ def test_diff():
     #import pprint
     #pprint.pprint(diff(d1,d2))
 
-opener=None
-def init_opener():
-    global opener
-    opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
-    #opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()),
-    #                              urllib2.ProxyHandler({'http': 'http://localhost:8123/'}))
-    opener.addheaders = [('User-agent', 'parltrack/0.6')]
+##### fetch url implementation
+
+from lxml.html.soupparser import fromstring
+import requests, time
+
+PROXIES = {} #'http': 'http://localhost:8123/'}
+HEADERS =  { 'User-agent': 'parltrack/0.8' }
 
 def fetch_raw(url, retries=5, ignore=[], params=None):
-    if not opener:
-        init_opener()
-    # url to etree
     try:
-        f=opener.open(url, params)
-    except (urllib2.HTTPError, urllib2.URLError) as e:
-        if hasattr(e, 'code') and e.code>=400 and e.code not in [504, 502]+ignore:
-            logger.warn("[!] %d %s" % (e.code, url))
-            raise
+        if params:
+            r=requests.POST(url, params=params, proxies=PROXIES, headers=HEADERS)
+        else:
+            r=requests.get(url, proxies=PROXIES, headers=HEADERS)
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+        if e == requests.exceptions.Timeout:
+            retries = min(retries, 1)
         if retries>0:
             time.sleep(4*(6-retries))
             f=fetch_raw(url, retries-1, ignore=ignore, params=params)
         else:
-            raise
-    return f
+            raise ValueError("failed to fetch %s" % url)
+    if r.status_code >= 400 and r.status_code not in [504, 502]+ignore:
+        logger.warn("[!] %d %s" % (r.status_code, url))
+        r.raise_for_status()
+    return r.text
 
 def fetch(url, retries=5, ignore=[], params=None):
-    try:
-        xml = fetch_raw(url, retries, ignore, params).read().decode('utf-8')
-        # cut <?xml [..] ?> part
-        xml = xml[xml.find('?>')+2:]
-        return fromstring(xml)
-    except:
-        if retries>0:
-            time.sleep(4*(6-retries))
-            return fetch(url,retries-1, ignore=ignore)
-        else:
-            raise
+    xml = fetch_raw(url, retries, ignore, params)
+    # cut <?xml [..] ?> part
+    xml = xml[xml.find('?>')+2:]
+    return fromstring(xml)
 
 from multiprocessing import Pool, Process, JoinableQueue, log_to_stderr
 from multiprocessing.sharedctypes import Value
@@ -406,7 +409,7 @@ class Multiplexer(object):
         self.q=JoinableQueue()
         self.done = Value(c_bool,False)
         self.consumer=Process(target=self.consume)
-        self.pool = Pool(threads, init_opener)
+        self.pool = Pool(threads)
 
     def start(self):
         self.done.value=False
@@ -450,12 +453,6 @@ class Multiplexer(object):
 
 
 import pprint
-try:
-    import urllib2
-    import cookielib
-except:
-    import urllib.request as urllib2
-    import http.cookiejar as cookielib
 import sys, time, json
 from bs4 import BeautifulSoup, Comment
 try:
