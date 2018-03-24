@@ -4,7 +4,7 @@ from sqlalchemy import (
     Integer, String
 )
 from json import dumps
-from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.sql.expression import cast
@@ -31,14 +31,14 @@ class Dossier(Base):
     __tablename__ = 'dossier'
 
     id = Column(Integer, primary_key=True)
-    data = Column(JSON)
+    data = Column(JSONB)
 
 
 class Mep(Base):
     __tablename__ = 'mep'
 
     id = Column(Integer, primary_key=True)
-    data = Column(JSON)
+    data = Column(JSONB)
 
     @staticmethod
     def get_by_id(id):
@@ -67,21 +67,21 @@ class Vote(Base):
     __tablename__ = 'vote'
 
     id = Column(Integer, primary_key=True)
-    data = Column(JSON)
+    data = Column(JSONB)
 
 
 class Meeting(Base):
     __tablename__ = 'meeting'
 
     id = Column(Integer, primary_key=True)
-    data = Column(JSON)
+    data = Column(JSONB)
 
 
 class Amendment(Base):
     __tablename__ = 'amendment'
 
     id = Column(Integer, primary_key=True)
-    data = Column(JSON)
+    data = Column(JSONB)
 
 class Etags(Base):
     __tablename__ = 'etags'
