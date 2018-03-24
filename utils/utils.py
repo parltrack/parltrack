@@ -20,41 +20,34 @@
 
 debug=False
 
+import pprint
+import sys, json
+from bs4 import BeautifulSoup, Comment
+try:
+    from itertools import izip_longest
+except:
+    from itertools import zip_longest as izip_longest
+from operator import itemgetter
+from config import ROOT_URL
+
+if sys.version[0] == '3':
+    unicode = str
+
 def unws(txt):
     return u' '.join(txt.split())
 
-def sanitizeHtml(value, base_url=None):
-    rjs = r'[\s]*(&#x.{1,7})?'.join(list('javascript:'))
-    rvb = r'[\s]*(&#x.{1,7})?'.join(list('vbscript:'))
-    re_scripts = re.compile('(%s)|(%s)' % (rjs, rvb), re.IGNORECASE)
-    validTags = 'p i strong b u a h1 h2 h3 pre br img'.split()
-    validAttrs = 'href src width height'.split()
-    urlAttrs = 'href src'.split() # Attributes which should have a URL
-    soup = BeautifulSoup(value)
-    for comment in soup.findAll(text=lambda text: isinstance(text, Comment)):
-        # Get rid of comments
-        comment.extract()
-    for tag in soup.findAll(True):
-        if tag.name not in validTags:
-            tag.hidden = True
-        attrs = tag.attrs
-        tag.attrs = []
-        for attr, val in attrs:
-            if attr in validAttrs:
-                val = re_scripts.sub('', val) # Remove scripts (vbs & js)
-                if attr in urlAttrs:
-                    val = urljoin(base_url, val) # Calculate the absolute url
-                tag.attrs.append((attr, val))
+def normalize_obj(obj):
+    if type(obj) == str:
+        return unicode(obj)
+    if type(obj) == bytes:
+        return obj.decode('utf-8')
+    elif hasattr(obj, 'isoformat'):
+        return unicode(obj.isoformat())
+    return obj
 
-    return soup.renderContents().decode('utf8')
-
-unicode = str
 def diff(old, new, path=[]):
-    print(type(old), old)
-    print(type(new), new)
-    print(path)
-    if type(old) == str: old=unicode(old)
-    if type(new) == str: new=unicode(new)
+    old=normalize_obj(old)
+    new=normalize_obj(new)
     if old==None and new!=None:
         return [{'type': 'added', 'data': new, 'path': path}]
     elif new==None and old!=None:
@@ -68,7 +61,7 @@ def diff(old, new, path=[]):
             if r:
                 res.extend(r)
         return res
-    elif hasattr(old,'__iter__'):
+    elif hasattr(old,'__iter__') and not isinstance(old,str):
         return difflist(old, new, path)
     elif (([type(x) for x in [old, new]] == [ unicode, unicode ] and
            ''.join(old.split()).lower() != ''.join(new.split()).lower()) or
@@ -83,35 +76,24 @@ class hashabledict(dict):
             self.val=hash(str(sorted(self.items())))
         return self.val
 
+def normalize_list(obj):
+    if not obj:
+        objset=set()
+        objorder=dict()
+    elif dict in {type(x) for x in obj}:
+        objset={hashabledict(x) if isinstance(x,dict) else x for x in obj}
+        objorder={hashabledict(e) if isinstance(e,dict) else e: i for i, e in enumerate(obj)}
+    elif list in {type(x) for x in obj}:
+        objset={tuple(x) if isinstance(x, list) else x for x in obj}
+        objorder={tuple(e) if isinstance(e, list) else e: i for i, e in enumerate(obj)}
+    else:
+        objset=set(obj)
+        objorder={e:i for i, e in enumerate(obj)}
+    return objset, objorder
+
 def difflist(old, new, path):
-    print('difflist')
-    print(type(old), old)
-    print(type(new), new)
-    print(path)
-    if not old:
-        oldset=set()
-        oldorder=dict()
-    elif dict in {type(x) for x in old}:
-        oldset={hashabledict(x) if isinstance(x,dict) else x for x in old}
-        oldorder=dict([(hashabledict(e) if isinstance(e,dict) else e, i) for i, e in enumerate(old)])
-    elif list in {type(x) for x in old}:
-        oldset=set([tuple(x) if isinstance(x, list) else x for x in old])
-        oldorder=dict([(tuple(e) if isinstance(e, list) else e, i) for i, e in enumerate(old)])
-    else:
-        oldset=set(old)
-        oldorder=dict([(e,i) for i, e in enumerate(old)])
-    if not new:
-        newset=set()
-        neworder=dict()
-    elif dict in {type(x) for x in new}:
-        newset=set([hashabledict(x) if isinstance(x, dict) else x for x in new])
-        neworder=dict([(hashabledict(e) if isinstance(e, dict) else e, i) for i, e in enumerate(new)])
-    elif list in {type(x) for x in new}:
-        newset={tuple(x) if isinstance(x, list) else x for x in new}
-        neworder=dict([(tuple(e) if isinstance(e, list) else e, i) for i, e in enumerate(new)])
-    else:
-        newset=set(new)
-        neworder=dict([(e,i) for i, e in enumerate(new)])
+    oldset,oldorder=normalize_list(old)
+    newset,neworder=normalize_list(new)
     oldunique=set(oldset) - set(newset)
     newunique=set(newset) - set(oldset)
     # all the same
@@ -127,7 +109,7 @@ def difflist(old, new, path):
                                          else neworder[ne]]))
                             for ne in list(newunique)],
                            key=lambda a: len(a[2]))
-        # find deep matches firs
+        # find deep matches first
         skip=False
         for c in candidates:
             for d in c[2]:
@@ -156,15 +138,11 @@ def difflist(old, new, path):
         ret.extend(sorted([{'type': u'deleted', 'data': e, 'path': path + [oldorder[e]]} for e in oldunique], key=itemgetter('path')))
     return ret
 
-#ObjectId = int
-
 def dateJSONhandler(obj):
     if hasattr(obj, 'isoformat'):
         return unicode(obj.isoformat())
     elif type(obj)==bytes:
         return obj.decode('utf-8')
-    #elif type(obj)==ObjectId:
-    #    return unicode(obj)
     else:
         raise TypeError('Object of type {0} with value of {1} is not JSON serializable'.format(type(obj), repr(obj)))
 
@@ -343,20 +321,6 @@ def htmldiff(item,diffs):
             result.append("%s" % htmldict(elem))
     return "%s</dd></dl></body></html>" % ''.join(result)
 
-def test_diff():
-    from a1 import a1 as d1, a2 as d3
-    from a2 import a2 as d2
-    #pprint.pprint(diff(d3,d1))
-    #pprint.pprint(diff(d3,d2))
-    pprint.pprint(diff(d1,d2))
-    #d1={ 'a': [ { 'aa': 1, 'bb':3 }, {'AA': 1, 'BB': { 'asdf': '2'}}, {'Mm': [ 'a','b','c','d'] } ],
-    #     'b': { 'z': 9, 'x': 8 },
-    #     'c': [ 1,2,3,4]}
-    #d2={ 'a': [ {'aa': 2, 'bb': 3 }, { 'aa': 1, 'bb':3 }, {'AA': 1, 'BB': { 'asdf': { 'asdf': 'qwer'}}}, {'Mm': [ 'a','b','c','d'] } ],
-    #     'c': [ 0,1,2,3,4]}
-    #import pprint
-    #pprint.pprint(diff(d1,d2))
-
 ##### fetch url implementation
 
 from lxml.html.soupparser import fromstring
@@ -380,7 +344,6 @@ def fetch_raw(url, retries=5, ignore=[], params=None):
         else:
             raise ValueError("failed to fetch %s" % url)
     if r.status_code >= 400 and r.status_code not in [504, 502]+ignore:
-        logger.warn("[!] %d %s" % (r.status_code, url))
         r.raise_for_status()
     return r.text
 
@@ -389,85 +352,6 @@ def fetch(url, retries=5, ignore=[], params=None):
     # cut <?xml [..] ?> part
     xml = xml[xml.find('?>')+2:]
     return fromstring(xml)
-
-from multiprocessing import Pool, Process, JoinableQueue, log_to_stderr
-from multiprocessing.sharedctypes import Value
-from ctypes import c_bool
-try:
-    from Queue import Empty
-except:
-    from queue import Empty
-from logging import DEBUG, WARN, INFO
-import traceback
-logger = log_to_stderr()
-logger.setLevel(INFO)
-
-class Multiplexer(object):
-    def __init__(self, worker, writer, threads=4):
-        self.worker=worker
-        self.writer=writer
-        self.q=JoinableQueue()
-        self.done = Value(c_bool,False)
-        self.consumer=Process(target=self.consume)
-        self.pool = Pool(threads)
-
-    def start(self):
-        self.done.value=False
-        self.consumer.start()
-
-    def addjob(self, url, data=None):
-        params=[url]
-        if data: params.append(data)
-        try:
-           return self.pool.apply_async(self.worker,params,callback=self.q.put)
-        except:
-            logger.error('[!] failed to scrape '+ url)
-            logger.error(traceback.format_exc())
-            raise
-
-    def finish(self):
-        self.pool.close()
-        logger.info('closed pool')
-        self.pool.join()
-        logger.info('joined pool')
-        self.done.value=True
-        self.q.close()
-        logger.info('closed q')
-        self.consumer.join()
-        logger.info('joined consumer')
-        #self.q.join()
-        #logger.info('joined q')
-
-    def consume(self):
-        param=[0,0]
-        while True:
-            job=None
-            try:
-                job=self.q.get(True, timeout=1)
-            except Empty:
-                if self.done.value==True: break
-            if job:
-                param = self.writer(job, param)
-                self.q.task_done()
-        logger.info('added/updated: %s' % param)
-
-
-import pprint
-import sys, time, json
-from bs4 import BeautifulSoup, Comment
-try:
-    from itertools import izip_longest
-except:
-    from itertools import zip_longest as izip_longest
-from copy import deepcopy
-from collections import defaultdict
-from operator import itemgetter
-from lxml.html.soupparser import fromstring
-from config import ROOT_URL
-from model import Dossier
-
-if sys.version[0] == '3':
-    unicode = str
 
 def jdump(d, stats=None):
     # simple json dumper default for saver
@@ -492,57 +376,4 @@ def textdiff(d):
     return '\n'.join(res)
 
 if __name__ == "__main__":
-    ## import pymongo, datetime
-    ## db=pymongo.Connection().parltrack
-    ## docs=db.dossiers.find({'meta.updated': { '$gt': datetime.datetime(2011,11,24,0,0)}})
-    ## print docs.count()
-    ## for d in docs:
-    ##     print '\n', d['procedure']['reference'], d['procedure']['title']
-    ##     print showdiff(d,sorted(d['changes'].items(),reverse=True)[0][1]).encode('utf8')
-
-    #test_diff()
-
-    #d=dossier('COD/2007/0247',without_changes=False)
-    #print '\n', d['procedure']['reference'], d['procedure']['title']
-    #showdiff(d,sorted(d['changes'].items(),reverse=True)[0][1])
-
-    #d=dossier('CNS/2011/0094',without_changes=False)
-    #d=dossier('NLE/2011/0097',without_changes=False)
-    #d=dossier('NLE/2010/0084',without_changes=False)
-    #d=dossier('CNS/2010/0276',without_changes=False)
-    #print '\n', d['procedure']['reference'], d['procedure']['title']
-    ###print sorted(d['changes'].keys(),reverse=True)
-    #pprint.pprint(sorted(d['changes'].keys(),reverse=True))
-    #pprint.pprint(sorted(d['changes'].items(),reverse=True)[0][1])
-    #print showdiff(d,sorted(d['changes'].items(),reverse=True)[0][1]).encode('utf8')
-
-    #d=dossier('COD/2011/0129',without_changes=False)
-    #print '\n', d['procedure']['reference'], d['procedure']['title']
-    ##print sorted(d['changes'].keys(),reverse=True)
-    #print showdiff(d,sorted(d['changes'].items(),reverse=True)[0][1]).encode('utf8')
-
-    #d=dossier('COD/2011/0117',without_changes=False)
-    #print '\n', d['procedure']['reference'], d['procedure']['title']
-    ##print sorted(d['changes'].keys(),reverse=True)
-    #print showdiff(d,sorted(d['changes'].items(),reverse=True)[0][1]).encode('utf8')
-
-    d=Dossier.get_by_id('CNS/2011/0111')
-    #d=dossier('NLE/2008/0137',without_changes=False)
-    #print '\n', d['procedure']['reference'], d['procedure']['title']
-    ##print sorted(d['changes'].keys(),reverse=True)
-    print(htmldiff(d,sorted(d.data['changes'].items(),reverse=True)[0][1]).encode('utf8'))
-
-    #print d['procedure']['reference'], d['procedure']['title']
-    #d=dossier('NLE/2011/0102',without_changes=False)
-    #pprint.pprint (sorted(d['changes'].items(),reverse=True))
-    #print 'x'*80
-    #pprint.pprint(sorted(d.items(),reverse=True))
-    #print showdiff(d,sorted(d['changes'].items(),reverse=True)[0][1])
-
-
-    ## import pymongo
-    ## db=pymongo.Connection().parltrack
-    ## d=db.dossiers.find_one({'procedure.reference': 'CNS/2010/0276'})
-    ## del d['changes']
-    ## pprint.pprint(d)
-    ## sys.exit(0)
+    pass
