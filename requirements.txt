@@ -3,6 +3,7 @@ flask
 psycopg2
 sh
 sqlalchemy
+alembic
 requests
 lxml
 feedparser
