@@ -27,8 +27,8 @@ except:
     xrange = range
     from urllib.parse import urljoin
 import unicodedata, traceback, sys, json
-from utils.utils import diff, fetch, fetch_raw, unws, logger, jdump
-from utils.multiplexer import Multiplexer
+from utils.utils import diff, fetch, fetch_raw, unws, jdump
+from utils.multiplexer import Multiplexer, logger
 from model import Mep
 import findecl
 #from lxml import etree
@@ -334,8 +334,8 @@ def mangleName(name):
             break
         else:
             sur.append(token)
-    sur=' '.join(sur)
-    family=' '.join(family)
+    sur=u' '.join(sur)
+    family=u' '.join(family)
     for t in Titles:
         if sur.endswith(t):
             sur=sur[:-len(t)]
@@ -377,13 +377,13 @@ def mangleName(name):
                                 ])
     if  u'ß' in unicode(name):
         res[u'aliases'].extend([x.replace(u'ß','ss') for x in res['aliases']])
-    if unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore')!=name:
-        res[u'aliases'].extend([unicodedata.normalize('NFKD', unicode(x)).encode('ascii','ignore') for x in res['aliases']])
+    if unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore').decode('utf8')!=name:
+        res[u'aliases'].extend([unicodedata.normalize('NFKD', unicode(x)).encode('ascii','ignore').decode('utf8') for x in res['aliases']])
     if "'" in name:
         res[u'aliases'].extend([x.replace("'","") for x in res['aliases']])
     if name in meps_aliases:
            res[u'aliases'].extend(meps_aliases[name])
-    res[u'aliases']=[x for x in set(res[u'aliases']) if x]
+    res[u'aliases']=sorted([x for x in set(n.strip() for n in res[u'aliases']) if x])
     return res
 
 def scrape(userid):
@@ -495,23 +495,27 @@ Titles=[u'Sir',
         u'Professor Sir']
 
 def save(data, stats):
-    res=Mep.get_by_id(data['UserID']) or {}
-    if 'Gender' not in data and 'Gender' in res.data: data['Gender']=res['Gender']
-    d=diff(dict([(k,v) for k,v in res.data.items() if not k in ['_id', 'meta', 'changes', 'activities',]]),
-           dict([(k,v) for k,v in data.items() if not k in ['_id', 'meta', 'changes', 'activities',]]))
+    res=Mep.get_by_id(data['UserID'])
+    if res is not None:
+        if 'Gender' not in data and 'Gender' in res.data: data['Gender']=res['Gender']
+        d=diff(dict([(k,v) for k,v in res.data.items() if not k in ['meta', 'changes', 'activities',]]),
+               dict([(k,v) for k,v in data.items() if not k in ['meta', 'changes', 'activities',]]))
+    else:
+        d=diff({}, dict([(k,v) for k,v in data.items() if not k in ['meta', 'changes', 'activities',]]))
     if d:
         now=datetime.utcnow().replace(microsecond=0)
         if not res:
-            logger.info(('adding %s' % (data['Name']['full'])).encode('utf8'))
+            logger.info('adding %s' % (data['Name']['full']))
             data['meta']['created']=now
             if stats: stats[0]+=1
+            data['changes']={}
         else:
-            logger.info(('updating %s' % (data['Name']['full'])).encode('utf8'))
+            logger.info('updating %s' % (data['Name']['full']))
             logger.warn(jdump(d))
             data['meta']['updated']=now
             if stats: stats[1]+=1
-            data['_id']=res.data['_id']
-        data['changes']=res.data.get('changes',{})
+            data['id']=res.id
+            data['changes']=res.data.get('changes',{})
         data['changes'][now.isoformat()]=d
         Mep.upsert(data)
     del res
@@ -575,7 +579,7 @@ if __name__ == "__main__":
         sys.exit(0)
 
     elif sys.argv[1] in meplists.keys():
-        s=Multiplexer(scrape,save,threads=2)
+        s=Multiplexer(scrape,save,threads=4)
         def _crawler():
             return crawler(sys.argv[1])
         s.run(_crawler)
