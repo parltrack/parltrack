@@ -33,6 +33,28 @@ class Dossier(Base):
     id = Column(Integer, primary_key=True)
     data = Column(JSONB)
 
+    @staticmethod
+    def get_by_id(id):
+        if not id:
+            return None
+        try:
+            return session.query(Dossier).filter(Dossier.data['procedure']['reference'].astext == str(id)).first()
+        except Exception as e:
+            print(e)
+            session.rollback()
+
+    @staticmethod
+    def upsert(dossier_data):
+        dossier_id = dossier_data.get('procedure', {}).get('reference')
+        dossier = Dossier.get_by_id(dossier_id)
+        if dossier:
+            mep.data = dossier_data
+        else:
+            dossier = Dossier(id=dossier_id, data=dossier_data)
+        session.add(dossier)
+        session.commit()
+        return dossier
+
 
 class Mep(Base):
     __tablename__ = 'mep'
