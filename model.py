@@ -58,13 +58,12 @@ class Dossier(Base):
         dossier_id = dossier_data.get('procedure', {}).get('reference')
         dossier = Dossier.get_by_id(dossier_id)
         if dossier:
-            mep.data = dossier_data
+            dossier.data = dossier_data
         else:
             dossier = Dossier(id=dossier_id, data=dossier_data)
         session.add(dossier)
         session.commit()
         return dossier
-
 
 class Mep(Base):
     __tablename__ = 'mep'
@@ -78,6 +77,20 @@ class Mep(Base):
             return None
         try:
             return session.query(Mep).filter(Mep.data['UserID'].astext == str(id)).first()
+        except Exception as e:
+            print(e)
+            session.rollback()
+
+    @staticmethod
+    def get_by_name(name):
+        if not name:
+            return None
+        try:
+            # todo handle case when more than one result, throw error?
+            res=session.query(Mep).filter(Mep.data['Name']['aliases'].contains(cast(name,JSONB)))
+            if res.count() > 1:
+                raise ValueError("more than one match")
+            return res.first()
         except Exception as e:
             print(e)
             session.rollback()
