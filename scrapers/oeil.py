@@ -218,7 +218,7 @@ stage2inst={ 'Debate in Council': u'CSL',
              'Act approved by Council, 2nd reading': u'CSL',
              'Council draft budget published': u'CSL',
              'Amended budget adopted by Council': u'CSL',
-             
+
              'Final act signed by Parliament and Council': u'EP/CSL',
              'Joint text approved by Conciliation Committee co-chairs': u'EP/CSL',
              'Final decision by Conciliation Committee': u'EP/CSL',
@@ -239,7 +239,7 @@ stage2inst={ 'Debate in Council': u'CSL',
              "Delegated act not objected by Parliament": u"EP/CSL",
 
              'European Central Bank: opinion, guideline, report': u'ECB',
-             
+
              'Legislative proposal published': u'EC',
              'Initial legislative proposal published': u'EC',
              'Modified legislative proposal published': u'EC',
@@ -252,7 +252,7 @@ stage2inst={ 'Debate in Council': u'CSL',
              'Amended legislative proposal for reconsultation published': u'EC',
              'Commission preliminary draft budget published': u'EC',
              'Proposal withdrawn by Commission': u'EC',
-             
+
              'Results of vote in Parliament': u'EP',
              'Debate in Parliament': u'EP',
              'Vote in plenary scheduled': u'EP',
@@ -283,7 +283,7 @@ stage2inst={ 'Debate in Council': u'CSL',
              'Committee interim report tabled for plenary': u'EP',
              'Referral to joint committee announced in Parliament': u'EP',
              'Budgetary report tabled for plenary, 2nd reading': u'EP',
-             
+
              'Committee of the Regions: opinion': u'CoR',
              'Additional information': u'all',
              }
@@ -780,15 +780,16 @@ def save(data, stats):
 #             data['procedure']['reference'],
 #             textdiff(d)))
 
-if __name__ == "__main__":
-    if len(sys.argv)<2:
+def run(args):
+    if len(args)<1:
         print("%s all|new|update|test" % (sys.argv[0]))
-    elif sys.argv[1]=="url":
-        print(jdump(scrape(sys.argv[2])).encode('utf8'))
+        return
+    elif args[0]=="url":
+        yield scrape(args[1])
         #res=scrape(sys.argv[2])
         #print >>sys.stderr, pprint.pformat(res)
         #save(res,[0,0])
-    elif sys.argv[1]=="test":
+    elif args[0]=="test":
         pprint.pprint(scrape(("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2018/0066(COD)&l=en", '(COD)2018/0066')))
         #save(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397"),[0,0]) # telecoms package
         #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=575084"))
@@ -811,8 +812,6 @@ if __name__ == "__main__":
         #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556364") # telecoms package
         #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556398") # telecoms package
         #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=589181") # .hu media law
-    elif sys.argv[1] in ['new','all','active']:
-        s=Multiplexer(scrape,save,threads=4)
-        def _crawler():
-            return crawler(sys.argv[1])
-        s.run(_crawler)
+    elif args[0] in ['new','all','active']:
+        yield (scrape, crawler(args[0]))
+        return
