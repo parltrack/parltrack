@@ -15,38 +15,51 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with parltrack  If not, see <http://www.gnu.org/licenses/>.
 
-# (C) 2009-2011 by Stefan Marsiske, <stefan.marsiske@gmail.com>
+# (C) 2009-2011,2018 by Stefan Marsiske, <stefan.marsiske@gmail.com>
+
 import pprint
 from lxml.etree import tostring
-from urlparse import urljoin, urlsplit, urlunsplit
-from itertools import izip, izip_longest
+
+try:
+    from urlparse import urljoin, urlsplit, urlunsplit
+except:
+    unicode = str
+    xrange = range
+    from urllib.parse import urljoin, urlsplit, urlunsplit
+
+try:
+    from itertools import izip, izip_longest
+except:
+    from itertools import zip_longest as izip_longest
+    izip=zip
+
 import datetime, sys, re, feedparser, traceback
 from operator import itemgetter
-from flaskext.mail import Message
-from parltrack.webapp import mail
-from parltrack.utils import diff, htmldiff, fetch, unws, Multiplexer, logger, jdump, textdiff
-from parltrack.default_settings import ROOT_URL
-from parltrack.scrapers.mappings import ipexevents, COMMITTEE_MAP
+#from flask_mail import Message
+#from parltrack.webapp import mail
+from utils.utils import diff, fetch, unws, jdump, htmldiff, textdiff
+from utils.multiplexer import Multiplexer, logger
+from config import ROOT_URL
+from mappings import COMMITTEE_MAP
+from model import Dossier, Mep
 
 BASE_URL = 'http://www.europarl.europa.eu'
 
 import unicodedata
-from parltrack.db import db
-#from parltrack.scrapers.ipex import IPEXMAP
-IPEXMAP={}
 NOMAIL=False
 
-def getMEPRef(name, retfields=['_id']):
+def getMEPRef(name):
     if not name: return
-    mep=db.ep_meps2.find_one({'Name.aliases': ''.join(name.split()).lower()},retfields)
+    mep=Mep.get_by_name(''.join(name.split()).lower())
     if not mep and u'ß' in name:
-        mep=db.ep_meps2.find_one({'Name.aliases': ''.join(name.replace(u'ß','ss').split()).lower()},retfields)
+        mep=Mep.get_by_name(''.join(name.replace(u'ß','ss').split()).lower())
     if not mep and unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore')!=name:
-        mep=db.ep_meps2.find_one({'Name.aliases': ''.join(unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore').split()).lower()},retfields)
+        mep=Mep.get_by_name(''.join(unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore').split()).lower())
     if not mep and len([x for x in name if ord(x)>128]):
         mep=db.ep_meps2.find_one({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in name]),re.I)},retfields)
+        mep=Mep.get_by_name()
     if mep:
-        return mep['_id']
+        return mep
     else:
         logger.warn('[!] lookup oops %s' % name.encode('utf8'))
 
@@ -76,7 +89,7 @@ def toText(node):
 
     links=node.xpath('a')
     if not links: return text
-    return {u'title': text, u'url': unicode(urljoin(BASE_URL,links[0].get('href')),'utf8')}
+    return {u'title': text, u'url': urljoin(BASE_URL,links[0].get('href')).encode('utf8')}
 
 groupurlmap={'http://www.guengl.eu/?request_locale=en': u"GUE/NGL",
              'http://www.eppgroup.eu/home/en/default.asp?lg1=en': u"EPP",
@@ -385,7 +398,8 @@ def getCommittee(item, committees):
                         'Formal meeting of Conciliation Committee']:
         return sorted([c for c in committees if c.get('committee')=="CODE"],key=itemgetter('committee'))
 
-def scrape(url):
+def scrape(target):
+    url,title=target
     try:
         logger.info('scrape '+url)
         tree=fetch(url)
@@ -394,16 +408,7 @@ def scrape(url):
         events=scrape_events(tree)
         procedure=scrape_basic(tree)
         if not procedure: return
-        ipext=[]
-        for ipexd in IPEXMAP.get(procedure['reference'], {}).get('Dates',[]):
-            skip=False
-            for event in forecasts+events:
-                if event['type'] in ipexevents.get(ipexd['type'],{}).get('oeil',[]) and event['date']==ipexd['date']:
-                    skip=True
-                    break
-            if skip: continue
-            ipext.append(ipexd)
-        allevents=agents+scrape_docs(tree)+events+forecasts+ipext
+        allevents=agents+scrape_docs(tree)+events+forecasts
         other=[x for x in allevents if not x.get('date')]
         allevents=sorted([x for x in allevents if x.get('date')],key=itemgetter('date'))
         allevents=merge_events(allevents,committees, agents)
@@ -648,6 +653,7 @@ def get_all_dossiers():
             yield (urljoin(BASE_URL,link.get('href')),
                    (link.xpath('text()') or [''])[0])
 
+# todo
 def get_active_dossiers():
     for doc in db.dossiers2.find({ 'procedure.stage_reached' : { '$not' : { '$in': [ "Procedure completed",
                                                                                           "Procedure rejected",
@@ -655,19 +661,11 @@ def get_active_dossiers():
                                                                                           ] }} }, timeout=False):
         yield (doc['meta']['source'],doc['procedure']['title'])
 
-def crawl(urls, threads=4):
-    m=Multiplexer(scrape,save, threads=threads)
-    m.start()
-    [m.addjob(url) for url, title in urls]
-    m.finish()
-    logger.info('end of crawl')
-
-def crawlseq(urls, null=False):
-    stats=[0,0]
-    [save(scrape(url),stats)
-     for url, title in urls
-     if (null and db.dossiers2.find_one({'meta.source': url},['_id'])==None) or not null]
-    logger.info('end of crawl %s' % stats)
+def crawler(which):
+    if which == "new": return get_new_dossiers()
+    elif which == "all": return get_all_dossiers()
+    elif which == "active": return get_active_dossiers()
+    return
 
 comre=re.compile(r'COM\(([0-9]{4})\)([0-9]{4})')
 comepre=re.compile(r'COM/([0-9]{4})/([0-9]{4})')
@@ -727,7 +725,7 @@ def checkUrl(url):
         return seenurls[url]
     try:
         res=fetch(url)
-    except Exception, e:
+    except Exception as e:
         #print >>sys.stderr, "[!] checkurl failed in %s\n%s" % (url, e)
         seenurls[url]=False
     else:
@@ -736,91 +734,73 @@ def checkUrl(url):
 
 def save(data, stats):
     if not data: return stats
-    src=data['meta']['source']
-    res=db.dossiers2.find_one({ 'meta.source' : src }) or {}
-    d=diff(dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes']]),
-           dict([(k,v) for k,v in data.items() if not k in ['_id', 'meta', 'changes',]]))
+    res=Dossier.get_by_src(data['meta']['source'])
+    if res is not None:
+        d=diff(dict([(k,v) for k,v in res.items() if not k in ['meta', 'changes']]),
+               dict([(k,v) for k,v in data.items() if not k in ['meta', 'changes',]]))
+        data['changes']=res.data.get('changes',{})
+    else:
+        d=diff({}, dict([(k,v) for k,v in data.items() if not k in ['meta', 'changes',]]))
+        data['changes']={}
     #logger.warn(pprint.pformat(d))
     if d:
-        now=datetime.datetime.utcnow().replace(microsecond=0).isoformat()
+        now=data['meta']['timestamp'].replace(microsecond=0).isoformat()
+        del data['meta']['timestamp']
         if not res:
             logger.info(('adding %s - %s' % (data['procedure']['reference'],data['procedure']['title'])).encode('utf8'))
-            data['meta']['created']=data['meta']['timestamp']
-            del data['meta']['timestamp']
-            sys.stdout.flush()
+            data['meta']['created']=now
             stats[0]+=1
         else:
             logger.info(('updating  %s - %s' % (data['procedure']['reference'],data['procedure']['title'])).encode('utf8'))
-            data['meta']['updated']=data['meta']['timestamp']
-            del data['meta']['timestamp']
-            sys.stdout.flush()
+            data['meta']['updated']=now
             stats[1]+=1
-            data['_id']=res['_id']
             logger.info(jdump(d))
-        if not NOMAIL:
-            m=db.notifications.find({'dossiers': data['procedure']['reference']},['active_emails'])
-            for g in m:
-                if len(g['active_emails'])==0:
-                    continue
-                msg = Message("[PT] %s %s" % (data['procedure']['reference'],data['procedure']['title']),
-                              sender = "parltrack@parltrack.euwiki.org",
-                              bcc = g['active_emails'])
-                #msg.html = htmldiff(data,d)
-                msg.body = makemsg(data,d)
-                mail.send(msg)
+        #if not NOMAIL:
+        #    m=db.notifications.find({'dossiers': data['procedure']['reference']},['active_emails'])
+        #    for g in m:
+        #        if len(g['active_emails'])==0:
+        #            continue
+        #        msg = Message("[PT] %s %s" % (data['procedure']['reference'],data['procedure']['title']),
+        #                      sender = "parltrack@parltrack.euwiki.org",
+        #                      bcc = g['active_emails'])
+        #        #msg.html = htmldiff(data,d)
+        #        msg.body = makemsg(data,d)
+        #        mail.send(msg)
         #logger.info(htmldiff(data,d))
         #logger.info(makemsg(data,d))
-        data['changes']=res.get('changes',{})
         data['changes'][now]=d
-        db.dossiers2.save(data)
+        Dossier.upsert(data)
     return stats
 
-def makemsg(data, d):
-    return (u"Parltrack has detected a change in %s %s on OEIL.\n\nPlease follow this URL: %s/dossier/%s to see the dossier.\n\nChanges follow\n%s\n\n\nsincerly,\nYour Parltrack team" %
-            (data['procedure']['reference'],
-             data['procedure']['title'],
-             ROOT_URL,
-             data['procedure']['reference'],
-             textdiff(d)))
+#def makemsg(data, d):
+#    return (u"Parltrack has detected a change in %s %s on OEIL.\n\nPlease follow this URL: %s/dossier/%s to see the dossier.\n\nChanges follow\n%s\n\n\nsincerly,\nYour Parltrack team" %
+#            (data['procedure']['reference'],
+#             data['procedure']['title'],
+#             ROOT_URL,
+#             data['procedure']['reference'],
+#             textdiff(d)))
 
 if __name__ == "__main__":
-    args=set(sys.argv[1:])
-    null=False
-    if 'null' in args:
-        null=True
     if len(sys.argv)<2:
-        print "%s full|fullseq|new|update|updateseq|test" % (sys.argv[0])
-    if sys.argv[1]=="full":
-        NOMAIL=True
-        crawl(get_all_dossiers(), threads=4)
-    elif sys.argv[1]=="fullseq":
-        NOMAIL=True
-        crawlseq(get_all_dossiers(), null=null)
-    elif sys.argv[1]=="newseq":
-        crawlseq(get_new_dossiers(), null=null)
-    elif sys.argv[1]=="new":
-        crawl(get_new_dossiers())
-    elif sys.argv[1]=="update":
-        crawl(get_active_dossiers())
-    elif sys.argv[1]=="updateseq":
-        crawlseq(get_active_dossiers(), null=null)
+        print("%s all|new|update|test" % (sys.argv[0]))
     elif sys.argv[1]=="url":
-        print jdump(scrape(sys.argv[2])).encode('utf8')
+        print(jdump(scrape(sys.argv[2])).encode('utf8'))
         #res=scrape(sys.argv[2])
         #print >>sys.stderr, pprint.pformat(res)
         #save(res,[0,0])
     elif sys.argv[1]=="test":
-        save(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397"),[0,0]) # telecoms package
+        pprint.pprint(scrape(("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2018/0066(COD)&l=en", '(COD)2018/0066')))
+        #save(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397"),[0,0]) # telecoms package
         #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=575084"))
         #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=589377"))
         #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556208")) # with shadow rapporteurs
         #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2011/0135(COD)")) # with shadow rapporteurs
         #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=593187")) # with shadow rapporteur
         #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556397")) # telecoms package
-        sys.exit(0)
-        pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=16542"))
-        pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=584049")) # two rapporteurs in one committee
-        pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=593435")) # with forecast
+        #sys.exit(0)
+        #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=16542"))
+        #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=584049")) # two rapporteurs in one committee
+        #pprint.pprint(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=593435")) # with forecast
         #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=588286")
         #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=590715")
         #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=584049")
@@ -831,3 +811,8 @@ if __name__ == "__main__":
         #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556364") # telecoms package
         #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556398") # telecoms package
         #scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=589181") # .hu media law
+    elif sys.argv[1] in ['new','all','active']:
+        s=Multiplexer(scrape,save,threads=4)
+        def _crawler():
+            return crawler(sys.argv[1])
+        s.run(_crawler)
