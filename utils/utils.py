@@ -22,7 +22,6 @@ debug=False
 
 import pprint
 import sys, json
-from bs4 import BeautifulSoup, Comment
 try:
     from itertools import izip_longest
 except:
