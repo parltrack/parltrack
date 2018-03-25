@@ -33,9 +33,10 @@ class Argparser(ArgumentParser):
 def load_scraper(scraper):
     try:
         ret = __import__(scraper)
-        if not hasattr(ret, 'run'):
-            print('[E] scraper {0} has no run attribute'.format(scraper))
-            return None
+        for attr in ['run', 'save']:
+            if not hasattr(ret, attr):
+                print('[E] scraper {0} has no attribute {1}'.format(scraper, attr))
+                return None
         return ret
     except Exception as e:
         print('[E] Failed to load scraper {0}: {1}'.format(f, e))
