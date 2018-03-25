@@ -500,8 +500,10 @@ def save(data, stats):
         if 'Gender' not in data and 'Gender' in res.data: data['Gender']=res['Gender']
         d=diff(dict([(k,v) for k,v in res.data.items() if not k in ['meta', 'changes', 'activities',]]),
                dict([(k,v) for k,v in data.items() if not k in ['meta', 'changes', 'activities',]]))
+        data['changes']=res.get('changes',{})
     else:
         d=diff({}, dict([(k,v) for k,v in data.items() if not k in ['meta', 'changes', 'activities',]]))
+        data['changes']={}
     if d:
         now=datetime.utcnow().replace(microsecond=0)
         if not res:
@@ -516,7 +518,6 @@ def save(data, stats):
             if stats: stats[1]+=1
             data['id']=res.id
             data['changes']=res.data.get('changes',{})
-        data['changes']=res.get('changes',{})
         data['changes'][now.isoformat()]=d
         Mep.upsert(data)
     del res
@@ -580,7 +581,7 @@ if __name__ == "__main__":
         sys.exit(0)
 
     elif sys.argv[1] in meplists.keys():
-        s=Multiplexer(scrape,save,threads=4)
+        s=Multiplexer(scrape,save,threads=8)
         def _crawler():
             return crawler(sys.argv[1])
         s.run(_crawler)
