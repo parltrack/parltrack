@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-import argparse
-
+from argparse import ArgumentParser
+from json import loads
 from os import walk
 from os.path import realpath, dirname, join
 from sys import path, stderr
@@ -23,7 +23,7 @@ for _, _, files in walk(scraper_dir):
         scrapers.append(f[:-3])
 
 
-class Argparser(argparse.ArgumentParser):
+class Argparser(ArgumentParser):
     def error(self, message):
         stderr.write('error: %s\n' % message)
         self.print_help()
@@ -42,12 +42,14 @@ def load_scraper(scraper):
     return None
 
 
-def run(results):
+def run(results, scraper):
+    stats = [0, 0]
     for r in results:
-        print('got result', r)
+        scraper.save(loads(r), stats)
+    print('added/updated: {0}/{1}'.format(*stats))
 
 
-def debug(results):
+def debug(results, scraper):
     for r in results:
         print('got result', r)
 
@@ -69,7 +71,7 @@ def call(action, scraper, args, threads):
             else:
                 yield r
 
-    actions[action](yielder())
+    actions[action](yielder(), scraper)
 
 
 actions = {
