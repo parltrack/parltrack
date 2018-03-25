@@ -105,14 +105,14 @@ def getactivities(mepid, terms=[8]):
             while True:
                 _url = urltpl % (mepid,type,term,idx)
                 try:
-                    res=fetch(_url, ignore=[500]) #, headers=ctjson)
+                    res=fetch_raw(_url, ignore=[500]) #, headers=ctjson)
                 except:
                     logger.warn("failed to fetch %s" % _url)
                     break
-                if not res:
+                if res is None:
                     break
                 if '<h2>Error while collecting data</h2>' in res: break
-                ret=json.loads(res.read())
+                ret=json.loads(res)
                 actions[type][term].extend(ret['documentList'])
                 idx=ret['nextIndex']
                 if idx in [-1,0]:
@@ -556,32 +556,35 @@ def crawler(query='current'):
         for meplm in root.xpath('//id/text()'):
             yield int(meplm)
 
-if __name__ == "__main__":
-    if len(sys.argv)<2:
-        print("{0} full|test|mepid <mepid>".format(sys.argv[0]))
-    args=set(sys.argv[1:])
-    if sys.argv[1]=="test":
-        print(jdump(scrape('28215')).encode('utf8'))
-        print(jdump(scrape('113959')).encode('utf8'))
+def run(args):
+    if len(args)<1:
+        print("possible options: full|test|mepid <mepid>|"+'|'.join(meplists.keys()))
+        return
+    if args[0]=="test":
+        yield scrape('28215')
+        yield scrape('113959')
 
         #print jdump(scrape('108570')).encode('utf8')
         #print jdump(scrape('1934')).encode('utf8')
         #print jdump(scrape('96919')).encode('utf8')
         #import code; code.interact(local=locals());
-        sys.exit(0)
-        print(jdump(scrape("http://www.europarl.europa.eu/meps/en/1934/get.html"),None))
-        print(jdump(scrape("http://www.europarl.europa.eu/meps/en/28576/get.html"), None))
-        print(jdump(scrape("http://www.europarl.europa.eu/meps/en/1263/Elmar_BROK.html"), None))
-        print(jdump(scrape("http://www.europarl.europa.eu/meps/en/96739/Reinhard_B%C3%9CTIKOFER.html"), None))
-        print(jdump(scrape("http://www.europarl.europa.eu/meps/en/28269/Jerzy_BUZEK.html"), None))
-        print(jdump(scrape("http://www.europarl.europa.eu/meps/en/1186/Astrid_LULLING.html"), None))
+        return
+        yield scrape("http://www.europarl.europa.eu/meps/en/1934/get.html")
+        yield scrape("http://www.europarl.europa.eu/meps/en/28576/get.html")
+        yield scrape("http://www.europarl.europa.eu/meps/en/1263/Elmar_BROK.html")
+        yield scrape("http://www.europarl.europa.eu/meps/en/96739/Reinhard_B%C3%9CTIKOFER.html")
+        yield scrape("http://www.europarl.europa.eu/meps/en/28269/Jerzy_BUZEK.html")
+        yield scrape("http://www.europarl.europa.eu/meps/en/1186/Astrid_LULLING.html")
 
-    elif sys.argv[1]=='mepid' and sys.argv[2]:
-        print(jdump(scrape(int(sys.argv[2]))).encode('utf8'))
-        sys.exit(0)
+    elif args[0]=='mepid' and args[1]:
+        yield jdump(scrape(int(args[1])))
 
-    elif sys.argv[1] in meplists.keys():
-        s=Multiplexer(scrape,save,threads=8)
-        def _crawler():
-            return crawler(sys.argv[1])
-        s.run(_crawler)
+    elif args[0] in meplists.keys():
+        #s=Multiplexer(scrape,save,threads=4)
+        #def _crawler():
+        #    return crawler(args[0])
+        #s.run(_crawler)
+        yield (scrape, crawler(args[0]))
+        return
+        #for mepid in crawler(args[0]):
+        #    yield scrape(mepid)

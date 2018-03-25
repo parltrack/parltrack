@@ -17,6 +17,8 @@
 
 # (C) Stefan Marsiske <stefan.marsiske@gmail.com>
 
+import threading
+
 from multiprocessing import Pool, Process, JoinableQueue, log_to_stderr
 from multiprocessing.sharedctypes import Value
 from ctypes import c_bool
@@ -30,9 +32,8 @@ logger = log_to_stderr()
 logger.setLevel(INFO)
 
 class Multiplexer(object):
-    def __init__(self, worker, writer, threads=4):
+    def __init__(self, worker, threads=4):
         self.worker=worker
-        self.writer=writer
         self.q=JoinableQueue()
         self.done = Value(c_bool,False)
         self.consumer=Process(target=self.consume)
@@ -74,13 +75,15 @@ class Multiplexer(object):
             except Empty:
                 if self.done.value==True: break
             if job:
-                param = self.writer(job, param)
+                yield job
                 self.q.task_done()
         logger.info('added/updated: %d/%d' % param)
 
-    def run(self, crawler):
-        self.start()
-        for item in crawler():
-            self.addjob(item)
-        self.finish()
-        logger.info('end of Scraping')
+    def run(self, params):
+        def adder():
+            self.start()
+            for item in params:
+                self.addjob(item)
+            self.finish()
+        threading.Thread(target=adder).start()
+        return self.consume()
