@@ -30,7 +30,7 @@ Base.query = session.query_property()
 class Dossier(Base):
     __tablename__ = 'dossier'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(String, primary_key=True)
     data = Column(JSONB)
 
     @staticmethod
@@ -39,6 +39,16 @@ class Dossier(Base):
             return None
         try:
             return session.query(Dossier).filter(Dossier.data['procedure']['reference'].astext == str(id)).first()
+        except Exception as e:
+            print(e)
+            session.rollback()
+
+    @staticmethod
+    def get_by_src(src):
+        if not src:
+            return None
+        try:
+            return session.query(Dossier).filter(Dossier.data['meta']['source'].astext == str(src)).first()
         except Exception as e:
             print(e)
             session.rollback()
@@ -104,12 +114,6 @@ class Amendment(Base):
 
     id = Column(Integer, primary_key=True)
     data = Column(JSONB)
-
-class Etags(Base):
-    __tablename__ = 'etags'
-
-    url = Column(String,primary_key=True)
-    etag = Column(String)
 
 if __name__ == '__main__':
     print("Creating database")
