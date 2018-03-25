@@ -516,6 +516,7 @@ def save(data, stats):
             if stats: stats[1]+=1
             data['id']=res.id
             data['changes']=res.data.get('changes',{})
+        data['changes']=res.get('changes',{})
         data['changes'][now.isoformat()]=d
         Mep.upsert(data)
     del res
