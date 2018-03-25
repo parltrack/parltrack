@@ -170,7 +170,7 @@ def parse_table_f(rows, threshold=2):
 def getraw(pdf):
     (fd, fname)=mkstemp()
     fd=os.fdopen(fd, 'wb')
-    fd.write(fetch_raw(pdf).read())
+    fd.write(fetch_raw(pdf).encode('utf-8'))
     fd.close()
     text=pdftotext('-nopgbrk',
                    '-layout',
