@@ -5,3 +5,4 @@ sh
 sqlalchemy
 requests
 lxml
+feedparser
