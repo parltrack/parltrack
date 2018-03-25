@@ -54,10 +54,12 @@ def getMEPRef(name):
     if not mep and u'ß' in name:
         mep=Mep.get_by_name(''.join(name.replace(u'ß','ss').split()).lower())
     if not mep and unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore')!=name:
-        mep=Mep.get_by_name(''.join(unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore').split()).lower())
+        mep=Mep.get_by_name(''.join(unicodedata.normalize('NFKD', unicode(name)).encode('ascii','ignore').decode('utf8').split()).lower())
     if not mep and len([x for x in name if ord(x)>128]):
-        mep=db.ep_meps2.find_one({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in name]),re.I)},retfields)
-        mep=Mep.get_by_name()
+        logger.warn('mep name contains non-ascii chars and was not found %s' % name)
+        # todo
+        #mep=db.ep_meps2.find_one({'Name.aliases': re.compile(''.join([x if ord(x)<128 else '.' for x in name]),re.I)},retfields)
+        #mep=Mep.get_by_name()
     if mep:
         return mep
     else:
@@ -95,10 +97,11 @@ groupurlmap={'http://www.guengl.eu/?request_locale=en': u"GUE/NGL",
              'http://www.eppgroup.eu/home/en/default.asp?lg1=en': u"EPP",
              'http://www.alde.eu/?request_locale=en': u'ALDE',
              'http://www.greens-efa.org/cms/default/rubrik/6/6270.htm?request_locale=en': u'Verts/ALE',
+             'http://www.greens-efa.eu/?request_locale=en': u'Verts/ALE',
              'http://www.efdgroup.eu/?request_locale=en': u'EFD',
              'http://www.ecrgroup.eu/?request_locale=en': u'ECR',
              'http://www.socialistsanddemocrats.eu/gpes/index.jsp?request_locale=en': u'S&D',
-             '/oeil/IMG?t=pg&i=568000&l=en': u'ENF'} # todo fix when website available
+             'http://www.enfgroup-ep.eu/': u'ENF'} # todo fix when website available
 def toMEP(node):
     tips=[t.xpath('text()')[0]
           if len(t.xpath('text()'))>0
