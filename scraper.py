@@ -66,6 +66,8 @@ def call(action, scraper, args, threads):
                 mp = Multiplexer(scraper_fn, threads=threads)
                 for r in mp.run(args):
                     yield r
+            else:
+                yield r
 
     actions[action](yielder())
 
