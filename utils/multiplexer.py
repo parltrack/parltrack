@@ -59,7 +59,6 @@ class Multiplexer(object):
         self.pool.join()
         logger.info('joined pool')
         self.done.value=True
-        self.q.close()
         logger.info('closed q')
         self.consumer.join()
         logger.info('joined consumer')
@@ -77,7 +76,9 @@ class Multiplexer(object):
             if job:
                 yield job
                 self.q.task_done()
-        logger.info('added/updated: %d/%d' % param)
+
+        self.q.close()
+        logger.info('added/updated: {0}/{1}'.format(*param))
 
     def run(self, params):
         def adder():
