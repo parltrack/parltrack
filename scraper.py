@@ -46,7 +46,9 @@ def load_scraper(scraper):
 def run(results, scraper):
     stats = [0, 0]
     for r in results:
-        scraper.save(loads(r), stats)
+        if not isinstance(r, dict):
+            r = loads(r)
+        scraper.save(r, stats)
     print('added/updated: {0}/{1}'.format(*stats))
 
 
