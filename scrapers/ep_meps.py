@@ -500,7 +500,7 @@ def save(data, stats):
         if 'Gender' not in data and 'Gender' in res.data: data['Gender']=res['Gender']
         d=diff(dict([(k,v) for k,v in res.data.items() if not k in ['meta', 'changes', 'activities',]]),
                dict([(k,v) for k,v in data.items() if not k in ['meta', 'changes', 'activities',]]))
-        data['changes']=data.get('changes',{})
+        data['changes']=res.get('changes',{})
     else:
         d=diff({}, dict([(k,v) for k,v in data.items() if not k in ['meta', 'changes', 'activities',]]))
         data['changes']={}
