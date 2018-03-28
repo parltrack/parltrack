@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="ui vertical segment">
+  <div class="ui center aligned stackable grid container">
+    <div class="row">
+      <div class="eight wide left aligned column">
+        <h1>About Parltrack</h1>
+        <p>The European Union is an powerful tool for the troubled citizen. Victories like the Software Patent Directive, the Telecoms Package or just recently ACTA - the Anti-Counterfeiting Trade Agreement* - show that it plays an important rule in protecting civil liberties. And also that we need more such victories.</p>
+          <p class="smalltext">* There surely are victories in other policy areas, it just happens the developers of this service have a strong background in digital issues</p>
+      </div>
+      <div class="eight wide left aligned column">
+          <img src="{{ url_for('static', filename='images/ep.png') }}" alt="The Plenary of the European Parliament in Strassbourg" />
+      </div>
+	</div>
+    <div class="row">
+      <div class="eight wide left aligned column">
+          <h2>Aggregated Databases</h2>
+          <p>The most important feature of Parltrack is the
+   aggregated presentation. Data such as the <a target="_blank" href="http://parltrack.euwiki.org/mep/Amelia%20ANDERSDOTTER#dossiers">list of legislative dossiers a MEP took responsibility for</a> or a list of all <a target="_blank" href="http://parltrack.euwiki.org/mep/Amelia%20ANDERSDOTTER#amendments">amendments</a> a MEP authored is not easily available on the EU websites. On Parltrack this data-mined information allows the concerned citizen to assess the topics and positions the representatives are most active with.</p>
+      </div>
+      <div class="eight wide left aligned column">
+          <h2>Open Data</h2>
+          <p>The information liberated by Parltrack is also available as <a target="_blank" href="/dumps">Open Data bulk-downloads</a> and a lightweight API for developers. This data is reused for example by La Quadrature du Nets tool <a href="http://memopol.lqdn.fr">Political Memory</a>, which extends the Parltrack-data with the policy alignment of the MEPs based on their own recommendations and the MEPs voting records. Besides the Parltrack database being Open Data, the source code is also completely free.</p>
+      </div>
+      <div class="eight wide left aligned column">
+          <h2>Notifications</h2>
+          <p>Parltrack also offers email and RSS notifications on changes in the legislative process, to keep track of what is happening.</p>
+      </div>
+      <div class="eight wide left aligned column">
+          <h2>Historical events</h2>
+          <p>Parltrack not only detects changes, it also stores them. Before the end of 2011 the EU websites provided a rough account of historical data on committee and delegation membership of the MEPs. This information was lost in the revamp of this web-site in November of 2011. The way Parltrack stores this data is now much more detailed and captures also historical data in other data-sets. All this data further improves the <a target="_blank" href="http://parltrack.euwiki.org/mep/Amelia%20ANDERSDOTTER#history">profiles on MEPs</a> and the detailed history of <a target="_blank" href="http://parltrack.euwiki.org/dossier/2011/0167(NLE)#history">legislative dossiers</a>.</p>
+      </div>
+      <div class="eight wide left aligned column">
+          <h2>Data-mining</h2>
+          <p>The data available from Parltrack, provides with interesting data-mining prospects. This data allows for new insights, which were previously difficult to prepare. For example by matching the names in the titles of the dossiers regarding parliamentary immunity with the names of the MEPs, Parltrack presents an up to date <a target="_blank" href="http://parltrack.euwiki.org/datasets/imm/">dashboard</a> on all immunity procedures against MEPs. Many useful possibilities exist for further data-mining, for example forecasting of upcoming events, based on historical averages and alerts on deviations.</p>
+      </div>
+      <div class="eight wide left aligned column">
+          <h2>Liberated Amendments</h2>
+          <p>Since late 2012 Parltrack also provides all amendments posted in the current parliamentary term (e.g. <a target="_blank" href="http://parltrack.euwiki.org/dossier/2012/0011%28COD%29#am-112-PE-500.695">this amendment</a>).  Previously <a target="_blank" href="http://parltrack.euwiki.org/dossier/2011/0167(NLE)#ams">such amendments</a> have been only published in unwieldy PDF or Word files sometimes containing multiple hundred amendments. With Parltrack these amendments each have their unique hyperlink and can thus be easily tweeted or referred to other involved citizens) are attached to their appropriate <a target="_blank" href="http://parltrack.euwiki.org/dossier/2011/0167(NLE)#ams">dossiers</a> and listed also in the submitting MEPs profile pages.</p>
+      </div>
+	</div>
+  </div>
+</div>
+{% endblock %}

@@ -18,6 +18,10 @@ DB_HOST = os.environ.get('DB_HOST', '127.0.0.1')
 DB_DATABASE = os.environ.get('DB_DATABASE', 'parltrack')
 DB_PORT = os.environ.get('DB_PORT', '5432')
 
+# Webapp config
+
+WEBSERVER_PORT = 6776
+
 # Connect to the database
 SQLALCHEMY_DATABASE_URI = "postgresql+psycopg2://{0}:{1}@{2}:{3}/{4}".format(
     DB_USER,

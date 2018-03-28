@@ -61,9 +61,13 @@ class Dossier(Base):
             dossier.data = dossier_data
         else:
             dossier = Dossier(id=dossier_id, data=dossier_data)
-        session.add(dossier)
         session.commit()
         return dossier
+
+    @staticmethod
+    def load(dossier_data):
+        dossier_id = dossier_data.get('procedure', {}).get('reference')
+        session.add(Dossier(id=dossier_id, data=dossier_data))
 
 class Mep(Base):
     __tablename__ = 'mep'
@@ -106,6 +110,12 @@ class Mep(Base):
         session.add(mep)
         session.commit()
         return mep
+
+    @staticmethod
+    def load(mep_data):
+        mep_id = mep_data.get('UserID')
+        session.add(Mep(id=mep_id, data=mep_data))
+
 
 
 class Vote(Base):
