@@ -116,15 +116,23 @@ class Building(Base):
 
     @staticmethod
     def get_by_id(id):
+        # TODO
+        return
 
     @staticmethod
     def get_by_src(src):
+        # TODO
+        return
 
     @staticmethod
     def upsert(dossier_data):
+        # TODO
+        return
 
     @staticmethod
     def load(dossier_data):
+        # TODO
+        return
 
 
 class Organization(Base):
@@ -206,12 +214,18 @@ class MEP(Base):
 
     @staticmethod
     def get_by_id(id):
+        # TODO
+        return
 
     @staticmethod
     def get_by_name(name):
+        # TODO
+        return
 
     @staticmethod
     def upsert(mep_data):
+        # TODO
+        return
 
     def bxl_office(self):
         return self.bxl_floor + self.bxl_office_number
