@@ -8,6 +8,8 @@ import os
 import config
 import model
 
+from pprint import pprint
+from datetime import datetime
 from flask import Flask, render_template, request
 from logging import Formatter, FileHandler
 
@@ -19,6 +21,10 @@ app = Flask(__name__)
 app.config.from_object('config')
 
 
+def render(template, **kwargs):
+    return render_template(template, **kwargs)
+
+
 #----------------------------------------------------------------------------#
 # Controllers.
 #----------------------------------------------------------------------------#
@@ -26,27 +32,30 @@ app.config.from_object('config')
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+    return render('index.html')
 
 
 @app.route('/about')
 def about():
-    return render_template('about.html')
+    return render('about.html')
 
 
 @app.route('/dumps')
 def dumps():
-    return render_template('dumps.html')
+    return render('dumps.html')
 
 
 @app.route('/meps')
 def meps():
-    return render_template('meps.html')
+    date = getDate()
+    meps = model.Mep.get_by_date(date)
+    pprint(meps[0].data)
+    return render('meps.html', meps=meps, date=date)
 
 
 @app.route('/dossiers')
 def dossiers():
-    return render_template('dossiers.html')
+    return render('dossiers.html')
 
 
 # Error handlers.
@@ -54,12 +63,36 @@ def dossiers():
 @app.errorhandler(500)
 def internal_error(error):
     #db_session.rollback()
-    return render_template('errors/500.html'), 500
+    return render('errors/500.html'), 500
 
 
 @app.errorhandler(404)
 def not_found_error(error):
-    return render_template('errors/404.html'), 404
+    return render('errors/404.html'), 404
+
+
+# Helpers
+
+def getDate():
+    date=datetime.now()
+    if request.args.get('date'):
+        try:
+            date=datetime.strptime(request.args['date'], "%d/%m/%Y")
+        except ValueError:
+            try:
+                date=datetime.strptime(request.args['date'], "%Y-%m-%d")
+            except ValueError:
+                date=datetime.strptime(request.args['date'], "%Y/%m/%d")
+    return date
+
+
+@app.template_filter()
+def asdate(value):
+    if type(value)==type(int()):
+        value=datetime.fromtimestamp(value)
+    if type(value) not in [str, bytes]:
+        return value.strftime('%Y/%m/%d')
+    return value.split(' ')[0]
 
 
 if not app.debug:
