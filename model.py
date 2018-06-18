@@ -94,7 +94,7 @@ class Committee(Base):
     __tablename__ = 'committee'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(255), unique=True)
+    name = Column(String(512), unique=True)
     abbreviation = Column(String(30), unique=True)
 
 
@@ -155,6 +155,16 @@ class Delegation(Base):
         return self.name
 
 
+class Staff(Base):
+    __tablename__ = 'staff'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), unique=True)
+
+    def __unicode__(self):
+        return u"%s - %s" % (self.code, self.name)
+
+
 class MEP(Base):
     __tablename__ = 'mep'
 
@@ -163,6 +173,7 @@ class MEP(Base):
     last_name = Column(String(255), nullable=False)
     last_name_with_prefix = Column(String(255), nullable=False)
     full_name = Column(String(255), nullable=False)
+    photo = Column(String(4095))
     swaped_name = Column(String(255))
     gender = Column(String(2))
     birth_date = Column(Date)
@@ -199,12 +210,127 @@ class MEP(Base):
         Building,
         foreign_keys="MEP.bxl_building_id",
     )
-    groups = relationship(Group, secondary='GroupMEP', lazy='dynamic')
-    countries = relationship(Country, secondary='CountryMEP', lazy='dynamic')
-    delegations = relationship(Delegation, secondary='DelegationRole', lazy='dynamic')
-    committees = relationship(Committee, secondary='CommitteeRole', lazy='dynamic')
-    organizations = relationship(Organization, secondary='OrganizationMEP', lazy='dynamic')
+    #groups = relationship(Group, secondary='GroupMEP', lazy='dynamic')
+    #countries = relationship(Country, secondary='CountryMEP', lazy='dynamic')
+    #delegations = relationship(Delegation, secondary='DelegationRole', lazy='dynamic')
+    #committees = relationship(Committee, secondary='CommitteeRole', lazy='dynamic')
+    #organizations = relationship(Organization, secondary='OrganizationMEP', lazy='dynamic')
+    #staff = relationship(Staff, secondary='StaffRole', lazy='dynamic')
     #posts = GenericRelation(Post)
+
+    @staticmethod
+    def upsert(mep_data):
+        mep = MEP.get_by_id(mep_data['UserId'])
+        if not mep:
+            return MEP.insert(mep_data)
+        # TODO
+        return mep
+
+    @staticmethod
+    def insert(d):
+        mep = MEP(
+            ep_id=d.get('UserId', d['UserID']),
+            first_name=d['Name']['sur'],
+            last_name=d['Name']['family'],
+            last_name_with_prefix=d['Name']['familylc'],
+            full_name=d['Name']['full'],
+            gender=d.get('Gender', ''),
+            photo=d['Photo'],
+            facebook=d['Facebook'][0] if len(d.get('Facebook', [])) else '',
+            twitter=d['Twitter'][0] if len(d.get('Twitter', [])) else '',
+        )
+
+        if 'Birth' in d:
+            mep.birth_date=d['Birth'].get('date')
+            mep.birth_place=d['Birth'].get('place', '')
+
+        mep.aliases = [MEPAlias(mep_id=mep.id, alias=a) for a in d['Name']['aliases']]
+        mep.cvs = [CV(mep_id=mep.id, title=a) for a in d.get('cv', {}).values()]
+        mep.emails = [Email(mep_id=mep.id, email=e) for e in d.get('Mail', [])]
+
+        for c in d.get('Committees', []):
+            name = c['Organization']
+            com = session.query(Committee).filter(Committee.name==name).first()
+            if not com:
+                com = Committee(name=name, abbreviation=c['abbr'])
+                session.add(com)
+                session.commit()
+
+            mep.committees.append(CommitteeRole(
+                mep_id=mep.id,
+                committee_id=com.id,
+                role=c['role'],
+                begin=c['start'],
+                end=c['end'],
+            ))
+
+        for dd in d.get('Delegations', []):
+            name = dd['Organization']
+            de = session.query(Delegation).filter(Delegation.name==name).first()
+            if not de:
+                de = Delegation(name=name)
+                session.add(de)
+                session.commit()
+
+            mep.delegations.append(DelegationRole(
+                mep_id=mep.id,
+                delegation_id=de.id,
+                role=dd['role'],
+                begin=dd['start'],
+                end=dd['end'],
+            ))
+
+        for g in d.get('Groups', []):
+            name = g['Organization']
+            abbr = g['groupid']
+            if isinstance(abbr, list):
+                abbr = abbr[0]
+            gg = session.query(Group).filter(Group.abbreviation==abbr).first()
+            if not gg:
+                gg = Group(name=name, abbreviation=abbr)
+                session.add(gg)
+                session.commit()
+
+            mep.groups.append(GroupMEP(
+                mep_id=mep.id,
+                group_id=gg.id,
+                role=g['role'],
+                begin=g['start'],
+                end=g['end'],
+            ))
+
+        for s in d.get('Staff', []):
+            name = s['Organization']
+            ss = session.query(Staff).filter(Staff.name==name).first()
+            if not ss:
+                ss = Staff(name=name)
+                session.add(ss)
+                session.commit()
+
+            mep.staff.append(StaffRole(
+                mep_id=mep.id,
+                staff_id=ss.id,
+                role=s['role'],
+                begin=s['start'],
+                end=s['end'],
+            ))
+
+        if 'Addresses' in d:
+            bxl = d['Addresses'].get('Brussels', {})
+            stg = d['Addresses'].get('Strasbourg', {})
+            mep.bxl_floor = bxl.get('Address', {}).get('Floor', '')
+            mep.bxl_office_number = bxl.get('Address', {}).get('Office')
+            mep.bxl_fax = bxl.get('Fax', '')
+            mep.bxl_phone1 = bxl.get('Phone', '')
+            mep.stg_floor = stg.get('Address', {}).get('Floor', '')
+            mep.stg_office_number = stg.get('Address', {}).get('Office')
+            mep.stg_fax = stg.get('Fax')
+            mep.stg_phone1 = stg.get('Phone')
+
+
+
+        # TODO Constituencies, Changelog, Activities
+        return mep
 
     def age(self):
         if date.today().month > self.birth_date.month:
@@ -213,17 +339,11 @@ class MEP(Base):
             return date.today().year - self.birth_date.year
 
     @staticmethod
-    def get_by_id(id):
-        # TODO
-        return
+    def get_by_id(ep_id):
+        return session.query(MEP).filter(MEP.ep_id==ep_id).first()
 
     @staticmethod
     def get_by_name(name):
-        # TODO
-        return
-
-    @staticmethod
-    def upsert(mep_data):
         # TODO
         return
 
@@ -237,18 +357,38 @@ class MEP(Base):
         return u"%s %s" % (self.first_name, self.last_name)
 
 
-    @staticmethod
-    def load(mep_data):
-        mep_id = mep_data.get('UserID')
-        session.add(Mep(id=mep_id, data=mep_data))
+class MEPAlias(Base):
+    __tablename__ = 'mep_alias'
+
+    id = Column(Integer, primary_key=True)
+    mep_id = Column(Integer, ForeignKey(MEP.id))
+    alias = Column(String(255))
+    mep = relationship(
+        MEP,
+        foreign_keys="MEPAlias.mep_id",
+        backref=backref('aliases', lazy='dynamic'),
+    )
+
+    def __unicode__(self):
+        return self.alias
 
 
 class GroupMEP(TimePeriod):
     __tablename__ = 'group_mep'
 
-    mep_id = Column(Integer, ForeignKey(MEP.id), primary_key=True)
-    group_id = Column(Integer, ForeignKey(Group.id), primary_key=True)
+    mep_id = Column(Integer, ForeignKey(MEP.id))
+    group_id = Column(Integer, ForeignKey(Group.id))
     role = Column(String(255))
+    mep = relationship(
+        MEP,
+        foreign_keys="GroupMEP.mep_id",
+        backref=backref('groups', lazy='dynamic'),
+    )
+    group = relationship(
+        Group,
+        foreign_keys="GroupMEP.group_id",
+        backref=backref('meps', lazy='dynamic'),
+    )
 
     def __unicode__(self):
         return u"%s %s [%s]" % (self.mep.first_name, self.mep.last_name, self.group.abbreviation)
@@ -257,20 +397,61 @@ class GroupMEP(TimePeriod):
 class DelegationRole(TimePeriod):
     __tablename__ = 'delegation_role'
 
-    mep_id = Column(Integer, ForeignKey(MEP.id), primary_key=True)
-    delegation_id = Column(Integer, ForeignKey(Delegation.id), primary_key=True)
+    mep_id = Column(Integer, ForeignKey(MEP.id))
+    delegation_id = Column(Integer, ForeignKey(Delegation.id))
     role = Column(String(255))
+    mep = relationship(
+        MEP,
+        foreign_keys="DelegationRole.mep_id",
+        backref=backref('delegations', lazy='dynamic'),
+    )
+    delegation = relationship(
+        Delegation,
+        foreign_keys="DelegationRole.delegation_id",
+        backref=backref('meps', lazy='dynamic'),
+    )
 
     def __unicode__(self):
         return u"%s : %s" % (self.mep.full_name, self.delegation)
 
 
+class StaffRole(TimePeriod):
+    __tablename__ = 'staff_role'
+
+    mep_id = Column(Integer, ForeignKey(MEP.id))
+    staff_id = Column(Integer, ForeignKey(Staff.id))
+    role = Column(String(255))
+    mep = relationship(
+        MEP,
+        foreign_keys="StaffRole.mep_id",
+        backref=backref('staff', lazy='dynamic'),
+    )
+    staff = relationship(
+        Staff,
+        foreign_keys="StaffRole.staff_id",
+        backref=backref('meps', lazy='dynamic'),
+    )
+
+    def __unicode__(self):
+        return u"%s : %s" % (self.committee.abbreviation, self.mep.full_name)
+
+
 class CommitteeRole(TimePeriod):
     __tablename__ = 'committee_role'
 
-    mep_id = Column(Integer, ForeignKey(MEP.id), primary_key=True)
-    committee_id = Column(Integer, ForeignKey(Committee.id), primary_key=True)
+    mep_id = Column(Integer, ForeignKey(MEP.id))
+    committee_id = Column(Integer, ForeignKey(Committee.id))
     role = Column(String(255))
+    mep = relationship(
+        MEP,
+        foreign_keys="CommitteeRole.mep_id",
+        backref=backref('committees', lazy='dynamic'),
+    )
+    committee = relationship(
+        Committee,
+        foreign_keys="CommitteeRole.committee_id",
+        backref=backref('meps', lazy='dynamic'),
+    )
 
     def __unicode__(self):
         return u"%s : %s" % (self.committee.abbreviation, self.mep.full_name)
@@ -308,9 +489,24 @@ class Party(Base):
 class CountryMEP(TimePeriod):
     __tablename__ = 'country_mep'
 
-    mep_id = Column(Integer, ForeignKey(MEP.id), primary_key=True)
-    group_id = Column(Integer, ForeignKey(Group.id), primary_key=True)
-    country_id = Column(Integer, ForeignKey(Country.id), primary_key=True)
+    mep_id = Column(Integer, ForeignKey(MEP.id))
+    group_id = Column(Integer, ForeignKey(Group.id))
+    country_id = Column(Integer, ForeignKey(Country.id))
+    mep = relationship(
+        MEP,
+        foreign_keys="CountryMEP.mep_id",
+        backref=backref('countries', lazy='dynamic'),
+    )
+    group = relationship(
+        Group,
+        foreign_keys="CountryMEP.group_id",
+        backref=backref('countries', lazy='dynamic'),
+    )
+    country = relationship(
+        Country,
+        foreign_keys="CountryMEP.country_id",
+        backref=backref('meps', lazy='dynamic'),
+    )
 
     def __unicode__(self):
         return u"%s %s - %s" % (self.mep.first_name, self.mep.last_name, self.country.code)
@@ -319,9 +515,19 @@ class CountryMEP(TimePeriod):
 class OrganizationMEP(TimePeriod):
     __tablename__ = 'organization_mep'
 
-    mep_id = Column(Integer, ForeignKey(MEP.id), primary_key=True)
-    organization_id = Column(Integer, ForeignKey(Organization.id), primary_key=True)
+    mep_id = Column(Integer, ForeignKey(MEP.id))
+    organization_id = Column(Integer, ForeignKey(Organization.id))
     role = Column(String(255))
+    mep = relationship(
+        MEP,
+        foreign_keys="OrganizationMEP.mep_id",
+        backref=backref('organizations', lazy='dynamic'),
+    )
+    organization = relationship(
+        Organization,
+        foreign_keys="OrganizationMEP.organization_id",
+        backref=backref('meps', lazy='dynamic'),
+    )
 
 
 class Assistant(Base):
@@ -337,8 +543,9 @@ class Assistant(Base):
 class AssistantMEP(Base):
     __tablename__ = 'assistant_mep'
 
-    mep_id = Column(Integer, ForeignKey(MEP.id), primary_key=True)
-    committee_id = Column(Integer, ForeignKey(Assistant.id), primary_key=True)
+    id = Column(Integer, primary_key=True)
+    mep_id = Column(Integer, ForeignKey(MEP.id))
+    committee_id = Column(Integer, ForeignKey(Assistant.id))
     type = Column(String(255))
 
 
@@ -393,8 +600,8 @@ class WebSite(Base):
 class PartyMEP(TimePeriod):
     __tablename__ = 'party_mep'
 
-    mep_id = Column(Integer, ForeignKey(MEP.id), primary_key=True)
-    party_id = Column(Integer, ForeignKey(Party.id), primary_key=True)
+    mep_id = Column(Integer, ForeignKey(MEP.id))
+    party_id = Column(Integer, ForeignKey(Party.id))
     role = Column(String(255))
     current = Column(Boolean)
 
@@ -482,18 +689,29 @@ class Dossier(Base):
 
     id = Column(Integer, primary_key=True)
     reference = Column(String(32))
-    subjects = relationship(Subject, secondary='SubjectDossier', lazy='dynamic')
+    #subjects = relationship(Subject, secondary='SubjectDossier', lazy='dynamic')
     #posts = GenericRelation(Post)
 
     def __unicode__(self):
         return self.reference
 
 
-class SubjectDossier(TimePeriod):
+class SubjectDossier(Base):
     __tablename__ = 'subject_dossier'
 
-    subject_id = Column(Integer, ForeignKey(Subject.id), primary_key=True)
-    dossier_id = Column(Integer, ForeignKey(Dossier.id), primary_key=True)
+    id = Column(Integer, primary_key=True)
+    subject_id = Column(Integer, ForeignKey(Subject.id))
+    dossier_id = Column(Integer, ForeignKey(Dossier.id))
+    dossier = relationship(
+        Dossier,
+        foreign_keys="SubjectDossier.dossier_id",
+        backref=backref('subjects', lazy='dynamic'),
+    )
+    subject = relationship(
+        Subject,
+        foreign_keys="SubjectDossier.subject_id",
+        backref=backref('dossiers', lazy='dynamic'),
+    )
 
 
 class Rapporteur(Base):
@@ -516,7 +734,7 @@ class Rapporteur(Base):
     dossier_id = Column(Integer, ForeignKey(Dossier.id))
     dossier = relationship(
         Dossier,
-        foreign_keys="Dossier.dossier_id",
+        foreign_keys="Rapporteur.dossier_id",
         backref=backref('rapporteurs', lazy='dynamic'),
     )
     title = Column(Text)
@@ -537,11 +755,11 @@ class Amendment(Base):
     dossier_id = Column(Integer, ForeignKey(Dossier.id))
     dossier = relationship(
         Dossier,
-        foreign_keys="Dossier.dossier_id",
+        foreign_keys="Amendment.dossier_id",
         backref=backref('amendments', lazy='dynamic'),
     )
-    meps = relationship(Delegation, secondary='AmendmentMEP', lazy='dynamic')
-    committees = relationship(Delegation, secondary='AmendmentCommittee', lazy='dynamic')
+    #meps = relationship(MEP, secondary='AmendmentMEP', lazy='dynamic', foreign_keys="MEP.id")
+    #committees = relationship(Committee, secondary='AmendmentCommittee', lazy='dynamic')
     old = Column(Text)
     new = Column(Text)
     url = Column(Text)
@@ -557,15 +775,37 @@ class Amendment(Base):
 class AmendmentMEP(Base):
     __tablename__ = 'amendment_mep'
 
-    amendment_id = Column(Integer, ForeignKey(Amendment.id), primary_key=True)
-    mep_id = Column(Integer, ForeignKey(MEP.id), primary_key=True)
+    id = Column(Integer, primary_key=True)
+    amendment_id = Column(Integer, ForeignKey(Amendment.id))
+    mep_id = Column(Integer, ForeignKey(MEP.id))
+    mep = relationship(
+        MEP,
+        foreign_keys="AmendmentMEP.mep_id",
+        backref=backref('amendments', lazy='dynamic'),
+    )
+    amendment = relationship(
+        Amendment,
+        foreign_keys="AmendmentMEP.amendment_id",
+        backref=backref('meps', lazy='dynamic'),
+    )
 
 
 class AmendmentCommittee(Base):
     __tablename__ = 'amendment_committee'
 
-    amendment_id = Column(Integer, ForeignKey(Amendment.id), primary_key=True)
+    id = Column(Integer, primary_key=True)
+    amendment_id = Column(Integer, ForeignKey(Amendment.id))
     committee_id = Column(Integer, ForeignKey(Committee.id), primary_key=True)
+    amendment = relationship(
+        Amendment,
+        foreign_keys="AmendmentCommittee.amendment_id",
+        backref=backref('committees', lazy='dynamic'),
+    )
+    committee = relationship(
+        Committee,
+        foreign_keys="AmendmentCommittee.committee_id",
+        backref=backref('amendments', lazy='dynamic'),
+    )
 #
 #
 #class Tweet(models.Model):
