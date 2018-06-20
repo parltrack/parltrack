@@ -315,6 +315,31 @@ class MEP(Base):
                 end=s['end'],
             ))
 
+        for c in d.get('Constituencies', []):
+            if not c:
+                continue
+            name = c['party']
+            country = c['country']
+            p = session.query(Party).filter(Party.name==name).first()
+            if not p:
+                country = session.query(Country).filter(Country.name==country).first()
+                if not country:
+                    # TODO Country.code
+                    country = Country(name=country)
+                    session.add(country)
+                    session.commit()
+                p = Party(name=name, country_id=country.id)
+                session.add(p)
+                session.commit()
+
+            # TODO party role, is current
+            mep.parties.append(PartyMEP(
+                mep_id=mep.id,
+                party_id=p.id,
+                begin=c['start'],
+                end=c['end'],
+            ))
+
         if 'Addresses' in d:
             bxl = d['Addresses'].get('Brussels', {})
             stg = d['Addresses'].get('Strasbourg', {})
@@ -329,14 +354,17 @@ class MEP(Base):
 
 
 
-        # TODO Constituencies, Changelog, Activities
+        # TODO Changelog, Activities
         return mep
 
     def age(self):
+        if not self.birth_date:
+            return
         if date.today().month > self.birth_date.month:
             return date.today().year - self.birth_date.year
         elif date.today().month == self.birth_date.month and date.today().day > self.birth_date.day:
             return date.today().year - self.birth_date.year
+        return
 
     @staticmethod
     def get_by_id(ep_id):
@@ -604,6 +632,16 @@ class PartyMEP(TimePeriod):
     party_id = Column(Integer, ForeignKey(Party.id))
     role = Column(String(255))
     current = Column(Boolean)
+    mep = relationship(
+        MEP,
+        foreign_keys='PartyMEP.mep_id',
+        backref=backref('parties', lazy='dynamic'),
+    )
+    party = relationship(
+        Party,
+        foreign_keys='PartyMEP.party_id',
+        backref=backref('meps', lazy='dynamic'),
+    )
 
 
 #class Motion(models.Model):

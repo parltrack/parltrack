@@ -6,7 +6,7 @@
       <div class="nine wide left aligned column">
         <h1>Parltrack</h1>
 		<p>Parltrack is a European initiative to improve the transparency of legislative processes. It combines information on dossiers, representatives, vote results and committee agendas into a unique database and allows the tracking of dossiers using email and RSS. Most of the data presented is also available for further processing in JSON format. Using Parltrack it's easy to see at a glance which dossiers are being handled by committees and MEPs.</p>
-        <div class="ui divider"> </div>
+        <br />
         <p>If you need advice on how the EP works: please visit these sources:
         <a href="http://www.europarl.europa.eu/aboutparliament/en">European Parliament</a> or
         <a href="https://edri.org/files/2012EDRiPapers/activist_guide_to_the_EU.pdf">Activist guide to the EU (PDF)</a>.</p>
@@ -15,6 +15,27 @@
           <img src="{{ url_for('static', filename='images/ep.png') }}" alt="The Plenary of the European Parliament in Strassbourg" />
       </div>
 	</div>
+    <div class="ui divider"> </div>
+    <div class="three column row">
+      <div class="column">
+        <div class="ui statistic">
+          <div class="value">{{ mep_count }}</div>
+          <div class="label">MEPs</div>
+        </div>
+      </div>
+      <div class="column">
+        <div class="ui statistic">
+          <div class="value">{{ active_mep_count }}</div>
+          <div class="label">Active MEPs</div>
+        </div>
+      </div>
+      <div class="column">
+        <div class="ui statistic">
+          <div class="value">{{ dossier_count }}</div>
+          <div class="label">Dossiers</div>
+        </div>
+      </div>
+    </div>
     <div class="row">
       <div class="sixteen wide left aligned column">
         <h2>Sources</h2>

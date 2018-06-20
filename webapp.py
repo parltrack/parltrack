@@ -6,13 +6,14 @@ import logging
 import os
 
 import config
-import model
+from model import session, Dossier, MEP, PartyMEP
 
 from datetime import datetime
 from logging import Formatter, FileHandler
 from sys import version_info
 
 from flask import Flask, render_template, request
+from sqlalchemy import and_
 
 if version_info[0] == 3:
     unicode = str
@@ -32,7 +33,16 @@ app.config.from_object('config')
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+    meps = session.query(MEP).count()
+    dossiers = session.query(Dossier).count()
+    date = getDate()
+    active_meps = session.query(MEP).filter(MEP.parties.any(and_(PartyMEP.begin < date, PartyMEP.end > date))).count()
+    return render_template(
+        'index.html',
+        mep_count=meps,
+        dossier_count=dossiers,
+        active_mep_count=active_meps,
+    )
 
 
 @app.route('/about')
@@ -48,7 +58,13 @@ def dumps():
 @app.route('/meps')
 def meps():
     date = getDate()
-    return render_template('meps.html', date=date)
+    meps = session.query(MEP).filter(MEP.parties.any(and_(PartyMEP.begin < date, PartyMEP.end > date))).order_by(MEP.full_name).all()
+    return render_template('meps.html', date=date, meps=meps)
+
+
+@app.route('/mep')
+def mep():
+    return
 
 
 @app.route('/dossiers')
