@@ -183,12 +183,14 @@ class MEP(Base):
     total_score = Column(Float)
     twitter = Column(String(511))
     facebook = Column(String(511))
+    # TODO from here
     ep_opinions = Column(String(4095))
     ep_debates = Column(String(4095))
     ep_questions = Column(String(4095))
     ep_declarations = Column(String(4095))
     ep_reports = Column(String(4095))
     ep_motions = Column(String(4095))
+    # TODO end
     ep_webpage = Column(String(4095))
     bxl_floor = Column(String(255))
     bxl_office_number = Column(String(255))
@@ -220,7 +222,7 @@ class MEP(Base):
 
     @staticmethod
     def upsert(mep_data):
-        mep = MEP.get_by_id(mep_data['UserId'])
+        mep = MEP.get_by_id(mep_data['UserID'])
         if not mep:
             return MEP.insert(mep_data)
         # TODO
@@ -229,7 +231,7 @@ class MEP(Base):
     @staticmethod
     def insert(d):
         mep = MEP(
-            ep_id=d.get('UserId', d['UserID']),
+            ep_id=d['UserID'],
             first_name=d['Name']['sur'],
             last_name=d['Name']['family'],
             last_name_with_prefix=d['Name']['familylc'],

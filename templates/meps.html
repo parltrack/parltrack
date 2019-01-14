@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="ui vertical segment">
+  <div class="ui center aligned stackable grid container">
+    <div class="row">
+      <div class="left aligned column">
+          <h1>MEPs as of {{ date|asdate }} ({{ meps|length }})</h1>
+          <div class="ui fluid divided items">
+          {% for mep in meps %}
+              <div class="item">
+                  <div class="image">
+                      <a href="{{ url_for('mep') }}?mepid={{ mep.id }}"><img src="{{ mep.photo }}"/></a>
+                  </div>
+                  <div class="content">
+                      <div class="header">{{ mep.full_name }}</div>
+                      <div class="meta">
+                          <a>{{ mep.parties[-1].party.name }}</a>
+                      </div>
+                      <div class="description">
+                          {% if mep.age() %} Age: {{ mep.age() }}<br />{% endif %}
+                          {% if mep.twitter %}
+                          <a href="{{ mep.twitter }}"><i class="twitter icon"></i></a>
+                          {% endif %}
+                          {% if mep.facebook %}
+                          <a href="{{ mep.facebook }}"><i class="facebook icon"></i></a>
+                          {% endif %}
+                      </div>
+                  </div>
+              </div>
+          {% endfor %}
+          </div>
+          </table>
+
+      </div>
+	</div>
+  </div>
+</div>
+{% endblock %}

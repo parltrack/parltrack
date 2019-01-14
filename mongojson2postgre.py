@@ -10,7 +10,7 @@ import model
 
 
 def mep_loader(data):
-    mep_id = data.get('UserId', data['UserID'])
+    mep_id = data['UserID']
     if not model.MEP.get_by_id(mep_id):
         try:
             mep = model.MEP.insert(data)
@@ -18,10 +18,18 @@ def mep_loader(data):
             print("error with MEP", mep_id)
             raise e
         model.session.add(mep)
+    else:
+        raise Exception('database is not empty')
+
+
+def dossier_loader(data):
+    pprint(data)
+    raise Exception('has data')
 
 
 loaders = {
     'meps': mep_loader,
+    'dossiers': dossier_loader,
 }
 
 base_url = 'http://parltrack.euwiki.org/dumps/'
@@ -59,7 +67,11 @@ if __name__ == '__main__':
                 while line:
                     if len(line.strip()) > 1:
                         data = loads(line)
-                        loader(data)
+                        try:
+                            loader(data)
+                        except Exception as e:
+                            print("got exception from loader:", e)
+                            break
                         i += 1
                     if i % 100:
                         model.session.commit()
