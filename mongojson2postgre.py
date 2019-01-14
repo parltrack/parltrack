@@ -4,14 +4,39 @@ from os import listdir, path
 from requests import get
 from subprocess import call
 from sys import argv
+from pprint import pprint
 
 import model
+
+
+def mep_loader(data):
+    mep_id = data['UserID']
+    if not model.MEP.get_by_id(mep_id):
+        try:
+            mep = model.MEP.insert(data)
+        except Exception as e:
+            print("error with MEP", mep_id)
+            raise e
+        model.session.add(mep)
+    else:
+        raise Exception('database is not empty')
+
+
+def dossier_loader(data):
+    pprint(data)
+    raise Exception('has data')
+
+
+loaders = {
+    'meps': mep_loader,
+    'dossiers': dossier_loader,
+}
 
 base_url = 'http://parltrack.euwiki.org/dumps/'
 
 if __name__ == '__main__':
     if len(argv) != 3:
-        print("possible commands: save <directory>, load <directory>")
+        print("commands: save <directory>, load <directory>")
         exit(1)
     if argv[1] == 'save':
         dom = html.fromstring(get(base_url).text)
@@ -29,23 +54,11 @@ if __name__ == '__main__':
         for f in listdir(argv[2]):
             if not f.startswith('ep_'):
                 continue
+            data_name = f.split('.')[0].split('_')[1]
             f =  path.join(argv[2], f)
-            tablename = f.split('.')[0].split('_')[1]
-            print(tablename)
-            if tablename.endswith('s'):
-                tablename = tablename[:-1]
-            m = None
-            for a in dir(model):
-                a = getattr(model, a)
-                if not hasattr(a, '__tablename__'):
-                    continue
-                if a.__tablename__ == tablename:
-                    m = a
-                    break
-            if m is None:
-                continue
-            if model.session.query(m).count():
-                print(tablename, "is not empty, skipping")
+            loader = loaders.get(data_name)
+            if loader is None:
+                print('cannot find loader for', data_name)
                 continue
             print('loading', f)
             with open(f) as infile:
@@ -54,23 +67,13 @@ if __name__ == '__main__':
                 while line:
                     if len(line.strip()) > 1:
                         data = loads(line)
-                        if hasattr(m, 'load'):
-                            m.load(data)
-                        else:
-                            model.session.add(m(data=data))
-                        if i % 1000 == 0:
-                            try:
-                                model.session.commit()
-                            except Exception as e:
-                                print('error occured:', e)
-                                model.session.rollback()
-                                break
-                            print(i, 'done..')
+                        try:
+                            loader(data)
+                        except Exception as e:
+                            print("got exception from loader:", e)
+                            break
                         i += 1
+                    if i % 100:
+                        model.session.commit()
                     line = infile.readline()
-                try:
-                    model.session.commit()
-                except:
-                    model.session.rollback()
-                    continue
-        exit(0)
+            model.session.commit()
