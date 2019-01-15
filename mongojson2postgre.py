@@ -7,6 +7,7 @@ from sys import argv
 from pprint import pprint
 
 import model
+import traceback
 
 
 def mep_loader(data):
@@ -71,6 +72,7 @@ if __name__ == '__main__':
                             loader(data)
                         except Exception as e:
                             print("got exception from loader:", e)
+                            traceback.print_exc()
                             break
                         i += 1
                     if i % 100:

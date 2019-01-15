@@ -18,6 +18,11 @@
                       </div>
                       <div class="description">
                           {% if mep.age() %} Age: {{ mep.age() }}<br />{% endif %}
+                          {% if mep.offices %}
+                             {% for o in mep.offices %}
+                             Office: {{ o }}<br/>
+                             {% endfor %}
+                          {% endif %}
                           {% if mep.twitter %}
                           <a href="{{ mep.twitter }}"><i class="twitter icon"></i></a>
                           {% endif %}

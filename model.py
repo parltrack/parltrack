@@ -11,6 +11,7 @@ from sqlalchemy import (
     Text,
     String,
     ForeignKey,
+    UniqueConstraint
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (
@@ -103,16 +104,19 @@ class Building(Base):
     __tablename__ = 'building'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(255))
+    name = Column(String(255), unique=True)
     abbreviation = Column(String(255), unique=True)
+    city = Column(String(255))
     street = Column(String(255))
     postcode = Column(String(255))
 
-    def _town(self):
-        return "bxl" if self.postcode == "1047" else "stg"
+    __table_args__ = (UniqueConstraint('name', 'abbreviation', 'city', name='_building_uc'),)
 
     def __unicode__(self):
         return u"%s - %s - %s - %s" % (self.id, self.name, self.street, self.postcode)
+
+    def __repr__(self):
+        return u"%s - %s - %s" % (self.name, self.street, self.postcode)
 
     @staticmethod
     def get_by_id(id):
@@ -192,26 +196,6 @@ class MEP(Base):
     ep_motions = Column(String(4095))
     # TODO end
     ep_webpage = Column(String(4095))
-    bxl_floor = Column(String(255))
-    bxl_office_number = Column(String(255))
-    bxl_fax = Column(String(255))
-    bxl_phone1 = Column(String(255))
-    bxl_phone2 = Column(String(255))
-    stg_floor = Column(String(255))
-    stg_office_number = Column(String(255))
-    stg_fax = Column(String(255))
-    stg_phone1 = Column(String(255))
-    stg_phone2 = Column(String(255))
-    stg_building_id = Column(Integer, ForeignKey(Building.id))
-    stg_building = relationship(
-        Building,
-        foreign_keys="MEP.stg_building_id",
-    )
-    bxl_building_id = Column(Integer, ForeignKey(Building.id))
-    bxl_building = relationship(
-        Building,
-        foreign_keys="MEP.bxl_building_id",
-    )
     #groups = relationship(Group, secondary='GroupMEP', lazy='dynamic')
     #countries = relationship(Country, secondary='CountryMEP', lazy='dynamic')
     #delegations = relationship(Delegation, secondary='DelegationRole', lazy='dynamic')
@@ -219,6 +203,7 @@ class MEP(Base):
     #organizations = relationship(Organization, secondary='OrganizationMEP', lazy='dynamic')
     #staff = relationship(Staff, secondary='StaffRole', lazy='dynamic')
     #posts = GenericRelation(Post)
+    #offices = relationship(Office)
 
     @staticmethod
     def upsert(mep_data):
@@ -342,22 +327,60 @@ class MEP(Base):
                 end=c['end'],
             ))
 
-        if 'Addresses' in d:
-            bxl = d['Addresses'].get('Brussels', {})
-            stg = d['Addresses'].get('Strasbourg', {})
-            mep.bxl_floor = bxl.get('Address', {}).get('Floor', '')
-            mep.bxl_office_number = bxl.get('Address', {}).get('Office')
-            mep.bxl_fax = bxl.get('Fax', '')
-            mep.bxl_phone1 = bxl.get('Phone', '')
-            mep.stg_floor = stg.get('Address', {}).get('Floor', '')
-            mep.stg_office_number = stg.get('Address', {}).get('Office')
-            mep.stg_fax = stg.get('Fax')
-            mep.stg_phone1 = stg.get('Phone')
+           #     "Brussels": {
+           #       "Address": {
+           #         "City": "Bruxelles/Brussel",
+           #         "Organization": "Parlement europ_en"
+           #       }
+           #     },
+           #     "Postal": [
+           #       "European Parliament",
+           #       "Rue Wiertz",
+           #       "Altiero Spinelli 12E242",
+           #       "1047 Brussels"
+           #     ],
 
-
+        for k,a in d.get('Addresses', {}).items():
+            if k == 'Postal':
+                p =  PostalAddress(addr=' '.join(a), mep_id=mep.id)
+                session.add(p)
+            else:
+                o = mep._add_office(a)
+                o.mep_id = mep.id
+                mep.offices.append(o)
+            session.commit()
 
         # TODO Changelog, Activities
         return mep
+
+    def _add_office(self, office):
+        b = office['Address']
+        building = session.query(Building).filter(Building.abbreviation==b["building_code"]).first()
+        if not building:
+            building = Building(name=b['Building'],
+                                abbreviation=b['building_code'],
+                                street=b['Street'],
+                                postcode=b.get('Zip', '') or '{0} ({1})'.format(b['Zip1'], b['Zip2']),
+                                city=b['City'])
+            session.add(building)
+            session.commit()
+
+        floor = on = ''
+        o = b.get('Office', '')
+        if o[0].isnumeric():
+            for s in 'GEFGHKMYgCB':
+                try:
+                    floor, on = o.split(s)
+                    break
+                except:
+                    pass
+        else:
+            on = o
+        if not on:
+            print('Invalid floor/on', b.get('Office'), self.id, self.ep_id, b)
+        office = Office(floor=floor, office_number=on, fax=b.get('Fax', ''), phone1=b.get('Phone', ''), building_id=building.id)
+        session.add(office)
+        return office
 
     def age(self):
         if not self.birth_date:
@@ -377,14 +400,54 @@ class MEP(Base):
         # TODO
         return
 
-    def bxl_office(self):
-        return self.bxl_floor + self.bxl_office_number
-
-    def stg_office(self):
-        return self.stg_floor + self.stg_office_number
-
     def __unicode__(self):
         return u"%s %s" % (self.first_name, self.last_name)
+
+    
+class Office(Base):
+    """ An office of a MEP"""
+    __tablename__ = 'office'
+
+    id = Column(Integer, primary_key=True)
+    floor = Column(String(255))
+    office_number = Column(String(255))
+    fax = Column(String(255))
+    phone1 = Column(String(255))
+    phone2 = Column(String(255))
+    building_id = Column(Integer, ForeignKey(Building.id))
+    building = relationship(
+        Building,
+        foreign_keys="Office.building_id",
+        backref=backref('offices', lazy='dynamic'),
+    )
+    mep_id = Column(Integer, ForeignKey(MEP.id))
+    mep = relationship(
+        MEP,
+        foreign_keys="Office.mep_id",
+        backref=backref('offices', lazy='dynamic'),
+    )
+
+
+    def __unicode__(self):
+        return u"%s - %s - %s - %s" % (self.id, self.building.__unicode__(), self.floor, self.office_number)
+
+    def __repr__(self):
+        return u"%s - %s - %s" % (self.building.__repr__(), self.floor, self.office_number)
+
+    @staticmethod
+    def get_by_id(id):
+        # TODO
+        return
+
+    @staticmethod
+    def upsert(dossier_data):
+        # TODO
+        return
+
+    @staticmethod
+    def load(dossier_data):
+        # TODO
+        return
 
 
 class MEPAlias(Base):
