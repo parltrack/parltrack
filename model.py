@@ -1,5 +1,11 @@
-from datetime import date
+import sys
+from datetime import date, datetime
 from json import dumps
+
+# TODO
+# dossier loading
+# changelog model (document id,  change type, prev value, cur value, path, # date)
+# save handler to models which handles changelog
 
 from sqlalchemy import (
     create_engine,
@@ -23,6 +29,8 @@ from sqlalchemy.orm import (
 from sqlalchemy.sql.expression import cast
 
 from config import SQLALCHEMY_DATABASE_URI, DB_DEBUG
+
+now = datetime.now
 
 def dateJSONhandler(obj):
     if hasattr(obj, 'isoformat'):
@@ -124,17 +132,7 @@ class Building(Base):
         return
 
     @staticmethod
-    def get_by_src(src):
-        # TODO
-        return
-
-    @staticmethod
     def upsert(dossier_data):
-        # TODO
-        return
-
-    @staticmethod
-    def load(dossier_data):
         # TODO
         return
 
@@ -154,6 +152,7 @@ class Delegation(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(255))
+    abbr = Column(String(255))
 
     def __unicode__(self):
         return self.name
@@ -173,6 +172,9 @@ class MEP(Base):
     __tablename__ = 'mep'
 
     id = Column(Integer, primary_key=True)
+    src_url = Column(String(1024), nullable=False)
+    created = Column(Date, nullable=False)
+    updated = Column(Date, nullable=False)
     first_name = Column(String(255), nullable=False)
     last_name = Column(String(255), nullable=False)
     last_name_with_prefix = Column(String(255), nullable=False)
@@ -181,13 +183,15 @@ class MEP(Base):
     swaped_name = Column(String(255))
     gender = Column(String(2))
     birth_date = Column(Date)
+    death_date = Column(Date)
     birth_place = Column(String(255))
     active = Column(Boolean)
     ep_id = Column(Integer, unique=True)
     total_score = Column(Float)
     twitter = Column(String(511))
     facebook = Column(String(511))
-    # TODO from here
+    homepage = Column(Text)
+    # TODO append/insert from here
     ep_opinions = Column(String(4095))
     ep_debates = Column(String(4095))
     ep_questions = Column(String(4095))
@@ -195,7 +199,6 @@ class MEP(Base):
     ep_reports = Column(String(4095))
     ep_motions = Column(String(4095))
     # TODO end
-    ep_webpage = Column(String(4095))
     #groups = relationship(Group, secondary='GroupMEP', lazy='dynamic')
     #countries = relationship(Country, secondary='CountryMEP', lazy='dynamic')
     #delegations = relationship(Delegation, secondary='DelegationRole', lazy='dynamic')
@@ -204,6 +207,7 @@ class MEP(Base):
     #staff = relationship(Staff, secondary='StaffRole', lazy='dynamic')
     #posts = GenericRelation(Post)
     #offices = relationship(Office)
+    #assistants = relationship(Assistant, secondary='AssistantMEP', lazy='dynamic')
 
     @staticmethod
     def upsert(mep_data):
@@ -215,6 +219,9 @@ class MEP(Base):
 
     @staticmethod
     def insert(d):
+        #if len(d.get('Facebook', [])) > 1: print >>sys.stderr, "more than 1 facebook entry", d['UserID'], d['Facebook'] 
+        #if len(d.get('Twitter', [])) > 1: print  >>sys.stderr, "more than 1 Twitter entry", d['UserID'], d['Twitter'] 
+        #if len(d.get('Homepage', [])) > 1: print  >>sys.stderr, "more than 1 Homepage entry", d['UserID'], d['Homepage'] 
         mep = MEP(
             ep_id=d['UserID'],
             first_name=d['Name']['sur'],
@@ -225,11 +232,18 @@ class MEP(Base):
             photo=d['Photo'],
             facebook=d['Facebook'][0] if len(d.get('Facebook', [])) else '',
             twitter=d['Twitter'][0] if len(d.get('Twitter', [])) else '',
+            homepage=d['Homepage'][0] if len(d.get('Homepage', [])) else '', 
+            created=d['meta'].get('created', now()),
+            updated=d['meta'].get('updated', now()),
+            src_url=d['meta'].get('url', ''),
         )
 
         if 'Birth' in d:
             mep.birth_date=d['Birth'].get('date')
             mep.birth_place=d['Birth'].get('place', '')
+
+        if 'Death' in d:
+            mep.death_date=d['Death']
 
         mep.aliases = [MEPAlias(mep_id=mep.id, alias=a) for a in d['Name']['aliases']]
         mep.cvs = [CV(mep_id=mep.id, title=a) for a in d.get('cv', {}).values()]
@@ -253,9 +267,10 @@ class MEP(Base):
 
         for dd in d.get('Delegations', []):
             name = dd['Organization']
+            abbr = dd['abbr']
             de = session.query(Delegation).filter(Delegation.name==name).first()
             if not de:
-                de = Delegation(name=name)
+                de = Delegation(name=name, abbr=abbr)
                 session.add(de)
                 session.commit()
 
@@ -307,14 +322,14 @@ class MEP(Base):
                 continue
             name = c['party']
             country = c['country']
-            p = session.query(Party).filter(Party.name==name).first()
+            country = session.query(Country).filter(Country.name==country).first()
+            if not country:
+                # TODO Country.code
+                country = Country(name=country)
+                session.add(country)
+                session.commit()
+            p = session.query(Party).filter(Party.name==name, Party.country==country).first()
             if not p:
-                country = session.query(Country).filter(Country.name==country).first()
-                if not country:
-                    # TODO Country.code
-                    country = Country(name=country)
-                    session.add(country)
-                    session.commit()
                 p = Party(name=name, country_id=country.id)
                 session.add(p)
                 session.commit()
@@ -327,19 +342,6 @@ class MEP(Base):
                 end=c['end'],
             ))
 
-           #     "Brussels": {
-           #       "Address": {
-           #         "City": "Bruxelles/Brussel",
-           #         "Organization": "Parlement europ_en"
-           #       }
-           #     },
-           #     "Postal": [
-           #       "European Parliament",
-           #       "Rue Wiertz",
-           #       "Altiero Spinelli 12E242",
-           #       "1047 Brussels"
-           #     ],
-
         for k,a in d.get('Addresses', {}).items():
             if k == 'Postal':
                 p =  PostalAddress(addr=' '.join(a), mep_id=mep.id)
@@ -349,6 +351,27 @@ class MEP(Base):
                 o.mep_id = mep.id
                 mep.offices.append(o)
             session.commit()
+
+        for t, A in d.get('assistants', {}).items():
+            for name in A:
+                aa = session.query(Assistant).filter(Assistant.name==name).first()
+                if not aa:
+                    aa = Assistant(name=name)
+                    session.add(aa)
+                mep.assistants.append(AssistantMEP(
+                    mep_id=mep.id,
+                    assistant_id=aa.id,
+                    type=t,
+                ))
+        session.commit()
+
+        for u in d.get('Declarations of Participation', []):
+            dop = session.query(PartDecl).filter(PartDecl.url==u, PartDecl.mep_id==mep.id).first()
+            if not dop:
+                dop = PartDecl(url=u, mep=mep)
+                session.add(dop)
+                mep.partdecls.append(dop)
+        session.commit()
 
         # TODO Changelog, Activities
         return mep
@@ -402,6 +425,19 @@ class MEP(Base):
 
     def __unicode__(self):
         return u"%s %s" % (self.first_name, self.last_name)
+
+
+class PartDecl(Base):
+    __tablename__ = 'partdecl'
+
+    id = Column(Integer, primary_key=True)
+    url = Column(String(512), unique=True)
+    mep_id = Column(Integer, ForeignKey(MEP.id))
+    mep = relationship(
+        MEP,
+        foreign_keys="PartDecl.mep_id",
+        backref=backref('partdecls', lazy='dynamic'),
+    )
 
     
 class Office(Base):
@@ -627,10 +663,10 @@ class Assistant(Base):
     __tablename__ = 'assistant'
 
     id = Column(Integer, primary_key=True)
-    full_name = Column(String(255))
+    name = Column(String(255))
 
     def __unicode__(self):
-        return self.full_name
+        return self.name
 
 
 class AssistantMEP(Base):
@@ -638,8 +674,18 @@ class AssistantMEP(Base):
 
     id = Column(Integer, primary_key=True)
     mep_id = Column(Integer, ForeignKey(MEP.id))
-    committee_id = Column(Integer, ForeignKey(Assistant.id))
+    assistant_id = Column(Integer, ForeignKey(Assistant.id))
     type = Column(String(255))
+    mep = relationship(
+        MEP,
+        foreign_keys="AssistantMEP.mep_id",
+        backref=backref('assistants', lazy='dynamic'),
+    )
+    assistant = relationship(
+        Assistant,
+        foreign_keys="AssistantMEP.assistant_id",
+        backref=backref('meps', lazy='dynamic'),
+    )
 
 
 class Email(Base):
