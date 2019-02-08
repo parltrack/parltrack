@@ -37,7 +37,11 @@ def load_scrapers():
     for scraper in os.listdir('scrapers/'):
         if scraper.startswith('_'):
             continue
-        s = __import__('scrapers.'+scraper[:-3])
+        try:
+            s = __import__('scrapers.'+scraper[:-3])
+        except:
+            print("failed to load scraper", scraper)
+            continue
         s._queue = Queue()
         scrapers[scraper] = s
         s._name = scraper
