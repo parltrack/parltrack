@@ -19,7 +19,7 @@
 
 from datetime import datetime
 from lxml import etree
-from parltrack.utils import fetch, fetch_raw, jdump
+from utils.utils import fetch, fetch_raw, jdump
 import re, sys, unicodedata
 
 CONFIG = {
@@ -64,7 +64,7 @@ def splitMeps(text, res, date):
               res['rapporteur'].append({'name': q, 'ref': mep})
               ok=True
        if ok: return True
-    print >>sys.stderr, '[$] lookup oops:', text.encode('utf8')
+    print('[$] lookup oops:', text.encode('utf8'))
     return ok
 
 def scanMeps(text, res, date):
@@ -74,14 +74,14 @@ def scanMeps(text, res, date):
     elif len(tmp)==1:
         return splitMeps(text, res, date)
     else:
-        print >>sys.stderr, 'huh', line
+        print('huh', line)
 
 docre=re.compile(u'(.*)((?:[AB]|RC)[678]\s*-\s*[0-9]{3,4}\/[0-9]{4})(.*)')
 tailre=re.compile(r'^(?:\s*-\s*)?(.*)\s*-\s*([^-]*$)')
 junkdashre=re.compile(r'^[ -]*(.*)[ -]*$')
 rapportre=re.compile(r'(.*)(?:recommendation|rapport|report):?\s?(.*)',re.I)
 def votemeta(line, date):
-    print >>sys.stderr, line.encode('utf8')
+    print(line.encode('utf8'))
     res={'rapporteur': []}
     m=docre.search(line)
     if m:
@@ -106,7 +106,7 @@ def votemeta(line, date):
     tmp=line.split(' - ')
     if len(tmp)>1:
         if len(tmp)>2:
-            print >>sys.stderr, "many ' - '",line
+            print("many ' - '", line)
         line=tmp[0]
         res['issue_type']="%s %s" % (' - '.join(tmp[1:]),res.get('issue_type',''))
     line=line.strip()
@@ -148,7 +148,7 @@ def crawl(year, term):
         dates=root.xpath('//span[@class="date"]/text()')
 
 def get(url):
-    print "scraping", url
+    print("scraping")
     root=etree.parse(fetch_raw(url))
     # root is:
     #PV.RollCallVoteResults EP.Number="PE 533.923" EP.Reference="P7_PV(2014)04-17" Sitting.Date="2014-04-17" Sitting.Identifier="1598443"
@@ -162,7 +162,7 @@ def get(url):
         for type, stype in [('Result.For','For'), ('Result.Against','Against'), ('Result.Abstention','Abstain')]:
             type = vote.xpath(type)
             if not type: continue
-            if len(type)>1: print "[pff] more than one", stype, "entry in vote"
+            if len(type)>1: print("[pff] more than one", stype, "entry in vote")
             type = type[0]
             res[stype]={u'total': type.get('Number'),
                         u'groups': [{u'group': group.get('Identifier'),
@@ -185,7 +185,7 @@ def scrape(year):
         map(get, crawl(year, 6))
         map(get, crawl(year, 7))
     elif year < 2014:
-        print jdump(map(get, crawl(year, 7))).encode('utf8')
+        print(jdump(map(get, crawl(year, 7))).encode('utf8'))
         #map(get, crawl(year, 7))
     else:
         map(get, crawl(year, 7))
