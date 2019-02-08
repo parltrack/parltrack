@@ -34,18 +34,17 @@ def crawler(all=False):
         sources = ['http://www.europarl.europa.eu/meps/en/incoming-outgoing/incoming/xml',
                    'http://www.europarl.europa.eu/meps/en/incoming-outgoing/outgoing/xml',
                    'http://www.europarl.europa.eu/meps/en/full-list/xml']
-    for src in sources:
-        yield src
-
-def crawler_cb(all, txt):
     if all:
         for unlisted in [ 1018, 26833, 1040, 1002, 2046, 23286, 28384, 1866, 28386,
                           1275, 2187, 34004, 28309, 1490, 28169, 28289, 28841, 1566,
                           2174, 4281, 28147, 28302, ]:
             yield unlisted
-    root = fromstring(txt[txt.find('?>')+2:])
-    for id in root.xpath("//mep/id/text()"):
-        yield(int(id))
+    for src in sources:
+        root = fetch(src)
+        for id in root.xpath("//mep/id/text()"):
+            print int(id)
+
+def crawler_cb(all, txt):
 
 def deobfus_mail(txt):
     x = txt.replace('[at]','@').replace('[dot]','.')
@@ -91,5 +90,4 @@ def scraper(id, txt):
 if __name__ == '__main__':
     #crawler()
     from utils.utils import fetch_raw
-    id = 28390
-    scraper(id, fetch_raw("http://www.europarl.europa.eu/meps/en/%s/name/home" % id))
+    scraper(28390, fetch_raw("http://www.europarl.europa.eu/meps/en/%s/name/%s" % (id, 'home')))
