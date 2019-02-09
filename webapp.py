@@ -17,6 +17,8 @@ from sys import version_info
 from flask import Flask, render_template, request
 from sqlalchemy import and_
 
+from utils.utils import asDate
+
 if version_info[0] == 3:
     unicode = str
 
@@ -206,19 +208,11 @@ def protect_email(email_address):
 
     return '<span id="'+ id + '">[javascript protected email address]</span>'+ script
 
-
 def getDate():
     date=datetime.now()
     if request.args.get('date'):
-        try:
-            date=datetime.strptime(request.args['date'], "%d/%m/%Y")
-        except ValueError:
-            try:
-                date=datetime.strptime(request.args['date'], "%Y-%m-%d")
-            except ValueError:
-                date=datetime.strptime(request.args['date'], "%Y/%m/%d")
+        date = asDate(request.args['date']
     return date
-
 
 if not config.DEBUG:
     app.logger.setLevel(logging.INFO)
