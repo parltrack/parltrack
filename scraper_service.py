@@ -1,6 +1,7 @@
 import asyncore
 import os
 import socket
+import traceback
 
 from json import loads, dumps
 from queue import Queue
@@ -29,22 +30,32 @@ def run_scraper(scraper):
 def consume(pool, scraper):
     while True:
         job = pool.get(True)
+        print("starting {0} job".format(scraper._name))
         scraper.scrape(job)
+        print("{0} job finished".format(scraper._name))
 
 
 def load_scrapers():
     scrapers = {}
     for scraper in os.listdir('scrapers/'):
-        if scraper.startswith('_'):
+        if scraper.startswith('_') or not scraper.endswith('.py'):
             continue
         try:
+            name = scraper[:-3]
             s = __import__('scrapers.'+scraper[:-3])
         except:
             print("failed to load scraper", scraper)
+            traceback.print_exc()
             continue
         s._queue = Queue()
-        scrapers[scraper] = s
-        s._name = scraper
+        scrapers[name] = s
+        s._name = name
+        if hasattr(s, 'CONFIG'):
+            cfg = CONFIG.copy()
+            cfg.update(s.CONFIG)
+            s.CONFIG = cfg
+        else:
+            s.CONFIG = CONFIG.copy()
         print('scraper', scraper, 'added')
     return scrapers
 
@@ -76,12 +87,13 @@ class RequestHandler(asyncore.dispatcher_with_send):
 
         if data['command'] in ['c', 'call']:
             if data.get('scraper') not in self.scrapers:
-                self.notify('Missing or invalid scraper')
+                self.notify('Missing or invalid scraper ' + data.get('scraper'))
             payload = data.get('payload', {})
             scraper = self.scrapers.get(data['scraper'])
             if not scraper:
                 return
-            self.notify('Scraper finished: ' + repr(scraper.scrape(**payload)))
+            scraper._queue.put(payload)
+            print('{0} added to {1} queue'.format(payload, scraper._name))
 
         print('# Command `{0}` processed'.format(data['command']))
 
