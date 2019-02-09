@@ -374,5 +374,20 @@ def textdiff(d):
         res.append(u"\n%s %s:\t%s" % (di['type'], u'/'.join([str(x) for x in di['path']]), printdict(di['data'])))
     return '\n'.join(res)
 
+from datetime import datetime, date
+def asDate(d):
+    d = d.split('T')[0]
+    try:
+        d=datetime.strptime(d, "%d/%m/%Y")
+    except ValueError:
+        try:
+            d=datetime.strptime(d, "%Y-%m-%d")
+        except ValueError:
+            try:
+                d=datetime.strptime(d, "%Y/%m/%d")
+            except ValueError:
+                d=datetime.strptime(d, "%d-%m-%Y")
+    return d.date()
+
 if __name__ == "__main__":
     pass
