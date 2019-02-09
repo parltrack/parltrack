@@ -1,6 +1,9 @@
 import sys
 from datetime import date, datetime
 from json import dumps
+from utils.utils import asDate, unws
+
+import unicodedata
 
 # TODO
 # dossier loading
@@ -92,11 +95,11 @@ class Group(Base):
     __tablename__ = 'group'
 
     id = Column(Integer, primary_key=True)
-    abbreviation = Column(String(10), unique=True)
+    abbr = Column(String(10), unique=True)
     name = Column(String(100), unique=True)
 
     def __unicode__(self):
-        return u"%s - %s" % (self.abbreviation, self.name)
+        return u"%s - %s" % (self.abbr, self.name)
 
 
 class Committee(Base):
@@ -104,8 +107,7 @@ class Committee(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(512), unique=True)
-    abbreviation = Column(String(30), unique=True)
-
+    abbr  = Column(String(30))
 
 class Building(Base):
     """ A building of the European Parliament"""
@@ -113,12 +115,12 @@ class Building(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(255), unique=True)
-    abbreviation = Column(String(255), unique=True)
+    abbr = Column(String(255), unique=True)
     city = Column(String(255))
     street = Column(String(255))
     postcode = Column(String(255))
 
-    __table_args__ = (UniqueConstraint('name', 'abbreviation', 'city', name='_building_uc'),)
+    __table_args__ = (UniqueConstraint('name', 'abbr', 'city', name='_building_uc'),)
 
     def __unicode__(self):
         return u"%s - %s - %s - %s" % (self.id, self.name, self.street, self.postcode)
@@ -168,6 +170,21 @@ class Staff(Base):
         return u"%s - %s" % (self.code, self.name)
 
 
+class Format(Base):
+    """
+    Abstract base class containing the format of MEP activities
+    """
+    __abstract__ = True
+
+    id = Column(Integer, primary_key=True)
+    language = Column(String(64))
+    title = Column(String(4096))
+    url = Column(String(255))
+    pubRef = Column(String(100))
+    type = Column(String(32))
+    size = Column(Integer)
+
+
 class MEP(Base):
     __tablename__ = 'mep'
 
@@ -191,14 +208,12 @@ class MEP(Base):
     twitter = Column(String(511))
     facebook = Column(String(511))
     homepage = Column(Text)
-    # TODO append/insert from here
-    ep_opinions = Column(String(4095))
-    ep_debates = Column(String(4095))
-    ep_questions = Column(String(4095))
-    ep_declarations = Column(String(4095))
-    ep_reports = Column(String(4095))
-    ep_motions = Column(String(4095))
-    # TODO end
+    #ep_opinions = Column(String(4095))
+    #ep_debates = Column(String(4095))
+    #ep_questions = Column(String(4095))
+    #ep_declarations = Column(String(4095))
+    #ep_reports = Column(String(4095))
+    #ep_motions = Column(String(4095))
     #groups = relationship(Group, secondary='GroupMEP', lazy='dynamic')
     #countries = relationship(Country, secondary='CountryMEP', lazy='dynamic')
     #delegations = relationship(Delegation, secondary='DelegationRole', lazy='dynamic')
@@ -239,11 +254,14 @@ class MEP(Base):
         )
 
         if 'Birth' in d:
-            mep.birth_date=d['Birth'].get('date')
+            mep.birth_date=asDate(d['Birth'].get('date'))
             mep.birth_place=d['Birth'].get('place', '')
 
         if 'Death' in d:
-            mep.death_date=d['Death']
+            mep.death_date=asDate(d['Death'])
+
+        session.add(mep)
+        session.commit()
 
         mep.aliases = [MEPAlias(mep_id=mep.id, alias=a) for a in d['Name']['aliases']]
         mep.cvs = [CV(mep_id=mep.id, title=a) for a in d.get('cv', {}).values()]
@@ -251,19 +269,20 @@ class MEP(Base):
 
         for c in d.get('Committees', []):
             name = c['Organization']
+            abbr = c['abbr']
             com = session.query(Committee).filter(Committee.name==name).first()
             if not com:
-                com = Committee(name=name, abbreviation=c['abbr'])
+                com = Committee(name=name, abbr=abbr)
                 session.add(com)
                 session.commit()
-
-            mep.committees.append(CommitteeRole(
-                mep_id=mep.id,
-                committee_id=com.id,
-                role=c['role'],
-                begin=c['start'],
-                end=c['end'],
-            ))
+            if com:
+                mep.committees.append(CommitteeRole(
+                    mep_id=mep.id,
+                    committee_id=com.id,
+                    role=c['role'],
+                    begin=c['start'],
+                    end=c['end'],
+                ))
 
         for dd in d.get('Delegations', []):
             name = dd['Organization']
@@ -287,9 +306,9 @@ class MEP(Base):
             abbr = g['groupid']
             if isinstance(abbr, list):
                 abbr = abbr[0]
-            gg = session.query(Group).filter(Group.abbreviation==abbr).first()
+            gg = session.query(Group).filter(Group.abbr==abbr).first()
             if not gg:
-                gg = Group(name=name, abbreviation=abbr)
+                gg = Group(name=name, abbr=abbr)
                 session.add(gg)
                 session.commit()
 
@@ -308,7 +327,6 @@ class MEP(Base):
                 ss = Staff(name=name)
                 session.add(ss)
                 session.commit()
-
             mep.staff.append(StaffRole(
                 mep_id=mep.id,
                 staff_id=ss.id,
@@ -333,7 +351,6 @@ class MEP(Base):
                 p = Party(name=name, country_id=country.id)
                 session.add(p)
                 session.commit()
-
             # TODO party role, is current
             mep.parties.append(PartyMEP(
                 mep_id=mep.id,
@@ -363,7 +380,7 @@ class MEP(Base):
                     assistant_id=aa.id,
                     type=t,
                 ))
-        session.commit()
+            session.commit()
 
         for u in d.get('Declarations of Participation', []):
             dop = session.query(PartDecl).filter(PartDecl.url==u, PartDecl.mep_id==mep.id).first()
@@ -371,17 +388,19 @@ class MEP(Base):
                 dop = PartDecl(url=u, mep=mep)
                 session.add(dop)
                 mep.partdecls.append(dop)
-        session.commit()
+            session.commit()
 
-        # TODO Changelog, Activities
+        MEP.insert_activities(mep, d.get("activities",{}))
+
+        # TODO Changelog
         return mep
 
     def _add_office(self, office):
         b = office['Address']
-        building = session.query(Building).filter(Building.abbreviation==b["building_code"]).first()
+        building = session.query(Building).filter(Building.abbr==b["building_code"]).first()
         if not building:
             building = Building(name=b['Building'],
-                                abbreviation=b['building_code'],
+                                abbr=b['building_code'],
                                 street=b['Street'],
                                 postcode=b.get('Zip', '') or '{0} ({1})'.format(b['Zip1'], b['Zip2']),
                                 city=b['City'])
@@ -426,6 +445,351 @@ class MEP(Base):
     def __unicode__(self):
         return u"%s %s" % (self.first_name, self.last_name)
 
+    def __repr__(self):
+        return u"%s %s (%d)" % (self.first_name, self.last_name, self.ep_id)
+
+    @staticmethod
+    def insert_activities(mep, activities):
+        for type, terms in activities.items():
+            if type == "WDECL": continue
+            if 'SHADOW' in type: shadow = True
+            else: shadow = False
+            for term, items in terms.items():
+                for item in items:
+                    # voteExplanationList in debatesis always an empty list in import, warn if not and adapt model accordingly
+                    if type=="CRE" and item['voteExplanationList'] != []:
+                        print("error: debate has a non-empty voteExplanationList:", d['voteExplanationList'], file=sys.stderr)
+                        print(mep, file=sys.stderr)
+                    # TODO did = session.query(Dossiers).filter(Dossier.reference==o['dossier'][0])
+                    aa = session.query(Activity).filter(
+                            Activity.type==type,
+                            Activity.term==term,
+                            Activity.title_url==item['titleUrl'],
+                            Activity.displayLanguageWarning ==item['displayLanguageWarning'],
+                            Activity.title==item['title'],
+                            Activity.content==item['content'],
+                            Activity.language==item['language'],
+                            Activity.date==asDate(item['date']),
+                            Activity.mep_id==mep.id,
+                            Activity.shadow==shadow,
+                            Activity.text==item.get('text'),
+                            ).first()
+                    if not aa:
+                        aa = Activity(
+                            type=type,
+                            term=term,
+                            title_url=item['titleUrl'],
+                            displayLanguageWarning =item['displayLanguageWarning'],
+                            title=item['title'],
+                            content=item['content'],
+                            language=item['language'],
+                            date=asDate(item['date']),
+                            mep_id=mep.id,
+                            shadow=shadow,
+                            text=item.get('text')
+                        )
+                        session.add(aa)
+                        session.commit()
+                    # add format list
+                    for f in item.get('formatList',[]):
+                        ff = session.query(ActivityFormat).filter(
+                                ActivityFormat.language == f['language'],
+                                ActivityFormat.title == f['title'],
+                                ActivityFormat.url == f['url'],
+                                ActivityFormat.pubRef == f['pubRef'],
+                                ActivityFormat.type == f['type'],
+                                ActivityFormat.size == f['size']
+                                ).first()
+                        if not ff:
+                            ff = ActivityFormat(
+                                    language=f['language'],
+                                    title=f['title'],
+                                    url=f['url'],
+                                    pubRef=f['pubRef'],
+                                    type=f['type'],
+                                    size=f['size'],
+                                    aid=aa.id
+                                    )
+                            session.add(ff)
+                    # committeelist
+                    for c in item.get('committeeList',[]):
+                        name = c['title']
+                        abbr = c['code']
+                        cc = session.query(Committee).filter(Committee.name==name, abbr==abbr).first()
+                        if not cc:
+                            cc = Committee(name=name, abbr=abbr)
+                            session.add(cc)
+                            session.commit()
+                        if not session.query(ActivityCommittee).filter(ActivityCommittee.aid==aa.id, ActivityCommittee.com_id==cc.id).first():
+                            aa.committees.append(ActivityCommittee(aid=aa.id,com_id=cc.id))
+                            session.commit()
+                    # referencelist (strings)
+                    for r in set(item.get('referenceList',[])):
+                        rr = session.query(Reference).filter(Reference.reference==r).first()
+                        if not rr:
+                            rr = Reference(reference=r)
+                            session.add(rr)
+                            session.commit()
+                        if not session.query(ActivityReference).filter(ActivityReference.aid==aa.id, ActivityReference.ref_id==rr.id).first():
+                            aa.references.append(ActivityReference(aid=aa.id,ref_id=rr.id))
+                            session.commit()
+        session.commit()
+
+        for term, declarations in activities.get("WDECL", {}).items():
+            for d in declarations:
+                dd = session.query(Declaration).filter(
+                        Declaration.term==term,
+                        Declaration.title_url==d['titleUrl'],
+                        Declaration.displayLanguageWarning ==d['displayLanguageWarning'],
+                        Declaration.title==d['title'],
+                        Declaration.content==d['content'],
+                        Declaration.language==d['language'],
+                        Declaration.date==asDate(d['date']),
+                        Declaration.mep_id==mep.id,
+                        Declaration.pvReferenceActive == d['pvReferenceActive'],
+                        Declaration.pvReferenceUrl    == d['pvReferenceUrl'],
+                        Declaration.taReferenceUrl    == d['taReferenceUrl'],
+                        Declaration.expiryDate        == asDate(d['expiryDate']),
+                        Declaration.signatoryDate     == asDate(d['signatoryDate']),
+                        Declaration.nbSignatory       == d['nbSignatory'],
+                        Declaration.status            == d['status'],
+                        Declaration.leg               == d['leg'],
+                        Declaration.openDate          == asDate(d['openDate']),
+                        Declaration.taReferenceActive == d['taReferenceActive'],
+                        Declaration.pvReference       == d['pvReference'],
+                        Declaration.taReference       == d['taReference'],
+                        ).first()
+                if not dd:
+                    dd = Declaration(
+                            term=term,
+                            title_url=d['titleUrl'],
+                            displayLanguageWarning =d['displayLanguageWarning'],
+                            title=d['title'],
+                            content=d['content'],
+                            language=d['language'],
+                            date=asDate(d['date']),
+                            mep_id=mep.id,
+                            pvReferenceActive = d['pvReferenceActive'],
+                            pvReferenceUrl    = d['pvReferenceUrl'],
+                            taReferenceUrl    = d['taReferenceUrl'],
+                            expiryDate        = asDate(d['expiryDate']),
+                            signatoryDate     = asDate(d['signatoryDate']),
+                            nbSignatory       = d['nbSignatory'],
+                            status            = d['status'],
+                            leg               = d['leg'],
+                            openDate          = asDate(d['openDate']),
+                            taReferenceActive = d['taReferenceActive'],
+                            pvReference       = d['pvReference'],
+                            taReference       = d['taReference'],
+                            )
+                    session.add(dd)
+                # add format list
+                for f in d.get('formatList',[]):
+                    ff = session.query(DeclarationFormat).filter(
+                            DeclarationFormat.language == f['language'],
+                            DeclarationFormat.title == f['title'],
+                            DeclarationFormat.url == f['url'],
+                            DeclarationFormat.pubRef == f['pubRef'],
+                            DeclarationFormat.type == f['type'],
+                            DeclarationFormat.size == f['size']
+                            ).first()
+                    if not ff:
+                        ff = DeclarationFormat(
+                                language=f['language'],
+                                title=f['title'],
+                                url=f['url'],
+                                pubRef=f['pubRef'],
+                                type=f['type'],
+                                size=f['size'],
+                                did=dd.id
+                                )
+                        session.add(ff)
+                # committeelist
+                for c in d.get('committeeList',[]):
+                    name = c['title']
+                    abbr = c['code']
+                    cc = session.query(Committee).filter(Committee.name==name, abbr==abbr).first()
+                    if not cc:
+                        cc = Committee(name=name, abbr=abbr)
+                        session.add(cc)
+                        session.commit()
+                    dd.committees.append(DeclarationCommittee(did=dd.id,com_id=cc.id))
+                # referencelist (strings)
+                for r in set(d.get('referenceList',[])):
+                    rr = session.query(Reference).filter(Reference.reference==r).first()
+                    if not rr:
+                        rr = Reference(reference=r)
+                        session.add(rr)
+                        session.commit()
+                    dd.references.append(DeclarationReference(did=dd.id,ref_id=rr.id))
+        session.commit()
+
+class Activity(Base):
+    # TODO import in MEP.insert
+    __tablename__ = 'activity'
+    id = Column(Integer, primary_key=True)
+    term = Column(Integer)
+    type = Column(String(32))
+    title_url = Column(String(512))
+    displayLanguageWarning = Column(Boolean)
+    title = Column(String(1024))
+    text = Column(Text)
+    content = Column(String(32)) # TODO seems to be always none, warn if not none!
+    language = Column(String(2))
+    date = Column(Date)
+    shadow = Column(Boolean)
+    # TODO referencelist (strings)
+    mep_id = Column(Integer, ForeignKey(MEP.id))
+    mep = relationship(
+            MEP,
+            foreign_keys="Activity.mep_id",
+            backref=backref('activities', lazy='dynamic'),
+            )
+
+
+class ActivityFormat(Format):
+    __tablename__ = "activity_format"
+    aid = Column(Integer, ForeignKey(Activity.id))
+
+    activity = relationship(
+            Activity,
+            foreign_keys="ActivityFormat.aid",
+            backref=backref('formats', lazy='dynamic'),
+            )
+
+
+class ActivityCommittee(Base):
+    __tablename__ = "activity_committee"
+    aid = Column(Integer, ForeignKey(Activity.id), primary_key=True)
+    com_id = Column(Integer, ForeignKey(Committee.id), primary_key=True)
+
+    activity = relationship(
+            Activity,
+            foreign_keys="ActivityCommittee.aid",
+            backref=backref('committees', lazy='dynamic'),
+            )
+    committee = relationship(
+            Committee,
+            foreign_keys="ActivityCommittee.com_id",
+            backref=backref('activities', lazy='dynamic'),
+            )
+
+
+class Reference(Base):
+    __tablename__ = "reference"
+    id = Column(Integer, primary_key=True)
+    reference = Column(String(32))
+
+
+class ActivityReference(Base):
+    __tablename__ = "activity_reference"
+    aid = Column(Integer, ForeignKey(Activity.id), primary_key=True)
+    ref_id = Column(Integer, ForeignKey(Reference.id), primary_key=True)
+
+    activity = relationship(
+            Activity,
+            foreign_keys="ActivityReference.aid",
+            backref=backref('references', lazy='dynamic'),
+            )
+    reference = relationship(
+            Reference,
+            foreign_keys="ActivityReference.ref_id",
+            backref=backref('activities', lazy='dynamic'),
+            )
+
+
+class Declaration(Base): # in the dump this is marked as WDECL
+    # TODO import in MEP.insert
+    # TODO add authors
+    __tablename__ = 'declarations'
+    id = Column(Integer, primary_key=True)
+    term = Column(Integer)
+    pvReferenceActive = Column(Boolean)
+    pvReferenceUrl = Column(String(512)) # always empty? TODO warn if not
+    taReferenceUrl = Column(String(512)) # always empty? TODO warn if not
+    title_url = Column(String(512)) 
+    displayLanguageWarning = Column(Boolean)
+    title = Column(String(1024))
+    expiryDate = Column(Date)
+    content = Column(String(32)) # TODO seems to be always none, warn if not none!
+    signatoryDate = Column(Date)
+    nbSignatory  = Column(Integer)
+    status = Column(String(32))
+    leg  = Column(Integer)
+    language = Column(String(2))
+    date = Column(Date)
+    openDate = Column(Date)
+    taReferenceActive = Column(Boolean)
+    pvReference = Column(String(512)) # always empty? TODO warn if not
+    taReference = Column(String(512)) # always empty? TODO warn if not
+    # TODO referencelist (strings)
+    mep_id = Column(Integer, ForeignKey(MEP.id))
+    mep = relationship(
+        MEP,
+        foreign_keys="Declaration.mep_id",
+        backref=backref('signed_declarations', lazy='dynamic'),
+    )
+
+
+class DeclarationFormat(Format):
+    __tablename__ = "declaration_format"
+    did = Column(Integer, ForeignKey(Declaration.id))
+
+    declaration= relationship(
+        Declaration,
+        foreign_keys="DeclarationFormat.did",
+        backref=backref('formats', lazy='dynamic'),
+    )
+
+class DeclarationAuthor(Base):
+    __tablename__ = "declaration_author"
+    did = Column(Integer, ForeignKey(Declaration.id), primary_key=True)
+    mep_id = Column(Integer, ForeignKey(MEP.id), primary_key=True)
+
+    declaration = relationship(
+        Declaration,
+        foreign_keys="DeclarationAuthor.did",
+        backref=backref('authors', lazy='dynamic'),
+    )
+    mep = relationship(
+        MEP,
+        foreign_keys="DeclarationAuthor.mep_id",
+        backref=backref('written_declarations', lazy='dynamic'),
+    )
+
+class DeclarationCommittee(Base):
+    __tablename__ = "declaration_committee"
+    did = Column(Integer, ForeignKey(Declaration.id), primary_key=True)
+    com_id = Column(Integer, ForeignKey(Committee.id), primary_key=True)
+
+    declaration = relationship(
+        Declaration,
+        foreign_keys="DeclarationCommittee.did",
+        backref=backref('committees', lazy='dynamic'),
+    )
+    committee = relationship(
+        Committee,
+        foreign_keys="DeclarationCommittee.com_id",
+        backref=backref('written_declarations', lazy='dynamic'),
+    )
+
+
+class DeclarationReference(Base):
+    __tablename__ = "declaration_reference"
+    did = Column(Integer, ForeignKey(Declaration.id), primary_key=True)
+    ref_id = Column(Integer, ForeignKey(Reference.id), primary_key=True)
+
+    declaration = relationship(
+            Declaration,
+            foreign_keys="DeclarationReference.did",
+            backref=backref('references', lazy='dynamic'),
+            )
+    reference = relationship(
+            Reference,
+            foreign_keys="DeclarationReference.ref_id",
+            backref=backref('declarations', lazy='dynamic'),
+            )
+
 
 class PartDecl(Base):
     __tablename__ = 'partdecl'
@@ -439,7 +803,7 @@ class PartDecl(Base):
         backref=backref('partdecls', lazy='dynamic'),
     )
 
-    
+
 class Office(Base):
     """ An office of a MEP"""
     __tablename__ = 'office'
@@ -476,12 +840,12 @@ class Office(Base):
         return
 
     @staticmethod
-    def upsert(dossier_data):
+    def upsert(data):
         # TODO
         return
 
     @staticmethod
-    def load(dossier_data):
+    def load(data):
         # TODO
         return
 
@@ -520,7 +884,7 @@ class GroupMEP(TimePeriod):
     )
 
     def __unicode__(self):
-        return u"%s %s [%s]" % (self.mep.first_name, self.mep.last_name, self.group.abbreviation)
+        return u"%s %s [%s]" % (self.mep.first_name, self.mep.last_name, self.group.abbr)
 
 
 class DelegationRole(TimePeriod):
@@ -562,7 +926,7 @@ class StaffRole(TimePeriod):
     )
 
     def __unicode__(self):
-        return u"%s : %s" % (self.committee.abbreviation, self.mep.full_name)
+        return u"%s : %s" % (self.committee.abbr, self.mep.full_name)
 
 
 class CommitteeRole(TimePeriod):
@@ -583,7 +947,7 @@ class CommitteeRole(TimePeriod):
     )
 
     def __unicode__(self):
-        return u"%s : %s" % (self.committee.abbreviation, self.mep.full_name)
+        return u"%s : %s" % (self.committee.abbr, self.mep.full_name)
 
 
 class PostalAddress(TimePeriod):
@@ -942,8 +1306,7 @@ class AmendmentMEP(Base):
 class AmendmentCommittee(Base):
     __tablename__ = 'amendment_committee'
 
-    id = Column(Integer, primary_key=True)
-    amendment_id = Column(Integer, ForeignKey(Amendment.id))
+    amendment_id = Column(Integer, ForeignKey(Amendment.id), primary_key=True)
     committee_id = Column(Integer, ForeignKey(Committee.id), primary_key=True)
     amendment = relationship(
         Amendment,
