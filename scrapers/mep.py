@@ -19,7 +19,7 @@
 
 import re
 from utils.utils import fetch, fetch_raw, unws, jdump
-from utils.mappings import buildings
+from utils.mappings import buildings, SEIRTNUOC, COMMITTEE_MAP, ORGMAPS, GROUP_MAP
 from datetime import datetime
 from lxml.html.soupparser import fromstring
 
@@ -60,6 +60,17 @@ def parse_addr(root):
         elif key=='Postal address':
             addrs[key]=tmp
     return addrs
+
+def parse_hist_date(txt):
+    tmp = txt.split(' / ')
+    if len(tmp)==2:
+        (start, end) = tmp
+    elif len(tmp)==1:
+        start = txt.split()[0]
+        end = "31-12-9999"
+    else:
+        raise ValueError
+    return datetime.strptime(unws(start), u"%d-%m-%Y"), datetime.strptime(unws(end), u"%d-%m-%Y")
 
 def scrape(id):
     # we ignore the /meps/en/<id>/<name>/home path, since we can get all info also from other pages
@@ -119,7 +130,93 @@ def scrape(id):
                 #if key == 'Financial Declarations':
                 #    scraper_service.add_job('findecl', payload={'id':id, 'url', url})
 
-    print(jdump(mep))
+    # history
+    for term in root.xpath('//nav[@class="ep_tableofcontent-menu table-of-contents-menu"]//span[text()="History of parliamentary service"]/../../..//li//span[@class="ep_name"]//text()'):
+        if not term.endswith("parliamentary term"):
+            print("history menu item does not end as expected with \"parliamentary term\":", term, "http://www.europarl.europa.eu/meps/en/%s/name/declarations" % id)
+            continue
+        term = int(term[0])
+
+        root = fetch("http://www.europarl.europa.eu/meps/en/%s/name/history/%s" % (id, term))
+        body = root.xpath('//span[@id="mep-card-content"]/following-sibling::div')[0]
+        for title in body.xpath('.//div[@class="ep_gridrow ep-o_productlist"]//h3'):
+            key = unws(''.join(title.xpath('.//text()')))
+            if key is None:
+                print("empty history section", "http://www.europarl.europa.eu/meps/en/%s/name/history/%s" % (id,term))
+                continue
+            #mep[key] = []
+            for item in title.xpath('../../following-sibling::article//li'):
+                interval = unws(''.join(item.xpath('./strong/text()')))
+                post = item.xpath('./strong/following-sibling::text()')[0][3:]
+                if key=="National parties":
+                    key='Constituencies'
+                    # parse date interval
+                    try:
+                        start, end = parse_hist_date(interval)
+                    except:
+                        print("illegal date interval:", interval, "http://www.europarl.europa.eu/meps/en/%s/name/history/%s" % (id,term))
+                        continue
+                    # parse party and country
+                    cstart = post.rfind(' (')
+                    if post[cstart+2:-1] in SEIRTNUOC:
+                        country = post[cstart+2:-1]
+                        party = post[:cstart]
+                    else:
+                        logger.warn('unknown country: %s' % post[cstart+2:-1])
+                        country='unknown'
+                    if not key in mep: mep[key]=[]
+                    mep[key].append({u'party': party, u'country': country, u'start': start, u'end': end, 'term': term})
+                elif key in ['Member', 'Substitute', 'Chair', 'Vice-Chair', 'Co-President', 'President', 'Vice-President', 'Observer', 'Quaestor', 'Substitute observer']:
+                    # memberships in various committees, delegations and EP mgt
+                    try:
+                        start, end = parse_hist_date(interval)
+                    except:
+                        print("illegal date interval:", interval, "http://www.europarl.europa.eu/meps/en/%s/name/history/%s" % (id,term))
+                        continue
+                    item={u'role': key,
+                        u'abbr': COMMITTEE_MAP.get(post), # TODO abbr is null for delegations and other non-committees - see also cca 10 lines below
+                        u'Organization': post,
+                        u'start': start,
+                        u'end': end,
+                        u'term': term,
+                        }
+                    for start, field in ORGMAPS:
+                        if item['abbr'] in COMMITTEE_MAP or item['Organization'].startswith(start):
+                            if not field in mep: mep[field]=[]
+                            # TODO figure out why this is here and redundant with abbr?
+                            #if field=='Committees' and item['Organization'] in COMMITTEE_MAP:
+                            #    item[u'committee_id']=COMMITTEE_MAP[item['Organization']]
+                            mep[field].append(item)
+                            break
+                elif key == u'Political groups':
+                    try:
+                        start, end = parse_hist_date(interval)
+                    except:
+                        print("illegal date interval:", interval, "http://www.europarl.europa.eu/meps/en/%s/name/history/%s" % (id,term))
+                        continue
+                    tmp = post.split(u' - ')
+                    if len(tmp)>1:
+                        org = ' - '.join(tmp[:-1])
+                        role = tmp[-1]
+                    elif post.endswith(' -'):
+                        org=post[:-2]
+                        role=''
+                    else:
+                        logger.error('[!] political group line %s' % line)
+                        continue
+                    if not u'Groups' in mep: mep[u'Groups']=[]
+                    mep[u'Groups'].append(
+                        {u'role':        role,
+                        u'Organization': org,
+                        # u'country':      country, # this value is missing from the latest EP website
+                        u'groupid':      GROUP_MAP[org],
+                        u'start':        start,
+                        u'end':          end,
+                        })
+                else:
+                    logger.error('[!] unknown field %s' % key)
+
+    print(jdump(mep).encode("utf8"))
 
     # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/history/8
     # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/history/7
