@@ -19,7 +19,7 @@
 
 import re
 from utils.utils import fetch, fetch_raw, unws, jdump
-from utils.mappings import buildings, SEIRTNUOC, COMMITTEE_MAP, ORGMAPS, GROUP_MAP
+from utils.mappings import buildings, SEIRTNUOC, COMMITTEE_MAP, ORGMAPS, GROUP_MAP, DELEGATIONS
 from datetime import datetime
 from lxml.html.soupparser import fromstring
 
@@ -174,18 +174,24 @@ def scrape(id):
                         print("illegal date interval:", interval, "http://www.europarl.europa.eu/meps/en/%s/name/history/%s" % (id,term))
                         continue
                     item={u'role': key,
-                        u'abbr': COMMITTEE_MAP.get(post), # TODO abbr is null for delegations and other non-committees - see also cca 10 lines below
                         u'Organization': post,
                         u'start': start,
                         u'end': end,
                         u'term': term,
                         }
                     for start, field in ORGMAPS:
-                        if item['abbr'] in COMMITTEE_MAP or item['Organization'].startswith(start):
+                        if item['Organization'].startswith(start):
+                            if field=='Committees':
+                                if item['Organization'] in COMMITTEE_MAP:
+                                    item[u'abbr']=COMMITTEE_MAP[item['Organization']]
+                                else:
+                                    print("no abbr found for committee:", item)
+                            if field=='Delegations':
+                                if item['Organization'] in DELEGATIONS:
+                                    item[u'abbr']=DELEGATIONS[item['Organization']]
+                                else:
+                                    print("no abbr found for delegation:", item)
                             if not field in mep: mep[field]=[]
-                            # TODO figure out why this is here and redundant with abbr?
-                            #if field=='Committees' and item['Organization'] in COMMITTEE_MAP:
-                            #    item[u'committee_id']=COMMITTEE_MAP[item['Organization']]
                             mep[field].append(item)
                             break
                 elif key == u'Political groups':
