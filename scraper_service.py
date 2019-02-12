@@ -16,6 +16,9 @@ CONFIG = {
 }
 
 
+add_job = None
+
+
 def run_scraper(scraper):
     error = None
     max_threads = scraper.CONFIG['threads']
@@ -56,6 +59,7 @@ def load_scrapers():
             s.CONFIG = cfg
         else:
             s.CONFIG = CONFIG.copy()
+        s.add_job = add_job
         print('scraper', scraper, 'added')
     return scrapers
 
@@ -63,8 +67,16 @@ def load_scrapers():
 class RequestHandler(asyncore.dispatcher_with_send):
 
     def __init__(self, sock, queues):
+        global add_job
         self.scrapers = queues
         super().__init__(sock)
+        def add_job_fn(scraper_name, payload):
+            scraper = self.scrapers.get(scraper_name)
+            if not scraper:
+                raise Exception("Unknown scraper")
+            scraper._queue.put(payload)
+            print('{0} added to {1} queue'.format(payload, scraper._name))
+        add_job = add_job_fn
 
 
     def handle_read(self):
@@ -89,11 +101,7 @@ class RequestHandler(asyncore.dispatcher_with_send):
             if data.get('scraper') not in self.scrapers:
                 self.notify('Missing or invalid scraper ' + data.get('scraper'))
             payload = data.get('payload', {})
-            scraper = self.scrapers.get(data['scraper'])
-            if not scraper:
-                return
-            scraper._queue.put(payload)
-            print('{0} added to {1} queue'.format(payload, scraper._name))
+            add_job(data['scraper'], payload)
 
         print('# Command `{0}` processed'.format(data['command']))
 
