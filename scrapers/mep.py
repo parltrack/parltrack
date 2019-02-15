@@ -17,9 +17,9 @@
 
 # (C) 2019 by Stefan Marsiske, <parltrack@ctrlc.hu>
 
-import re,sys
+import re,sys,unicodedata
 from utils.utils import fetch, fetch_raw, unws, jdump
-from utils.mappings import buildings, SEIRTNUOC, COMMITTEE_MAP, ORGMAPS, GROUP_MAP, DELEGATIONS
+from utils.mappings import buildings, SEIRTNUOC, COMMITTEE_MAP, ORGMAPS, GROUP_MAP, DELEGATIONS, MEPS_ALIASES, TITLES
 from datetime import datetime
 from lxml.html.soupparser import fromstring
 
@@ -30,6 +30,77 @@ CONFIG = {
     'error_handler': None,
 }
 
+def scrape(id):
+    # we ignore the /meps/en/<id>/<name>/home path, since we can get all info also from other pages
+    url = "http://www.europarl.europa.eu/meps/en/%s/name/cv" % id
+    xml = fetch_raw(url) # we have to patch up the returned html...
+    xml = xml.replace("</br>","<br/>") # ...it contains some bad tags..
+    root = fromstring(xml) # ...which make the lxml soup parser drop some branches in the DOM
+
+    body = root.xpath('//span[@id="mep-card-content"]/following-sibling::div')[0]
+    mep = {
+        'UserID'    : id,
+        'Name'      : mangleName(unws(' '.join(root.xpath('//*[@id="name-mep"]//text()')))),
+        'Photo'     : "http://www.europarl.europa.eu/mepphoto/%s.jpg" % id,
+        'meta'      : {'url': url},
+        'twitter'   : root.xpath('//div[@class="ep_share"]//a[@title="Twitter"]/@href'),
+        'homepage'  : root.xpath('//div[@class="ep_share"]//a[@title="Website"]/@href'),
+        'facebook'  : root.xpath('//div[@class="ep_share"]//a[@title="Facebook"]/@href'),
+        'email'     : [deobfus_mail(x) for x in root.xpath('//div[@class="ep_share"]//a[@title="E-mail"]/@href')],
+        'instagram' : root.xpath('//div[@class="ep_share"]//a[@title="Instagram"]/@href'),
+        'Birth'     : {
+            'date'  : datetime.strptime(root.xpath('//time[@id="birthDate"]/text()')[0], u"%d-%m-%Y"),
+            'place' : root.xpath('//span[@id="birthPlace"]/text()')[0]
+        },
+        'addresses' : parse_addr(root),
+    }
+
+    death = root.xpath('//time[@id="deathDate"]/text()')
+    if death:
+        mep['Death'] = datetime.strptime(death[0], u"%d-%m-%Y")
+
+    if not body.xpath('//span[@id="no_cv_available"]'):
+        mep['cv']= {'updated': datetime.strptime(root.xpath('//span[starts-with(text(),"Updated: ")]/text()')[0], u"Updated: %d/%m/%Y")}
+        mep['cv'].update({unws(''.join(title.xpath(".//text()"))): [unws(''.join(item.xpath(".//text()")))
+                                                                    for item in title.xpath("../../../article//li")]
+                        for title in body.xpath('.//h3')
+                        if not unws(''.join(title.xpath(".//text()"))).startswith("Original version : ")})
+
+    # assistants
+    root = fetch("http://www.europarl.europa.eu/meps/en/%s/name/assistants" % id)
+    body = root.xpath('//span[@id="mep-card-content"]/following-sibling::div')[0]
+    mep['assistants'] = {unws(''.join(title.xpath(".//text()"))): [unws(''.join(item.xpath(".//text()")))
+                                                                for item in title.xpath("../../../article//li")]
+                      for title in body.xpath('.//h3')}
+    # declarations
+    root = fetch("http://www.europarl.europa.eu/meps/en/%s/name/declarations" % id)
+    body = root.xpath('//span[@id="mep-card-content"]/following-sibling::div')[0]
+    for title in body.xpath('.//h3'):
+        key = unws(''.join(title.xpath('.//text()')))
+        if key == 'Declaration of financial interests':
+            key = 'Financial Declarations'
+        elif key == 'Declarations of participation by Members in events organised by third parties':
+            key = 'Declarations of Participation'
+        else:
+            print("unknown type of declaration:", key, "http://www.europarl.europa.eu/meps/en/%s/name/declarations" % id)
+            key = None
+        if key is not None:
+            mep[key] = []
+            for pdf in title.xpath('../../following-sibling::div//li//a'):
+                name = unws(''.join(pdf.xpath('.//text()')))
+                url = pdf.xpath('./@href')[0]
+                mep[key].append({'title': name, 'url': url})
+                # todo enable
+                #if key == 'Financial Declarations':
+                #    scraper_service.add_job('findecl', payload={'id':id, 'url': url})
+
+    # history
+    terms=parse_history(id,root, mep)
+
+    # activities
+    mep['activities']=parse_acts(id, terms)
+
+    print(jdump(mep))
 
 def deobfus_mail(txt):
     x = txt.replace('[at]','@').replace('[dot]','.')
@@ -92,7 +163,7 @@ def parse_acts(id, terms):
             cnt = 100
             url = "http://www.europarl.europa.eu/meps/en/%s/loadmore-activities/%s/%s/?from=%s&count=%s" % (id, type, term, start, cnt)
             root = fetch(url)
-            print(url, file=sys.stderr)
+            #print(url, file=sys.stderr)
             while(len(root.xpath('//article'))>0):
                 for node in root.xpath('//article'):
                     if type == 'written-explanations':
@@ -164,63 +235,72 @@ def parse_acts(id, terms):
                 print(url, file=sys.stderr)
     return activities
 
-def scrape(id):
-    # we ignore the /meps/en/<id>/<name>/home path, since we can get all info also from other pages
-    url = "http://www.europarl.europa.eu/meps/en/%s/name/cv" % id
-    xml = fetch_raw(url) # we have to patch up the returned html...
-    xml = xml.replace("</br>","<br/>") # ...it contains some bad tags..
-    root = fromstring(xml) # ...which make the lxml soup parser drop some branches in the DOM
-
-    body = root.xpath('//span[@id="mep-card-content"]/following-sibling::div')[0]
-    mep = {
-        'MepID'     : id,
-        'name'      : unws(' '.join(root.xpath('//*[@id="name-mep"]//text()'))),
-        'twitter'   : root.xpath('//div[@class="ep_share"]//a[@title="Twitter"]/@href'),
-        'homepage'  : root.xpath('//div[@class="ep_share"]//a[@title="Website"]/@href'),
-        'facebook'  : root.xpath('//div[@class="ep_share"]//a[@title="Facebook"]/@href'),
-        'email'     : [deobfus_mail(x) for x in root.xpath('//div[@class="ep_share"]//a[@title="E-mail"]/@href')],
-        'instagram' : root.xpath('//div[@class="ep_share"]//a[@title="Instagram"]/@href'),
-        'Birth'     : {
-            'date'  : datetime.strptime(root.xpath('//time[@id="birthDate"]/text()')[0], u"%d-%m-%Y"),
-            'place' : root.xpath('//span[@id="birthPlace"]/text()')[0]
-        },
-        'addresses' : parse_addr(root),
-    }
-    if not body.xpath('//span[@id="no_cv_available"]'):
-        mep['cv']= {'updated': datetime.strptime(root.xpath('//span[starts-with(text(),"Updated: ")]/text()')[0], u"Updated: %d/%m/%Y")}
-        mep['cv'].update({unws(''.join(title.xpath(".//text()"))): [unws(''.join(item.xpath(".//text()")))
-                                                                    for item in title.xpath("../../../article//li")]
-                        for title in body.xpath('.//h3')
-                        if not unws(''.join(title.xpath(".//text()"))).startswith("Original version : ")})
-
-    # assistants
-    root = fetch("http://www.europarl.europa.eu/meps/en/%s/name/assistants" % id)
-    body = root.xpath('//span[@id="mep-card-content"]/following-sibling::div')[0]
-    mep['assistants'] = {unws(''.join(title.xpath(".//text()"))): [unws(''.join(item.xpath(".//text()")))
-                                                                for item in title.xpath("../../../article//li")]
-                      for title in body.xpath('.//h3')}
-    # declarations
-    root = fetch("http://www.europarl.europa.eu/meps/en/%s/name/declarations" % id)
-    body = root.xpath('//span[@id="mep-card-content"]/following-sibling::div')[0]
-    for title in body.xpath('.//h3'):
-        key = unws(''.join(title.xpath('.//text()')))
-        if key == 'Declaration of financial interests':
-            key = 'Financial Declarations'
-        elif key == 'Declarations of participation by Members in events organised by third parties':
-            key = 'Declarations of Participation'
+def mangleName(name):
+    sur=[]
+    family=[]
+    tmp=name.split(' ')
+    title=None
+    for i,token in enumerate(tmp):
+        if ((token.isupper() and token not in ['E.', 'K.', 'A.']) or
+            token in ['de', 'van', 'von', 'del'] or
+            (token == 'in' and tmp[i+1]=="'t" ) or
+            (token[:2]=='Mc' and token[2:].isupper())):
+            family=tmp[i:]
+            break
         else:
-            print("unknown type of declaration:", key, "http://www.europarl.europa.eu/meps/en/%s/name/declarations" % id)
-            key = None
-        if key is not None:
-            mep[key] = []
-            for pdf in title.xpath('../../following-sibling::div//li//a'):
-                name = unws(''.join(pdf.xpath('.//text()')))
-                url = pdf.xpath('./@href')[0]
-                mep[key].append({'title': name, 'url': url})
-                if key == 'Financial Declarations':
-                    scraper_service.add_job('findecl', payload={'id':id, 'url', url})
+            sur.append(token)
+    sur=u' '.join(sur)
+    family=u' '.join(family)
+    for t in TITLES:
+        if sur.endswith(t):
+            sur=sur[:-len(t)]
+            title=t
+            break
+    res= { u'full': name,
+           u'sur': sur,
+           u'family': family,
+           u'aliases': [family,
+                       family.lower(),
+                       u''.join(family.split()).lower(),
+                       u"%s %s" % (sur, family),
+                       u"%s %s" % (family, sur),
+                       (u"%s %s" % (family, sur)).lower(),
+                       (u"%s %s" % (sur, family)).lower(),
+                       u''.join(("%s%s" % (sur, family)).split()),
+                       u''.join(("%s%s" % (family, sur)).split()),
+                       u''.join(("%s%s" % (family, sur)).split()).lower(),
+                       u''.join(("%s%s" % (sur, family)).split()).lower(),
+                      ],}
+    if title:
+        res[u'title']=title
+        res[u'aliases'].extend([(u"%s %s" % (title, family)).strip(),
+                                (u"%s %s %s" % (title ,family, sur)).strip(),
+                                (u"%s %s %s" % (title, sur, family)).strip(),
+                                (u"%s %s %s" % (title, family, sur)).strip(),
+                                (u"%s %s %s" % (title, sur, family)).lower().strip(),
+                                (u"%s %s %s" % (title, family, sur)).lower().strip(),
+                                (u''.join(("%s%s%s" % (title, family, sur)).split())).strip(),
+                                (u''.join(("%s%s%s" % (title, sur, family)).split())).strip(),
+                                (u''.join(("%s%s%s" % (sur, title, family)).split())).strip(),
+                                (u''.join(("%s%s%s" % (sur, family, title)).split())).strip(),
+                                u''.join(("%s%s" % (title, family)).split()).lower().strip(),
+                                u''.join(("%s%s%s" % (family, sur, title)).split()).lower().strip(),
+                                u''.join(("%s%s%s" % (family, title, sur)).split()).lower().strip(),
+                                u''.join(("%s%s%s" % (title, family, sur)).split()).lower().strip(),
+                                u''.join(("%s%s%s" % (title, sur, family)).split()).lower().strip(),
+                                ])
+    if  u'ß' in name:
+        res[u'aliases'].extend([x.replace(u'ß','ss') for x in res['aliases']])
+    if unicodedata.normalize('NFKD', name).encode('ascii','ignore').decode('utf8')!=name:
+        res[u'aliases'].extend([unicodedata.normalize('NFKD', x).encode('ascii','ignore').decode('utf8') for x in res['aliases']])
+    if "'" in name:
+        res[u'aliases'].extend([x.replace("'","") for x in res['aliases']])
+    if name in MEPS_ALIASES:
+           res[u'aliases'].extend(MEPS_ALIASES[name])
+    res[u'aliases']=sorted([x for x in set(n.strip() for n in res[u'aliases']) if x])
+    return res
 
-    # history
+def parse_history(id, root, mep):
     terms = []
     for term in root.xpath('//nav[@class="ep_tableofcontent-menu table-of-contents-menu"]//span[text()="History of parliamentary service"]/../../..//li//span[@class="ep_name"]//text()'):
         if not term.endswith("parliamentary term"):
@@ -258,6 +338,8 @@ def scrape(id):
                         country='unknown'
                     if not key in mep: mep[key]=[]
                     mep[key].append({u'party': party, u'country': country, u'start': start, u'end': end, 'term': term})
+                    if end == datetime.strptime("31.12.9999", u"%d.%m.%Y"):
+                        mep['active']=True
                 elif key in ['Member', 'Substitute', 'Chair', 'Vice-Chair', 'Co-President', 'President', 'Vice-President', 'Observer', 'Quaestor', 'Substitute observer']:
                     # memberships in various committees, delegations and EP mgt
                     try:
@@ -313,26 +395,7 @@ def scrape(id):
                         })
                 else:
                     logger.error('[!] unknown field %s' % key)
-
-    # activities
-    mep['activities']=parse_acts(id, terms)
-
-    print(jdump(mep))
-
-    # activities
-    # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/main-activities/plenary-speeches
-    # or /meps/en/96674/loadmore-activities/plenary-speeches/8/?from=10&count=100
-    # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/main-activities/reports
-    # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/main-activities/reports-shadow
-    # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/main-activities/opinions-shadow
-    # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/main-activities/motions-instit
-    # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/main-activities/oral-questions
-
-    # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/other-activities/written-explanations
-    # or /meps/en/96674/loadmore-activities/written-explanations/8/?from=10&count=100
-    # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/other-activities/written-questions-other
-    # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/other-activities/motions-indiv
-    # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/other-activities/written-declarations
+    return terms
 
 if __name__ == '__main__':
     #scrape(28390)
