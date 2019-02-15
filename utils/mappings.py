@@ -203,6 +203,7 @@ COMMITTEE_MAP={u'AFET': u"Foreign Affairs",
                u'Special Committee on Tax Rulings and Other Measures Similar in Nature or Effect'                                              : u"TAXE",
                u'Special Committee on Tax Rulings and Other Measures Similar in Nature or Effect (TAXE 2)'                                     : u"TAX2",
                u"Special Committee on Financial Crimes, Tax Evasion and Tax Avoidance"                                                         : u"TAX3",
+               u'Special Committee on Terrorism'                                                                                               : u"TERR",
 }
 
 ORGMAPS=[('Committee o', 'Committees'),
