@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #    This file is part of parltrack
 
@@ -17,7 +17,7 @@
 
 # (C) 2019 by Stefan Marsiske, <parltrack@ctrlc.hu>
 
-import re
+import re,sys
 from utils.utils import fetch, fetch_raw, unws, jdump
 from utils.mappings import buildings, SEIRTNUOC, COMMITTEE_MAP, ORGMAPS, GROUP_MAP, DELEGATIONS
 from datetime import datetime
@@ -72,6 +72,98 @@ def parse_hist_date(txt):
         raise ValueError
     return datetime.strptime(unws(start), u"%d-%m-%Y"), datetime.strptime(unws(end), u"%d-%m-%Y")
 
+def parse_acts(id, terms):
+    activity_types=(('plenary-speeches', 'CRE'),
+                    ('reports', "REPORT"),
+                    ('reports-shadow', "REPORT-SHADOW"),
+                    ('opinions', "COMPARL"),
+                    ('opinions-shadow', "COMPARL-SHADOW"),
+                    ('motions-instit', "MOTION"),
+                    ('oral-questions', "ORAL"),
+                    # other activities
+                    ('written-explanations', 'WEXP'),
+                    ('written-questions', "WQO"),
+                    ('motions-indiv', "IMOTION"),
+                    ('written-declarations', "WDECL"))
+    activities={}
+    for type, TYPE in activity_types:
+        for term in terms:
+            start = 0
+            cnt = 100
+            url = "http://www.europarl.europa.eu/meps/en/%s/loadmore-activities/%s/%s/?from=%s&count=%s" % (id, type, term, start, cnt)
+            root = fetch(url)
+            print(url, file=sys.stderr)
+            while(len(root.xpath('//article'))>0):
+                for node in root.xpath('//article'):
+                    if type == 'written-explanations':
+                        item = {
+                            'title': unws(''.join(node.xpath('.//div[@class="ep-p_text erpl-activity-title"]//text()'))),
+                            'date': datetime.strptime(node.xpath('.//time/@datetime')[0], u"%Y-%m-%dT%H:%M:%S"),
+                            'date-type': node.xpath('.//time/@itemprop')[0],
+                            'text': unws(''.join(node.xpath('.//div[@class="ep-a_text"]//text()')))}
+                    elif type == 'written-declarations':
+                        item = {
+                            'title': unws(''.join(node.xpath('.//div[@class="ep-p_text erpl-activity-title"]//text()'))),
+                            'date': datetime.strptime(node.xpath('.//time/@datetime')[0], u"%Y-%m-%dT%H:%M:%S"),
+                            'date-type': node.xpath('.//time/@itemprop')[0],
+                            'formats': [{'type': unws(fnode.xpath('./text()')[0]),
+                                        'url': fnode.xpath('./@href')[0],
+                                        'size': unws(fnode.xpath('./span/text()')[0])}
+                                        for fnode in node.xpath('.//div[@class="ep-a_links"]//a')],
+                            'authors': unws(''.join(node.xpath('.//span[@class="ep_name erpl-biblio-authors"]//text()'))),
+                        }
+                        for info in node.xpath('.//span[@class="erpl-biblio-addinfo"]'):
+                            label, value = info.xpath('.//span[@class="erpl-biblio-addinfo-label"]')
+                            label = unws(''.join(label.xpath('.//text()')))[:-2]
+                            value = unws(''.join(value.xpath('.//text()')))
+                            if 'date' in label.lower():
+                                value = datetime.strptime(value, u"%d-%m-%Y")
+                            if label == 'Number of signatories':
+                                number, date = value.split(' - ')
+                                value = int(number)
+                                item["No of sigs date"] = datetime.strptime(date, u"%d-%m-%Y")
+                            item[label]=value
+                    else:
+                        # all other activities share the following scraper
+                        ref = unws(''.join(node.xpath('.//time/following-sibling::text()')))
+                        if ref.startswith('- '):
+                            ref = ref[2:]
+                        if ref.endswith(' -'):
+                            ref = ref[:-2]
+
+                        item = {
+                            'url': node.xpath('.//a/@href')[0],
+                            'title': unws(''.join(node.xpath('.//a//text()'))),
+                            'date': datetime.strptime(node.xpath('.//time/@datetime')[0], u"%Y-%m-%dT%H:%M:%S"),
+                            'date-type': node.xpath('.//time/@itemprop')[0],
+                            'reference': ref,
+                        }
+
+                        abbr = unws(''.join(node.xpath('.//abbr/text()')))
+                        if abbr:
+                            item['committee']=abbr
+
+                        formats = []
+                        for fnode in node.xpath('.//div[@class="ep-a_links"]//a'):
+                            elem = {'type': unws(fnode.xpath('./text()')[0]),
+                                    'url': fnode.xpath('./@href')[0]}
+                            tmp=fnode.xpath('./span/text()')
+                            if len(tmp) > 0:
+                                elem['size']=unws(tmp[0])
+                            formats.append(elem)
+                        if formats:
+                            item['formats']=formats
+
+                    item['term']=term
+                    if TYPE not in activities:
+                        activities[TYPE]=[]
+                    activities[TYPE].append(item)
+                start += cnt
+                url = "http://www.europarl.europa.eu/meps/en/%s/loadmore-activities/%s/%s/?from=%s&count=%s" % (id, type, term, start, cnt)
+                root = fetch(url)
+                print(url, file=sys.stderr)
+    return activities
+
 def scrape(id):
     # we ignore the /meps/en/<id>/<name>/home path, since we can get all info also from other pages
     url = "http://www.europarl.europa.eu/meps/en/%s/name/cv" % id
@@ -92,16 +184,14 @@ def scrape(id):
             'date'  : datetime.strptime(root.xpath('//time[@id="birthDate"]/text()')[0], u"%d-%m-%Y"),
             'place' : root.xpath('//span[@id="birthPlace"]/text()')[0]
         },
-        # cv
-        'cv': {
-            'updated': datetime.strptime(root.xpath('//span[starts-with(text(),"Updated: ")]/text()')[0], u"Updated: %d/%m/%Y"),
-        },
         'addresses' : parse_addr(root),
     }
-    mep['cv'].update({unws(''.join(title.xpath(".//text()"))): [unws(''.join(item.xpath(".//text()")))
-                                                                for item in title.xpath("../../../article//li")]
-                      for title in body.xpath('.//h3')
-                      if not unws(''.join(title.xpath(".//text()"))).startswith("Original version : ")})
+    if not body.xpath('//span[@id="no_cv_available"]'):
+        mep['cv']= {'updated': datetime.strptime(root.xpath('//span[starts-with(text(),"Updated: ")]/text()')[0], u"Updated: %d/%m/%Y")}
+        mep['cv'].update({unws(''.join(title.xpath(".//text()"))): [unws(''.join(item.xpath(".//text()")))
+                                                                    for item in title.xpath("../../../article//li")]
+                        for title in body.xpath('.//h3')
+                        if not unws(''.join(title.xpath(".//text()"))).startswith("Original version : ")})
 
     # assistants
     root = fetch("http://www.europarl.europa.eu/meps/en/%s/name/assistants" % id)
@@ -127,15 +217,17 @@ def scrape(id):
                 name = unws(''.join(pdf.xpath('.//text()')))
                 url = pdf.xpath('./@href')[0]
                 mep[key].append({'title': name, 'url': url})
-                #if key == 'Financial Declarations':
-                #    scraper_service.add_job('findecl', payload={'id':id, 'url', url})
+                if key == 'Financial Declarations':
+                    scraper_service.add_job('findecl', payload={'id':id, 'url', url})
 
     # history
+    terms = []
     for term in root.xpath('//nav[@class="ep_tableofcontent-menu table-of-contents-menu"]//span[text()="History of parliamentary service"]/../../..//li//span[@class="ep_name"]//text()'):
         if not term.endswith("parliamentary term"):
             print("history menu item does not end as expected with \"parliamentary term\":", term, "http://www.europarl.europa.eu/meps/en/%s/name/declarations" % id)
             continue
         term = int(term[0])
+        terms.append(term)
 
         root = fetch("http://www.europarl.europa.eu/meps/en/%s/name/history/%s" % (id, term))
         body = root.xpath('//span[@id="mep-card-content"]/following-sibling::div')[0]
@@ -222,24 +314,27 @@ def scrape(id):
                 else:
                     logger.error('[!] unknown field %s' % key)
 
-    print(jdump(mep).encode("utf8"))
+    # activities
+    mep['activities']=parse_acts(id, terms)
 
-    # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/history/8
-    # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/history/7
+    print(jdump(mep))
+
     # activities
     # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/main-activities/plenary-speeches
     # or /meps/en/96674/loadmore-activities/plenary-speeches/8/?from=10&count=100
-    # or /meps/en/96674/loadmore-activities/written-explanations/8/?from=10&count=100
     # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/main-activities/reports
     # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/main-activities/reports-shadow
     # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/main-activities/opinions-shadow
     # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/main-activities/motions-instit
     # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/main-activities/oral-questions
+
     # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/other-activities/written-explanations
+    # or /meps/en/96674/loadmore-activities/written-explanations/8/?from=10&count=100
     # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/other-activities/written-questions-other
     # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/other-activities/motions-indiv
     # /meps/en/96674/ANNA+MARIA_CORAZZA+BILDT/other-activities/written-declarations
 
 if __name__ == '__main__':
     #scrape(28390)
-    scrape(96779)
+    #scrape(96779)
+    scrape(96674)
