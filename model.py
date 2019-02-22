@@ -2,7 +2,6 @@ import sys
 from datetime import date, datetime
 from json import dumps
 from utils.utils import asDate, unws
-
 import unicodedata
 
 # TODO
