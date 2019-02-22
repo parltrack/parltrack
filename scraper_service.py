@@ -1,11 +1,14 @@
 import asyncore
 import os
 import socket
+import sys
 import traceback
 
+from imp import load_source
 from json import loads, dumps
 from queue import Queue
 from threading import Thread
+from datetime import datetime
 
 
 CONFIG = {
@@ -15,8 +18,15 @@ CONFIG = {
     'error_handler': None,
 }
 
+scrapers = {}
 
-add_job = None
+
+def add_job(scraper_name, payload):
+    scraper = scrapers.get(scraper_name)
+    if not scraper:
+        raise Exception("Unknown scraper")
+    scraper._queue.put(payload)
+    print('{2} {0} added to {1} queue'.format(payload, scraper._name,datetime.isoformat(datetime.now())))
 
 
 def run_scraper(scraper):
@@ -33,9 +43,14 @@ def run_scraper(scraper):
 def consume(pool, scraper):
     while True:
         job = pool.get(True)
-        print("starting {0} job".format(scraper._name))
-        scraper.scrape(job)
-        print("{0} job finished".format(scraper._name))
+        print("{2} starting {0} job ({1})".format(scraper._name, job,datetime.isoformat(datetime.now())))
+        try:
+            scraper.scrape(**job)
+        except:
+            print("{1} failed to execute {0} job".format(scraper._name,datetime.isoformat(datetime.now())))
+            traceback.print_exc()
+        else:
+            print("{1} {0} job finished".format(scraper._name,datetime.isoformat(datetime.now())))
 
 
 def load_scrapers():
@@ -45,7 +60,10 @@ def load_scrapers():
             continue
         try:
             name = scraper[:-3]
-            s = __import__('scrapers.'+scraper[:-3])
+            import_path = 'scrapers.'+name
+            if import_path in sys.modules:
+                del sys.modules[import_path]
+            s = load_source(import_path, 'scrapers/' + scraper)
         except:
             print("failed to load scraper", scraper)
             traceback.print_exc()
@@ -60,23 +78,18 @@ def load_scrapers():
         else:
             s.CONFIG = CONFIG.copy()
         s.add_job = add_job
+        Thread(target=run_scraper, args=(s,), name=s._name).start()
         print('scraper', scraper, 'added')
     return scrapers
+
+scrapers = load_scrapers()
 
 
 class RequestHandler(asyncore.dispatcher_with_send):
 
     def __init__(self, sock, queues):
-        global add_job
         self.scrapers = queues
         super().__init__(sock)
-        def add_job_fn(scraper_name, payload):
-            scraper = self.scrapers.get(scraper_name)
-            if not scraper:
-                raise Exception("Unknown scraper")
-            scraper._queue.put(payload)
-            print('{0} added to {1} queue'.format(payload, scraper._name))
-        add_job = add_job_fn
 
 
     def handle_read(self):
@@ -103,7 +116,7 @@ class RequestHandler(asyncore.dispatcher_with_send):
             payload = data.get('payload', {})
             add_job(data['scraper'], payload)
 
-        print('# Command `{0}` processed'.format(data['command']))
+        print('{1} # Command `{0}` processed'.format(data['command'],datetime.isoformat(datetime.now())))
 
     def notify(self, msg, **kwargs):
         print(msg, repr(kwargs))
@@ -113,27 +126,27 @@ class RequestHandler(asyncore.dispatcher_with_send):
 
     def handle_close(self):
         self.close()
-        print('Client disconnected')
+        print('{0} Client disconnected'.format(datetime.isoformat(datetime.now())))
 
 
 class ScraperServer(asyncore.dispatcher):
 
-    def __init__(self, host, port):
+    def __init__(self, host, port, scrapers):
         asyncore.dispatcher.__init__(self)
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_reuse_addr()
         self.bind((host, port))
         self.listen(5)
-        self.scrapers = load_scrapers()
+        self.scrapers = scrapers
 
     def handle_accept(self):
         pair = self.accept()
         if pair is not None:
             sock, addr = pair
-            print('Incoming connection from {0}'.format(repr(addr)))
+            print('{1} Incoming connection from {0}'.format(repr(addr),datetime.isoformat(datetime.now())))
             handler = RequestHandler(sock, self.scrapers)
 
 
 if __name__ == '__main__':
-	server = ScraperServer('localhost', 7676)
-	asyncore.loop()
+    server = ScraperServer('localhost', 7676, scrapers)
+    asyncore.loop()
