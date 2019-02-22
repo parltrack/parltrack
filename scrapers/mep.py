@@ -48,13 +48,16 @@ def scrape(id):
         'facebook'  : root.xpath('//div[@class="ep_share"]//a[@title="Facebook"]/@href'),
         'email'     : [deobfus_mail(x) for x in root.xpath('//div[@class="ep_share"]//a[@title="E-mail"]/@href')],
         'instagram' : root.xpath('//div[@class="ep_share"]//a[@title="Instagram"]/@href'),
-        'Birth'     : {
-            'date'  : datetime.strptime(root.xpath('//time[@id="birthDate"]/text()')[0], u"%d-%m-%Y"),
-            'place' : root.xpath('//span[@id="birthPlace"]/text()')[0]
-        },
         'addresses' : parse_addr(root),
     }
 
+    birthdate = root.xpath('//time[@id="birthDate"]/text()')
+    if len(birthdate)>0:
+        mep['Birth']={'date': datetime.strptime(birthdate[0], u"%d-%m-%Y")}
+        place=root.xpath('//span[@id="birthPlace"]/text()')
+        if len(place)>0:
+            mep['Birth']['place']=place[0]
+    
     death = root.xpath('//time[@id="deathDate"]/text()')
     if death:
         mep['Death'] = datetime.strptime(death[0], u"%d-%m-%Y")
@@ -100,7 +103,7 @@ def scrape(id):
     # activities
     mep['activities']=parse_acts(id, terms)
 
-    print(jdump(mep))
+    #print(jdump(mep))
 
 def deobfus_mail(txt):
     x = txt.replace('[at]','@').replace('[dot]','.')
@@ -115,7 +118,7 @@ def parse_addr(root):
         if key in ['Brussels', 'Bruxelles', 'Strasbourg']:
             addrs[key]['phone']=li.xpath('.//li[@class="ep_phone"]/a/@href')[0][4:]
             addrs[key]['fax']=li.xpath('.//li[@class="ep_fax"]/a/@href')[0][4:]
-        tmp=[unws(x) for x in li.xpath('.//div[@class="ep_information "]//text()') if len(unws(x))]
+        tmp=[unws(x) for x in li.xpath('.//div[@class="ep_information"]//text()') if len(unws(x))]
         if key=='Strasbourg':
             addrs[key][u'Address']=dict(zip([u'Organization',u'Building', u'Office', u'Street',u'Zip1', u'Zip2'],tmp))
             addrs[key][u'Address']['City']=addrs[key]['Address']['Zip2'].split()[1]
@@ -153,6 +156,7 @@ def parse_acts(id, terms):
                     ('oral-questions', "ORAL"),
                     # other activities
                     ('written-explanations', 'WEXP'),
+                    ('major-interpellations', 'MINT'),
                     ('written-questions', "WQO"),
                     ('motions-indiv', "IMOTION"),
                     ('written-declarations', "WDECL"))
@@ -232,7 +236,7 @@ def parse_acts(id, terms):
                 start += cnt
                 url = "http://www.europarl.europa.eu/meps/en/%s/loadmore-activities/%s/%s/?from=%s&count=%s" % (id, type, term, start, cnt)
                 root = fetch(url)
-                print(url, file=sys.stderr)
+                #print(url, file=sys.stderr)
     return activities
 
 def mangleName(name):
@@ -313,7 +317,7 @@ def parse_history(id, root, mep):
         body = root.xpath('//span[@id="mep-card-content"]/following-sibling::div')[0]
         for title in body.xpath('.//div[@class="ep_gridrow ep-o_productlist"]//h3'):
             key = unws(''.join(title.xpath('.//text()')))
-            if key is None:
+            if key in [None,'']:
                 print("empty history section", "http://www.europarl.europa.eu/meps/en/%s/name/history/%s" % (id,term))
                 continue
             #mep[key] = []
@@ -334,7 +338,8 @@ def parse_history(id, root, mep):
                         country = post[cstart+2:-1]
                         party = post[:cstart]
                     else:
-                        logger.warn('unknown country: %s' % post[cstart+2:-1])
+                        print('%s unknown country: %s' % (id, post[cstart+2:-1]))
+                        party='unknown'
                         country='unknown'
                     if not key in mep: mep[key]=[]
                     mep[key].append({u'party': party, u'country': country, u'start': start, u'end': end, 'term': term})
@@ -359,12 +364,12 @@ def parse_history(id, root, mep):
                                 if item['Organization'] in COMMITTEE_MAP:
                                     item[u'abbr']=COMMITTEE_MAP[item['Organization']]
                                 else:
-                                    print("no abbr found for committee:", item)
+                                    print("no abbr found for committee: %s" % item['Organization'])
                             if field=='Delegations':
                                 if item['Organization'] in DELEGATIONS:
                                     item[u'abbr']=DELEGATIONS[item['Organization']]
                                 else:
-                                    print("no abbr found for delegation:", item)
+                                    print("no abbr found for delegation:", item['Organization'])
                             if not field in mep: mep[field]=[]
                             mep[field].append(item)
                             break
@@ -381,8 +386,11 @@ def parse_history(id, root, mep):
                     elif post.endswith(' -'):
                         org=post[:-2]
                         role=''
+                    elif post=='Non-attached Members':
+                        org=post
+                        role=''
                     else:
-                        logger.error('[!] political group line %s' % line)
+                        print('[!] political group line "%s", %s' % (post, "http://www.europarl.europa.eu/meps/en/%s/name/history/%s" % (id,term)))
                         continue
                     if not u'Groups' in mep: mep[u'Groups']=[]
                     mep[u'Groups'].append(
@@ -394,7 +402,7 @@ def parse_history(id, root, mep):
                         u'end':          end,
                         })
                 else:
-                    logger.error('[!] unknown field %s' % key)
+                    print('[!] unknown field "%s" %s' % (key, "http://www.europarl.europa.eu/meps/en/%s/name/history/%s" % (id,term)))
     return terms
 
 if __name__ == '__main__':
