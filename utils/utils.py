@@ -346,10 +346,11 @@ def fetch_raw(url, retries=5, ignore=[], params=None):
         r.raise_for_status()
     return r.text
 
-def fetch(url, retries=5, ignore=[], params=None):
+def fetch(url, retries=5, ignore=[], params=None, prune_xml=False):
     xml = fetch_raw(url, retries, ignore, params)
     # cut <?xml [..] ?> part
-    #xml = xml[xml.find('?>')+2:]
+    if prune_xml:
+        xml = xml[xml.find('?>')+2:]
     return fromstring(xml)
 
 def jdump(d, stats=None):
