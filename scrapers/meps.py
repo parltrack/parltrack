@@ -18,6 +18,8 @@
 # (C) 2019 by Stefan Marsiske, <parltrack@ctrlc.hu>
 
 from utils.utils import fetch
+from utils.log import log
+from dbclient import db
 
 CONFIG = {
     'threads': 8,
@@ -34,14 +36,30 @@ def scrape(all=False, **kwargs):
                    'http://www.europarl.europa.eu/meps/en/incoming-outgoing/outgoing/xml',
                    'http://www.europarl.europa.eu/meps/en/full-list/xml']
     if all:
+        actives = {e['UserID'] for e in db.meps_by_activity(True)}
+        inactives = {e['UserID'] for e in db.meps_by_activity(False)}
+        meps = actives | inactives
+        # TODO also add any that are in the db but missing from this list and the full directory
         for unlisted in [ 1018, 26833, 1040, 1002, 2046, 23286, 28384, 1866, 28386,
                           1275, 2187, 34004, 28309, 1490, 28169, 28289, 28841, 1566,
                           2174, 4281, 28147, 28302, ]:
+            meps.discard(unlisted)
             add_job('mep', payload={'id':unlisted})
     for src in sources:
         root = fetch(src, prune_xml=True)
         for id in root.xpath("//mep/id/text()"):
+            if all: meps.discard(int(id))
+            add_job('mep', payload={'id':int(id)})
+    if all:
+        log(3,"mepids not in unlisted nor in directory {!r}".format(meps))
+        for id in meps:
             add_job('mep', payload={'id':id})
 
 if __name__ == '__main__':
+    #actives = {e['UserID'] for e in db.meps_by_activity(True)}
+    #inactives = {e['UserID'] for e in db.meps_by_activity(False)}
+    #meps = actives | inactives
+    #print(len(meps))
+    #print(max(meps))
+    #print(len([x for x in meps if x < 113000]))
     scrape(False)
