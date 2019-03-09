@@ -10,6 +10,7 @@ from queue import Queue
 from threading import Thread
 from datetime import datetime
 
+from utils.log import log
 
 CONFIG = {
     'threads': 8,
@@ -26,7 +27,7 @@ def add_job(scraper_name, payload):
     if not scraper:
         raise Exception("Unknown scraper")
     scraper._queue.put(payload)
-    print('{2} {0} added to {1} queue'.format(payload, scraper._name,datetime.isoformat(datetime.now())))
+    log(3, '{0} added to {1} queue'.format(payload, scraper._name))
 
 
 def run_scraper(scraper):
@@ -43,14 +44,15 @@ def run_scraper(scraper):
 def consume(pool, scraper):
     while True:
         job = pool.get(True)
-        print("{2} starting {0} job ({1})".format(scraper._name, job,datetime.isoformat(datetime.now())))
+        log(3, "starting {0} job ({1})".format(scraper._name, job))
         try:
             scraper.scrape(**job)
         except:
-            print("{1} failed to execute {0} job".format(scraper._name,datetime.isoformat(datetime.now())))
-            traceback.print_exc()
+            log(1, "failed to execute {0} job {1}".format(scraper._name, job))
+            traceback.print_exc(file=sys.stdout)
+            sys.stdout.flush()
         else:
-            print("{1} {0} job finished".format(scraper._name,datetime.isoformat(datetime.now())))
+            log(3, "{0} job {1} finished".format(scraper._name, job))
 
 
 def load_scrapers():
@@ -65,7 +67,7 @@ def load_scrapers():
                 del sys.modules[import_path]
             s = load_source(import_path, 'scrapers/' + scraper)
         except:
-            print("failed to load scraper", scraper)
+            log(1, "failed to load scraper" % scraper)
             traceback.print_exc()
             continue
         s._queue = Queue()
@@ -79,7 +81,7 @@ def load_scrapers():
             s.CONFIG = CONFIG.copy()
         s.add_job = add_job
         Thread(target=run_scraper, args=(s,), name=s._name).start()
-        print('scraper', scraper, 'added')
+        log(3, 'scraper %s added' % scraper)
     return scrapers
 
 scrapers = load_scrapers()
@@ -116,17 +118,17 @@ class RequestHandler(asyncore.dispatcher_with_send):
             payload = data.get('payload', {})
             add_job(data['scraper'], payload)
 
-        print('{1} # Command `{0}` processed'.format(data['command'],datetime.isoformat(datetime.now())))
+        log(3, '# Command `{0}` processed'.format(data['command']))
 
     def notify(self, msg, **kwargs):
-        print(msg, repr(kwargs))
+        log(3, "%s %s" % (msg, repr(kwargs)))
         message = {'message': msg}
         message.update(kwargs)
         self.send(dumps(message).encode('utf-8')+b'\n')
 
     def handle_close(self):
         self.close()
-        print('{0} Client disconnected'.format(datetime.isoformat(datetime.now())))
+        log(3, 'Client disconnected')
 
 
 class ScraperServer(asyncore.dispatcher):
@@ -143,7 +145,7 @@ class ScraperServer(asyncore.dispatcher):
         pair = self.accept()
         if pair is not None:
             sock, addr = pair
-            print('{1} Incoming connection from {0}'.format(repr(addr),datetime.isoformat(datetime.now())))
+            log(3, 'Incoming connection from {0}'.format(repr(addr)))
             handler = RequestHandler(sock, self.scrapers)
 
 
