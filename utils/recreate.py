@@ -3,21 +3,19 @@
 import sys, copy, traceback, functools, copy
 from json import loads, dumps
 from utils.utils import printdict, diff, showdiff
-
-debug=True
+from utils.log import log
 
 def getitem(item,path):
     if item in ({},[]) or path == []: return item
     if isinstance(item,dict) and path[0] not in item:
-        if debug: log("getitem: %s not in item" % path[0], item)
+        log(1,"getitem: %s not in item" % path[0], item)
         return None
 
     try:
         return getitem(item[path[0]], path[1:])
     except:
-        if debug:
-            #print(traceback.format_exc())
-            print("getitem:", path, item)
+        #print(traceback.format_exc())
+        log(1,"getitem:", path, item)
         return None
 
 def sortpaths(a,b):
@@ -45,21 +43,21 @@ def patch(obj, changes, guess=False, date=''):
             if len(change['path'])!=l: continue
             obj=getitem(res,change['path'][:-1])
             if obj is None:
-                print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
+                log(1,"could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
                 return
             if isinstance(obj,dict) and change['path'][-1] not in obj:
-                print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
-                print(change,obj)
+                log(1,"cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
+                log(1,change,obj)
                 return
             elif isinstance(obj,list) and change['path'][-1]>=len(obj):
-                print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
-                print(change,obj)
+                log(1,"cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
+                log(1,change,obj)
                 return
             elif change['data']==obj[change['path'][-1]]:
-                #print("\tdeleting", change['path'])
+                #log(3,"\tdeleting", change['path'])
                 del obj[change['path'][-1]]
             else:
-                print("wtf change: %s\nobj: %s" % (change, obj))
+                log(1,"wtf change: %s\nobj: %s" % (change, obj))
 
         # handle adds
         for change in sorted(changes, key=lambda x: x['path']):
@@ -67,10 +65,10 @@ def patch(obj, changes, guess=False, date=''):
             if len(change['path'])!=l: continue
             obj=getitem(res,change['path'][:-1])
             if obj is None:
-                print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
-                #print(list(x['path'] for x in sorted(changes, key=functools.cmp_to_key(sortpaths))))
+                log(1,"could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
+                #log(1,list(x['path'] for x in sorted(changes, key=functools.cmp_to_key(sortpaths))))
                 return
-            #print("\tadding", change['path'])
+            #log(3,"\tadding", change['path'])
             if isinstance(obj,list):
                 obj.insert(change['path'][-1],copy.deepcopy(change['data']))
             else:
@@ -82,29 +80,29 @@ def patch(obj, changes, guess=False, date=''):
             if len(change['path'])!=l: continue
             obj=getitem(res,change['path'][:-1])
             if obj is None:
-                print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
+                log(1,"could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
                 return
             if isinstance(obj,dict) and change['path'][-1] not in obj:
-                print("cannot change %s what is not there in %s" % (change['path'][-1], change['data']))
+                log(1,"cannot change %s what is not there in %s" % (change['path'][-1], change['data']))
                 return
-            elif isinstance(obj,list) and change['path'][-1]>=len(obj):
-                print("cannot change %s what is not there in %s" % (change['path'][-1], change['data']))
+            if isinstance(obj,list) and change['path'][-1]>=len(obj):
+                log(1,"cannot change %s what is not there in %s" % (change['path'][-1], change['data']))
                 return
-            elif obj[change['path'][-1]]==change['data'][0]:
-                #print("\tchanging", change['path'])
+            if obj[change['path'][-1]]==change['data'][0]:
+                #log(3,"\tchanging", change['path'])
                 obj[change['path'][-1]]=copy.deepcopy(change['data'][1])
             else:
-                print("wtf", change, obj)
+                log(1,"wtf", change, obj)
     return res
 
 def recreate(changelog, tdate, guess=False):
     res={}
     for date, changes in sorted(changelog.items()):
         if date>tdate: break
-        if debug: print('merging changelog %s' % date)
+        log(1,'merging changelog %s' % date)
         res = patch(res, changes, guess, date)
         if not res: break
-        #print(dumps(res))
+        #log(1,dumps(res))
     return res
 
 def revert(obj,tdate=None, guess=False):
@@ -114,7 +112,7 @@ def revert(obj,tdate=None, guess=False):
     clen = len(changelog.keys())
     for i, (date, changes) in enumerate(sorted(changelog.items(), reverse=True)):
         if tdate and date<tdate: break
-        if debug: print('undoing changelog %s' % date)
+        print('undoing changelog %s' % date)
         changes=mergeaddels(changes)
 
         for l in sorted({len(x['path']) for x in changes}, reverse=True):
@@ -124,10 +122,10 @@ def revert(obj,tdate=None, guess=False):
                 if len(change['path'])!=l: continue
                 obj=getitem(res,change['path'][:-1])
                 if obj is None:
-                    if debug: print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
+                    log(1,"could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
                     #print(list(x['path'] for x in sorted(changes, key=functools.cmp_to_key(sortpaths))))
                     return (i,clen)
-                #if debug: print("\tadding", change['path'])
+                #log(3, "\tadding", change['path'])
                 if isinstance(obj,list):
                     obj.insert(change['path'][-1],copy.deepcopy(change['data']))
                 else:
@@ -139,17 +137,17 @@ def revert(obj,tdate=None, guess=False):
                 if len(change['path'])!=l: continue
                 obj=getitem(res,change['path'][:-1])
                 if obj is None:
-                    if debug: print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
+                    log(1,"could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
                     return (i,clen)
 
                 if isinstance(obj,dict) and change['path'][-1] not in obj:
-                    if debug: print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
+                    log(1,"cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
                     if not guess: return (i,clen)
                 elif isinstance(obj,list) and change['path'][-1]>=len(obj):
-                    if debug: print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
+                    log(1,"cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
                     if not guess: return (i,clen)
                 elif change['data']==obj[change['path'][-1]]:
-                    #if debug: print("\tdeleting", change['path'])
+                    #log(1,"\tdeleting", change['path'])
                     del obj[change['path'][-1]]
                     continue
                 return (i,clen)
@@ -160,27 +158,27 @@ def revert(obj,tdate=None, guess=False):
                 if len(change['path'])!=l: continue
                 obj=getitem(res,change['path'][:-1])
                 if obj is None:
-                    if debug: print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
+                    log(1,"could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
                     return (i,clen)
                 if isinstance(obj,dict) and change['path'][-1] not in obj:
-                    if debug: print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
+                    log(1,"cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
                     if not guess: return (i,clen)
                 elif isinstance(obj,list) and change['path'][-1]>=len(obj):
-                    if debug: print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
+                    log(1,"cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
                     if not guess: return (i,clen)
                 elif obj[change['path'][-1]]==change['data'][1]:
-                    #if debug: print("\tchanging", change['path'])
+                    #log(1,"\tchanging", change['path'])
                     obj[change['path'][-1]]=copy.deepcopy(change['data'][0])
                     continue
                 return (i,clen)
 
-        #print(dumps(res))
+        #log(1,dumps(res))
     return "reverted %d/%d"% (i,clen)
 
 def test():
     fd = sys.stdin
     if fd.read(1) != '[': # skip starting [
-        print('no starting [')
+        log(1,'no starting [')
         sys.exit(1)
     rec = fd.readline()
     while rec:
