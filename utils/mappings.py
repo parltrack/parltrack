@@ -363,6 +363,7 @@ GROUP_MAP={ u"Confederal Group of the European United Left - Nordic Green Left":
             u'Communist and Allies Group': u'COM',
             u"Rainbow Group: Federation of the Green-Alternative European Links, Agelev-Ecolo, the Danish People's Movement against Membership of the European Community and the European Free Alliance in the European Parliament": u'RBW',
             u'Group for the Technical Coordination and Defence of Indipendent Groups and Members': u'CDI',
+            u'Group for the Technical Coordination and Defence of Independent Groups and Members': u'CDI',
             u'Technical Coordination and Defence of Independent Groups and Members': u'CDI',
             u'Forza Europa Group': u'FE',
             u'Christian-Democratic Group': u'CD',
