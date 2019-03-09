@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import socket, sys, msgpack, json
+import socket, sys, msgpack, struct
 from utils.log import log
 
 class DB:
@@ -12,8 +12,7 @@ class DB:
         try:
             # Send request
             cmd = {"cmd": "get", "params": {"key": key, "source": source}}
-            log(3,'sending {!r}'.format(cmd))
-            sock.sendall(bytes(json.dumps(cmd), 'utf8'))
+            self.send_req(sock, cmd)
             # make the sock a file object
             fd = sock.makefile(mode = 'rb', buffering = 65535)
             # unmarshall response
@@ -23,6 +22,13 @@ class DB:
             sock.close()
             fd.close()
             return res
+
+    def send_req(self, sock, cmd):
+        log(3,'sending {!r}'.format(cmd))
+        req = msgpack.dumps(cmd, use_bin_type = True)
+        sock.sendall(struct.pack("I", len(req)))
+        sock.sendall(req)
+        log(3,'sent {} bytes'.format(len(req)+4))
 
     def meps_by_activity(self,key=True):
         return db.get('meps_by_activity', "active" if key else "inactive")

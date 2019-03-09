@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 
-import json
 import socket
 import sys
 import traceback
-import os, json, bz2, sys, atexit, msgpack
+import os, json, sys, atexit, msgpack, struct
 from datetime import datetime
 from threading import Thread
 from utils.log import log
@@ -58,8 +57,6 @@ def init(data_dir):
     singleton()
     # load json dumps int global DBS dict
     for table in TABLES:
-        # todo test loading time with zstd
-        #with bz2.open("db/{}.json.bz2".format(table), 'rt') as fd:
         with open("{}/{}.json".format(data_dir, table), 'rt') as fd:
             log(3,"loading table {}".format(table))
             DBS[table]={item[TABLE_KEYS[table]]: item for item in json.load(fd)}
@@ -76,6 +73,23 @@ def init(data_dir):
     IDXs['votes_by_dossier']=idx_votes_by_dossier()
     IDXs['idx_dossiers_by_reference'] = idx_dossiers_by_reference()
     log(3,"init done")
+
+def read_req(sock):
+    size = sock.recv(4)
+    log(4, "req size is {!r}".format(size))
+    size = struct.unpack("I", size)[0]
+    if size > 1024 * 1024 * 50: # arbitrary upper limit for request 50MB
+        log(1, "request is too big: {}MB".format(size / (1024*1024)))
+        return {}
+    log(3, 'receiving {} bytes request'.format(size))
+    res = []
+    while size>0:
+        rsize=65535 if size >= 65535 else size
+        res.append(sock.recv(rsize))
+        size -= rsize
+    req = msgpack.loads(b''.join(res), raw = False)
+    log(3, 'received {!r}'.format(req))
+    return req
 
 def mainloop():
     # TODO handle incoming requests
@@ -113,25 +127,16 @@ def mainloop():
         connection, client_address = sock.accept()
         try:
             log(3, 'connection from {}'.format(client_address))
-            # Receive the data in small chunks and retransmit it
-            data = connection.recv(2048)
-            log(3, 'received {!r}'.format(data))
-            if data:
-                data = data.decode('utf8')
-                log(3, data)
-                query = json.loads(data)
-                if query.get('cmd', '') == 'get':
-                    tmp = get(**query.get('params', [])) or None
-                    log(3,"responding with {} records".format(len(tmp) if tmp else tmp))
-                    fd = connection.makefile(mode = 'wb', buffering = 65535)
-                    #connection.sendall(msgpack.dumps(tmp,use_bin_type = True))
-                    msgpack.dump(tmp, fd, use_bin_type = True)
-                    log(3,'sent data back to the client')
-                    fd.close()
-                else:
-                    log(2,'invalid or missing cmd')
+            query = read_req(connection)
+            if query.get('cmd', '') == 'get':
+                tmp = get(**query.get('params', [])) or None
+                log(3,"responding with {} records".format(len(tmp) if tmp else tmp))
+                fd = connection.makefile(mode = 'wb', buffering = 65535)
+                msgpack.dump(tmp, fd, use_bin_type = True)
+                log(3,'sent data back to the client')
+                fd.close()
             else:
-                log(2,'no data from {}'.format(client_address))
+                log(2,'invalid or missing cmd')
         except:
             log(1, "connection error")
             traceback.print_exc()
