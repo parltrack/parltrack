@@ -28,6 +28,7 @@ except:
     from itertools import zip_longest as izip_longest
 from operator import itemgetter
 from config import ROOT_URL
+from utils.log import log
 
 if sys.version[0] == '3':
     unicode = str
@@ -48,11 +49,11 @@ def diff(old, new, path=[]):
     old=normalize_obj(old)
     new=normalize_obj(new)
     if old==None and new!=None:
-        return [{'type': 'added', 'data': new, 'path': path}]
+        return [{'type': 'added', 'path': path, 'data': new}]
     elif new==None and old!=None:
-        return [{'type': 'deleted', 'data': old, 'path': path}]
+        return [{'type': 'deleted', 'path': path, 'data': old}]
     if not type(old)==type(new):
-        return [{'type': 'changed', 'data': (old, new), 'path': path}]
+        return [{'type': 'changed', 'path': path, 'data': (old, new)}]
     elif hasattr(old,'keys'):
         res=[]
         for k in set(list(old.keys()) + list((new or {}).keys())):
@@ -65,7 +66,7 @@ def diff(old, new, path=[]):
     elif (([type(x) for x in [old, new]] == [ unicode, unicode ] and
            ''.join(old.split()).lower() != ''.join(new.split()).lower()) or
           old != new):
-        return [{'type': u'changed', 'data': (old, new), 'path': path}]
+        return [{'type': u'changed', 'path': path, 'data': (old, new)}]
     return
 
 class hashabledict(dict):
@@ -80,8 +81,8 @@ def normalize_list(obj):
         objset=set()
         objorder=dict()
     elif dict in {type(x) for x in obj}:
-        objset={hashabledict(x) if isinstance(x,dict) else x for x in obj}
-        objorder={hashabledict(e) if isinstance(e,dict) else e: i for i, e in enumerate(obj)}
+        objset=[hashabledict(x) if isinstance(x,dict) else x for x in obj] # duplicates will be ignored
+        objorder={hashabledict(e) if isinstance(e,dict) else e: i for i, e in enumerate(obj)} # the last duplicates position will overwrite previous positions
     elif list in {type(x) for x in obj}:
         objset={tuple(x) if isinstance(x, list) else x for x in obj}
         objorder={tuple(e) if isinstance(e, list) else e: i for i, e in enumerate(obj)}
@@ -93,8 +94,8 @@ def normalize_list(obj):
 def difflist(old, new, path):
     oldset,oldorder=normalize_list(old)
     newset,neworder=normalize_list(new)
-    oldunique=set(oldset) - set(newset)
-    newunique=set(newset) - set(oldset)
+    oldunique=sorted(set(oldset) - set(newset), key=lambda x: oldorder[x])
+    newunique=sorted(set(newset) - set(oldset), key=lambda x: neworder[x])
     # all the same
     if not (oldunique or newunique): return
     #import code; code.interact(local=locals());
@@ -104,37 +105,30 @@ def difflist(old, new, path):
                             diff(oe,
                                  ne,
                                  path + [neworder[tuple(ne)]
-                                         if type(ne)==type(list())
+                                         if isinstance(ne,list)
                                          else neworder[ne]]))
                             for ne in list(newunique)],
                            key=lambda a: len(a[2]))
         # find deep matches first
-        skip=False
-        for c in candidates:
-            for d in c[2]:
-                if len(d['path'])-len(path)+1<1:
-                    skip=True
-                    break
-            if skip:
-                skip=False
-                continue
-            ret.extend(c[2])
-            oldunique.remove(c[0])
-            newunique.remove(c[1])
-            skip=True
-            break
-        if skip:
-            continue
-        if len(candidates) and len(candidates[0][2])*3<=len(ne):
+        if len(candidates) and (len(candidates[0][2])*3<=len(candidates[0][1]) if isinstance(candidates[0][1], list) else 3):
+            if oldorder[oe] != neworder[candidates[0][1]]:
+                #ret.append({'type': u'moved', 'data': {"obj": oe, "new": neworder[candidates[0][1]]}, 'path': path + [oldorder[oe]]})
+                ret.append({'type': u'deleted', 'path': path + [oldorder[oe]], 'data': oe})
+                ret.append({'type': u'added', 'path': path + [neworder[candidates[0][1]]], 'data': oe})
+            #print(40*'=')
+            #print(oldorder[oe], sorted(oe.items()))
+            #print(neworder[candidates[0][1]], sorted(candidates[0][1].items()))
+            #print(candidates[0][2])
+            #print(40*'-')
             ret.extend(candidates[0][2])
             oldunique.remove(candidates[0][0])
             newunique.remove(candidates[0][1])
     # handle added
     if newunique:
-        ret.extend(sorted([{'type': u'added', 'data': e, 'path': path + [neworder[e]]} for e in newunique], key=itemgetter('path')))
+        ret.extend(sorted([{'type': u'added', 'path': path + [neworder[e]], 'data': e} for e in newunique], key=itemgetter('path')))
     # handle deleted
     if oldunique:
-        ret.extend(sorted([{'type': u'deleted', 'data': e, 'path': path + [oldorder[e]]} for e in oldunique], key=itemgetter('path')))
+        ret.extend(sorted([{'type': u'deleted', 'path': path + [oldorder[e]], 'data': e} for e in oldunique], key=itemgetter('path')))
     return ret
 
 def dateJSONhandler(obj):
@@ -325,10 +319,10 @@ def htmldiff(item,diffs):
 from lxml.html.soupparser import fromstring
 import requests, time
 
-PROXIES = {} #'http': 'http://localhost:8123/'}
+PROXIES = {'http': 'http://localhost:8123/'}
 HEADERS =  { 'User-agent': 'parltrack/0.8' }
 
-def fetch_raw(url, retries=5, ignore=[], params=None):
+def fetch_raw(url, retries=5, ignore=[], params=None, binary=False):
     try:
         if params:
             r=requests.POST(url, params=params, proxies=PROXIES, headers=HEADERS)
@@ -344,6 +338,7 @@ def fetch_raw(url, retries=5, ignore=[], params=None):
             raise ValueError("failed to fetch %s" % url)
     if r.status_code >= 400 and r.status_code not in [504, 502]+ignore:
         r.raise_for_status()
+    if binary: return r.content
     return r.text
 
 def fetch(url, retries=5, ignore=[], params=None, prune_xml=False):
