@@ -177,7 +177,7 @@ def scrape(id):
             mep['meta']['updated']=now
             mep['changes']=prev.get('changes',{})
         mep['changes'][now.isoformat()]=d
-        # TODO Mep.upsert(data)
+        db.put('ep_meps', mep)
     if __name__ == '__main__':
         print(jdump(mep))
     #return mep
