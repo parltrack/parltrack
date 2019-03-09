@@ -139,7 +139,7 @@ def scrape(id):
         mep['changes']={}
     if d:
         # attempt to recreate current version by applying d to prev
-        m2 = patch(prev, d)
+        m2 = patch(prev or {}, d)
         if not m2:
             log(1,"failed to recreate record by patching previous version with diff")
         else:
