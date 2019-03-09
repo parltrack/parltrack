@@ -4,7 +4,7 @@ import sys, copy, traceback, functools
 from utils.log import log
 
 def getitem(item,path):
-    if item in ({},[]) or path == []: return item
+    if path == [] or item in ({},[]): return item
     if isinstance(item,dict) and path[0] not in item:
         log(1,"getitem: %s not in item" % path[0], item)
         return None
@@ -63,7 +63,7 @@ def patch(obj, changes, guess=False, date=''):
             if len(change['path'])!=l: continue
             obj=getitem(res,change['path'][:-1])
             if obj is None:
-                log(1,"could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
+                log(1,"could not resolve path '%s' path-1 '%s', action: %s\ndata: %s" % (change['path'], repr(change['path'][:-1]), change['type'], change['data']))
                 #log(1,list(x['path'] for x in sorted(changes, key=functools.cmp_to_key(sortpaths))))
                 return
             #log(3,"\tadding", change['path'])
