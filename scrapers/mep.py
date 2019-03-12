@@ -53,6 +53,7 @@ def scrape(id):
         'Instagram' : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@class="ep_share"]//a[@title="Instagram"]/@href')],
         'Mail'      : [deobfus_mail(x) for x in root.xpath('//div[@class="ep_share"]//a[@title="E-mail"]/@href')],
         'Addresses' : parse_addr(root),
+        'active'    : False,
     }
 
     birthdate = root.xpath('//time[@id="birthDate"]/text()')
@@ -86,12 +87,14 @@ def scrape(id):
                 title = title.lower().split()[0]
                 if assistants: mep['assistants'][title]=assistants
             elif title in ['Accredited assistants (grouping)', 'Local assistants (grouping)',
-                        'Service providers', 'Trainees', 'Paying agents (grouping)', 'Paying agents']:
+                           'Service providers', 'Trainees', 'Paying agents (grouping)', 'Paying agents',
+                           'Assistants to the Vice-Presidency/to the Quaestorate']:
                 if not 'assistants' in mep: mep['assistants']={}
                 title = title.lower()
                 if assistants: mep['assistants'][title]=assistants
             else:
                 log(2,'unknown title for assistants "{}" {}'.format(title, url))
+                raise ValueError
 
     # declarations
     root = fetch("http://www.europarl.europa.eu/meps/en/%s/name/declarations" % id)
@@ -116,6 +119,7 @@ def scrape(id):
             else:
                 log(2, 'unknown type of declaration: "%s" http://www.europarl.europa.eu/meps/en/%s/name/declarations' % (key, id))
                 key = None
+                raise ValueError
 
     # history
     terms=parse_history(id, root, mep)
@@ -133,21 +137,35 @@ def scrape(id):
         if 'CV' not in mep and 'CV' in prev: mep['CV']=prev['CV']
         d=diff({k:v for k,v in prev.items() if not k in ['meta', 'changes', 'activities', '_id']},
                {k:v for k,v in mep.items() if not k in ['meta', 'changes', 'activities', '_id']})
+
+        # preserve some to level items
+        d1 = []
+        for c in d:
+            if c['type']!='deleted' or len(c['path']) != 1 or c['path'] in (('Addresses', 'assistants')):
+                d1.append(c)
+                continue
+            log(2,"preserving deleted path {} for userid: {}".format(c['path'], id))
+            mep[c['path'][0]]=prev[c['path'][0]]
+        d = d1
+
         mep['changes']=prev.get('changes',{})
     else:
         d=diff({}, dict([(k,v) for k,v in mep.items() if not k in ['meta', 'changes', 'activities', '_id']]))
         mep['changes']={}
+
     if d:
         # attempt to recreate current version by applying d to prev
         m2 = patch(prev or {}, d)
         if not m2:
             log(1,"failed to recreate record by patching previous version with diff")
+            raise ValueError
         else:
             # make a diff between current record, an recreated one
             zero=diff(dict([(k,v) for k,v in m2.items() if not k in ['meta', 'changes', 'activities', '_id']]),
                       dict([(k,v) for k,v in mep.items() if not k in ['meta', 'changes', 'activities', '_id']]))
             if zero != []:
                 log(1,"diff between current record and patched previous one is not empty\n{!r}".format(zero))
+                raise ValueError
 
         # todo remove after first ever stored scrape
         d = [e for e in d if not (
@@ -177,7 +195,9 @@ def scrape(id):
             mep['meta']['updated']=now
             mep['changes']=prev.get('changes',{})
         mep['changes'][now.isoformat()]=d
-        db.put('ep_meps', mep)
+        if not db.put('ep_meps', mep):
+            log(1,"failed to store updated mep {}".format(id))
+            raise ValueError
     if __name__ == '__main__':
         print(jdump(mep))
     #return mep
@@ -251,7 +271,8 @@ def parse_acts(id, terms):
                 root = fetch(url)
             except:
                 log(1,"failed to fetch {}".format(url))
-                continue
+                raise ValueError
+                #continue
             #print(url, file=sys.stderr)
             while(len(root.xpath('//article'))>0):
                 for node in root.xpath('//article'):
@@ -318,12 +339,15 @@ def parse_acts(id, terms):
                     if TYPE not in activities:
                         activities[TYPE]=[]
                     activities[TYPE].append(item)
+                if len(root.xpath('//article')) < cnt:
+                    break
                 start += cnt
                 url = "http://www.europarl.europa.eu/meps/en/%s/loadmore-activities/%s/%s/?from=%s&count=%s" % (id, type, term, start, cnt)
                 try:
                     root = fetch(url)
                 except:
                     log(1,"failed to fetch {}".format(url))
+                    #raise ValueError
                     break
                 #print(url, file=sys.stderr)
     return activities
@@ -398,7 +422,8 @@ def parse_history(id, root, mep):
     for term in root.xpath('//nav[@class="ep_tableofcontent-menu table-of-contents-menu"]//span[text()="History of parliamentary service"]/../../..//li//span[@class="ep_name"]//text()'):
         if not term.endswith("parliamentary term"):
             log(2, 'history menu item does not end as expected with "parliamentary term": %s http://www.europarl.europa.eu/meps/en/%s/name/declarations' % (term, id))
-            continue
+            raise ValueError
+            #continue
         term = int(term[0])
         terms.append(term)
 
@@ -408,7 +433,8 @@ def parse_history(id, root, mep):
             key = unws(''.join(title.xpath('.//text()')))
             if key in [None,'']:
                 log(2, "empty history section http://www.europarl.europa.eu/meps/en/%s/name/history/%s" % (id,term))
-                continue
+                raise ValueError
+                #continue
             #mep[key] = []
             for item in title.xpath('../../following-sibling::article//li'):
                 interval = unws(''.join(item.xpath('./strong/text()')))
@@ -420,7 +446,8 @@ def parse_history(id, root, mep):
                         start, end = parse_hist_date(interval)
                     except:
                         log(1, "illegal date interval: %s http://www.europarl.europa.eu/meps/en/%s/name/history/%s" % (interval, id, term))
-                        continue
+                        raise ValueError
+                        #continue
                     # parse party and country
                     cstart = post.rfind(' (')
                     if post[cstart+2:-1] in SEIRTNUOC:
@@ -428,6 +455,7 @@ def parse_history(id, root, mep):
                         party = post[:cstart]
                     else:
                         log(2, '%s unknown country: %s' % (id, post[cstart+2:-1]))
+                        raise ValueError
                         party='unknown'
                         country='unknown'
                     if not key in mep: mep[key]=[]
@@ -439,8 +467,9 @@ def parse_history(id, root, mep):
                     try:
                         start, end = parse_hist_date(interval)
                     except:
-                        log("illegal date interval: %s http://www.europarl.europa.eu/meps/en/%s/name/history/%s" % (interval, id, term))
-                        continue
+                        log(2,"illegal date interval: %s http://www.europarl.europa.eu/meps/en/%s/name/history/%s" % (interval, id, term))
+                        raise ValueError
+                        #continue
                     item={u'role': key,
                         u'Organization': unws(post),
                         u'start': start,
@@ -467,7 +496,8 @@ def parse_history(id, root, mep):
                         start, end = parse_hist_date(interval)
                     except:
                         log(1, "illegal date interval: %s http://www.europarl.europa.eu/meps/en/%s/name/history/%s" % (interval, id,term))
-                        continue
+                        raise ValueError
+                        #continue
                     tmp = post.split(u' - ')
                     if len(tmp)>1:
                         org = ' - '.join(tmp[:-1])
@@ -480,7 +510,8 @@ def parse_history(id, root, mep):
                         role='Member'
                     else:
                         log(2, '[!] political group line "%s", http://www.europarl.europa.eu/meps/en/%s/name/history/%s' % (post, id,term))
-                        continue
+                        raise ValueError
+                        #continue
                     if not u'Groups' in mep: mep[u'Groups']=[]
                     mep[u'Groups'].append(
                         {u'role':        role,
@@ -492,11 +523,12 @@ def parse_history(id, root, mep):
                         })
                 else:
                     log(2, '[!] unknown field "%s" http://www.europarl.europa.eu/meps/en/%s/name/history/%s' % (key, id,term))
+                    raise ValueError
 
     # reorder historical lists in ascending order, so new entries are appended and don't mess up the diffs
     for k in ('Constituencies', 'Groups', 'Committees', 'Delegations', 'Staff'):
         if not k in mep: continue
-        mep[k]=[e for e in sorted(mep[k], key=lambda x: (x['start'],x['end']))]
+        mep[k]=[e for e in sorted(mep[k], key=lambda x: (x['start'],x['end']), reverse=True)] # todo remove reversal of list
     return terms
 
 if __name__ == '__main__':
