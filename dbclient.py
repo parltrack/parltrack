@@ -2,33 +2,34 @@
 
 import socket, sys, msgpack, struct
 from utils.log import log
+from utils.utils import dateJSONhandler
 
 class DB:
     def commit(self, table):
-        cmd = {"cmd": "get", "params": {"table": table}}
-        return self.send_req(sock, cmd)
+        cmd = {"cmd": "commit", "params": {"table": table}}
+        return self.send_req(cmd)
 
     def put(self, table, value):
-        cmd = {"cmd": "get", "params": {"table": table, "value": value}}
-        return self.send_req(sock, cmd)
+        cmd = {"cmd": "put", "params": {"table": table, "value": value}}
+        return self.send_req(cmd)
 
     def get(self, source, key):
         cmd = {"cmd": "get", "params": {"key": key, "source": source}}
-        return self.send_req(sock, cmd)
+        return self.send_req(cmd)
 
     def send_req(self, cmd):
         server_address = '/tmp/pt-db.sock'
-        req = msgpack.dumps(cmd, use_bin_type = True)
+        req = msgpack.dumps(cmd, default=dateJSONhandler, use_bin_type = True)
 
         try:
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            log(3,'connecting to db on {}'.format(server_address))
+            log(4,'connecting to db on {}'.format(server_address))
             sock.connect(server_address)
 
-            log(3,'sending {!r}'.format(cmd))
+            log(4,'sending {} bytes: {}...'.format(len(req), repr(cmd)[:120]))
             sock.sendall(struct.pack("I", len(req)))
             sock.sendall(req)
-            log(3,'sent {} bytes'.format(len(req)+4))
+            log(4,'sent {} bytes'.format(len(req)+4))
 
             # Send request
             # make the sock a file object
@@ -36,8 +37,11 @@ class DB:
             # unmarshall response
             res = msgpack.load(fd, raw = False)
             fd.close()
-        finally:
-            log(3,'closing socket')
+        except:
+            log(1, "error during processing request {}".format(cmd))
+            raise
+        else:
+            log(4,'closing socket')
             sock.close()
             return res
 
