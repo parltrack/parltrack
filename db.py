@@ -4,6 +4,7 @@ import socket
 import sys
 import traceback
 import os, json, sys, atexit, msgpack, struct
+from random import randrange
 from datetime import datetime
 from threading import Thread
 from utils.log import log
@@ -55,9 +56,9 @@ def reindex_all():
         reindex(table)
 
 def genkey(table):
-    key = random.randrange(2**32)
-    while key in table.keys():
-        key = random.randrange(2**32)
+    key = randrange(2**32)
+    while key in DBS[table].keys():
+        key = randrange(2**32)
     return key
 
 def init(data_dir):
@@ -80,19 +81,21 @@ def init(data_dir):
 
 def read_req(sock):
     size = sock.recv(4)
-    log(5, "req size is {!r}".format(size))
+    log(4, "req size is {!r}".format(size))
     size = struct.unpack("I", size)[0]
     if size > 1024 * 1024 * 50: # arbitrary upper limit for request 50MB
         log(1, "request is too big: {}MB".format(size / (1024*1024)))
         return {}
-    log(3, 'receiving {} bytes request'.format(size))
+    log(4, 'receiving {} bytes request'.format(size))
     res = []
     while size>0:
         rsize=65535 if size >= 65535 else size
-        res.append(sock.recv(rsize))
+        res.append(sock.recv(rsize, socket.MSG_WAITALL))
         size -= rsize
-    req = msgpack.loads(b''.join(res), raw = False)
-    log(3, 'received {!r}'.format(req))
+    res = b''.join(res)
+    log(4,"size received {}".format(len(res)))
+    req = msgpack.loads(res, raw = False)
+    log(4, 'received {}'.format(repr(req)[:120]))
     return req
 
 def mainloop():
@@ -128,7 +131,7 @@ def mainloop():
         log(3,'waiting for a connection')
         connection, client_address = sock.accept()
         try:
-            log(3, 'connection from {}'.format(client_address))
+            log(3, 'incoming connection')
             query = read_req(connection)
             if query.get('cmd', '') == 'get':
                 res = get(**query.get('params', [])) or None
@@ -139,7 +142,7 @@ def mainloop():
             else:
                 log(2,'invalid or missing cmd')
                 continue
-            log(3,"responding with {} records".format(len(res) if res else res))
+            log(3,"responding with {} records".format(len(res) if hasattr(res,'__len__') else res))
             fd = connection.makefile(mode = 'wb', buffering = 65535)
             msgpack.dump(res, fd, use_bin_type = True)
             log(3,'sent data back to the client')
@@ -169,11 +172,11 @@ def get(source, key):
 
 def put(table, value):
     # TODO error handling
-    log(3,'storing into src: "{}" key: "{}"'.format(table,key))
     if not table in DBS:
         log(1, 'table not found in db')
         return False
     key = value[TABLES[table].get('key', genkey(table))]
+    log(3,'storing into src: "{}" key: "{}"'.format(table,key))
     DBS[table][key]=value
     reindex(table)
     return True
@@ -184,21 +187,23 @@ def commit(table):
         return False
     def jdump(obj):
         return json.dumps(obj, default=dateJSONhandler, ensure_ascii=False).encode('utf8')
-    (fd, name) = mkstemp(dir=DBDIR)
-    items = DBS[table].values()
-    fd.write(b"[{}".format(jdump(items[0])))
-    for rec in DBS[table].values()[1:]:
-        fd.write(b'\n,{}'.format(jdump(rec)))
+    (_fd, name) = mkstemp(dir=DBDIR)
+    fd = os.fdopen(_fd,"wb")
+    items = tuple(DBS[table].values())
+    fd.write(b"["+jdump(items[0]))
+    for rec in items[1:]:
+        fd.write(b'\n,'+jdump(rec))
     fd.write(b'\n]')
     fd.close()
     os.rename(name, "{}/{}.json".format(DBDIR, table))
+    return True
 
 ######  indexes ######
 
 def idx_meps_by_activity():
     res = {'active':[], 'inactive':[]}
     for mep in DBS['ep_meps'].values():
-        if mep['active']: res['active'].append({k:v for k,v in mep.items() if k not in ['changes', 'activities']})
+        if mep.get('active'): res['active'].append({k:v for k,v in mep.items() if k not in ['changes', 'activities']})
         else: res['inactive'].append({k:v for k,v in mep.items() if k not in ['changes', 'activities']})
     return res
 
