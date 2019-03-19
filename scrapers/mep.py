@@ -125,7 +125,7 @@ def scrape(id):
     terms=parse_history(id, root, mep)
 
     # activities
-    mep['activities']=parse_acts(id, terms)
+    activities=parse_acts(id, terms)
 
     # clear out empty values
     mep = {k:v for k,v in mep.items() if v}
@@ -142,6 +142,9 @@ def scrape(id):
         d1 = []
         for c in d:
             if c['type']!='deleted' or len(c['path']) != 1 or c['path'] in (('Addresses', 'assistants')):
+                d1.append(c)
+                continue
+            if c['type']=='deleted' and len(c['path']) == 1 and c['data'] in ({},[]):
                 d1.append(c)
                 continue
             log(2,"preserving deleted path {} for userid: {}".format(c['path'], id))
@@ -168,19 +171,19 @@ def scrape(id):
                 raise ValueError
 
         # todo remove after first ever stored scrape
-        d = [e for e in d if not (
-            (e["type"]=="added" and e['path'][0] in ["Committees","Constituencies","Delegations","Staff"] and len(e['path'])==3 and e['path'][2] == 'term') or
-            (e["type"]=="added" and e['path'][0] in ["Delegations", "Committees"] and len(e['path'])==3 and e['path'][2] == 'abbr') or
-            (e['type'] in ["added", 'deleted'] and e['data'] in ['', [], {}, None]) or
-            (e["type"]=="added" and e['path']==["CV", "updated"]) or
-            (e['type']=='changed' and e['path']==["Addresses", "Postal"] and e['data'][1]=={}) or
-            (e["type"]=="deleted" and e['path'][0] == "Committees" and len(e['path'])==3 and e['path'][2] == 'committee_id') or
-            (e["type"]=="deleted" and e['path'][0] == "Groups" and len(e['path'])==3 and e['path'][2] == 'country') or
-            (e["type"]=="deleted" and e['path'] == ["Declarations of Participation"]) or
-            (e["type"]=="deleted" and e['path'] == ["active"]) or
-            (e["type"]=="deleted" and e['path'] == ["Financial Declarations"]) or
-            (e["type"]=="deleted" and e['path'] == ["Name", "familylc"])
-        )]
+        #d = [e for e in d if not (
+        #    (e["type"]=="added" and e['path'][0] in ["Committees","Constituencies","Delegations","Staff"] and len(e['path'])==3 and e['path'][2] == 'term') or
+        #    (e["type"]=="added" and e['path'][0] in ["Delegations", "Committees"] and len(e['path'])==3 and e['path'][2] == 'abbr') or
+        #    (e['type'] in ["added", 'deleted'] and e['data'] in ['', [], {}, None]) or
+        #    (e["type"]=="added" and e['path']==["CV", "updated"]) or
+        #    (e['type']=='changed' and e['path']==["Addresses", "Postal"] and e['data'][1]=={}) or
+        #    (e["type"]=="deleted" and e['path'][0] == "Committees" and len(e['path'])==3 and e['path'][2] == 'committee_id') or
+        #    (e["type"]=="deleted" and e['path'][0] == "Groups" and len(e['path'])==3 and e['path'][2] == 'country') or
+        #    (e["type"]=="deleted" and e['path'] == ["Declarations of Participation"]) or
+        #    (e["type"]=="deleted" and e['path'] == ["active"]) or
+        #    (e["type"]=="deleted" and e['path'] == ["Financial Declarations"]) or
+        #    (e["type"]=="deleted" and e['path'] == ["Name", "familylc"])
+        #)]
 
         now=datetime.utcnow().replace(microsecond=0)
         if not prev:
@@ -214,7 +217,6 @@ def parse_addr(root):
     for li in root.xpath('//div[@class="ep-a_contacts"]/ul/li'):
         key = unws(''.join(li.xpath('.//h3//text()')))
         if key == 'Bruxelles': key = 'Brussels'
-        elif key == 'Postal address': key = "Postal"
         addrs[key]={}
         if key in ['Brussels', 'Strasbourg']:
             addrs[key]['Phone']=li.xpath('.//li[@class="ep_phone"]/a/@href')[0][4:].replace("+33(0)388","+333 88").replace("+32(0)228","+322 28")
@@ -254,11 +256,11 @@ def parse_acts(id, terms):
                     ('opinions', "COMPARL"),
                     ('opinions-shadow', "COMPARL-SHADOW"),
                     ('motions-instit', "MOTION"),
-                    ('oral-questions', "ORAL"),
+                    ('oral-questions', "OQ"),
                     # other activities
                     ('written-explanations', 'WEXP'),
                     ('major-interpellations', 'MINT'),
-                    ('written-questions', "WQO"),
+                    ('written-questions', "WQ"),
                     ('motions-indiv', "IMOTION"),
                     ('written-declarations', "WDECL"))
     activities={}
@@ -350,6 +352,8 @@ def parse_acts(id, terms):
                     #raise ValueError
                     break
                 #print(url, file=sys.stderr)
+        if TYPE in activities:
+            activities[TYPE]=sorted(activities[TYPE],key=lambda x: x['date'])
     return activities
 
 def mangleName(name):
@@ -528,7 +532,10 @@ def parse_history(id, root, mep):
     # reorder historical lists in ascending order, so new entries are appended and don't mess up the diffs
     for k in ('Constituencies', 'Groups', 'Committees', 'Delegations', 'Staff'):
         if not k in mep: continue
-        mep[k]=[e for e in sorted(mep[k], key=lambda x: (x['start'],x['end']), reverse=True)] # todo remove reversal of list
+        mep[k]=[e for e in sorted(mep[k], key=lambda x: (x['start'],
+                                                         x['end'],
+                                                         x.get('Organization',
+                                                               x.get('party'))))]
     return terms
 
 if __name__ == '__main__':
