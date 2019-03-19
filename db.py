@@ -3,7 +3,7 @@
 import socket
 import sys
 import traceback
-import os, json, sys, atexit, msgpack, struct
+import os, json, sys, atexit, msgpack, struct, stat
 from random import randrange
 from datetime import datetime
 from threading import Thread
@@ -99,8 +99,8 @@ def read_req(sock):
     return req
 
 def mainloop():
-    from IPython import embed
-    Thread(target=embed).start()
+    from IPython import start_ipython
+    Thread(target=start_ipython, kwargs={'user_ns':globals()}).start()
 
     # Create a TCP/IP socket
     #sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -195,7 +195,9 @@ def commit(table):
         fd.write(b'\n,'+jdump(rec))
     fd.write(b'\n]')
     fd.close()
-    os.rename(name, "{}/{}.json".format(DBDIR, table))
+    tname = "{}/{}.json".format(DBDIR, table)
+    os.rename(name, tname)
+    os.chmod(tname,stat.S_IRUSR|stat.S_IWUSR|stat.S_IRGRP|stat.S_IROTH)
     return True
 
 ######  indexes ######
@@ -286,6 +288,15 @@ def idx_dossiers_by_reference():
         if not reference in res: res[reference] = []
         res[reference].append(dossier)
     return res
+
+def idx_activities_by_mep():
+    res = {}
+    for act in DBS['ep_mep_activities'].values():
+        mep_id = act['mep_id']
+        if not mep_id in res: res[mep_id] = []
+        res[mep_id].append(act)
+    return res
+
 # todo indexes for dossiers by committees, rapporteur, subject, stage_reached
 # todo indexes for meps by name(alias)
 
@@ -307,6 +318,9 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
                                   {"fn": idx_meps_by_country, "name": "meps_by_country"},
                                   {"fn": idx_meps_by_group, "name": "meps_by_group"}],
                       'key': 'UserID'},
+
+          'ep_mep_activities': {'indexes': [{"fn": idx_activities_by_mep, "name": "activities_by_mep"},],
+                      'key': 'mep_id'},
 
           'ep_votes': {'indexes': [{"fn": idx_votes_by_dossier, "name": "votes_by_dossier"}],
                        'key': '_id'},
