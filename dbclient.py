@@ -54,4 +54,5 @@ class DB:
 db = DB()
 
 if __name__ == '__main__':
-    log(3,len(db.meps_by_activity(True)))
+    #log(3,len(db.meps_by_activity(True)))
+    log(3,db.commit('ep_meps'))
