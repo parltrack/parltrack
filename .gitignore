@@ -1,1 +1,6 @@
 alembic.ini
+.*.swp
+__pycache__
+.arch
+*.pyc
+*.json
