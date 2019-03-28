@@ -22,7 +22,7 @@ from urllib.parse import urljoin, urlsplit, urlunsplit
 from utils.utils import fetch, fetch_raw, unws
 from lxml.etree import fromstring
 from utils.log import log
-from dbclient import db
+from db import db
 from config import CURRENT_TERM, USER_AGENT, PROXY
 import feedparser, datetime
 
