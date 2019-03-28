@@ -29,12 +29,16 @@ except:
 from operator import itemgetter
 from config import ROOT_URL
 from utils.log import log
+from config import USER_AGENT, PROXY
 
 if sys.version[0] == '3':
     unicode = str
 
 def unws(txt):
     return u' '.join(txt.split())
+
+def junws(node):
+    return unws(' '.join(node.xpath('.//text()')))
 
 def normalize_obj(obj):
     if type(obj) == str:
@@ -319,8 +323,8 @@ def htmldiff(item,diffs):
 from lxml.html.soupparser import fromstring
 import requests, time
 
-PROXIES = {'http': 'http://localhost:8123/'}
-HEADERS =  { 'User-agent': 'parltrack/0.8' }
+PROXIES = {'http': PROXY}
+HEADERS =  { 'User-agent': USER_AGENT }
 
 def fetch_raw(url, retries=5, ignore=[], params=None, binary=False):
     try:
