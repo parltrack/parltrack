@@ -19,7 +19,7 @@
 
 from utils.utils import fetch
 from utils.log import log
-from dbclient import db
+from db import db
 
 CONFIG = {
     'threads': 8,
