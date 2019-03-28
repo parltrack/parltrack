@@ -23,7 +23,7 @@ from utils.mappings import buildings, SEIRTNUOC, COMMITTEE_MAP, ORGMAPS, GROUP_M
 from utils.log import log
 from datetime import datetime
 from lxml.html.soupparser import fromstring
-from dbclient import db
+from db import db
 from scrapers import _findecl as findecl
 from utils.recreate import patch # todo decide if to remove this sanity check?
 
@@ -123,89 +123,15 @@ def scrape(id):
 
     # history
     terms=parse_history(id, root, mep)
+    diffput(mep, id, db.mep, 'ep_meps', mep['Name']['full'], (['Addresses'], ['assistants']))
 
     # activities
     activities=parse_acts(id, terms)
+    diffput(activities, id, db.activities, 'ep_mep_activities', mep['Name']['full'], nodiff=True)
+    del activities
 
-    # clear out empty values
-    mep = {k:v for k,v in mep.items() if v}
-    # generate diff
-    prev = db.mep(id)
-    if prev is not None:
-        # preserve some fields
-        if 'Gender' not in mep and 'Gender' in prev: mep['Gender']=prev['Gender']
-        if 'CV' not in mep and 'CV' in prev: mep['CV']=prev['CV']
-        d=diff({k:v for k,v in prev.items() if not k in ['meta', 'changes', 'activities', '_id']},
-               {k:v for k,v in mep.items() if not k in ['meta', 'changes', 'activities', '_id']})
-
-        # preserve some to level items
-        d1 = []
-        for c in d:
-            if c['type']!='deleted' or len(c['path']) != 1 or c['path'] in (('Addresses', 'assistants')):
-                d1.append(c)
-                continue
-            if c['type']=='deleted' and len(c['path']) == 1 and c['data'] in ({},[]):
-                d1.append(c)
-                continue
-            log(2,"preserving deleted path {} for userid: {}".format(c['path'], id))
-            mep[c['path'][0]]=prev[c['path'][0]]
-        d = d1
-
-        mep['changes']=prev.get('changes',{})
-    else:
-        d=diff({}, dict([(k,v) for k,v in mep.items() if not k in ['meta', 'changes', 'activities', '_id']]))
-        mep['changes']={}
-
-    if d:
-        # attempt to recreate current version by applying d to prev
-        m2 = patch(prev or {}, d)
-        if not m2:
-            log(1,"failed to recreate record by patching previous version with diff")
-            raise ValueError
-        else:
-            # make a diff between current record, an recreated one
-            zero=diff(dict([(k,v) for k,v in m2.items() if not k in ['meta', 'changes', 'activities', '_id']]),
-                      dict([(k,v) for k,v in mep.items() if not k in ['meta', 'changes', 'activities', '_id']]))
-            if zero != []:
-                log(1,"diff between current record and patched previous one is not empty\n{!r}".format(zero))
-                raise ValueError
-
-        # todo remove after first ever stored scrape
-        #d = [e for e in d if not (
-        #    (e["type"]=="added" and e['path'][0] in ["Committees","Constituencies","Delegations","Staff"] and len(e['path'])==3 and e['path'][2] == 'term') or
-        #    (e["type"]=="added" and e['path'][0] in ["Delegations", "Committees"] and len(e['path'])==3 and e['path'][2] == 'abbr') or
-        #    (e['type'] in ["added", 'deleted'] and e['data'] in ['', [], {}, None]) or
-        #    (e["type"]=="added" and e['path']==["CV", "updated"]) or
-        #    (e['type']=='changed' and e['path']==["Addresses", "Postal"] and e['data'][1]=={}) or
-        #    (e["type"]=="deleted" and e['path'][0] == "Committees" and len(e['path'])==3 and e['path'][2] == 'committee_id') or
-        #    (e["type"]=="deleted" and e['path'][0] == "Groups" and len(e['path'])==3 and e['path'][2] == 'country') or
-        #    (e["type"]=="deleted" and e['path'] == ["Declarations of Participation"]) or
-        #    (e["type"]=="deleted" and e['path'] == ["active"]) or
-        #    (e["type"]=="deleted" and e['path'] == ["Financial Declarations"]) or
-        #    (e["type"]=="deleted" and e['path'] == ["Name", "familylc"])
-        #)]
-
-        now=datetime.utcnow().replace(microsecond=0)
-        if not prev:
-            log(3,'adding %s (%d)' % (mep['Name']['full'], id))
-            mep['meta']['created']=now
-            mep['changes']={}
-        else:
-            log(3,'updating %s (%d)' % (mep['Name']['full'], id))
-            #log(4,jdump(d)) # todo reenable this, and delete version below ommitting assistants
-            tmp = [e for e in d if e['path'][0]!="assistants"]
-            if tmp != []: log(4,jdump(tmp))
-            mep['meta']['updated']=now
-            mep['changes']=prev.get('changes',{})
-        mep['changes'][now.isoformat()]=d
-        if not db.put('ep_meps', mep):
-            log(1,"failed to store updated mep {}".format(id))
-            raise ValueError
-    if __name__ == '__main__':
-        print(jdump(mep))
     #return mep
     del mep
-    del prev
 
 def deobfus_mail(txt):
     x = txt.replace('[at]','@').replace('[dot]','.')
@@ -282,15 +208,15 @@ def parse_acts(id, terms):
                         item = {
                             'title': unws(''.join(node.xpath('.//div[@class="ep-p_text erpl-activity-title"]//text()'))),
                             'date': datetime.strptime(node.xpath('.//time/@datetime')[0], u"%Y-%m-%dT%H:%M:%S"),
-                            'date-type': node.xpath('.//time/@itemprop')[0],
+                            'date-type': str(node.xpath('.//time/@itemprop')[0]),
                             'text': unws(''.join(node.xpath('.//div[@class="ep-a_text"]//text()')))}
                     elif type == 'written-declarations':
                         item = {
                             'title': unws(''.join(node.xpath('.//div[@class="ep-p_text erpl-activity-title"]//text()'))),
                             'date': datetime.strptime(node.xpath('.//time/@datetime')[0], u"%Y-%m-%dT%H:%M:%S"),
-                            'date-type': node.xpath('.//time/@itemprop')[0],
+                            'date-type': str(node.xpath('.//time/@itemprop')[0]),
                             'formats': [{'type': unws(fnode.xpath('./text()')[0]),
-                                        'url': fnode.xpath('./@href')[0],
+                                        'url': str(fnode.xpath('./@href')[0]),
                                         'size': unws(fnode.xpath('./span/text()')[0])}
                                         for fnode in node.xpath('.//div[@class="ep-a_links"]//a')],
                             'authors': unws(''.join(node.xpath('.//span[@class="ep_name erpl-biblio-authors"]//text()'))),
@@ -315,10 +241,10 @@ def parse_acts(id, terms):
                             ref = ref[:-2]
 
                         item = {
-                            'url': node.xpath('.//a/@href')[0],
+                            'url': str(node.xpath('.//a/@href')[0]),
                             'title': unws(''.join(node.xpath('.//a//text()'))),
                             'date': datetime.strptime(node.xpath('.//time/@datetime')[0], u"%Y-%m-%dT%H:%M:%S"),
-                            'date-type': node.xpath('.//time/@itemprop')[0],
+                            'date-type': str(node.xpath('.//time/@itemprop')[0]),
                             'reference': ref,
                         }
 
@@ -354,6 +280,7 @@ def parse_acts(id, terms):
                 #print(url, file=sys.stderr)
         if TYPE in activities:
             activities[TYPE]=sorted(activities[TYPE],key=lambda x: x['date'])
+    activities['mep_id']=id
     return activities
 
 def mangleName(name):
@@ -537,6 +464,76 @@ def parse_history(id, root, mep):
                                                          x.get('Organization',
                                                                x.get('party'))))]
     return terms
+
+def diffput(obj, id, getter, table, name, nopreserve=[], nodiff=False):
+    # clear out empty values
+    obj = {k:v for k,v in obj.items() if v}
+
+    if nodiff: # todo remove after first activities commit())
+        now=datetime.utcnow().replace(microsecond=0)
+        if not 'meta' in obj: obj['meta']={}
+        log(3,'adding %s (%d)' % (name, id))
+        obj['meta']['created']=now
+        obj['changes']={}
+        if not db.put(table, obj):
+            log(1,"failed to store updated obj {}".format(id))
+            raise ValueError
+        return
+
+    # generate diff
+    prev = getter(id)
+    if prev is not None and 'activities' in prev: del prev['activities'] # todo remove after first activity scrape
+    if prev is not None:
+        d=diff({k:v for k,v in prev.items() if not k in ['meta', 'changes', '_id']},
+               {k:v for k,v in obj.items() if not k in ['meta', 'changes', '_id']})
+
+        # preserve some top level items
+        d1 = []
+        for c in d:
+            if c['type']!='deleted' or len(c['path']) != 1 or c['path'] in nopreserve:
+                d1.append(c)
+                continue
+            if c['type']=='deleted' and len(c['path']) == 1 and c['data'] in ({},[]):
+                d1.append(c)
+                continue
+            log(2,"preserving deleted path {} for obj id: {}".format(c['path'], id))
+            obj[c['path'][0]]=prev[c['path'][0]]
+        d = d1
+    else:
+        d=diff({}, {k:v for k,v in obj.items() if not k in ['meta', 'changes', '_id']})
+
+    if d:
+        # attempt to recreate current version by applying d to prev
+        o2 = patch(prev or {}, d)
+        if not o2:
+            log(1,"failed to recreate record by patching previous version with diff")
+            raise ValueError
+        else:
+            # make a diff between current record, an recreated one
+            zero=diff({k:v for k,v in o2.items() if not k in ['meta', 'changes', '_id']},
+                      {k:v for k,v in obj.items() if not k in ['meta', 'changes', '_id']})
+            if zero != []:
+                log(1,"diff between current record and patched previous one is not empty\n{!r}".format(zero))
+                raise ValueError
+
+        now=datetime.utcnow().replace(microsecond=0)
+        if not 'meta' in obj: obj['meta']={}
+        if not prev:
+            log(3,'adding %s (%d)' % (name, id))
+            obj['meta']['created']=now
+            obj['changes']={}
+        else:
+            log(3,'updating %s (%d)' % (name, id))
+            log(4,jdump(d)) # todo reenable this, and delete version below ommitting assistants
+            obj['meta']['updated']=now
+            obj['changes']=prev.get('changes',{})
+        obj['changes'][now.isoformat()]=d
+        if not db.put(table, obj):
+            log(1,"failed to store updated obj {}".format(id))
+            raise ValueError
+    del prev
+    if __name__ == '__main__':
+        print(jdump(obj))
 
 if __name__ == '__main__':
     #scrape(28390)
