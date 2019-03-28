@@ -2,6 +2,9 @@ import os
 
 CURRENT_TERM=8
 
+USER_AGENT='parltrack/0.8'
+PROXY='http://localhost:8123/'
+
 ROOT_URL = '/'
 
 # Grabs the folder where the script runs.
