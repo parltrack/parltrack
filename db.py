@@ -7,8 +7,8 @@ import os, json, sys, atexit, msgpack, struct, stat, unicodedata
 from random import randrange
 from datetime import datetime, date, timedelta
 from threading import Thread
-from utils.log import log
 from tempfile import mkstemp
+from utils.log import log
 from utils.utils import dateJSONhandler
 
 
@@ -29,6 +29,12 @@ class Client:
 
     def get(self, source, key):
         cmd = {"cmd": "get", "params": {"key": key, "source": source}}
+        return self.send_req(cmd)
+
+    def mepid_by_name(self, name, date=None, group=None):
+        # normalize name
+        name = ''.join(unicodedata.normalize('NFKD', name.replace(u'ß','ss')).encode('ascii','ignore').decode('utf8').split()).lower()
+        cmd = {"cmd": "mepid_by_name", "params": {"name": name, "group": group, "date": date}}
         return self.send_req(cmd)
 
     def send_req(self, cmd):
@@ -65,10 +71,8 @@ class Client:
     def mep(self,id):
         return self.get('ep_meps', id)
 
-    def mepid_by_name(self, name, date=None, group=None):
-        # normalize name
-        name = ''.join(unicodedata.normalize('NFKD', name.replace(u'ß','ss')).encode('ascii','ignore').decode('utf8').split()).lower()
-        return self.get('mepid_by_name', (name,group,date))
+    def dossier(self,id):
+        return self.get('ep_dossiers', id)
 
     def activities(self,id):
         return self.get('ep_mep_activities', id)
@@ -203,6 +207,8 @@ def mainloop():
                 res = put(**query.get('params', [])) or None
             elif query.get('cmd', '') == 'commit':
                 res = commit(**query.get('params', [])) or None
+            elif query.get('cmd', '') == 'mepid_by_name':
+                res = mepid_by_name(**query.get('params', [])) or None
             else:
                 log(2,'invalid or missing cmd')
                 continue
@@ -269,6 +275,37 @@ def commit(table):
     os.chmod(tname,stat.S_IRUSR|stat.S_IWUSR|stat.S_IRGRP|stat.S_IROTH)
     return True
 
+def mepid_by_name(name=None, date=None, group=None):
+    log(3,'getting mepid for name: "{}" group: "{}", date: {}'.format(name,group, date))
+    meps = IDXs["meps_by_name"].get(name,[])
+    lmeps = len(meps)
+    if lmeps == 0: return None # not found
+    if lmeps == 1: return meps[0]['UserID'] # lucky us
+    # ambigous, more than one mep found
+    if date==None: return None
+    # filter by constituency
+    cmeps = [mep for mep in meps if matchInterval(mep['Constituencies'], date)]
+    lcmeps = len(cmeps)
+    if lcmeps == 0: return None # not found
+    if lcmeps == 1: return cmeps[0]['UserID'] # lucky us
+
+    if group==None: return None
+    # filter by groups
+    gmeps = [mep for mep in meps if matchInterval(mep['Groups'], date)['Organization']==group]
+    lgmeps = len(gmeps)
+    if lgmeps == 0: return None # not found
+    if lgmeps == 1: return gmeps[0]['UserID'] # lucky us
+
+    log(1, 'mep "{}" not found'.format(name))
+    return None
+
+def matchInterval(items,tdate):
+    for item in items:
+        start = item['start']
+        end = date.today().isoformat() if item['end'] == '31-12-9999T00:00:00' else item['end']
+        if start <= tdate <=end: return item
+    return None
+
 ######  indexes ######
 
 def idx_meps_by_activity():
@@ -300,38 +337,14 @@ def idx_meps_by_group():
             res[group].append({k:v for k,v in mep.items() if k not in ['changes', 'activities']})
     return res
 
-def idx_mepid_by_name():
-    return # todo remove this! important :)
+def idx_meps_by_name():
     res={}
     for mep in DBS['ep_meps'].values():
-        mepid = mep['UserID']
-        name = ''.join(unicodedata.normalize('NFKD', mep['Name']['full'].replace(u'ß','ss')).encode('ascii','ignore').decode('utf8').split()).lower()
-        gd = {}
-        for g in mep.get('Groups', []):
-            if not g:
-                print(mepid, name, "has none in groups")
-                continue
-            gid = g['groupid']
-            gs = date.fromisoformat(g['start'][:-9])
-            ge = date.today() if g['end'] == '31-12-9999T00:00:00' else date.fromisoformat(g['end'][:-9])
-            for n in range(int ((ge - gs).days)+1):
-                gd[gs + timedelta(n)] = gid
-        # for sanity check
-        inoffice = set()
-        for c in mep.get('Constituencies',[]):
-            if not c:
-                print(mepid, name, "has none in constituencies")
-                continue
-            cs = date.fromisoformat(c['start'][:-9])
-            ce = date.today() if c['end'] == '31-12-9999T00:00:00' else date.fromisoformat(c['end'][:-9])
-            for n in range(int ((ce - cs).days)+1):
-                inoffice.add(cs + timedelta(n))
-        gdset=set(gd.keys())
-        notingdset = inoffice - gdset
-        notinoffice = gdset - inoffice
-        if notinoffice: print("notinoffice", mepid, name, sorted([x.isoformat() for x in notinoffice]))
-        if notingdset: print("notingdset", mepid, name, sorted([x.isoformat() for x in notingdset]))
-        # end sanitycheck
+        for name in [mep['Name']['full'], mep['Name']['family'], mep['Name']['family']+mep['Name']['sur']]:
+            name = ''.join(unicodedata.normalize('NFKD', name[:].replace(u'ß','ss')).encode('ascii','ignore').decode('utf8').split()).lower()
+            if not name in res: res[name]=[]
+            res[name].append(mep)
+    return res
 
 def idx_ams_by_mep():
     res = {}
@@ -430,7 +443,7 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
           'ep_meps': {'indexes': [{"fn": idx_meps_by_activity, "name": "meps_by_activity"},
                                   {"fn": idx_meps_by_country, "name": "meps_by_country"},
                                   {"fn": idx_meps_by_group, "name": "meps_by_group"},
-                                  {"fn": idx_mepid_by_name, "name": "mepid_by_name"}],
+                                  {"fn": idx_meps_by_name, "name": "meps_by_name"}],
                       'key': lambda x: x['UserID']},
 
           'ep_mep_activities': {'indexes': [{"fn": idx_activities_by_mep, "name": "activities_by_mep"},],
