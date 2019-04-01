@@ -1,9 +1,7 @@
 beautifulsoup4
 flask
-psycopg2
 sh
-sqlalchemy
-alembic
 requests
 lxml
 feedparser
+diff_match_patch
