@@ -1,0 +1,34 @@
+{% macro render(amendments) -%}
+<table class="tablesorter amendments">
+   <thead>
+      <tr><td width="8em">Amendments</td><td>Dossier</td></tr>
+   </thead>
+   {% for group in amendments|groupby('reference') %}
+   <tr>
+      <td>{{group.list|length()}}</td>
+      <td class="reference">
+         {{group.grouper|asdossier|safe}}
+         {% for doc in group.list|groupby('date') %}
+            <div>
+               {{doc.grouper|asdate}} 
+               <span class="committees">{% for c in doc.list.0.committee%}{{c}}{% if not loop.last %}, {%endif%}{%endfor%}</span> 
+               <span class="more">{{doc.list|length}} amendments...</span>
+               <div class="hidden">
+                  {% for am in doc.list|sort(attribute='seq') %}
+                     <div class="amendment">
+                        <div class="title hover">Amendment {{am.seq}} <a class="anchorLink" name="am-{{am.seq}}-{{am.src|asPE}}" href="#am-{{am.seq}}-{{am.src|asPE}}">#</a></div>
+                        <div class="authors">{% for a in am.meps%}{{a|asmep|safe}}{% if not loop.last %}, {%endif%}{%endfor%}</div>
+                        <div class="location">{% for d,l in am.location%}<div>{{d}}<br />{{l}}</div>{%endfor%}</ul></div>
+                        <div class="diff">{{am|asdiff|safe}}</div>
+                     </div>
+                     <hr />
+                  {%endfor%}
+               </div>
+               <div class="source">source: <a href="{{doc.list.0.src}}">{{doc.list.0.src|asPE}}</a></div>
+            </div>
+         {%endfor%}
+      </td>
+   </tr>
+   {% endfor %}
+</table>
+{% endmacro %}
