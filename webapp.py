@@ -223,7 +223,7 @@ def asmep(value):
     #    mep = db.get('ep_meps', value)
     #    request.meps[value] = mep
     mep = db.get('ep_meps', value)
-    return u'<a href="/mep/%s">%s</a>' % (mep['Name']['full'],mep['Name']['full'])
+    return u'<a href="/mep/%d/%s">%s</a>' % (mep['UserId'], mep['Name']['full'],mep['Name']['full'])
 
 
 # TODO

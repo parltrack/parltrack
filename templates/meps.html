@@ -9,7 +9,7 @@
           {% for mep in meps %}
               <div class="item">
                   <div class="image">
-                      <a href="{{ url_for('mep', mep_id=mep['UserID']) }}"><img src="{{ mep['Photo'] }}"/></a>
+                      <a href="{{ url_for('mep', mep_id=mep['UserID'], mep_name=mep['Name']['full']) }}"><img src="{{ mep['Photo'] }}"/></a>
                   </div>
                   <div class="content">
                       <div class="header">{{ mep['Name']['full'] }}</div>

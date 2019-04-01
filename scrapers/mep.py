@@ -534,6 +534,9 @@ def diffput(obj, id, getter, table, name, nopreserve=[], nodiff=False):
     del prev
     if __name__ == '__main__':
         print(jdump(obj))
+    else:
+        return obj
+
 
 if __name__ == '__main__':
     #scrape(28390)

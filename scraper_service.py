@@ -4,6 +4,7 @@ import socket
 import sys
 import traceback
 
+from db import Client
 from imp import load_source
 from json import loads, dumps
 from queue import Queue
@@ -20,6 +21,7 @@ CONFIG = {
 }
 
 scrapers = {}
+db = Client()
 
 
 def add_job(scraper_name, payload):
@@ -46,13 +48,27 @@ def consume(pool, scraper):
         job = pool.get(True)
         log(3, "starting {0} job ({1})".format(scraper._name, job))
         try:
-            scraper.scrape(**job)
+            ret = scraper.scrape(**job)
         except:
             log(1, "failed to execute {0} job {1}".format(scraper._name, job))
             traceback.print_exc(file=sys.stdout)
             sys.stdout.flush()
         else:
             log(3, "{0} job {1} finished".format(scraper._name, job))
+
+        #if hasattr(scraper, 'on_finished'):
+        #    try:
+        #        scraper.on_finished(job, ret)
+        #    except:
+        #        log(1, "failed to execute {0} job's on_finished callback (params: {1})".format(scraper._name, job))
+        #        traceback.print_exc(file=sys.stdout)
+        #        sys.stdout.flush()
+        #    else:
+        #        log(3, "{0} job's on_finished callback finished (params: {1})".format(scraper._name, job))
+
+        if pool.empty():
+            db.commit(scraper._name)
+
 
 
 def load_scrapers():

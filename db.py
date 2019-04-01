@@ -18,6 +18,10 @@ DBS = {}
 IDXs = {}
 
 
+def normalize_name(t):
+    return ''.join(unicodedata.normalize('NFKD', t.replace(u'ß','ss')).encode('ascii','ignore').decode('utf8').split()).lower()
+
+
 class Client:
     def commit(self, table):
         cmd = {"cmd": "commit", "params": {"table": table}}
@@ -33,8 +37,13 @@ class Client:
 
     def mepid_by_name(self, name, date=None, group=None):
         # normalize name
-        name = ''.join(unicodedata.normalize('NFKD', name.replace(u'ß','ss')).encode('ascii','ignore').decode('utf8').split()).lower()
+        name = normalize_name(name)
         cmd = {"cmd": "mepid_by_name", "params": {"name": name, "group": group, "date": date}}
+        return self.send_req(cmd)
+
+    def meps_by_name(self, name):
+        name = normalize_name(name)
+        cmd = {"cmd": "get", "params": {"source": "meps_by_name", "key": name}}
         return self.send_req(cmd)
 
     def send_req(self, cmd):
@@ -341,7 +350,7 @@ def idx_meps_by_name():
     res={}
     for mep in DBS['ep_meps'].values():
         for name in [mep['Name']['full'], mep['Name']['family'], mep['Name']['family']+mep['Name']['sur']]:
-            name = ''.join(unicodedata.normalize('NFKD', name[:].replace(u'ß','ss')).encode('ascii','ignore').decode('utf8').split()).lower()
+            name = normalize_name(name)
             if not name in res: res[name]=[]
             res[name].append(mep)
     return res
