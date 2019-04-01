@@ -79,8 +79,8 @@ def meps():
     return render_template('meps.html', date=date, meps=meps)
 
 
-@app.route('/mep/<int:mep_id>')
-def mep(mep_id):
+@app.route('/mep/<int:mep_id>/<string:mep_name>')
+def mep(mep_id, mep_name):
     mep = db.mep(mep_id)
     if not mep:
         return not_found_error(None)
@@ -98,11 +98,23 @@ def mep(mep_id):
     )
 
 
+@app.route('/mep/<int:mep_id>')
+def mep_id(mep_id):
+    mep = db.mep(mep_id)
+    if not mep:
+        return not_found_error(None)
+    return redirect('/mep/{0}/{1}'.format(mep_id, mep['Name']['full']))
+
+
 @app.route('/mep/<string:mep_name>')
 def mep_name(mep_name):
-    meps = db.mepid_by_name(mep_name)
-    if meps:
-        return redirect('/mep/{0}'.format(meps[0]))
+    meps = db.meps_by_name(mep_name)
+
+    if not meps:
+        return not_found_error(None)
+    if len(meps) == 1:
+        return redirect('/mep/{0}/{1}'.format(meps[0]['UserID'], meps[0]['Name']['full']))
+    return render("mep_select.html", meps=meps)
 
 
 @app.route('/dossiers')
