@@ -1,13 +1,21 @@
 #!/usr/bin/env python3
 
+import atexit
+import json
+import msgpack
+import os
+import re
 import socket
+import stat
+import struct
 import sys
 import traceback
-import os, json, sys, atexit, msgpack, struct, stat, unicodedata
-from random import randrange
+import unicodedata
+
 from datetime import datetime, date, timedelta
-from threading import Thread
+from random import randrange
 from tempfile import mkstemp
+from threading import Thread
 from utils.log import log
 from utils.utils import dateJSONhandler
 
@@ -33,6 +41,14 @@ class Client:
 
     def get(self, source, key):
         cmd = {"cmd": "get", "params": {"key": key, "source": source}}
+        return self.send_req(cmd)
+
+    def search(self, source, query):
+        cmd = {"cmd": "search", "params": {"source": source, "query": query}}
+        return self.send_req(cmd)
+
+    def count(self, source, key):
+        cmd = {"cmd": "count", "params": {"source": source, "key": key}}
         return self.send_req(cmd)
 
     def mepid_by_name(self, name, date=None, group=None):
@@ -211,13 +227,17 @@ def mainloop():
             log(3, 'incoming connection')
             query = read_req(connection)
             if query.get('cmd', '') == 'get':
-                res = get(**query.get('params', [])) or None
+                res = get(**query.get('params', {})) or None
             elif query.get('cmd', '') == 'put':
-                res = put(**query.get('params', [])) or None
+                res = put(**query.get('params', {})) or None
             elif query.get('cmd', '') == 'commit':
-                res = commit(**query.get('params', [])) or None
+                res = commit(**query.get('params', {})) or None
+            elif query.get('cmd', '') == 'search':
+                res = search(**query.get('params', {})) or None
+            elif query.get('cmd', '') == 'count':
+                res = count(**query.get('params', {})) or None
             elif query.get('cmd', '') == 'mepid_by_name':
-                res = mepid_by_name(**query.get('params', [])) or None
+                res = mepid_by_name(**query.get('params', {})) or None
             else:
                 log(2,'invalid or missing cmd')
                 continue
@@ -254,6 +274,7 @@ def get(source, key):
     log(1, 'source not found in db nor in index')
     return None
 
+
 def put(table, value):
     # TODO error handling
     if not table in DBS:
@@ -264,6 +285,33 @@ def put(table, value):
     DBS[table][key]=value
     reindex(table)
     return True
+
+
+def count(source, key):
+    ret = get(source, key)
+    if not ret:
+        return 0
+    return len(ret)
+
+
+def search(source, query):
+    res = []
+    search_terms = query.split()
+    if len(search_terms) == 1:
+        search_re = re.compile(re.escape(search_terms[0]), re.I | re.M | re.U)
+    else:
+        search_re = re.compile('(?=.*' + ')(?=.*'.join(map(re.escape, search_terms)) + ')', re.I | re.M | re.U)
+    if source == 'ep_dossiers':
+        for d in DBS[source].values():
+            if (
+                search_re.search(d['procedure']['title'])
+                or search_re.search(d['procedure']['reference'])
+                or search_re.search(' '.join(d['procedure'].get('subject', [])))
+                or search_re.search(d.get('celexid', ''))
+            ):
+                res.append(d)
+    return res
+
 
 def commit(table):
     if not table in DBS:
@@ -283,6 +331,7 @@ def commit(table):
     os.rename(name, tname)
     os.chmod(tname,stat.S_IRUSR|stat.S_IWUSR|stat.S_IRGRP|stat.S_IROTH)
     return True
+
 
 def mepid_by_name(name=None, date=None, group=None):
     log(3,'getting mepid for name: "{}" group: "{}", date: {}'.format(name,group, date))
@@ -308,6 +357,7 @@ def mepid_by_name(name=None, date=None, group=None):
     log(1, 'mep "{}" not found'.format(name))
     return None
 
+
 def matchInterval(items,tdate):
     for item in items:
         start = item['start']
@@ -315,7 +365,9 @@ def matchInterval(items,tdate):
         if start <= tdate <=end: return item
     return None
 
+
 ######  indexes ######
+
 
 def idx_meps_by_activity():
     res = {'active':[], 'inactive':[]}
@@ -323,6 +375,7 @@ def idx_meps_by_activity():
         if mep.get('active'): res['active'].append({k:v for k,v in mep.items() if k not in ['changes', 'activities']})
         else: res['inactive'].append({k:v for k,v in mep.items() if k not in ['changes', 'activities']})
     return res
+
 
 def idx_meps_by_country():
     res = {}
