@@ -8,7 +8,7 @@ from db import Client
 from imp import load_source
 from json import loads, dumps
 from queue import Queue
-from threading import Thread
+from threading import Thread, RLock
 from datetime import datetime
 
 from utils.log import log
@@ -46,6 +46,9 @@ def run_scraper(scraper):
 def consume(pool, scraper):
     while True:
         job = pool.get(True)
+        scraper._lock.acquire()
+        scraper._job_count += 1
+        scraper._lock.release()
         log(3, "starting {0} job ({1})".format(scraper._name, job))
         try:
             ret = scraper.scrape(**job)
@@ -56,6 +59,10 @@ def consume(pool, scraper):
         else:
             log(3, "{0} job {1} finished".format(scraper._name, job))
 
+        scraper._lock.acquire()
+        scraper._job_count -= 1
+        job_count = scraper._job_count
+        scraper._lock.release()
         #if hasattr(scraper, 'on_finished'):
         #    try:
         #        scraper.on_finished(job, ret)
@@ -66,7 +73,7 @@ def consume(pool, scraper):
         #    else:
         #        log(3, "{0} job's on_finished callback finished (params: {1})".format(scraper._name, job))
 
-        if pool.empty():
+        if job_count == 0:
             db.commit(scraper._name)
 
 
@@ -96,6 +103,8 @@ def load_scrapers():
         else:
             s.CONFIG = CONFIG.copy()
         s.add_job = add_job
+        s._lock = RLock()
+        s._job_count = 0
         Thread(target=run_scraper, args=(s,), name=s._name).start()
         log(3, 'scraper %s added' % scraper)
     return scrapers
