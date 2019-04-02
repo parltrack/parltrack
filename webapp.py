@@ -15,6 +15,7 @@ from random import shuffle, randrange
 from sys import version_info
 from urllib.parse import unquote
 import diff_match_patch
+from jinja2 import escape
 
 from flask import Flask, render_template, request, redirect
 from utils.utils import asDate
@@ -28,6 +29,15 @@ from db import Client
 if version_info[0] == 3:
     unicode = str
 
+
+def highlight(q, s):
+    s = str(escape(s))
+    q = set(q.lower().split())
+    for w in set(s.split()):
+        if w.lower() in q:
+            s = s.replace(w, '<span class="highlight">'+w+'</span>')
+    return s
+
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
@@ -39,6 +49,9 @@ db = Client()
 
 
 def render(template, **kwargs):
+    if request.args.get('q'):
+        kwargs['q'] = request.args['q']
+    kwargs['highlight'] = highlight
     return render_template(template, **kwargs)
 
 
@@ -49,10 +62,10 @@ def render(template, **kwargs):
 
 @app.route('/')
 def home():
-    meps = 0
-    dossiers = 0
     date = getDate()
-    active_meps = 0
+    meps = db.count('ep_meps', None)
+    dossiers = db.count('ep_dossiers', None)
+    active_meps = db.count('meps_by_activity', "active")
     return render_template(
         'index.html',
         mep_count=meps,
@@ -134,6 +147,36 @@ def view_dossier(d_id):
         d=d_id,
         url=request.base_url,
         now_date=date.today().strftime("%Y-%m-%d"),
+    )
+
+
+def dossier_sort_key(d):
+    return d['activities'][-1]['date']
+
+
+def mep_sort_key(m):
+    return m['Name']['full']
+
+
+@app.route('/search')
+def search():
+    q = request.args.get('q')
+    if not q:
+        return redirect('/')
+    dossiers = db.search('ep_dossiers', q) or []
+    meps = db.meps_by_name(q) or []
+    res = {
+        'meps': sorted(meps, key=mep_sort_key),
+        'dossiers': sorted(dossiers, key=dossier_sort_key, reverse=True),
+    }
+    result_count = 0
+    for k in res:
+        result_count += len(res[k])
+    return render(
+        'results.html',
+        res=res,
+        result_count=result_count,
+        countries=COUNTRIES,
     )
 
 
@@ -223,7 +266,7 @@ def asmep(value):
     #    mep = db.get('ep_meps', value)
     #    request.meps[value] = mep
     mep = db.get('ep_meps', value)
-    return u'<a href="/mep/%d/%s">%s</a>' % (mep['UserId'], mep['Name']['full'],mep['Name']['full'])
+    return u'<a href="/mep/%d/%s">%s</a>' % (mep['UserID'], mep['Name']['full'],mep['Name']['full'])
 
 
 # TODO
@@ -288,6 +331,7 @@ def getDate():
     if request.args.get('date'):
         date = asDate(request.args['date'])
     return date
+
 
 if not config.DEBUG:
     app.logger.setLevel(logging.INFO)

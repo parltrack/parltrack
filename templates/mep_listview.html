@@ -1,0 +1,21 @@
+{% macro render(mep) -%}
+<div class="item">
+   <div class="image">
+       <a href="{{ url_for('mep', mep_id=mep['UserID'], mep_name=mep['Name']['full']) }}"><img src="{{ mep['Photo'] }}"/></a>
+   </div>
+   <div class="content">
+      <div class="header"><a href="{{ url_for('mep', mep_id=mep['UserID'], mep_name=mep['Name']['full']) }}">{{ mep['Name']['full'] }}</a></div>
+       <div class="meta">
+           <span>{{ mep['Constituencies'][-1]['party'] }}</span>
+       </div>
+       <div class="description">
+           <a href="https://secure.wikimedia.org/wikipedia/en/wiki/{{mep.Name.sur.replace(' ','_')}}_{{mep.Name.family.title().replace(' ','_')}}">Wikipedia</a><br />
+           {% if mep.meta %}<a href="{{mep.meta.url}}">EP official site</a><br/>{% endif %}
+           {% if mep.get('Homepage') %}<a href="{{ mep['Homepage'] }}">Homepage</a><br />{% endif %}
+           {% if mep.get('Mail') %}<a href="mailto:{{ mep['Mail'][0] }}"><i class="mail icon"></i></a>{% endif %}
+           {% if mep.get('Twitter') %}<a href="{{ mep['Twitter'] }}"><i class="twitter icon"></i></a>{% endif %}
+           {% if mep['Facebook'] %}<a href="{{ mep['Facebook'] }}"><i class="facebook icon"></i></a>{% endif %}
+       </div>
+   </div>
+</div>
+{% endmacro %}

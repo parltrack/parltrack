@@ -30,15 +30,25 @@ td, th { border: 1px solid #888888; padding: 8px; }
 p { margin: 4px !important; font-size: 18px; }
 .content { flex: 1; }
 .jumbo { font-size: 5em !important; padding: 0.2em; }
+.small { font-size: 0.8em !important; }
+.highlight { font-weight: bold !important; background: #ccccff; padding: 2px 4px; }
 </style>
   </head>
   <body>
-  <div class="ui secondary pointing menu">
-    <div class="ui container">
+  <div class="ui menu">
       <a class="header item{% if request.url_rule.endpoint == 'home' %} active{% endif %}" href="{{ url_for('home') }}">Home</a>
       <a class="item{% if request.url_rule.endpoint == 'meps' %} active{% endif %}" href="{{ url_for('meps') }}">MEPs</a>
       <a class="item{% if request.url_rule.endpoint == 'dossiers' %} active{% endif %}" href="{{ url_for('dossiers') }}">Dossiers</a>
       <a class="item{% if request.url_rule.endpoint == 'about' %} active{% endif %}" href="{{ url_for('about') }}">About</a>
+	  <div class="right menu">
+	  	 <div class="ui right aligned category search item">
+	  		<div class="ui transparent icon input">
+           <form action="/search" method="get">
+              <input {%if q%}value="{{ q|e }}" {%endif%}class="prompt" type="text" placeholder="Search.." name="q">
+           </form>
+	  		</div>
+	  		<div class="results"></div>
+	  	 </div>
     </div>
   </div>
 <div class="content">

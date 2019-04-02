@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+{% import 'mep_listview.html' as listview %}
 <div class="ui vertical segment">
   <div class="ui center aligned stackable grid container">
     <div class="row">
@@ -7,28 +8,9 @@
           <h1>MEPs as of {{ date|asdate }} ({{ meps|length }})</h1>
           <div class="ui fluid divided items">
           {% for mep in meps %}
-              <div class="item">
-                  <div class="image">
-                      <a href="{{ url_for('mep', mep_id=mep['UserID'], mep_name=mep['Name']['full']) }}"><img src="{{ mep['Photo'] }}"/></a>
-                  </div>
-                  <div class="content">
-                      <div class="header">{{ mep['Name']['full'] }}</div>
-                      <div class="meta">
-                          <a>{{ mep['Constituencies'][-1]['party'] }}</a>
-                      </div>
-                      <div class="description">
-                          {% if mep.get('Twitter') %}
-                          <a href="{{ mep['Twitter'] }}"><i class="twitter icon"></i></a>
-                          {% endif %}
-                          {% if mep['Facebook'] %}
-                          <a href="{{ mep['Facebook'] }}"><i class="facebook icon"></i></a>
-                          {% endif %}
-                      </div>
-                  </div>
-              </div>
+          {{ listview.render(mep) }}
           {% endfor %}
           </div>
-          </table>
 
       </div>
 	</div>

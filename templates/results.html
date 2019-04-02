@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+{% import 'mep_listview.html' as listview %}
+<div class="ui vertical segment">
+  <div class="ui center aligned stackable grid container">
+    <div class="row">
+      <div class="left aligned column">
+          {% if result_count %}
+          <h1>Search results for "{{q}}" ({{ result_count }})</h1>
+          {% else %}
+          <h1>No results for "{{q}}"</h1>
+          {% endif %}
+          {% if res.meps %}
+          <h2>MEPs</h2>
+          <div class="ui fluid divided items">
+          {% for mep in res.meps %}
+          {{ listview.render(mep) }}
+          {% endfor %}
+          </div>
+          {% endif %}
+          {% if res.dossiers %}
+          <h2>Dossiers</h2>
+          <div class="ui fluid divided items">
+          {% for d in res.dossiers %}
+              <div class="item">
+                  <div class="content">
+                     <div class="header"><a href="/dossier/{{ d.procedure.reference }}">{{ d.procedure.reference }}</a></div>
+                      <div class="description">
+                         {{ highlight(q, d.procedure.title)|safe }}
+                         {% for s in d.procedure.subject %}
+                         <p class="small">{{ highlight(q, s)|safe }}</p>
+                         {% endfor %}
+                      </div>
+                  </div>
+              </div>
+          {% endfor %}
+          </div>
+          {% endif %}
+      </div>
+	</div>
+  </div>
+</div>
+{% endblock %}
