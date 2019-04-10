@@ -1,19 +1,137 @@
 {% extends "base.html" %}
 {% block content %}
 {% import 'mep_listview.html' as listview %}
+<link href="{{ url_for('static', filename='css/tabulator.min.css') }}" rel="stylesheet" type="text/css" />
 <div class="ui vertical segment">
   <div class="ui center aligned stackable grid container">
     <div class="row">
       <div class="left aligned column">
+      <h1>MEPs</h1>
+		<div class="table-controls ui form segment">
+       <h4 class="ui header">Filter</h4>
+       <div class="two fields">
+        <div class="field">
+          <label>Field: </label>
+          <select id="filter-field">
+              <option></option>
+              <option value="name">Name</option>
+              <option value="country">Country</option>
+              <option value="party">Party</option>
+          </select>
+        </div>
+	     <!--
+        <span>
+          <label>Type: </label>
+          <select id="filter-type">
+              <option value="=">=</option>
+              <option value="<">&lt;</option>
+              <option value="<=">&lt;=</option>
+              <option value=">">&gt;</option>
+              <option value=">=">&gt;=</option>
+              <option value="!=">!=</option>
+              <option value="like">like</option>
+          </select>
+        </span>
+        -->
+        <input type="hidden" name="filter-type" value="like" id="filter-type" />
+
+          <div class="field"><label>Value: </label> <input id="filter-value" type="text" placeholder="value to filter"></div>
+       </div>
+		  	 <div class="field"><button id="filter-clear" class="ui button">Clear Filter</button></div>
+
+	   </div>
+      <div id="meps"></div>
+         <!--
           <h1>MEPs as of {{ date|asdate }} ({{ meps|length }})</h1>
           <div class="ui fluid divided items">
-          {% for mep in meps %}
-          {{ listview.render(mep) }}
-          {% endfor %}
           </div>
-
+         -->
       </div>
 	</div>
   </div>
 </div>
+<script src="{{ url_for('static', filename='js/tabulator.min.js') }}"></script>
+<script>
+var mep_data = {{ meps|tojson|safe }};
+var meps = [];
+for(k in mep_data) {
+  var mep = mep_data[k];
+  meps.push({
+  "name": mep['Name']['full'],
+  "country": mep['Constituencies'][mep['Constituencies'].length-1]['country'],
+  "party": mep['Constituencies'][mep['Constituencies'].length-1]['party'],
+  "id": mep['UserID'],
+  "role":  mep['Groups'][mep['Groups'].length-1].role,
+  });
+}
+var table = new Tabulator("#meps", {
+	data:meps,           //load row data from array
+	layout:"fitColumns",      //fit columns to width of table
+	//responsiveLayout:"hide",  //hide columns that dont fit on the table
+	tooltips:true,            //show tool tips on cells
+	addRowPos:"top",          //when adding a new row, add it to the top of the table
+	history:true,             //allow undo and redo actions on the table
+	pagination:"local",       //paginate the data
+	paginationSize:25,         //allow 25 rows per page of data
+	movableColumns:true,      //allow column order to be changed
+	resizableRows:true,       //allow row order to be changed
+	initialSort:[             //set the initial sort order of the data
+		{column:"name", dir:"asc"},
+	],
+	columns:[                 //define the table columns
+		{
+         title:"Name",
+         field:"name",
+         editor:false,
+         formatter:"link",
+         formatterParams:{
+            "url": function(c) { return '/mep/'+c.getRow().getData().id;}
+         }
+      },
+		{title:"Country", field:"country", editor:false},
+		{title:"Party", field:"party", editor:false},
+		{title:"Role", field:"role", editor:false},
+		//{title:"Task Progress", field:"progress", align:"left", formatter:"progress", editor:true},
+		//{title:"Gender", field:"gender", width:95, editor:"select", editorParams:{values:["male", "female"]}},
+		//{title:"Rating", field:"rating", formatter:"star", align:"center", width:100, editor:true},
+		//{title:"Color", field:"col", width:130, editor:"input"},
+		//{title:"Date Of Birth", field:"dob", width:130, sorter:"date", align:"center"},
+		//{title:"Driver", field:"car", width:90,  align:"center", formatter:"tickCross", sorter:"boolean", editor:true},
+	],
+});
+//Custom filter example
+function customFilter(data){
+    return data.car && data.rating < 3;
+}
+
+//Trigger setFilter function with correct parameters
+function updateFilter(){
+
+    var filter = $("#filter-field").val() == "function" ? customFilter : $("#filter-field").val();
+
+    if($("#filter-field").val() == "function" ){
+        $("#filter-type").prop("disabled", true);
+        $("#filter-value").prop("disabled", true);
+    }else{
+        $("#filter-type").prop("disabled", false);
+        $("#filter-value").prop("disabled", false);
+    }
+
+    table.setFilter(filter, $("#filter-type").val(), $("#filter-value").val());
+}
+
+//Update filters on value change
+$("#filter-field, #filter-type").change(updateFilter);
+$("#filter-value").keyup(updateFilter);
+
+//Clear filters on "Clear Filters" button click
+$("#filter-clear").click(function(){
+    $("#filter-field").val("");
+    $("#filter-type").val("like");
+    $("#filter-value").val("");
+
+    table.clearFilter();
+});
+</script>
+
 {% endblock %}
