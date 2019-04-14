@@ -18,14 +18,14 @@
 # (C) 2019 by Stefan Marsiske, <parltrack@ctrlc.hu>
 
 import re,sys,unicodedata
-from utils.utils import fetch, fetch_raw, unws, jdump, diff
+from utils.utils import fetch, fetch_raw, unws, jdump
+from utils.process import process
 from utils.mappings import buildings, SEIRTNUOC, COMMITTEE_MAP, ORGMAPS, GROUP_MAP, DELEGATIONS, MEPS_ALIASES, TITLES
 from utils.log import log
 from datetime import datetime
 from lxml.html.soupparser import fromstring
 from db import db
 from scrapers import _findecl as findecl
-from utils.recreate import patch # todo decide if to remove this sanity check?
 
 CONFIG = {
     'threads': 8,
@@ -44,7 +44,7 @@ def scrape(id):
     body = root.xpath('//span[@id="mep-card-content"]/following-sibling::div')[0]
     mep = {
         'UserID'    : id,
-        'Name'      : mangleName(unws(' '.join(root.xpath('//*[@id="name-mep"]//text()')))),
+        'Name'      : mangleName(unws(' '.join(root.xpath('//*[@id="name-mep"]//text()'))), id),
         'Photo'     : "http://www.europarl.europa.eu/mepphoto/%s.jpg" % id,
         'meta'      : {'url': url},
         'Twitter'   : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@class="ep_share"]//a[@title="Twitter"]/@href')],
@@ -123,11 +123,11 @@ def scrape(id):
 
     # history
     terms=parse_history(id, root, mep)
-    diffput(mep, id, db.mep, 'ep_meps', mep['Name']['full'], (['Addresses'], ['assistants']))
+    process(mep, id, db.mep, 'ep_meps', mep['Name']['full'], (['Addresses'], ['assistants']))
 
     # activities
     activities=parse_acts(id, terms)
-    diffput(activities, id, db.activities, 'ep_mep_activities', mep['Name']['full'], nodiff=True)
+    process(activities, id, db.activities, 'ep_mep_activities', mep['Name']['full'], nodiff=True)
     del activities
 
     #return mep
@@ -283,13 +283,13 @@ def parse_acts(id, terms):
     activities['mep_id']=id
     return activities
 
-def mangleName(name):
+def mangleName(name, id):
     sur=[]
     family=[]
     tmp=name.split(' ')
     title=None
     for i,token in enumerate(tmp):
-        if ((token.isupper() and token not in ['E.', 'K.', 'A.']) or
+        if ((token.isupper() and not isabbr(token)) or
             token in ['de', 'van', 'von', 'del'] or
             (token == 'in' and tmp[i+1]=="'t" ) or
             (token[:2]=='Mc' and token[2:].isupper())):
@@ -306,47 +306,31 @@ def mangleName(name):
             break
     res= { u'full': name,
            u'sur': sur,
-           u'family': family,
-           u'aliases': [family,
-                       family.lower(),
-                       u''.join(family.split()).lower(),
-                       u"%s %s" % (sur, family),
-                       u"%s %s" % (family, sur),
-                       (u"%s %s" % (family, sur)).lower(),
-                       (u"%s %s" % (sur, family)).lower(),
-                       u''.join(("%s%s" % (sur, family)).split()),
-                       u''.join(("%s%s" % (family, sur)).split()),
-                       u''.join(("%s%s" % (family, sur)).split()).lower(),
-                       u''.join(("%s%s" % (sur, family)).split()).lower(),
-                      ],}
+           u'family': family}
+
+    aliases = set([family,
+                   name,
+                   u"%s %s" % (sur, family),
+                   u"%s %s" % (family, sur)])
     if title:
         res[u'title']=title
-        res[u'aliases'].extend([(u"%s %s" % (title, family)).strip(),
-                                (u"%s %s %s" % (title ,family, sur)).strip(),
-                                (u"%s %s %s" % (title, sur, family)).strip(),
-                                (u"%s %s %s" % (title, family, sur)).strip(),
-                                (u"%s %s %s" % (title, sur, family)).lower().strip(),
-                                (u"%s %s %s" % (title, family, sur)).lower().strip(),
-                                (u''.join(("%s%s%s" % (title, family, sur)).split())).strip(),
-                                (u''.join(("%s%s%s" % (title, sur, family)).split())).strip(),
-                                (u''.join(("%s%s%s" % (sur, title, family)).split())).strip(),
-                                (u''.join(("%s%s%s" % (sur, family, title)).split())).strip(),
-                                u''.join(("%s%s" % (title, family)).split()).lower().strip(),
-                                u''.join(("%s%s%s" % (family, sur, title)).split()).lower().strip(),
-                                u''.join(("%s%s%s" % (family, title, sur)).split()).lower().strip(),
-                                u''.join(("%s%s%s" % (title, family, sur)).split()).lower().strip(),
-                                u''.join(("%s%s%s" % (title, sur, family)).split()).lower().strip(),
-                                ])
-    if  u'ß' in name:
-        res[u'aliases'].extend([x.replace(u'ß','ss') for x in res['aliases']])
-    if unicodedata.normalize('NFKD', name).encode('ascii','ignore').decode('utf8')!=name:
-        res[u'aliases'].extend([unicodedata.normalize('NFKD', x).encode('ascii','ignore').decode('utf8') for x in res['aliases']])
-    if "'" in name:
-        res[u'aliases'].extend([x.replace("'","") for x in res['aliases']])
-    if name in MEPS_ALIASES:
-           res[u'aliases'].extend(MEPS_ALIASES[name])
-    res[u'aliases']=sorted([x for x in set(n.strip() for n in res[u'aliases']) if x])
+        aliases |= set([(u"%s %s"     % (title, family)),
+                        (u"%s %s %s"  % (title, family, sur)),
+                        (u"%s %s %s"  % (title, sur, family)),
+                        (u"%s%s%s"    % (sur, title, family)),
+                        (u"%s %s %s"  % (sur, family, title)),
+                        (u"%s %s %s"  % (family, sur, title)),
+                        (u"%s %s %s"  % (family, title, sur))])
+    if id in MEPS_ALIASES:
+        aliases|=set(MEPS_ALIASES[id])
+    res[u'aliases']=sorted([x for x in set(unws(n) for n in aliases) if x])
     return res
+
+def isabbr(token):
+    if len(token) % 2 != 0: return False
+    if not token[::2].isupper(): return False
+    if [1 for x in token[1::2] if x!='.']: return False
+    return True
 
 def parse_history(id, root, mep):
     terms = []
@@ -464,79 +448,6 @@ def parse_history(id, root, mep):
                                                          x.get('Organization',
                                                                x.get('party'))))]
     return terms
-
-def diffput(obj, id, getter, table, name, nopreserve=[], nodiff=False):
-    # clear out empty values
-    obj = {k:v for k,v in obj.items() if v}
-
-    if nodiff: # todo remove after first activities commit())
-        now=datetime.utcnow().replace(microsecond=0)
-        if not 'meta' in obj: obj['meta']={}
-        log(3,'adding %s (%d)' % (name, id))
-        obj['meta']['created']=now
-        obj['changes']={}
-        if not db.put(table, obj):
-            log(1,"failed to store updated obj {}".format(id))
-            raise ValueError
-        return
-
-    # generate diff
-    prev = getter(id)
-    if prev is not None and 'activities' in prev: del prev['activities'] # todo remove after first activity scrape
-    if prev is not None:
-        d=diff({k:v for k,v in prev.items() if not k in ['meta', 'changes', '_id']},
-               {k:v for k,v in obj.items() if not k in ['meta', 'changes', '_id']})
-
-        # preserve some top level items
-        d1 = []
-        for c in d:
-            if c['type']!='deleted' or len(c['path']) != 1 or c['path'] in nopreserve:
-                d1.append(c)
-                continue
-            if c['type']=='deleted' and len(c['path']) == 1 and c['data'] in ({},[]):
-                d1.append(c)
-                continue
-            log(2,"preserving deleted path {} for obj id: {}".format(c['path'], id))
-            obj[c['path'][0]]=prev[c['path'][0]]
-        d = d1
-    else:
-        d=diff({}, {k:v for k,v in obj.items() if not k in ['meta', 'changes', '_id']})
-
-    if d:
-        # attempt to recreate current version by applying d to prev
-        o2 = patch(prev or {}, d)
-        if not o2:
-            log(1,"failed to recreate record by patching previous version with diff")
-            raise ValueError
-        else:
-            # make a diff between current record, an recreated one
-            zero=diff({k:v for k,v in o2.items() if not k in ['meta', 'changes', '_id']},
-                      {k:v for k,v in obj.items() if not k in ['meta', 'changes', '_id']})
-            if zero != []:
-                log(1,"diff between current record and patched previous one is not empty\n{!r}".format(zero))
-                raise ValueError
-
-        now=datetime.utcnow().replace(microsecond=0)
-        if not 'meta' in obj: obj['meta']={}
-        if not prev:
-            log(3,'adding %s (%d)' % (name, id))
-            obj['meta']['created']=now
-            obj['changes']={}
-        else:
-            log(3,'updating %s (%d)' % (name, id))
-            log(4,jdump(d)) # todo reenable this, and delete version below ommitting assistants
-            obj['meta']['updated']=now
-            obj['changes']=prev.get('changes',{})
-        obj['changes'][now.isoformat()]=d
-        if not db.put(table, obj):
-            log(1,"failed to store updated obj {}".format(id))
-            raise ValueError
-    del prev
-    if __name__ == '__main__':
-        print(jdump(obj))
-    else:
-        return obj
-
 
 if __name__ == '__main__':
     #scrape(28390)
