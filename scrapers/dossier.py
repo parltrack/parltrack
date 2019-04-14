@@ -31,10 +31,13 @@ from operator import itemgetter
 
 BASE_URL = 'https://oeil.secure.europarl.europa.eu'
 
-# todo remove
-def dbgfrag(node):
-    from lxml.etree import tostring
-    print(tostring(node, pretty_print=True).decode('utf8'))
+CONFIG = {
+    'threads': 8,
+    'timeout': 60,
+    'retries': 5,
+    'error_handler': None,
+    'table': 'ep_dossiers',
+}
 
 def scrape(url):
     log(4, 'scrape %s' % url)
