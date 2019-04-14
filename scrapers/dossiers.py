@@ -48,8 +48,8 @@ def get_new_dossiers():
         if '*' in ref: ref = ref[:ref.index('*')]
         if ref in refs: continue
         url=urljoin(BASE_URL, urlunsplit(('','')+urlsplit(item.link)[2:]))
-        log(4,'dossier %s' % repr({'url':url, "title": ref}))
-        # todo enable add_job('dossier', payload={'url':url, "title": item.title})
+        log(4,'adding dossier scraping job %s' % url)
+        add_job('dossier', payload={'url':url})
 
 def get_all_dossiers():
     for year in range(datetime.date.today().year, 1971, -1):
@@ -70,18 +70,18 @@ def get_all_dossiers():
             url = urljoin(BASE_URL,str(item.xpath('./link/text()')[0]))
             ref = unws(item.xpath('./reference/text()')[0])
             if '*' in ref: ref = ref[:ref.index('*')]
-            log(4,'dossier %s' % repr({'url':url, "title": ref}))
+            log(4,'adding dossier scraping job %s' % url)
+            add_job('dossier', payload={'url':url})
             i+=1
-            # todo enable add_job('dossier', payload={'url':url, "title": ref})
-        if i!=count: log(1,"total %d, expected" % (i, count))
+        if i!=count: log(1,"total %d, expected %d" % (i, count))
 
 def get_active_dossiers():
     i=0
     for doc in db.dossiers_by_activity(True):
         url = doc['meta']['source']
         ref = doc['procedure']['reference']
-        log(4,'dossier %s' % repr({'url':url, "title": ref}))
-        # todo enable add_job('dossier', payload={'url':url, "title": ref})
+        log(4,'adding dossier scraping job %s' % url)
+        add_job('dossier', payload={'url':url})
         i+=1
     log(3,"total %d" % i)
 
