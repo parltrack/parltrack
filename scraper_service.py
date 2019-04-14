@@ -73,8 +73,8 @@ def consume(pool, scraper):
         #    else:
         #        log(3, "{0} job's on_finished callback finished (params: {1})".format(scraper._name, job))
 
-        if job_count == 0 and pool.empty():
-            db.commit(scraper._name)
+        if scraper.CONFIG.get('table') is not None and job_count == 0 and pool.empty():
+            db.commit(scraper.CONFIG['table'])
 
 
 
