@@ -402,10 +402,10 @@ def idx_meps_by_group():
 def idx_meps_by_name():
     res={}
     for mep in DBS['ep_meps'].values():
-        for name in [mep['Name']['full'], mep['Name']['family'], mep['Name']['family']+mep['Name']['sur']]:
+        for name in mep['Name']['aliases']:
             name = normalize_name(name)
-            if not name in res: res[name]=[]
-            res[name].append(mep)
+            if not name in res: res[name]=[mep]
+            elif mep not in res[name]: res[name].append(mep)
     return res
 
 def idx_ams_by_mep():
@@ -483,7 +483,6 @@ def idx_dossier_refs():
     return res
 
 # todo indexes for dossiers by committees, rapporteur, subject, stage_reached
-# todo indexes for meps by name(alias)
 
 TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_by_dossier"},
                                         {"fn": idx_ams_by_mep, "name": "ams_by_mep"}],
@@ -497,9 +496,7 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
                            'key': lambda x: x.get('_id')},
 
           'ep_dossiers': {'indexes': [{"fn": idx_active_dossiers, "name": "active_dossiers"},
-                                      {"fn": idx_dossier_refs, "name": "dossier_refs"},
-
-          ],
+                                      {"fn": idx_dossier_refs, "name": "dossier_refs"}],
                           'key': lambda x: x['procedure']['reference']}, # todo change to procedure/reference
 
           'ep_meps': {'indexes': [{"fn": idx_meps_by_activity, "name": "meps_by_activity"},
