@@ -32,6 +32,7 @@ CONFIG = {
     'timeout': 60,
     'retries': 5,
     'error_handler': None,
+    'table': 'ep_meps',
 }
 
 def scrape(id):
