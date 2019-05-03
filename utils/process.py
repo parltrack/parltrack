@@ -8,7 +8,7 @@ from datetime import datetime
 
 def process(obj, id, getter, table, name, nopreserve=[], nodiff=False, nostore=False):
     # clear out empty values
-    obj = {k:v for k,v in obj.items() if v}
+    obj = {k:v for k,v in obj.items() if v or v==False}
 
     if nodiff: # todo remove after first activities commit())
         now=datetime.utcnow().replace(microsecond=0)
@@ -65,7 +65,7 @@ def process(obj, id, getter, table, name, nopreserve=[], nodiff=False, nostore=F
             obj['changes']={}
         else:
             log(3,'updating %s (%s)' % (name, id))
-            log(4,"changes for %d\n%s" % (id, jdump(d)))
+            log(4,"changes for %s\n%s" % (id, jdump(d)))
             obj['meta']['updated']=now
             obj['changes']=prev.get('changes',{})
         obj['changes'][now.isoformat()]=d
