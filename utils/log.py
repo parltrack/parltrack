@@ -14,13 +14,15 @@ def log(level, msg):
         if len(fp)>1 and fp[-2]=='scrapers':
             scraper = fp[-1].split('.')[0]
             break
-        if len(fp)==1:
-            if fp[0]=='db.py':
-                scraper='db'
-                break
-            if fp[0]=='scraper_service.py':
-                scraper='mgr'
-                break
+        if fp[-1]=='db.py':
+            scraper='db'
+            break
+        if fp[-1]=='scraper_service.py':
+            scraper='mgr'
+            break
+        if fp[-1]=='webapp.py':
+            scraper='webapp'
+            break
     else:
         print("{ts} log error unknown module: {stack}".format(ts=datetime.isoformat(datetime.now()), stack=inspect.stack()))
         scraper = '???'
