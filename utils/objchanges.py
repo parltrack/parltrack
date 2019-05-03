@@ -26,40 +26,40 @@ def diff(old,new):
     n = normalize(deepcopy(new))
     return _diff(o, n, old, new)
 
-def _diff(old, new, o, n, path=[]):
+def _diff(old, new, o, n, opath=[], npath=[]):
     if old==None and new!=None:
-        return [{'type': 'added', 'path': path, 'data': getitem(n,path)}]
+        return [{'type': 'added', 'path': npath, 'data': getitem(n,npath)}]
     if new==None and old!=None:
-        return [{'type': 'deleted', 'path': path, 'data': getitem(o,path)}]
+        return [{'type': 'deleted', 'path': opath, 'data': getitem(o,opath)}]
     if not type(old)==type(new):
-        return [{'type': 'changed', 'path': path, 'data': (getitem(o,path), getitem(n,path))}]
+        return [{'type': 'changed', 'path': npath, 'data': (getitem(o,opath), getitem(n,npath))}]
     if hasattr(old,'keys'):
         res=[]
         for k in set(list(old.keys()) + list((new or {}).keys())):
-            r=_diff(old.get(k),(new or {}).get(k), o, n, path+[k])
+            r=_diff(old.get(k),(new or {}).get(k), o, n, opath+[k], npath+[k])
             res.extend(r)
         return res
     if hasattr(old,'__iter__') and not isinstance(old,str):
-        return difflist(old, new, o, n, path)
+        return difflist(old, new, o, n, opath, npath)
     if (([type(x) for x in [old, new]] == [ str, str ] and
            ''.join(old.split()).lower() != ''.join(new.split()).lower()) or
           old != new):
-        return [{'type': u'changed', 'path': path, 'data': (getitem(o,path), getitem(n,path))}]
+        return [{'type': u'changed', 'path': npath, 'data': (getitem(o,opath), getitem(n,npath))}] # todo test if npath as 'path' is correct
     return []
 
-def difflist(old, new, o, n, path):
+def difflist(old, new, o, n, opath, npath):
     oldset,oldorder=normalize_list(old)
     newset,neworder=normalize_list(new)
     if len(oldset) != len(old) or len(newset) != len(new):
         # we have duplicate elements in the list, fallback to naive difflist
-        return naive_difflist(old, new, o, n, path)
+        return naive_difflist(old, new, o, n, opath, npath)
 
     oldunique=sorted(oldset - newset, key=lambda x: oldorder[x])
     newunique=sorted(newset - oldset, key=lambda x: neworder[x])
 
     # check if all-atomic list
     if any(type(x) not in (dict, list, tuple, hashabledict) for x in oldunique+newunique):
-        return atomiclistdiff(o, oldset, oldorder, oldunique, n, newset, neworder, newunique, path)
+        return atomiclistdiff(o, oldset, oldorder, oldunique, n, newset, neworder, newunique, opath, npath)
 
     # all the same
     if not (oldunique or newunique): return []
@@ -68,68 +68,69 @@ def difflist(old, new, o, n, path):
     for oe in list(oldunique):
         candidates=sorted([(oe, ne,
                             _diff(oe, ne, o, n,
-                                 path + [neworder[ne]]))
+                                  opath + [oldorder[oe]],
+                                  npath + [neworder[ne]]))
                             for ne in list(newunique)],
                            key=lambda a: len(a[2]))
         # find deep matches first
         if len(candidates) and (len(candidates[0][2])*3<=(len(candidates[0][1]) if isinstance(candidates[0][1], tuple) else 3)):
             if oldorder[oe] != neworder[candidates[0][1]]:
-                oldobj = getitem(o, path + [oldorder[oe]])
-                ret.append({'type': u'deleted', 'path': path + [oldorder[oe]], 'data': oldobj})
-                ret.append({'type': u'added', 'path': path + [neworder[candidates[0][1]]], 'data': oldobj})
+                oldobj = getitem(o, opath + [oldorder[oe]])
+                ret.append({'type': u'deleted', 'path': opath + [oldorder[oe]], 'data': oldobj})
+                ret.append({'type': u'added', 'path': npath + [neworder[candidates[0][1]]], 'data': oldobj})
             ret.extend(candidates[0][2])
             oldunique.remove(candidates[0][0])
             newunique.remove(candidates[0][1])
     # handle added
     if newunique:
-        ret.extend(sorted([{'type': u'added', 'path': path + [neworder[e]], 'data': getitem(n,path + [neworder[e]])} for e in newunique], key=itemgetter('path')))
+        ret.extend(sorted([{'type': u'added', 'path': npath + [neworder[e]], 'data': getitem(n,npath + [neworder[e]])} for e in newunique], key=itemgetter('path')))
     # handle deleted
     if oldunique:
-        ret.extend(sorted([{'type': u'deleted', 'path': path + [oldorder[e]], 'data': getitem(o,path + [oldorder[e]])} for e in oldunique], key=itemgetter('path')))
+        ret.extend(sorted([{'type': u'deleted', 'path': opath + [oldorder[e]], 'data': getitem(o,opath + [oldorder[e]])} for e in oldunique], key=itemgetter('path')))
     no = sorted([(neworder[common], common) for common in oldset & newset])
     oo = sorted([(oldorder[common], common) for common in oldset & newset])
     for (ni, ne), (oi, oe) in zip(no,oo):
         if ne == oe: continue
-        ret.append({'type': u'changed', 'path': path + [ni], 'data': (oe, ne)})
+        ret.append({'type': u'changed', 'path': npath + [ni], 'data': (oe, ne)}) # todo confirm that npath is correct here
     return ret
 
-def naive_difflist(old, new, o, n, path):
+def naive_difflist(old, new, o, n, opath, npath):
     # we have duplicate elements in the list, fallback to naive difflist
     os = len(old)
     ns = len(new)
     ret = []
     if os>ns:
         for i, (oe, ne) in enumerate(zip(old[:ns],new)):
-            ret.extend(_diff(oe,ne,o,n,path + [i]))
+            ret.extend(_diff(oe,ne,o,n,opath + [i],npath + [i]))
         ret.extend(sorted([{'type': u'deleted',
-                            'path': path + [ns+i],
-                            'data': getitem(o,path + [ns+i])}
+                            'path': opath + [ns+i],
+                            'data': getitem(o,opath + [ns+i])}
                            for i in range(os - ns)], key=itemgetter('path')))
     elif ns>os:
         for i, (oe, ne) in enumerate(zip(old,new[:os])):
-            ret.extend(_diff(oe,ne,o,n,path + [i]))
+            ret.extend(_diff(oe,ne,o,n,opath + [i],npath + [i]))
         ret.extend(sorted([{'type': u'added',
-                            'path': path + [os+i],
-                            'data': getitem(n,path + [os+i])}
+                            'path': npath + [os+i],
+                            'data': getitem(n,npath + [os+i])}
                            for i in range(ns - os)], key=itemgetter('path')))
     else:
         for i, (oe, ne) in enumerate(zip(old,new)):
-            ret.extend(_diff(oe,ne,o,n,path + [i]))
+            ret.extend(_diff(oe,ne,o,n,opath + [i],npath + [i]))
     return ret
 
-def atomiclistdiff(o, oldset, oldorder, deleted, n, newset, neworder, added, path):
+def atomiclistdiff(o, oldset, oldorder, deleted, n, newset, neworder, added, opath, npath):
     # todo test reordering atoms that are shared between old and new
     ret = []
     if added:
-        ret.extend(sorted([{'type': u'added', 'path': path + [neworder[e]], 'data': getitem(n,path + [neworder[e]])} for e in added], key=itemgetter('path')))
+        ret.extend(sorted([{'type': u'added', 'path': npath + [neworder[e]], 'data': getitem(n,npath + [neworder[e]])} for e in added], key=itemgetter('path')))
     # handle deleted
     if deleted:
-        ret.extend(sorted([{'type': u'deleted', 'path': path + [oldorder[e]], 'data': getitem(o,path + [oldorder[e]])} for e in deleted], key=itemgetter('path')))
+        ret.extend(sorted([{'type': u'deleted', 'path': opath + [oldorder[e]], 'data': getitem(o,opath + [oldorder[e]])} for e in deleted], key=itemgetter('path')))
     no = sorted([(neworder[common], common) for common in oldset & newset])
     oo = sorted([(oldorder[common], common) for common in oldset & newset])
     for (ni, ne), (oi, oe) in zip(no,oo):
         if ne == oe: continue
-        ret.append({'type': u'changed', 'path': path + [ni], 'data': (oe, ne)})
+        ret.append({'type': u'changed', 'path': npath + [ni], 'data': (oe, ne)}) # todo again is npath for 'path' correct here?
     return ret
 
 class hashabledict(dict):
