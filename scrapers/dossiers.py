@@ -25,6 +25,7 @@ from utils.log import log
 from db import db
 from config import CURRENT_TERM, USER_AGENT, PROXY
 import feedparser, datetime
+import html
 
 CONFIG = {
     'threads': 8,
@@ -47,7 +48,7 @@ def get_new_dossiers():
         ref = item.title
         if '*' in ref: ref = ref[:ref.index('*')]
         if ref in refs: continue
-        url=urljoin(BASE_URL, urlunsplit(('','')+urlsplit(item.link)[2:]))
+        url=html.unescape(urljoin(BASE_URL, urlunsplit(('','')+urlsplit(item.link)[2:])))
         log(4,'adding dossier scraping job %s' % url)
         add_job('dossier', payload={'url':url})
 
@@ -67,7 +68,7 @@ def get_all_dossiers():
         items=tree.xpath('//item')
         i = 0
         for item in items:
-            url = urljoin(BASE_URL,str(item.xpath('./link/text()')[0]))
+            url = html.unescape(urljoin(BASE_URL,str(item.xpath('./link/text()')[0])))
             ref = unws(item.xpath('./reference/text()')[0])
             if '*' in ref: ref = ref[:ref.index('*')]
             log(4,'adding dossier scraping job %s' % url)
