@@ -39,7 +39,7 @@ CONFIG = {
     'table': 'ep_dossiers',
 }
 
-def scrape(url):
+def scrape(url, save=True):
     log(4, 'scrape %s' % url)
     root=fetch(url)
 
@@ -82,7 +82,9 @@ def scrape(url):
                         item[u'docs'].extend(final['docs'])
                 break
 
-    return process(dossier, ref, db.dossier, 'ep_dossiers', ref, nopreserve=['other']) #, nostore=True) # todo remove nostore, and possibly also from process()
+    if save:
+        return process(dossier, ref, db.dossier, 'ep_dossiers', ref, nopreserve=['other', 'forecasts']) #, nostore=True) # todo remove nostore, and possibly also from process()
+    return dossier
 
 def scrape_basic(root, ref):
     res={}
@@ -90,7 +92,8 @@ def scrape_basic(root, ref):
         title = junws(para)
         if title in [ref, 'Status']: continue
         if title == 'Subject': title = 'subject'
-        if title not in ['Legislative priorities', 'Notes', 'Geographical area', 'subject']:
+        if title == 'Geographical area': title = 'geographical_area'
+        if title not in ['Legislative priorities', 'Notes', 'geographical_area', 'subject']:
             log(3,"basic information of %s has unknown section: '%s'" % (ref, title))
         # this is a fucking mess, there's two columns, in the left one
         # stuff is between <strong> separated by <br /> in the right
@@ -892,7 +895,7 @@ if __name__ == '__main__':
     #print(jdump(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2011/2080(ACI)&l=en")))
     #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2017/2139(DEC)&l=en")))
     #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2010/2168(DEC)&l=en")))
-    print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2015/2542(DEA)&l=en")))
+    #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2015/2542(DEA)&l=en")))
 
     #from utils.log import set_level
     #set_level(3)
@@ -900,6 +903,8 @@ if __name__ == '__main__':
     #    scrape('http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=%s&l=en' % r)
     #for i in ['556397', '575084', '589377', '556208', '593187', '556397', '16542', '584049', '593435', '588286', '590715', '584049', '590612', '591258', '584049', '556397', '556364', '556398', '589181']:
     #    scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=%s" % i)
+
+    #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil//popups/ficheprocedure.do?reference=2019/2582(RSP)&amp;l=en")))
 
     #print(jdump(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2018/0066(COD)&l=en")))
     #print(jdump(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2016/0280(COD)&l=en")))
@@ -940,3 +945,17 @@ if __name__ == '__main__':
     #              scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556364") # telecoms package
     #              scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=556398") # telecoms package
     #              scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=589181") # .hu media law
+
+    # diff verification fails:
+    #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2018/2763(RSP)&l=en")))
+    #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2018/0248(COD)&l=en")))
+    #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2018/0258(COD)&l=en")))
+    #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2018/0198(COD)&l=en")))
+    #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2018/0236(COD)&l=en")))
+    #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2018/0213(COD)&l=en")))
+    #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2018/0196(COD)&l=en")))
+    #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2018/0145(COD)&l=en")))
+    #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2018/0136(COD)&l=en")))
+    #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2018/0088(COD)&l=en")))
+    #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2017/0291(COD)&l=en")))
+    #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2005/0191(COD)&l=en")))
