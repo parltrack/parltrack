@@ -462,6 +462,8 @@ def idx_active_dossiers():
     # procedure.stage_reached not in [ "Procedure completed", "Procedure rejected", "Procedure lapsed or withdrawn"]
     res = {'active': [], 'inactive': []}
     for dossier in DBS['ep_dossiers'].values():
+        if not 'stage_reached' in dossier['procedure']:
+            log(1, "no stage_reached in %s" % dossier['procedure']['reference'])
         if dossier['procedure']['stage_reached'] in [ "Procedure completed", "Procedure rejected", "Procedure lapsed or withdrawn"]:
             res['inactive'].append(dossier)
         else:
