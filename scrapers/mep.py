@@ -33,6 +33,7 @@ CONFIG = {
     'retries': 5,
     'error_handler': None,
     'table': 'ep_meps',
+    'abort_on_error': True,
 }
 
 def scrape(id):
