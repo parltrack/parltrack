@@ -37,6 +37,7 @@ CONFIG = {
     'retries': 5,
     'error_handler': None,
     'table': 'ep_dossiers',
+    'abort_on_error': True,
 }
 
 def scrape(url, save=True):
@@ -380,7 +381,7 @@ def scrape_events(root):
         for link in cells[2].xpath('.//a'):
             if not 'docs' in event: event['docs']=[]
             url=str(link.get('href'))
-            if 'europarl.europa.eu' not in url:
+            if not url.startswith('http'):
                 url = urljoin(BASE_URL,url)
             title = junws(link)
             if title == '':
@@ -892,6 +893,8 @@ def checkUrl(url):
 
 if __name__ == '__main__':
     from utils.utils import jdump
+    print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=1992/0449B(COD)&l=en")))
+
     #print(jdump(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2011/2080(ACI)&l=en")))
     #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2017/2139(DEC)&l=en")))
     #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2010/2168(DEC)&l=en")))
