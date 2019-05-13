@@ -54,7 +54,7 @@ def get_new_dossiers():
 
 def get_all_dossiers():
     for year in range(datetime.date.today().year, 1971, -1):
-        tree=fetch('https://oeil.secure.europarl.europa.eu/oeil/widgets/resultwidget.do?lang=en&noHeader=false&q=objectReferenceN:N-%s/????\(*\)' % (year))
+        tree=fetch('https://oeil.secure.europarl.europa.eu/oeil/widgets/resultwidget.do?lang=en&noHeader=false&q=objectReferenceN:N-%s/*\(*\)' % (year))
         tmp = tree.xpath('//span[@class="ep_name" and (starts-with(normalize-space(),"Results found :") or starts-with(normalize-space(),"Result found :"))]/text()')
         if not tmp:
             log(1, "no dossiers found for %d" % year)
@@ -64,7 +64,7 @@ def get_all_dossiers():
         log(4,"year %d, count %d" % (year, count))
         #tree=fetch('https://oeil.secure.europarl.europa.eu/oeil/popups/printresultlist.xml?q=objectReferenceN:N-%s/????\(*\)&lang=en&s1&all&limit=%s&lang=en'
         #           % (year, count), prune_xml=True)
-        tree=fromstring(fetch_raw('https://oeil.secure.europarl.europa.eu/oeil/popups/printresultlist.xml?q=objectReferenceN:N-%s/????\(*\)&lang=en&s1&all&limit=%s&lang=en' % (year, count)).encode("utf8"))
+        tree=fromstring(fetch_raw('https://oeil.secure.europarl.europa.eu/oeil/popups/printresultlist.xml?q=objectReferenceN:N-%s/*\(*\)&lang=en&s1&all&limit=%s&lang=en' % (year, count)).encode("utf8"))
         items=tree.xpath('//item')
         i = 0
         for item in items:
