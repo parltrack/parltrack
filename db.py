@@ -51,10 +51,10 @@ class Client:
         cmd = {"cmd": "count", "params": {"source": source, "key": key}}
         return self.send_req(cmd)
 
-    def mepid_by_name(self, name, date=None, group=None):
+    def mepid_by_name(self, name, date=None, group=None, gabbr=None):
         # normalize name
         name = normalize_name(name)
-        cmd = {"cmd": "mepid_by_name", "params": {"name": name, "group": group, "date": date}}
+        cmd = {"cmd": "mepid_by_name", "params": {"name": name, "group": group, "date": date, 'gabbr': gabbr}}
         return self.send_req(cmd)
 
     def meps_by_name(self, name):
@@ -102,6 +102,9 @@ class Client:
     def activities(self,id):
         return self.get('ep_mep_activities', id)
 
+    def vote(self,id):
+        return self.get('ep_votes', id)
+
     def dossiers_by_activity(self,key=True):
         return self.get('active_dossiers', "active" if key else "inactive")
 
@@ -111,6 +114,7 @@ class Client:
 def cleanup_singleton():
     log(3,"cleaning up {}".format(PIDFILE))
     os.unlink(PIDFILE)
+    sys.exit(0)
 
 
 def singleton():
@@ -188,7 +192,7 @@ def read_req(sock):
     res = b''.join(res)
     log(4,"size received {}".format(len(res)))
     req = msgpack.loads(res, raw = False)
-    log(4, 'received {}'.format(repr(req)[:120]))
+    log(4, 'received ({}B) {}'.format(len(req),repr(req)[:120]))
     return req
 
 def mainloop():
@@ -281,7 +285,7 @@ def put(table, value):
         log(1, 'table not found in db')
         return False
     key = TABLES[table]['key'](value) or genkey(table)
-    log(3,'storing into src: "{}" key: "{}"'.format(table,key))
+    log(3,'storing into src: "{}" key: {!r}'.format(table,key))
     DBS[table][key]=value
     reindex(table)
     return True
@@ -333,26 +337,35 @@ def commit(table):
     return True
 
 
-def mepid_by_name(name=None, date=None, group=None):
+def mepid_by_name(name=None, date=None, group=None, gabbr=None):
     log(3,'getting mepid for name: "{}" group: "{}", date: {}'.format(name,group, date))
     meps = IDXs["meps_by_name"].get(name,[])
     lmeps = len(meps)
-    if lmeps == 0: return None # not found
+    if lmeps == 0:
+        log(1, 'mep "{}" not found'.format(name))
+        return None # not found
     if lmeps == 1: return meps[0]['UserID'] # lucky us
     # ambigous, more than one mep found
-    if date==None: return None
+    if date==None:
+        log(1, 'mep "{}" not found'.format(name))
+        return None
     # filter by constituency
     cmeps = [mep for mep in meps if matchInterval(mep['Constituencies'], date)]
     lcmeps = len(cmeps)
-    if lcmeps == 0: return None # not found
+    if lcmeps == 0:
+        log(1, 'mep "{}" not found'.format(name))
+        return None # not found
     if lcmeps == 1: return cmeps[0]['UserID'] # lucky us
 
-    if group==None: return None
+    # filter by group abbrev
+    if gabbr is not  None:
+        gmeps = [mep for mep in meps if matchInterval(mep['Groups'], date)['Organization']==gabbr]
+        if len(gmeps) == 1: return gmeps[0]['UserID'] # lucky us
+
     # filter by groups
-    gmeps = [mep for mep in meps if matchInterval(mep['Groups'], date)['Organization']==group]
-    lgmeps = len(gmeps)
-    if lgmeps == 0: return None # not found
-    if lgmeps == 1: return gmeps[0]['UserID'] # lucky us
+    if group is not None:
+        gmeps = [mep for mep in meps if matchInterval(mep['Groups'], date)['Organization']==group]
+        if len(gmeps) == 1: return gmeps[0]['UserID'] # lucky us
 
     log(1, 'mep "{}" not found'.format(name))
     return None
@@ -458,6 +471,20 @@ def idx_votes_by_dossier():
         res[dossier].append(vote)
     return res
 
+def idx_dossiers_by_doc():
+    # "activities.docs.title"
+    res = {}
+    for dossier in DBS['ep_dossiers'].values():
+        for d in dossier.get('docs', []):
+            for doc in d.get('docs',[]):
+                if not doc['title'] in res: res[doc['title']]=[]
+                if dossier not in res[doc['title']]: res[doc['title']].append(dossier)
+        for e in dossier.get('events', []):
+            for doc in e.get('docs',[]):
+                if not doc['title'] in res: res[doc['title']]=[]
+                if dossier not in res[doc['title']]: res[doc['title']].append(dossier)
+    return res
+
 def idx_active_dossiers():
     # procedure.stage_reached not in [ "Procedure completed", "Procedure rejected", "Procedure lapsed or withdrawn"]
     res = {'active': [], 'inactive': []}
@@ -484,8 +511,6 @@ def idx_dossier_refs():
         res.append(doc['procedure']['reference'])
     return res
 
-# todo indexes for dossiers by committees, rapporteur, subject, stage_reached
-
 TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_by_dossier"},
                                         {"fn": idx_ams_by_mep, "name": "ams_by_mep"}],
                             'key': lambda x: x.get('_id')},
@@ -498,8 +523,9 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
                            'key': lambda x: x.get('_id')},
 
           'ep_dossiers': {'indexes': [{"fn": idx_active_dossiers, "name": "active_dossiers"},
+                                      {"fn": idx_dossiers_by_doc, "name": "dossiers_by_doc"},
                                       {"fn": idx_dossier_refs, "name": "dossier_refs"}],
-                          'key': lambda x: x['procedure']['reference']}, # todo change to procedure/reference
+                          'key': lambda x: x['procedure']['reference']},
 
           'ep_meps': {'indexes': [{"fn": idx_meps_by_activity, "name": "meps_by_activity"},
                                   {"fn": idx_meps_by_country, "name": "meps_by_country"},
@@ -511,7 +537,7 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
                                 'key': lambda x: x['mep_id']},
 
           'ep_votes': {'indexes': [{"fn": idx_votes_by_dossier, "name": "votes_by_dossier"}],
-                       'key': lambda x: x.get('_id')},
+                       'key': lambda x: x['voteid']},
 }
 
 db = Client()
