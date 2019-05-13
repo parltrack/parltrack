@@ -234,7 +234,7 @@ HEADERS =  { 'User-agent': USER_AGENT }
 def fetch_raw(url, retries=5, ignore=[], params=None, binary=False):
     try:
         if params:
-            r=requests.POST(url, params=params, proxies=PROXIES, headers=HEADERS)
+            r=requests.post(url, params=params, proxies=PROXIES, headers=HEADERS)
         else:
             r=requests.get(url, proxies=PROXIES, headers=HEADERS)
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
