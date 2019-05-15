@@ -6,18 +6,22 @@ import logging
 import os
 
 import config
+import notification_model as notif
 
-from pprint import pprint
+import diff_match_patch
+
 from datetime import datetime, date
 from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect
+from flask.json import jsonify
+from flask_mail import Message, Mail
+from hashlib import sha1
+from jinja2 import escape
 from logging import Formatter, FileHandler
-from random import shuffle, randrange
+from pprint import pprint
+from random import shuffle, randrange, randint, choice
 from sys import version_info
 from urllib.parse import unquote
-import diff_match_patch
-from jinja2 import escape
-
-from flask import Flask, render_template, request, redirect
 from utils.utils import asDate
 from utils.mappings import (
     SEIRTNUOC as COUNTRIES,
@@ -44,6 +48,8 @@ def highlight(q, s):
 
 app = Flask(__name__)
 app.config.from_object('config')
+mail = Mail()
+mail.init_app(app)
 
 db = Client()
 
@@ -97,7 +103,8 @@ def mep(mep_id, mep_name):
     mep = db.mep(mep_id)
     if not mep:
         return not_found_error(None)
-    mep['amendments'] = db.get("ams_by_mep", mep_id) or []
+    #mep['amendments'] = db.get("ams_by_mep", mep_id) or []
+    mep['amendments'] = []
     return render_template(
         'mep.html',
         mep=mep,
@@ -151,6 +158,8 @@ def view_dossier(d_id):
 
 
 def dossier_sort_key(d):
+    if not 'activities' in d:
+        return ''
     return d['activities'][-1]['date']
 
 
@@ -178,6 +187,153 @@ def search():
         result_count=result_count,
         countries=COUNTRIES,
     )
+
+
+#-[+++++++++++++++++++++++++++++++++++++++++++++++|
+#               Notifications
+#-[+++++++++++++++++++++++++++++++++++++++++++++++|
+
+@app.route('/notification')
+def gen_notif_id():
+    while True:
+        nid = ''.join(chr(randint(97, 122)) if randint(0, 10) else choice("_-") for x in range(16))
+        if not notif.session.query(notif.Group).filter(notif.Group.name==nid).first():
+            break
+    return '/notification/'+nid
+
+def listdossiers(d):
+    for act in d['activities']:
+        if act.get('type') in ['Non-legislative initial document',
+                               'Commission/Council: initial legislative document',
+                               "Legislative proposal",
+                               "Legislative proposal published"]:
+            if 'title' in act.get('docs',[{}])[0]:
+                d['comdoc']={'title': act['docs'][0]['title'],
+                             'url': act['docs'][0].get('url'), }
+        if 'date' not in act:
+            print('removing [%s] %s' % (d['activities'].index(act), act))
+            del d['activities'][d['activities'].index(act)]
+    if 'legal_basis' in d.get('procedure', {}):
+        clean_lb(d)
+    # TODO
+    #db = connect_db()
+    #for item in db.ep_comagendas.find({'epdoc': d['procedure']['reference']}):
+    #    if 'tabling_deadline' in item and item['tabling_deadline']>=datetime.now():
+    #        d['activities'].insert(0,{'type': '(%s) Tabling Deadline' % item['committee'], 'body': 'EP', 'date': item['tabling_deadline']})
+    return d
+
+
+@app.route('/notification/<string:g_id>')
+def notification_view_or_create(g_id):
+    # TODO g_id validation
+    group = notif.session.query(notif.Group).filter(notif.Group.name==g_id).first()
+    if not group:
+        group = notif.Group(name=g_id, activation_key=gen_token())
+        notif.session.add(group)
+        notif.session.commit()
+    ds=[]
+    active_items = [d for d in group.items if not d.activation_key]
+    if len(active_items):
+        ds=[listdossiers(db.dossier_by_id(d.id)) for d in active_items if d.type=='dossier']
+    if ds and request.args.get('format','')=='json' or request.headers.get('X-Requested-With'):
+        return jsonify(count=len(ds), dossiers=tojson(ds))
+    return render_template('view_notif_group.html',
+                           dossiers=ds,
+                           date=datetime.now(),
+                           group=group)
+
+
+@app.route('/notification/<string:g_id>/add/<any(dossiers, emails, subject):item>/<path:value>')
+def notification_add_detail(g_id, item, value):
+    group = notif.session.query(notif.Group).filter(notif.Group.name==g_id).first()
+    if not group:
+        return 'unknown group '+g_id
+    # TODO handle restricted groups
+    #if group.restricted:
+    #    return 'restricted group'
+    email = group.subscribers[0].email
+    if item == 'emails':
+        email = value
+        emails = [s.email for s in group.subscribers]
+        active_emails = [s.email for s in group.subscribers if not s.activation_key]
+        if value in emails:
+            return 'already subscribed to this group'
+        i = notif.Subscriber(email=value, activation_key=gen_token())
+        group.subscribers.append(i)
+
+    elif item == 'dossiers':
+        d = db.dossier_by_id(value)
+        if not d:
+            return 'unknown dossier - '+value
+        i = notif.Item(name=value, type='dossier', activation_key=gen_token())
+        group.items.append(i)
+    elif item == 'subject':
+        i = notif.Item(name=value, type='subject', activation_key=gen_token())
+        group.items.append(i)
+    msg = Message("Parltrack Notification Subscription Verification",
+            sender = "parltrack@parltrack.euwiki.org",
+            recipients = [email])
+    msg.body = "Your verification key is %sactivate?key=%s\nNotification group url: %snotification/%s" % (request.url_root, i.activation_key, request.url_root, g_id)
+    mail.send(msg)
+
+    notif.session.add(i)
+    notif.session.commit()
+    return 'OK'
+
+
+@app.route('/notification/<string:g_id>/del/<any(dossiers, emails):item>/<path:value>')
+def notification_del_detail(g_id, item, value):
+    group = notif.session.query(notif.Group).filter(notif.Group.name==g_id).first()
+    if not group:
+        return 'unknown group '+g_id
+    # TODO handle restricted groups
+    #if group.restricted:
+    #    return 'restricted group'
+    if item == 'emails':
+        active_emails = [s.email for s in group.subscribers if not s.activation_key]
+        if value not in 'active_emails':
+            return 'Cannot complete this action'
+        sub = None
+        for x in group.subscribers:
+            if x.email == value:
+                sub = x
+                break
+        if not sub:
+            return 'Cannot complete this action'
+        sub.activation_key = gen_token()
+        notif.session.commit()
+        msg = Message("Parltrack Notification Unsubscription Verification",
+                sender = "parltrack@parltrack.euwiki.org",
+                recipients = [value])
+        msg.body = "Your verification key is %sactivate?key=%s&?delete=1\nNotification group url: %snotification/%s" % (request.url_root, sub.activation_key, request.url_root, g_id)
+        mail.send(msg)
+        db.notifications.save(group)
+    # TODO items
+    return 'OK'
+
+
+@app.route('/activate')
+def activate():
+    db = connect_db()
+    k = request.args.get('key')
+    delete = True if request.args.get('delete') else False
+    if not k:
+        return 'Missing key'
+    i = notif.session.query(notif.Group).filter(notif.Group.activation_key==k).first()
+    if not i:
+        i = notif.session.query(notif.Subscriber).filter(notif.Subscriber.activation_key==k).first()
+        if not i:
+            i = notif.session.query(notif.Item).filter(notif.Item.activation_key==k).first()
+            if not i:
+                return 'invalid item'
+    if delete:
+        notif.session.delete(i)
+        notif.session.commit()
+        return 'deactivated'
+    i.activation_key = ''
+    notif.session.commit()
+    return 'activated'
+
 
 
 # Error handlers.
@@ -332,6 +488,21 @@ def getDate():
         date = asDate(request.args['date'])
     return date
 
+def gen_token():
+    return sha1(''.join([chr(randint(1, 128)) for x in range(128)]).encode()).hexdigest()
+
+
+def tojson(data):
+    #if type(data)==type(ObjectId()):
+    #    return
+    #if type(data)==type(dict()):
+    #    return dict([(k,tojson(v)) for k,v in data.items() if not type(ObjectId()) in [type(k), type(v)]])
+    #if '__iter__' in dir(data):
+    #    return [tojson(x) for x in data if type(x)!=type(ObjectId())]
+    #if hasattr(data, 'isoformat'):
+    #    return data.isoformat()
+    return data
+
 
 if not config.DEBUG:
     app.logger.setLevel(logging.INFO)
@@ -341,7 +512,7 @@ if not config.DEBUG:
 #----------------------------------------------------------------------------#
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=config.WEBSERVER_PORT)
+    app.run(host='0.0.0.0', port=config.WEBSERVER_PORT, threaded=False)
 '''
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

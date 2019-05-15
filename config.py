@@ -7,13 +7,15 @@ PROXY='http://localhost:8123/'
 
 ROOT_URL = '/'
 
-# Grabs the folder where the script runs.
+# Base directory
 basedir = os.path.abspath(os.path.dirname(__file__))
 
-# Enable debug mode.
+# Debug
 DEBUG = True
 DB_DEBUG = False
 
-# Webapp config
+# DB
+NOTIF_DB_URI = 'sqlite:///notifications.sqlite3'
 
+# Webapp
 WEBSERVER_PORT = 6776

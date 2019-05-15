@@ -3,43 +3,32 @@
 {% block rss %}
 <link rel="alternate" type="application/atom+xml" title="Changes for {{ dossier.procedure.reference }} feed" href="/dossier/atom/{{dossier.procedure.reference}}" />
 {% endblock %}
-{% block styles %}
-<link type="text/css" href="/static/js/css/jit/BarChart.css" rel="stylesheet" />
-{% endblock %}
-{% block scripts %}
-<script type="text/javascript" src="/static/js/jit-yc.js"></script>
-<!--[if IE]><script language="javascript" type="text/javascript" src="/static/js/excanvas.js"></script><![endif]-->
-<script type="text/javascript" src="/static/js/jitchart.js"></script>
-<script type="text/javascript" src="/static/js/dossier.js"></script>
-{% endblock %}
-{% block topbar %}
-<a href="/dossier/atom/{{dossier.procedure.reference}}"><img src="/static/images/rss.gif" alt="rss icon" /></a>
-<a href="/dossier/atom/{{dossier.procedure.reference}}">Track RSS</a>
-<a href="{{url}}?format=json">download json</a>
-<div id="track_dossier"><a href="/notification">Track dossier</a>
-    <div class="nondisplayed" id="notif_subscr">
-    <h3>Email subscription</h3>
-    <div>
-        <form method="get" action="" id="notif_form">
-           <div>
-              E-mail: <input id='emailinput' type="text" name="address" value=""/><br />
-              //required<br />
-              Collection name: <input type="text" name="group" /><br />
-              //generated if empty<br />
-              <input type="submit" value="subscribe" />
-           </div>
-        </form>
-    </div>
-    </div>
-</div>
-<a class="hidden" id="wikinotes" href="{{dossier.procedure.reference|reftopath}}">Notes</a>
-{% endblock %}
 {% block content %}
 <div class="ui vertical segment">
   <div class="ui center aligned stackable grid container">
     <div class="row">
+     <div class="ui horizontal list">
+      <div class="item"><a href="/dossier/atom/{{dossier.procedure.reference}}">Track RSS</a></div>
+      <div class="item"><a href="{{url}}?format=json">download json</a></div>
+      <div class="item"><a class="hidden" id="wikinotes" href="{{dossier.procedure.reference|reftopath}}">Notes</a></div>
+      <div class="item" id="track_dossier"><a href="#">Subscribe</a>
+          <div class="nondisplayed" id="notif_subscr">
+          <div>
+              <form method="get" action="#" id="notif_form">
+                 <div>
+                    <input placeholder="E-mail" id="emailinput" type="text" name="address"/>
+                    <input placeholder="Group name" type="text" name="group" id="groupinput" />
+                    <input type="submit" value="subscribe" />
+                 </div>
+              </form>
+          </div>
+          </div>
+      </div>
+     </div>
+    </div>
+    <div class="row">
       <div class="left aligned column">
-<h2 class="epheader">{{ dossier.procedure.reference }}</h2>
+<h2 class="epheader" id="dossier_title">{{ dossier.procedure.reference }}</h2>
 {% if dossier.finalref %}<p class="epheader">{{dossier.finalref}}</p>{% endif %}
 <p class="epheader">{{dossier.procedure.title}}</p>
 
@@ -399,5 +388,6 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
     $("#tabs .item").tab({history:false});
   });
 </script>
+<script type="text/javascript" src="/static/js/dossier.js"></script>
 {% endblock %}
 

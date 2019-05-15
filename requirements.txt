@@ -1,7 +1,9 @@
 beautifulsoup4
-flask
-sh
-requests
-lxml
-feedparser
 diff_match_patch
+feedparser
+flask
+flask-mail
+lxml
+requests
+sh
+sqlalchemy
