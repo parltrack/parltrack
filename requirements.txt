@@ -7,3 +7,4 @@ lxml
 requests
 sh
 sqlalchemy
+cachecontrol[filecache]
