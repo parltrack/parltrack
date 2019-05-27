@@ -21,7 +21,7 @@
 debug=False
 
 import pprint
-import sys, json
+import sys, json, re
 try:
     from itertools import izip_longest
 except:
@@ -29,7 +29,7 @@ except:
 from operator import itemgetter
 from config import ROOT_URL
 from utils.log import log
-from config import USER_AGENT, PROXY
+from config import USER_AGENT
 
 if sys.version[0] == '3':
     unicode = str
@@ -227,22 +227,24 @@ def htmldiff(item,diffs):
 
 from lxml.html.soupparser import fromstring
 import requests, time
+from cachecontrol import CacheControl
+from cachecontrol.caches.file_cache import FileCache
 
-PROXIES = {'http': PROXY}
 HEADERS =  { 'User-agent': USER_AGENT }
+sess = CacheControl(requests.Session(), cache=FileCache('/data/cache', forever=True))
 
 def fetch_raw(url, retries=5, ignore=[], params=None, binary=False):
     try:
         if params:
-            r=requests.post(url, params=params, proxies=PROXIES, headers=HEADERS)
+            r=sess.post(url, params=params, headers=HEADERS)
         else:
-            r=requests.get(url, proxies=PROXIES, headers=HEADERS)
+            r=sess.get(url, headers=HEADERS)
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
         if e == requests.exceptions.Timeout:
             retries = min(retries, 1)
         if retries>0:
             time.sleep(4*(6-retries))
-            f=fetch_raw(url, retries-1, ignore=ignore, params=params)
+            return fetch_raw(url, retries-1, ignore=ignore, params=params, binary=binary)
         else:
             raise ValueError("failed to fetch %s" % url)
     if r.status_code >= 400 and r.status_code not in [504, 502]+ignore:
@@ -293,6 +295,33 @@ def asDate(d):
             except ValueError:
                 d=datetime.strptime(d, "%d-%m-%Y")
     return d.date()
+
+
+# shorten legal bases
+def clean_lb(dossier):
+    for lbstrip, prefix in [("Treaty on the Functioning of the EU ", 'TFEU'),
+                            ("Rules of Procedure of the European Parliament EP ", 'RoP')]:
+        for i, lb in enumerate(dossier['procedure']['legal_basis']):
+            if lb.startswith(lbstrip):
+                dossier['procedure']['legal_basis'][i]="%s %s" % (prefix,lb[len(lbstrip):])
+
+
+def create_search_regex(query):
+    search_terms = query.split()
+    if len(search_terms) == 1:
+        return search_re = re.compile(re.escape(search_terms[0]), re.I | re.M | re.U)
+    return search_re = re.compile('(?=.*' + ')(?=.*'.join(map(re.escape, search_terms)) + ')', re.I | re.M | re.U)
+
+
+def dossier_search(search_re, d):
+    if (
+        search_re.search(d['procedure']['title'])
+        or search_re.search(d['procedure']['reference'])
+        or search_re.search(' '.join(d['procedure'].get('subject', [])))
+        or search_re.search(d.get('celexid', ''))
+        ): return True
+    return False
+
 
 if __name__ == "__main__":
     pass
