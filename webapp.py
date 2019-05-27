@@ -22,7 +22,7 @@ from pprint import pprint
 from random import shuffle, randrange, randint, choice
 from sys import version_info
 from urllib.parse import unquote
-from utils.utils import asDate
+from utils.utils import asDate, clean_lb
 from utils.mappings import (
     SEIRTNUOC as COUNTRIES,
     COMMITTEE_MAP,
@@ -157,6 +157,21 @@ def view_dossier(d_id):
     )
 
 
+@app.route('/subjects')
+def subjects():
+    r = db.keys('dossiers_by_subject', count=True) or {}
+    s = sorted(x for x in r.keys())
+    return render('subjects.html', subjects=s, dossier_count=r)
+
+
+@app.route('/subject/<path:subject>')
+def subject(subject):
+    r = db.get('dossiers_by_subject', subject) or []
+    if not r:
+        return not_found_error(None)
+    return render('subject.html', dossiers=r, subject=subject)
+
+
 def dossier_sort_key(d):
     if not 'activities' in d:
         return ''
@@ -232,13 +247,19 @@ def notification_view_or_create(g_id):
         notif.session.add(group)
         notif.session.commit()
     ds=[]
+    ids=[]
     active_items = [d for d in group.items if not d.activation_key]
+    inactive_items = [d for d in group.items if d.activation_key]
     if len(active_items):
-        ds=[listdossiers(db.dossier_by_id(d.id)) for d in active_items if d.type=='dossier']
+        ds=[listdossiers(db.dossier(d.name)) for d in active_items if d.type=='dossiers']
+    if len(inactive_items):
+        ids=[listdossiers(db.dossier(d.name)) for d in inactive_items if d.type=='dossiers']
     if ds and request.args.get('format','')=='json' or request.headers.get('X-Requested-With'):
         return jsonify(count=len(ds), dossiers=tojson(ds))
     return render_template('view_notif_group.html',
                            dossiers=ds,
+                           active_dossiers=len(ds),
+                           inactive_dossiers=len(ids),
                            date=datetime.now(),
                            group=group)
 
