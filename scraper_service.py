@@ -50,6 +50,11 @@ def run_scraper(scraper):
 def consume(pool, scraper):
     while True:
         job = pool.get(True)
+        if 'onfinished' in job:
+            onfinished_args = job['onfinished']
+            del(job['onfinished'])
+        else:
+            onfinished_args = {}
         scraper._lock.acquire()
         scraper._job_count += 1
         scraper._lock.release()
@@ -92,15 +97,15 @@ def consume(pool, scraper):
                 log(1, repr(e))
             pool.queue.clear()
             log(1, "---------------END OF EXCEPTIONS---------------")
-        #if hasattr(scraper, 'on_finished'):
-        #    try:
-        #        scraper.on_finished(job, ret)
-        #    except:
-        #        log(1, "failed to execute {0} job's on_finished callback (params: {1})".format(scraper._name, job))
-        #        traceback.print_exc(file=sys.stdout)
-        #        sys.stdout.flush()
-        #    else:
-        #        log(3, "{0} job's on_finished callback finished (params: {1})".format(scraper._name, job))
+        if hasattr(scraper, 'on_finished'):
+            try:
+                scraper.on_finished(**onfinished_args)
+            except:
+                log(1, "failed to execute {0} job's on_finished callback (params: {1})".format(scraper._name, onfinished_args))
+                traceback.print_exc(file=sys.stdout)
+                sys.stdout.flush()
+            else:
+                log(3, "{0} job's on_finished callback finished (params: {1})".format(scraper._name, onfinished_args))
 
         if scraper.CONFIG.get('table') is not None and job_count == 0 and pool.empty():
             db.reindex(scraper.CONFIG['table'])
