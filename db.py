@@ -17,7 +17,7 @@ from random import randrange
 from tempfile import mkstemp
 from threading import Thread
 from utils.log import log
-from utils.utils import dateJSONhandler
+from utils.utils import dateJSONhandler, create_search_regex, dossier_search
 
 
 PIDFILE='db.pid'
@@ -31,6 +31,7 @@ def normalize_name(t):
 
 
 class Client:
+    mepCache={}
     def commit(self, table):
         cmd = {"cmd": "commit", "params": {"table": table}}
         return self.send_req(cmd)
@@ -43,12 +44,20 @@ class Client:
         cmd = {"cmd": "get", "params": {"key": key, "source": source}}
         return self.send_req(cmd)
 
+    def keys(self, source, count=False):
+        cmd = {"cmd": "keys", "params": {"source": source, 'count': count}}
+        return self.send_req(cmd)
+
     def search(self, source, query):
         cmd = {"cmd": "search", "params": {"source": source, "query": query}}
         return self.send_req(cmd)
 
     def count(self, source, key):
         cmd = {"cmd": "count", "params": {"source": source, "key": key}}
+        return self.send_req(cmd)
+
+    def reindex(self, table):
+        cmd = {"cmd": "reindex", "params": {"table": table}}
         return self.send_req(cmd)
 
     def mepid_by_name(self, name, date=None, group=None, gabbr=None):
@@ -105,11 +114,26 @@ class Client:
     def vote(self,id):
         return self.get('ep_votes', id)
 
+    def amendment(self,id):
+        return self.get('ep_amendments', id)
+
     def dossiers_by_activity(self,key=True):
         return self.get('active_dossiers', "active" if key else "inactive")
 
     def dossier_refs(self):
         return self.get('dossier_refs', None)
+
+    def getMep(self, name, date=None,group=None, abbr=None):
+        if name in self.mepCache:
+            return self.mepCache[name]
+        if not name: return
+
+        mepid = self.mepid_by_name(name, date=date, group=group, gabbr=abbr)
+        if mepid:
+            self.mepCache[name]=mepid
+            return mepid
+        log(2,'no mepid found for "%s"' % name)
+        self.mepCache[name]=None
 
 def cleanup_singleton():
     log(3,"cleaning up {}".format(PIDFILE))
@@ -232,6 +256,8 @@ def mainloop():
             query = read_req(connection)
             if query.get('cmd', '') == 'get':
                 res = get(**query.get('params', {})) or None
+            elif query.get('cmd', '') == 'keys':
+                res = keys(**query.get('params', {})) or None
             elif query.get('cmd', '') == 'put':
                 res = put(**query.get('params', {})) or None
             elif query.get('cmd', '') == 'commit':
@@ -240,6 +266,8 @@ def mainloop():
                 res = search(**query.get('params', {})) or None
             elif query.get('cmd', '') == 'count':
                 res = count(**query.get('params', {})) or None
+            elif query.get('cmd', '') == 'reindex':
+                res = reindex(**query.get('params', {})) or None
             elif query.get('cmd', '') == 'mepid_by_name':
                 res = mepid_by_name(**query.get('params', {})) or None
             else:
@@ -279,6 +307,24 @@ def get(source, key):
     return None
 
 
+def keys(source, count=False):
+    if count:
+        s = None
+        if source in IDXs:
+            s = IDXs
+        if source in DBS:
+            s = DBS
+        if s:
+            return {x:len(s[source][x]) for x in s[source].keys()}
+    else:
+        if source in IDXs:
+            return list(IDXs[source].keys())
+        if source in DBS:
+            return list(DBS[source].keys())
+    log(1, 'source not found in db nor in index')
+    return None
+
+
 def put(table, value):
     # TODO error handling
     if not table in DBS:
@@ -287,7 +333,7 @@ def put(table, value):
     key = TABLES[table]['key'](value) or genkey(table)
     log(3,'storing into src: "{}" key: {!r}'.format(table,key))
     DBS[table][key]=value
-    reindex(table)
+    #reindex(table)
     return True
 
 
@@ -300,19 +346,10 @@ def count(source, key):
 
 def search(source, query):
     res = []
-    search_terms = query.split()
-    if len(search_terms) == 1:
-        search_re = re.compile(re.escape(search_terms[0]), re.I | re.M | re.U)
-    else:
-        search_re = re.compile('(?=.*' + ')(?=.*'.join(map(re.escape, search_terms)) + ')', re.I | re.M | re.U)
+    search_re = create_search_regex(query)
     if source == 'ep_dossiers':
         for d in DBS[source].values():
-            if (
-                search_re.search(d['procedure']['title'])
-                or search_re.search(d['procedure']['reference'])
-                or search_re.search(' '.join(d['procedure'].get('subject', [])))
-                or search_re.search(d.get('celexid', ''))
-            ):
+            if dossier_search(search_re, d):
                 res.append(d)
     return res
 
@@ -441,6 +478,14 @@ def idx_ams_by_dossier():
         res[dossier].append(am)
     return res
 
+def idx_dossiers_by_subject():
+    res = {}
+    for d in DBS['ep_dossiers'].values():
+        for s in d['procedure'].get('subject',[]):
+            if not s in res: res[s] = []
+            res[s].append(d)
+    return res
+
 def idx_com_votes_by_dossier():
     res = {}
     for vote in DBS['ep_com_votes'].values():
@@ -513,7 +558,7 @@ def idx_dossier_refs():
 
 TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_by_dossier"},
                                         {"fn": idx_ams_by_mep, "name": "ams_by_mep"}],
-                            'key': lambda x: x.get('_id')},
+                            'key': lambda x: x.get('id')},
 
           'ep_comagendas': {"indexes": [],
                             'key': lambda x: x.get('_id')},
@@ -524,7 +569,8 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
 
           'ep_dossiers': {'indexes': [{"fn": idx_active_dossiers, "name": "active_dossiers"},
                                       {"fn": idx_dossiers_by_doc, "name": "dossiers_by_doc"},
-                                      {"fn": idx_dossier_refs, "name": "dossier_refs"}],
+                                      {"fn": idx_dossier_refs, "name": "dossier_refs"},
+                                      {"fn": idx_dossiers_by_subject, "name": "dossiers_by_subject"}],
                           'key': lambda x: x['procedure']['reference']},
 
           'ep_meps': {'indexes': [{"fn": idx_meps_by_activity, "name": "meps_by_activity"},
