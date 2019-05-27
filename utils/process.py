@@ -6,19 +6,21 @@ from utils.utils import jdump
 from utils.objchanges import diff, patch # todo decide if to remove this sanity check?
 from datetime import datetime
 
-def process(obj, id, getter, table, name, nopreserve=[], nodiff=False, nostore=False):
+def process(obj, id, getter, table, name, nopreserve=[], nodiff=False, nostore=False, onchanged=None):
     # clear out empty values
     obj = {k:v for k,v in obj.items() if v or v==False}
 
-    if nodiff: # todo remove after first activities commit())
+    if nodiff:
         now=datetime.utcnow().replace(microsecond=0)
         if not 'meta' in obj: obj['meta']={}
         log(3,'adding %s (%s)' % (name, id))
         obj['meta']['created']=now
         obj['changes']={}
-        if not db.put(table, obj):
+        if not nostore and not db.put(table, obj):
             log(1,"failed to store updated obj {}".format(id))
             raise ValueError
+        if onchanged is not None:
+            onchanged(obj, d)
         return
 
     # generate diff
@@ -41,6 +43,7 @@ def process(obj, id, getter, table, name, nopreserve=[], nodiff=False, nostore=F
             obj[c['path'][0]]=prev[c['path'][0]]
         d = d1
     else:
+        #log(4,"no previous record for {} in {}".format(obj.get('voteid'),obj.get('url'))) # todo remove after pvotes is working
         d=diff({}, {k:v for k,v in obj.items() if not k in ['meta', 'changes', '_id']})
 
     if d:
@@ -55,11 +58,11 @@ def process(obj, id, getter, table, name, nopreserve=[], nodiff=False, nostore=F
                       {k:v for k,v in obj.items() if not k in ['meta', 'changes', '_id']})
             if zero != []:
                 log(1,"id:{} diff between current record and patched previous one is not empty\n{!r}".format(id, zero))
-                raise ValueError
+                raise ValueError("diff between new and patched old is not empty")
 
         now=datetime.utcnow().replace(microsecond=0)
         if not 'meta' in obj: obj['meta']={}
-        if not prev:
+        if not prev or nodiff:
             log(3,'adding %s (%s)' % (name, id))
             obj['meta']['created']=now
             obj['changes']={}
@@ -72,6 +75,8 @@ def process(obj, id, getter, table, name, nopreserve=[], nodiff=False, nostore=F
         if not nostore and not db.put(table, obj):
             log(1,"failed to store updated obj {}".format(id))
             raise ValueError
+        if onchanged is not None:
+            onchanged(obj, d)
     del prev
     if __name__ == '__main__':
         print(jdump(obj))
