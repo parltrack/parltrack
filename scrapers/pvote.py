@@ -37,19 +37,6 @@ CONFIG = {
     'table': 'ep_votes',
 }
 
-mepCache={}
-def getMep(name,date,group):
-    if name in mepCache:
-        return mepCache[name]
-    if not name: return
-
-    mepid = db.mepid_by_name(name, date, gabbr=group)
-    if mepid:
-        mepCache[name]=mepid
-        return mepid
-    log(2,'no mepid found for "%s"' % name)
-    mepCache[name]=None
-
 docre=re.compile(u'((?:[AB]|RC)[678]\s*-\s*[0-9]{3,4}\/[0-9]{4})')
 ignoredox = ['B6-0023/2004', 'B6-0043/2007', 'B6-0155/2004', 'B6-0161/2006', 'B6-0209/2007', 'B6-0223/2005', 'B6-0318/2005',
              'B6-0338/2008', 'B6-0507/2006', 'B6-0521/2006', 'B6-0526/2006', 'B6-0642/2005', 'B7-0045/2012', 'B7-0089/2010',
@@ -179,7 +166,7 @@ def scrape(term, date):
                     m = {#'_id': int(mep.get('MepId')),     # it's a totally useless and confusing id that is nowhere else used
                          }
                     name = junws(mep)
-                    mepid = getMep(name, v['ts'], g)
+                    mepid = db.getMep(name, v['ts'], abbr=g)
                     if mepid:
                         m['mepid']= mepid
                     else:
