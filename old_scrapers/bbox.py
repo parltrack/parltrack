@@ -1,10 +1,15 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# finds bounding boxes, used by pdfmask
+# finds bounding boxes, used by amendments
 
+import os, sys
+from PIL import Image, ImageMath
+from sh import gs
+from tempfile import mkdtemp
+from shutil import rmtree
+import numpy as np
 import scipy.ndimage as ndimage
 import scipy.spatial as spatial
-import sys
 
 class BBox(object):
     def __init__(self, x1, y1, x2, y2):
@@ -24,6 +29,8 @@ class BBox(object):
         Return the taxicab distance from (x1,y1) to (x2,y2)
         '''
         return self.x2 - self.x1 + self.y2 - self.y1
+    def __hash__(self):
+        return hash((self.x1, self.y1, self.x2, self.y2))
     def overlaps(self, other):
         '''
         Return True iff self and other overlap.
@@ -104,3 +111,28 @@ def remove_overlaps(bboxes):
                 bbox.x2 = near_bbox.x2 = max(bbox.x2, near_bbox.x2)
                 bbox.y2 = near_bbox.y2 = max(bbox.y2, near_bbox.y2)
     return set(bbox_map.values())
+
+def getdims(pdf):
+    tmpdir=mkdtemp()
+    gs('-q',
+       '-dQUIET',
+       '-dSAFER',
+       '-dBATCH',
+       '-dNOPAUSE',
+       '-dNOPROMPT',
+       '-sDEVICE=pngmono',
+       '-r72x72',
+       '-sOutputFile=%s/%%08d' % tmpdir,
+       '-f%s' % pdf)
+    mask=None
+    for fname in os.listdir(tmpdir):
+        page=Image.open(tmpdir+'/'+fname) #.convert("1",dither=Image.NONE)
+        if not mask:
+            mask=page
+        mask=ImageMath.eval("a & b", a=page, b=mask)
+    rmtree(tmpdir)
+    data = np.array(mask)
+    data_slices = find_paws(255-data, smooth_radius = 5, threshold = 5)
+    bboxes = remove_overlaps(slice_to_bbox(data_slices))
+    m=max(bboxes,key=lambda x: (x.x2 - x.x1)*(x.y2 - x.y1))
+    return (m.x1,m.y1,m.y2-m.y1,m.x2-m.x1)
