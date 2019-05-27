@@ -41,6 +41,8 @@ p { margin: 4px !important; font-size: 18px; }
       <a class="header item{% if request.url_rule.endpoint == 'home' %} active{% endif %}" href="{{ url_for('home') }}">Home</a>
       <a class="item{% if request.url_rule.endpoint == 'meps' %} active{% endif %}" href="{{ url_for('meps') }}">MEPs</a>
       <a class="item{% if request.url_rule.endpoint == 'dossiers' %} active{% endif %}" href="{{ url_for('dossiers') }}">Dossiers</a>
+      <a class="item{% if request.url_rule.endpoint == 'subjects' %} active{% endif %}" href="{{ url_for('subjects') }}">Subjects</a>
+      <a class="item" href="/blog">Blog</a>
       <a class="item{% if request.url_rule.endpoint == 'about' %} active{% endif %}" href="{{ url_for('about') }}">About</a>
 	  <div class="right menu">
 	  	 <div class="ui right aligned category search item">
