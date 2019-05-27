@@ -309,8 +309,8 @@ def clean_lb(dossier):
 def create_search_regex(query):
     search_terms = query.split()
     if len(search_terms) == 1:
-        return search_re = re.compile(re.escape(search_terms[0]), re.I | re.M | re.U)
-    return search_re = re.compile('(?=.*' + ')(?=.*'.join(map(re.escape, search_terms)) + ')', re.I | re.M | re.U)
+        return re.compile(re.escape(search_terms[0]), re.I | re.M | re.U)
+    return re.compile('(?=.*' + ')(?=.*'.join(map(re.escape, search_terms)) + ')', re.I | re.M | re.U)
 
 
 def dossier_search(search_re, d):
