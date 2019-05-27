@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+{% import 'mep_listview.html' as listview %}
+<div class="ui vertical segment">
+  <div class="ui center aligned stackable grid container">
+    <div class="row">
+      <div class="left aligned column">
+          <h1>Subject "{{subject}}"</h1>
+          {% if dossiers %}
+          <h2>Dossiers ({{dossiers|length}})</h2>
+          <div class="ui fluid divided items">
+          {% for d in dossiers %}
+              <div class="item">
+                  <div class="content">
+                     <div class="header"><a href="/dossier/{{ d.procedure.reference }}">{{ d.procedure.reference }}</a></div>
+                      <div class="description">
+                         {{d.procedure.title }}
+                      </div>
+                  </div>
+              </div>
+          {% endfor %}
+          </div>
+          {% endif %}
+      </div>
+	</div>
+  </div>
+</div>
+{% endblock %}

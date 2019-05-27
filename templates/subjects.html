@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="ui vertical segment">
+  <div class="ui center aligned stackable grid container">
+    <div class="row">
+      <div class="left aligned column">
+         <h1>Subjects ({{ subjects|length }})</h1>
+          <div class="ui fluid items">
+          {% for s in subjects %}
+          <div class="item">
+            <div class="content">
+             <div class="header">{{ s }}</div>
+             <div class="description">
+                <a class="ui blue horizontal basic label" href="/subject/{{s}}">{{ dossier_count[s] }} dossiers</a>
+                <a class="ui purple horizontal basic label" href="#" onclick="$('#subject_name').val('{{s}}');$('.modal').modal('show');">subscribe</a>
+             </div>
+           </div>
+          </div>
+          {% endfor %}
+          </div>
+      </div>
+	</div>
+  </div>
+</div>
+<div class="ui modal form">
+  <i class="close icon"></i>
+  <div class="header">
+    Subscribe
+  </div>
+  <div class="content">
+    <div class="description">
+     <div class="field">
+      <label>Notification group</label>
+       <input type="text" id="group_name" placeholder="Name..">
+      </div>
+     <div class="field">
+      <label>Subject</label>
+       <input type="text" readonly="true" id="subject_name" placeholder="Name..">
+      </div>
+    </div>
+  </div>
+  <div class="actions">
+    <input type="button" value="Subscribe" class="ui button" onclick="subscribe();">
+    <div class="ui black deny button" onclick="$('.modal').modal('hide');">
+      Cancel
+    </div>
+    </div>
+  </div>
+</div>
+<script type="text/javascript">
+var subscribe = function() {
+  var group = $('#group_name').val();
+  var subject = $('#subject_name').val();
+  if(!group) {
+      $.ajax({url: '/notification', success: function(data) { group = data;
+          $.ajax({url: group, success: function(data) {
+              $.ajax({url: group+'/add/subjects/'+subject});
+          }});
+      }});
+  } else {
+  $.ajax({url: '/notification/'+group, success: function(data) {
+      $.ajax({url: '/notification/'+group+'/add/subjects/'+subject, success: function(data) {
+          $('#notif_subscr h3').html(data);
+          }});
+      }});
+  }
+  $('.modal').modal('hide');
+  return false;
+}
+
+$(document).ready(function() {
+  $('.modal').modal('hide');
+});
+</script>
+{% endblock %}
