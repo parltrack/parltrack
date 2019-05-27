@@ -17,17 +17,21 @@
 
 # (C) 2009-2011,2018 by Stefan Marsiske, <stefan.marsiske@gmail.com>
 
+import notification_model as notif
+
 from db import db
 from utils.log import log
 from utils.process import process
 from utils.mappings import GROUP_MAP, COMMITTEE_MAP
-from utils.utils import fetch, fetch_raw, junws, unws
+from utils.utils import fetch, fetch_raw, junws, unws, create_search_regex, dossier_search, textdiff
 from urllib.parse import urljoin
 from datetime import datetime
 from lxml.etree import tostring, _ElementUnicodeResult
 from lxml.html.soupparser import fromstring
 from itertools import zip_longest
 from operator import itemgetter
+from webapp import mail
+from flask_mail import Message
 
 BASE_URL = 'https://oeil.secure.europarl.europa.eu'
 
@@ -84,13 +88,22 @@ def scrape(url, save=True):
                 break
 
     if save:
-        return process(dossier, ref, db.dossier, 'ep_dossiers', ref, nopreserve=['other', 'forecasts']) #, nostore=True) # todo remove nostore, and possibly also from process()
+        return process(
+            dossier,
+            ref,
+            db.dossier,
+            'ep_dossiers',
+            ref,
+            nopreserve=['other', 'forecasts'],
+            onchanged=onchanged,
+        ) #, nostore=True) # todo remove nostore, and possibly also from process()
     return dossier
 
 def scrape_basic(root, ref):
     res={}
     for para in root.xpath('//div[@id="basic-information-data"]//p/strong'):
         title = junws(para)
+        log(4,"title: %s" % title)
         if title in [ref, 'Status']: continue
         if title == 'Subject': title = 'subject'
         if title == 'Geographical area': title = 'geographical_area'
@@ -103,7 +116,7 @@ def scrape_basic(root, ref):
         if len(tmp)>1:
             log(2, "basic section of %s has more p in 2nd column: %s" % (ref,tmp))
         elif not tmp:
-            tmp = para.xpath('./following-sibling::node()[not(self::br) and preceding-sibling::strong[1] and following-sibling::strong[1]]')
+            tmp = para.xpath('./following-sibling::node()[not(self::br) and not(self::strong) and preceding-sibling::strong[1][text()="%s"]]' % para.xpath('./text()')[0])
             if not tmp and not para.xpath('./following-sibling::strong[1]'):
                 tmp = para.xpath('./following-sibling::node()[not(self::br)]')
         if not tmp:
@@ -883,17 +896,48 @@ def checkUrl(url):
     #log(2, htmldiff(data,d))
     #log(2, makemsg(data,d))
 
-#def makemsg(data, d):
-#    return (u"Parltrack has detected a change in %s %s on OEIL.\n\nPlease follow this URL: %s/dossier/%s to see the dossier.\n\nChanges follow\n%s\n\n\nsincerly,\nYour Parltrack team" %
-#            (data['procedure']['reference'],
-#             data['procedure']['title'],
-#             ROOT_URL,
-#             data['procedure']['reference'],
-#             textdiff(d)))
+
+def onchanged(doc, diff):
+    id = doc['procedure']['reference']
+    dossiers = notif.session.query(notif.Item).filter(notif.Item.value==id).all()
+    subject_items = notif.session.query(notif.Item).filter(notif.Item.type=='subjects').all()
+    search_items = notif.session.query(notif.Item).filter(notif.Item.type=='search').all()
+    recipients = set()
+    for i in dossiers:
+        for s in i.group.subscribers:
+            recipients.add(s.email)
+    for i in subject_items:
+        if i.value in (x for x in doc['procedure']['subject']):
+            for s in i.group.subscribers:
+                recipients.add(s.email)
+    for i in search_items:
+        q = create_search_regex(i.value)
+        if dossier_search(q, doc):
+            for s in i.group.subscribers:
+                recipients.add(s.email)
+    log(3, "sending dossier changes to " + ', '.join(recipients))
+    msg = Message("[PT] %s %s" % (doc['procedure']['reference'],doc['procedure']['title']),
+		  sender = "parltrack@parltrack.euwiki.org",
+		  bcc = list(recipients))
+    #msg.html = htmldiff(doc,d)
+    msg.body = makemsg(doc)
+    mail.send(msg)
+    return
+
+
+def makemsg(d):
+    return (u"Parltrack has detected a change in %s %s on OEIL.\n\nPlease follow this URL: %s/dossier/%s to see the dossier.\n\nChanges follow\n%s\n\n\nsincerly,\nYour Parltrack team" %
+            (d['procedure']['reference'],
+             d['procedure']['title'],
+             ROOT_URL,
+             d['procedure']['reference'],
+             textdiff(d)))
+
 
 if __name__ == '__main__':
     from utils.utils import jdump
-    print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=1992/0449B(COD)&l=en")))
+    #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=1992/0449B(COD)&l=en")))
+    print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil//popups/ficheprocedure.do?reference=2018/0252(NLE)&l=en")))
 
     #print(jdump(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2011/2080(ACI)&l=en")))
     #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2017/2139(DEC)&l=en")))
