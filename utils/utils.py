@@ -29,6 +29,7 @@ except:
 from operator import itemgetter
 from config import ROOT_URL
 from utils.log import log
+from utils.objchanges import hashabledict
 from config import USER_AGENT
 
 if sys.version[0] == '3':
@@ -321,6 +322,24 @@ def dossier_search(search_re, d):
         or search_re.search(d.get('celexid', ''))
         ): return True
     return False
+
+
+terms = {
+    1: {'start': '1979-07-11', 'end': '1984-07-23'},
+    2: {'start': '1984-07-24', 'end': '1989-07-24'},
+    3: {'start': '1989-07-25', 'end': '1994-07-18'},
+    4: {'start': '1994-07-19', 'end': '1999-07-19'},
+    5: {'start': '1999-07-20', 'end': '2004-07-19'},
+    6: {'start': '2004-07-20', 'end': '2009-07-13'},
+    7: {'start': '2009-07-14', 'end': '2014-06-30'},
+    8: {'start': '2014-07-01', 'end': ''},
+}
+
+
+def end_of_term(term):
+    if not term in terms:
+        return
+    return terms[term]['end']
 
 
 if __name__ == "__main__":
