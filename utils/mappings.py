@@ -163,6 +163,7 @@ COMMITTEE_MAP={u'AFET': u"Foreign Affairs",
                u"Women's Rights and Gender Equality": u'FEMM',
                u"Committee on Women's Rights and Gender": u'FEMM',
                u"Women’s Rights and Gender Equality": u'FEMM',
+               u"Womens Rights and Gender Equality": u'FEMM',
                u'Petitions': u'PETI',
                u'Financial, Economic and Social Crisis': u'CRIS',
                u'Policy Challenges Committee': u'SURE',
@@ -202,6 +203,7 @@ COMMITTEE_MAP={u'AFET': u"Foreign Affairs",
                u'Committee on Constitutional Affairs': u'AFCO',
                u"Committee on Women's Rights and Gender Equality": u'FEMM',
                u"Committee on Women’s Rights and Gender Equality": u'FEMM',
+               u"Committee on Womens Rights and Gender Equality": u'FEMM',
                u'Committee on Petitions': u'PETI',
                u'Committee on Financial, Economic and Social Crisis': u'CRIS',
                u'Committee on Policy Challenges Committee': u'SURE',
@@ -261,6 +263,7 @@ COMMITTEE_MAP={u'AFET': u"Foreign Affairs",
                u'Special Committee on the Union_s authorisation procedure for pesticides'                                                      : u"PEST",
                u"Special Committee on the Union's authorisation procedure for pesticides"                                                      : u"PEST",
                u'Special committee on the Union’s authorisation procedure for pesticides'                                                      : u"PEST",
+               u'Special committee on the Unions authorisation procedure for pesticides'                                                      : u"PEST",
                u"Committee on Citizens' Freedoms and Rights, Justice and Home Affairs"                                                         : u"LIBE",
                u"Committee on Foreign Affairs, Human Rights, Common Security and Defence Policy"                                               : u"AFET",
                u"Committee on Foreign Affairs, Security and Defence Policy"                                                                    : u"AFET",
@@ -937,3 +940,132 @@ VOTE_DOX_RE = {
     'B6-387/2006': '2006/2592(RSP)',
     'A6-0120/2009': '2016/0280(COD)',
 }
+
+stage2percent = {
+    'Legislative proposal published': 0,
+    'Initial legislative proposal published': 0,
+    'Modified legislative proposal published': 0,
+    'Legislative proposal': 0,
+    'Commission preliminary draft budget published': 0,
+
+    'Preparatory phase in Parliament': 3,
+
+    'Commission draft budget published': 5,
+    'Council draft budget published': 5,
+    'Committee referral announced in Parliament, 1st reading/single reading': 5,
+    'Committee referral announced in Parliament, 2nd reading': 5,
+    'Referral to joint committee announced in Parliament': 5,
+
+    'Amended legislative proposal for reconsultation published': 10,
+    'Referral to associated committees announced in Parliament': 10,
+    'Awaiting Parliament 1st reading / single reading / budget 1st stage': 10,
+    'Awaiting Parliament 2nd reading': 10,
+
+    'Formal reconsultation of Parliament': 20,
+
+    'Vote in committee, 1st reading/single reading': 25,
+    'Vote in committee, 2nd reading': 25,
+    'Vote scheduled in committee, 1st reading/single reading': 25,
+    'Awaiting approval of interim report': 25,
+    'Awaiting reconsultation': 25,
+
+    'Committee interim report tabled for plenary': 30,
+    'Start of budgetary conciliation (Parliament and Council)': 30,
+
+    'Committee report tabled for plenary, single reading': 40,
+    'Committee report tabled for plenary, 1st reading/single reading': 40,
+    "Preparatory budgetary report tabled for plenary": 40,
+    'Budgetary report tabled for plenary, 1st reading': 40,
+    'Budgetary report tabled for plenary, 2nd reading': 40,
+    'Budgetary conciliation report tabled for plenary': 40,
+    'Decision by committee, without report': 40,
+    "Committee report tabled for plenary, reconsultation": 40,
+    'Report tabled for plenary, 3rd reading': 40,
+    "Committee report tabled for plenary confirming Parliament's position": 40,
+    'Committee recommendation tabled for plenary, 2nd reading': 40,
+    'Formal meeting of Conciliation Committee': 40,
+
+    'Indicative plenary sitting date, 1st reading/single reading': 50,
+    'Indicative plenary sitting date, 2nd reading': 50,
+    'Debate in Parliament': 50,
+    'Debate scheduled': 50,
+    'Debate in plenary scheduled': 50,
+
+    'Results of vote in Parliament': 60,
+    'Vote in plenary scheduled': 60,
+    'Vote scheduled': 60,
+
+    'Decision by Parliament, 1st reading/single reading': 65,
+    'Decision by Parliament, 2nd reading': 65,
+    'Decision by Parliament, 3rd reading': 65,
+
+    "Matter referred back to the committee responsible": 70,
+    'Report referred back to committee': 70,
+    'Awaiting committee decision': 70,
+    'Awaiting the opening of interinstitutional negotiations': 70,
+
+    "Committee decision to open interinstitutional negotiations with report adopted in committee": 75,
+    "Committee decision to open interinstitutional negotiations after 1st reading in Parliament": 75,
+    "Rejection by committee to open interinstitutional negotiations with report adopted in committee": 75,
+    "Committee decision to open interinstitutional negotiations prior to the adoption of the report": 75,
+    "Committee decision to open interinstitutional negotiations at 2nd reading": 75,
+    'Commission response to text adopted in plenary': 75,
+
+    'Interinstitutional negotiations opened - proposal for mandate approved': 77,
+
+    "Approval in committee of the text agreed at 1st reading interinstitutional negotiations": 80,
+    "Approval in committee of the text agreed at early 2nd reading interinstitutional negotiations": 80,
+
+    'Budgetary conciliation committee convened': 85,
+    "Approval in committee of the text agreed at 2nd reading interinstitutional negotiations": 85,
+    'Awaiting announcement of budgetary joint text': 85,
+    'Awaiting final decision': 85,
+
+    'Awaiting Council 1st reading position / budgetary conciliation convocation': 87,
+    'Awaiting Council decision on budgetary joint text': 87,
+    'Awaiting Council decision on delegated act': 87,
+    'Awaiting Council decision, 2nd reading': 87,
+ 
+    'Political agreement in Council on its 1st reading position': 90,
+    'Budgetary joint text published': 90, # ?
+    "Parliament's amendments rejected by Council": 90,
+    "Delegated act not objected by Council": 90,
+    "Delegated act not objected by Parliament": 90,
+    "Delegated act objected by Council": 90,
+    'Decision by Council': 90,
+    'Final decision by Conciliation Committee': 90,
+    'Decision by Council, 3rd reading': 90,
+    'Awaiting Parliament decision on budgetary joint text': 90,
+
+    'Council position published': 91,
+
+    "Council amended draft budget published": 92, #?
+    'Final act signed': 92,
+    'Draft budget approved by Council': 92,
+    'Act approved by Council, 2nd reading': 92,
+    'Joint text approved by Conciliation Committee co-chairs': 92,
+    'Agreement not reached in budgetary conciliation': 92,
+    'Political agreement on Council position': 92,
+    'Provisional agreement between Parliament and Council on final act': 92,
+
+    'Council position scheduled for adoption': 93,
+    'Amended budget adopted by Council': 93,
+
+    'Act adopted by Council after consultation of Parliament': 94,
+    "Act adopted by Council after Parliament's 1st reading": 94,
+    'Awaiting signature of act': 94,
+
+    'Final act signed by Parliament and Council': 95,
+
+    'End of procedure in Parliament': 96,
+
+    'Proposal withdrawn by Commission': 100,
+    'Final act published in Official Journal': 100,
+    'Procedure lapsed or withdrawn': 100,
+    'Procedure rejected': 100,
+    'Procedure completed': 100,
+    'Procedure completed - delegated act enters into force': 100,
+    'Procedure completed - delegated act rejected': 100,
+    'Procedure completed, awaiting publication in Official Journal': 100,
+
+ }
