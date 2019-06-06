@@ -87,7 +87,7 @@ def getXML(term, date):
         try:
             raw = fetch_raw(url,binary=True)
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 404: return None
+            if e.response.status_code == 404: return None, None
             log(1, "failed to fetch xml from url: %s" % url)
             raise
         try:
@@ -102,11 +102,11 @@ def getXML(term, date):
         return _get(url_templates[template], term,_date)
     # dang EP is a mess, let's try both templates, maybe one of them magically starts working
     res = _get(url_templates['vn'], term,_date)
-    if res:
+    if res != (None,None):
         log(1, 'Holy Hole in a Doughnut! Batman, a previously lost plenary vote xml suddenly reappered, from now on use the "vn" url template for (%d, %s)' % (term,date))
         return res
     res = _get(url_templates['lp'], term,_date)
-    if res:
+    if res != (None,None):
         log(1, 'Holy astringent plum-like fruit! Batman, a previously missing plenary vote xml suddenly reappered, from now on use the "lp" url template for (%d, %s)' % (term,date))
         return res
     log(1, 'still no xml for plenary votes at (%d, %s)' % (term,date))
@@ -117,6 +117,7 @@ def scrape(term, date):
     log(3,"scraping P%d %s" % (term, date))
     url, root = getXML(term, date)
     if (url, root) == (None, None):
+        log(1,"could not get votes for %d %s" %(term, date))
         return # angrily o/
     log(3, "processing plenary votes xml from %s" % url)
     # root is:
