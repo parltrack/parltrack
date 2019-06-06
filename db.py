@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 import atexit
 import json
@@ -16,11 +17,11 @@ from datetime import datetime, date, timedelta
 from random import randrange
 from tempfile import mkstemp
 from threading import Thread
-from utils.log import log
-from utils.utils import dateJSONhandler, create_search_regex, dossier_search
+from utils.log import log, set_logfile
+from utils.utils import dateJSONhandler, create_search_regex, dossier_search, end_of_term
 
 
-PIDFILE='db.pid'
+PIDFILE='/tmp/db.pid'
 
 DBS = {}
 IDXs = {}
@@ -486,6 +487,24 @@ def idx_dossiers_by_subject():
             res[s].append(d)
     return res
 
+def idx_dossiers_by_committee():
+    res = {}
+    for d in DBS['ep_dossiers'].values():
+        for c in d.get('committees',[]):
+            if not 'date' in c:
+                continue
+            d = c['date']
+            if isinstance(d, list):
+                if not d:
+                    continue
+                d = d[0]
+            if d < end_of_term(4):
+                continue
+            n = c['committee_full']
+            if not n in res: res[n] = []
+            res[n].append(d)
+    return res
+
 def idx_com_votes_by_dossier():
     res = {}
     for vote in DBS['ep_com_votes'].values():
@@ -536,6 +555,7 @@ def idx_active_dossiers():
     for dossier in DBS['ep_dossiers'].values():
         if not 'stage_reached' in dossier['procedure']:
             log(1, "no stage_reached in %s" % dossier['procedure']['reference'])
+            continue
         if dossier['procedure']['stage_reached'] in [ "Procedure completed", "Procedure rejected", "Procedure lapsed or withdrawn"]:
             res['inactive'].append(dossier)
         else:
@@ -570,7 +590,8 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
           'ep_dossiers': {'indexes': [{"fn": idx_active_dossiers, "name": "active_dossiers"},
                                       {"fn": idx_dossiers_by_doc, "name": "dossiers_by_doc"},
                                       {"fn": idx_dossier_refs, "name": "dossier_refs"},
-                                      {"fn": idx_dossiers_by_subject, "name": "dossiers_by_subject"}],
+                                      {"fn": idx_dossiers_by_subject, "name": "dossiers_by_subject"},
+                                      {"fn": idx_dossiers_by_committee, "name": "dossiers_by_committee"}],
                           'key': lambda x: x['procedure']['reference']},
 
           'ep_meps': {'indexes': [{"fn": idx_meps_by_activity, "name": "meps_by_activity"},
@@ -589,6 +610,7 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
 db = Client()
 
 if __name__ == '__main__':
+    set_logfile("/tmp/db.log")
     if len(sys.argv) > 1 and sys.argv[1] == 'dev':
         init('dev_dumps')
     else:
