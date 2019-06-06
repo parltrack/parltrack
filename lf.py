@@ -16,7 +16,7 @@ def parse(line):
         date = datetime.fromisoformat(tokens[0])
     except:
         return line
-    if tokens[1] not in ['db','dossier','dossiers','mep','meps','mgr','pvote','pvotes']:
+    if tokens[1] not in ['db','dossier','dossiers','mep','meps','mgr','pvote','pvotes', 'amendment', 'amendments']:
         return line
     module = tokens[1]
     if tokens[2] not in LEVELS:
@@ -40,6 +40,8 @@ def dump(date, module, level, levelz, msg):
         "dossiers": "\033[38;2;127;127;127mpvotes\033[0m",
         "pvote": "pvote",
         "pvotes": "\033[38;2;127;127;127mpvotes\033[0m",
+        "amendment": "amendment",
+        "amendments": "\033[38;2;127;127;127mamendments\033[0m",
     }
     if dlevel<level:
         return
@@ -103,10 +105,10 @@ for line in sys.stdin:
             nobody[msg[25:]]+=1
         #if msg.startswith("preserving deleted path ['other'] for obj id:"): # todo remove
         #    continue
-        if module in ['dossier','mep','pvote'] and level==3 and msg.startswith("adding "):
+        if module in ['dossier','mep','pvote','amendment'] and level==3 and msg.startswith("adding "):
             if module not in changes: changes[module]={'added':0, 'updated':0}
             changes[module]['added']+=1
-        if module in ['dossier','mep','pvote'] and level==3 and msg.startswith("updating "):
+        if module in ['dossier','mep','pvote','amendment'] and level==3 and msg.startswith("updating "):
             if module not in changes: changes[module]={'added':0, 'updated':0}
             changes[module]['updated']+=1
         dump(date, module, level, levelz, msg)
