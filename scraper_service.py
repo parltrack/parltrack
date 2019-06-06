@@ -70,7 +70,7 @@ def consume(pool, scraper):
                 scraper._error_queue.pop(0)
                 scraper._error_queue.append(e)
                 scraper._lock.release()
-                
+
         else:
             if scraper.CONFIG['abort_on_error']:
                 scraper._lock.acquire()
@@ -97,19 +97,21 @@ def consume(pool, scraper):
                 log(1, repr(e))
             pool.queue.clear()
             log(1, "---------------END OF EXCEPTIONS---------------")
-        if hasattr(scraper, 'on_finished'):
-            try:
-                scraper.on_finished(**onfinished_args)
-            except:
-                log(1, "failed to execute {0} job's on_finished callback (params: {1})".format(scraper._name, onfinished_args))
-                traceback.print_exc(file=sys.stdout)
-                sys.stdout.flush()
-            else:
-                log(3, "{0} job's on_finished callback finished (params: {1})".format(scraper._name, onfinished_args))
 
-        if scraper.CONFIG.get('table') is not None and job_count == 0 and pool.empty():
-            db.reindex(scraper.CONFIG['table'])
-            db.commit(scraper.CONFIG['table'])
+        if job_count == 0 and pool.empty():
+            if scraper.CONFIG.get('table') is not None:
+                db.reindex(scraper.CONFIG['table'])
+                db.commit(scraper.CONFIG['table'])
+
+            if hasattr(scraper, 'onfinished'):
+                try:
+                    scraper.onfinished(**onfinished_args)
+                except:
+                    log(1, "failed to execute {0} job's on_finished callback (params: {1})".format(scraper._name, onfinished_args))
+                    traceback.print_exc(file=sys.stdout)
+                    sys.stdout.flush()
+                else:
+                    log(3, "{0} job's on_finished callback finished (params: {1})".format(scraper._name, onfinished_args))
 
 
 
