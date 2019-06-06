@@ -17,7 +17,7 @@
 
 # (C) 2019 by Stefan Marsiske, <parltrack@ctrlc.hu>
 
-import re,sys,unicodedata
+import re,sys
 from utils.utils import fetch, fetch_raw, unws, jdump
 from utils.process import process
 from utils.mappings import buildings, SEIRTNUOC, COMMITTEE_MAP, ORGMAPS, GROUP_MAP, DELEGATIONS, MEPS_ALIASES, TITLES
@@ -450,6 +450,11 @@ def parse_history(id, root, mep):
                                                          x.get('Organization',
                                                                x.get('party'))))]
     return terms
+
+def onfinished(daisy=True):
+    if daisy:
+        from scraper_service import add_job
+        add_job("dossiers",{"all":True})
 
 if __name__ == '__main__':
     #scrape(28390)
