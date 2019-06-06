@@ -2,13 +2,15 @@
 
 from datetime import datetime
 import inspect
+import sys
 
 loglevel=4 # info
-logfile = None
+logfile = sys.stdout
 
 LEVELS = ('quiet', 'error', 'warning', 'info', 'debug')
 
 def log(level, msg):
+    if not logfile: return
     scraper = '??? '
     for frame in inspect.stack():
         fp=frame.filename.split('/')
@@ -25,15 +27,12 @@ def log(level, msg):
             scraper='webapp'
             break
     else:
-        print("{ts} log error unknown module: {stack}".format(ts=datetime.isoformat(datetime.now()), stack=inspect.stack()))
-        if logfile:
+        if level <= loglevel:
             logfile.write("{ts} log error unknown module: {stack}\n".format(ts=datetime.isoformat(datetime.now()), stack=inspect.stack()))
         scraper = '???'
 
     if level <= loglevel:
-        print("{ts} {scraper} {level} {msg}".format(ts=datetime.isoformat(datetime.now()), level=LEVELS[level], scraper=scraper, msg=msg))
-        if logfile:
-            logfile.write("{ts} {scraper} {level} {msg}\n".format(ts=datetime.isoformat(datetime.now()), level=LEVELS[level], scraper=scraper, msg=msg))
+        logfile.write("{ts} {scraper} {level} {msg}\n".format(ts=datetime.isoformat(datetime.now()), level=LEVELS[level], scraper=scraper, msg=msg))
 
 def set_level(l):
     global loglevel
@@ -41,8 +40,10 @@ def set_level(l):
 
 def set_logfile(l):
     global logfile
-    if logfile: 
+    if logfile and logfile not in [sys.stdout, sys.stderr]:
         logfile.close()
         logfile=None
-    if l:
+    if l in [sys.stdout, sys.stderr]:
+        logfile = l
+    elif l:
         logfile=open(l,'w')
