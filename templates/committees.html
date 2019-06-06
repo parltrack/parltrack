@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="ui vertical segment">
+  <div class="ui center aligned stackable grid container">
+    <div class="row">
+      <div class="left aligned column">
+         <h1>Committees ({{ committees|length }})</h1>
+          <div class="ui fluid items">
+          {% for s in committees %}
+          <div class="item">
+            <div class="content">
+             <div class="header">{{ s }}</div>
+             <div class="description">
+                <a class="ui blue horizontal basic label" href="/committee/{{s}}">{{ dossier_count[s] }} dossiers</a>
+             </div>
+           </div>
+          </div>
+          {% endfor %}
+          </div>
+      </div>
+	</div>
+  </div>
+</div>
+{% endblock %}
