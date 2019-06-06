@@ -54,7 +54,7 @@
    <tr>
       <td>Lead Rapporteur</td>
       {%for committee in dossier.committees %}
-          {% if committee.responsible %}
+          {% if committee.type == "Responsible Committee" %}
           <td>
              {% for a in committee.rapporteur %}
              <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.group}}">{{a.group}}</a>){% if not loop.last %},{%endif%}
@@ -69,9 +69,9 @@
    <tr>
        <td>Opinion Rapporteur(s)</td>
    {%for committee in dossier.committees %}
-       {% if not committee.responsible %}
+       {% if not committee.type == "Responsible Committee" %}
        <td>
-          {% for a in committee.rapporteur if not committee.responsible %}
+          {% for a in committee.rapporteur if not committee.type == "Responsible Committee" %}
           <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.group}}">{{a.group}}</a>){% if not loop.last %},{%endif%}
           {% if not loop.last%}<br />{%endif%}
           {% endfor %}
@@ -100,8 +100,12 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
 {% if not loop.last %}, {%endif%}{%endfor%}
 {% endif %}
 </div>
-
-<p><strong>{{dossier.procedure.stage_reached}}</strong></p>
+<h4>Progress: {{dossier.procedure.stage_reached}}</h4>
+<div class="ui indicating progress"  data-value="{{ progress }}" data-total="100">
+   <div class="bar">
+       <div class="progress"></div>
+   </div>
+</div>
 <div id="tabs"  class="ui top attached tabular menu">
     <a class="active item" data-tab="general">General</a>
     {% if dossier.activities %}<a class="item" data-tab="activities">Activities</a>{% endif %}
@@ -135,8 +139,8 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
    {% endif %}
     <tr>
        <td>
-          {%if committee.responsible%}Lead
-          {% else %}Opinion{%endif%}
+          {%if committee.type == "Responsible Committee"%}Lead
+          {% else %}{{committee.type}}{%endif%}
        </td>
        <td>
           {% if committee.committee|length == 4 %}<a href="/committee/{{committee.committee}}#dossiers">{{committee.committee}}</a>
@@ -216,54 +220,43 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
 {% if dossier.activities %}
 <div id="activities" class="ui tab" data-tab="activities">
 <h3>Activites</h3>
-<ul>{%for act in dossier.activities|sort(attribute='date',reverse=True) %}
-  {%if act.meeting_id%}<li class='agent'>#{{act.meeting_id}}</li>{%endif%}
-   <li class='vevent'>
-     {%if act.date%}<abbr class="dtstart" title="{{act.date|isodate}}">{{act.date|asdate}}</abbr>{%endif%}
-     {%if act.title%}<span class='summary'>{{act.title}}</span>{%endif%}
-     {%if act.type%}{{act.type}}{%endif%}
-     <ul>
-     {%for doc in act.docs%}
-        <li>
-        {%if doc.celexid %}
-          <a href="http://eur-lex.europa.eu/legal-content/EN/TXT/?uri={{doc.celexid[:-3]}}">{{doc.title}}</a>
-        {%elif doc.url %}
-          <a href="{{doc.url}}">{{doc.title}}</a>
-        {%else%}
-        {{doc.title}}
-        {%endif%}
-        {%if doc.text%}
-           <a class="button">summary</a>
-           <div class="hidden">
-             {%for line in doc.text %}
-             <p>{{line|striptags|urlize}}</p>
-             {%endfor%}
-           </div>
-        {%endif%}
-        </li>
-     {%endfor%}
-     {%for agent in act.commission %}<li class='agent'>DG {{agent.DG}}, {{agent.Commissioner}}</li>{%endfor%}
-     {%for agent in act.committees%}
-        <li class='agent'>
-          {%if agent.responsible%}
-             <strong>{% if agent.committee|length == 4 %}<a href="/committee/{{agent.committee}}">{{agent.committee}}</a>
-               {%elif committee_map[agent.committee]|length == 4 %}<a href="/committee/{{committee_map[agent.committee]}}">{{agent.committee}}</a>
-               {%else%}{{agent.committee}}{%endif%}</strong>
-             {%if dossier.procedure.dossier_of_the_committee and dossier.procedure.dossier_of_the_committee[:4]==agent.committee %}<a href="http://www.europarl.europa.eu/committees/en/libe/documents-search.html?linkedDocument=true&ufolderComCode={{dossier.procedure.committee}}&ufolderLegId={{dossier.procedure.dossier_of_the_committee.split('/')[1]}}&ufolderId={{dossier.procedure.dossier_of_the_committee.split('/')[2]}}&urefProcYear=&urefProcNum=&urefProcCode=">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
-          {%else%}
-             {% if agent.committee|length == 4 %}<a href="/committee/{{agent.committee}}">{{agent.committee}}</a>
-             {%elif committee_map[agent.committee]|length == 4 %}<a href="/committee/{{committee_map[agent.committee]}}">{{agent.committee}}</a>
-             {%else%}{{agent.committee}}{%endif%}
-          {%endif%}
-          {% for mep in agent.rapporteur %}
-             {%if mep.name%}<a href="/mep/{{mep.name}}">{{mep.name}}</a>{%endif%}{%if mep.group%} <a href="/meps/{{mep.group}}">{{mep.group}}</a>{%endif%}{% if not loop.first %},{%endif%}
-          {% endfor %}
-        </li>
-     {%endfor%}
-     </ul>
-   </li>
-  {%endfor%}
-</ul>
+<div class="ui feed">
+   {%for act in dossier.activities %}
+	  <div class="event">
+		 <!-- <div class="label">
+			<img src="/static/images/x.gif">
+       </div> -->
+		 <div class="content">
+			<div class="summary">
+			  <div class="date">
+              {{ act.date|asdate }}
+			  </div>&nbsp;&nbsp;
+           {% if act.body %}{{ act.body }} - {% endif %}<span class="user">{{ act.type }}</span>
+			</div>
+       {% if act.summary %}
+       <div class="ui accordion">
+          <div class="title left_padded"><i class="dropdown icon"></i>Details</div>
+          <div class="content left_padded">
+             {% for a in act.summary %}
+                 <p>{{ a }}</p>
+             {% endfor %}
+          </div>
+       </div>
+       {% endif %}
+       {% if act.docs %}
+       <div class="ui accordion">
+          <div class="title left_padded"><i class="dropdown icon"></i>Documents</div>
+          <div class="content left_padded">
+             {% for d in act.docs %}
+             <a href="{{ d.url }}">{{ d.title }}</a><br />
+             {% endfor %}
+          </div>
+       </div>
+       {% endif %}
+		 </div>
+	  </div>
+   {%endfor%}
+</div>
 </div>
 {% endif %}
 
@@ -398,6 +391,14 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
 <script type="text/javascript">
   $(document).ready(function() {
     $("#tabs .item").tab({history:false});
+    $('.ui.accordion').accordion({
+        clearable: true,
+        placeholder: 'any'
+     }) ;
+     $('.ui.progress') .progress({
+        duration : 100,
+        total    : 100,
+     });
   });
 </script>
 <script type="text/javascript" src="/static/js/dossier.js"></script>
