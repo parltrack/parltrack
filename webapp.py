@@ -23,9 +23,11 @@ from random import shuffle, randrange, randint, choice
 from sys import version_info
 from urllib.parse import unquote
 from utils.utils import asDate, clean_lb
+from utils.devents import merge_events
 from utils.mappings import (
     SEIRTNUOC as COUNTRIES,
     COMMITTEE_MAP,
+    stage2percent,
 )
 
 from db import Client
@@ -55,9 +57,23 @@ db = Client()
 
 
 def render(template, **kwargs):
+    if request.args.get('format') == 'json':
+        if 'exclude_from_json' in kwargs:
+            for v in set(kwargs['exclude_from_json']):
+                del(kwargs[v])
+            del(kwargs['exclude_from_json'])
+        return jsonify(kwargs)
     if request.args.get('q'):
         kwargs['q'] = request.args['q']
+    if request.args.get('party'):
+        display_mode = request.args['party']
+    else:
+        display_mode = ''
     kwargs['highlight'] = highlight
+    kwargs['display_mode'] = display_mode
+    kwargs['committee_map'] = COMMITTEE_MAP
+    kwargs['today'] = date.today().strftime("%Y-%m-%d")
+    kwargs['countries'] = COUNTRIES
     return render_template(template, **kwargs)
 
 
@@ -69,14 +85,18 @@ def render(template, **kwargs):
 @app.route('/')
 def home():
     date = getDate()
-    meps = db.count('ep_meps', None)
-    dossiers = db.count('ep_dossiers', None)
-    active_meps = db.count('meps_by_activity', "active")
-    return render_template(
+    meps = db.count('ep_meps', None) or 0
+    dossiers = db.count('ep_dossiers', None) or 0
+    active_meps = db.count('meps_by_activity', "active") or 0
+    votes = db.count('ep_votes', None) or 0 
+    amendments = db.count('ep_amendments', None) or 0
+    return render(
         'index.html',
-        mep_count=meps,
-        dossier_count=dossiers,
-        active_mep_count=active_meps,
+        mep_count="{:,}".format(meps),
+        dossier_count="{:,}".format(dossiers),
+        active_mep_count="{:,}".format(active_meps),
+        votes="{:,}".format(votes),
+        amendments="{:,}".format(amendments),
     )
 
 
@@ -95,7 +115,7 @@ def meps():
     # TODO date handling
     date = getDate()
     meps = db.meps_by_activity(True)
-    return render_template('meps.html', date=date, meps=meps)
+    return render('meps.html', date=date, meps=meps)
 
 
 @app.route('/mep/<int:mep_id>/<string:mep_name>')
@@ -105,16 +125,14 @@ def mep(mep_id, mep_name):
         return not_found_error(None)
     #mep['amendments'] = db.get("ams_by_mep", mep_id) or []
     mep['amendments'] = []
-    return render_template(
+    return render(
         'mep.html',
         mep=mep,
-        today=date.today().strftime("%Y-%m-%d"),
-        countries=COUNTRIES,
         d=mep_id,
         group_cutoff=datetime(2004,7,20).strftime("%Y-%m-%d"),
         # TODO
         committees={},
-        committee_map=COMMITTEE_MAP,
+        exclude_from_json=('d', 'group_cutoff', 'committees'),
     )
 
 
@@ -138,30 +156,82 @@ def mep_name(mep_name):
 
 
 @app.route('/dossiers')
-def dossiers(d_id):
-    return render('dossiers.html')
+def dossiers():
+    date = getDate()
+    dossiers = db.dossiers_by_activity(True)
+    ds = []
+    for d in dossiers:
+        ds.append({
+            'name': d['procedure']['reference'],
+        })
+    return render('dossiers.html', dossiers=ds, date=date)
 
+# these dossiers have been scraped by us in v1, but are not existing anymore as
+# of 20190605, we keep them and display them using the old v1 template. 
+v1dossiers = {
+    '1991/2118(INS)', '1992/2223(INS)', '1994/2195(INI)', '1995/2078(INI)', '1995/2189(INI)', '1996/2143(INI)', '1997/2015(INI)', '1997/2044(INI)', '1998/2041(INI)',
+    '1998/2077(INI)', '1998/2078(INI)', '1998/2101(INI)', '1998/2165(INI)', '1999/2010(INS)', '1999/2184(INI)', '2000/2126(INI)', '2000/2323(INI)', '2001/2061(INI)',
+    '2001/2069(INI)', '2002/2264(INI)', '2003/2004(INI)', '2003/2057(INI)', '2003/2107(INI)', '2004/2125(INI)', '2005/2122(INI)', '2005/2138(IMM)', '2005/2148(INI)',
+    '2005/2176(IMM)', '2006/2013(INI)', '2006/2014(INI)', '2006/2015(INI)', '2006/2059(INI)', '2007/0181(CNS)', '2008/2093(IMM)', '2008/2117(INI)', '2008/2121(INI)',
+    '2009/2029(REG)', '2009/2134(INL)', '2009/2170(INI)', '2009/2239(INI)', '2009/2816(RSP)', '2010/2073(INI)', '2011/0341(COD)', '2011/0901(COD)', '2011/2176(INI)',
+    '2011/2184(INI)', '2011/2257(REG)', '2011/2304(IMM)', '2012/0033(NLE)', '2012/0219(NLE)', '2012/2012(REG)', '2012/2024(INI)', '2012/2061(INI)', '2012/2146(IMM)',
+    '2012/2241(IMM)', '2012/2260(INI)', '2012/2274(IMM)', '2012/2303(INI)', '2012/2309(INI)', '2012/2317(INI)', '2012/2324(INI)', '2012/2686(RSP)', '2012/2807(RSP)',
+    '2012/2817(RSP)', '2012/2863(RSP)', '2012/2899(RSP)', '2013/0120(NLE)', '2013/0151(NLE)', '2013/0267(NLE)', '2013/2046(INI)', '2013/2089(INI)', '2013/2102(INI)',
+    '2013/2129(INI)', '2013/2167(INI)', '2013/2171(INI)', '2013/2184(INI)', '2013/2191(IMM)', '2013/2271(IMM)', '2013/2280(IMM)', '2013/2692(RSP)', '2013/2739(RSP)',
+    '2013/2847(RPS)', '2013/2887(RSP)', '2014/2009(INI)', '2014/2034(IMM)', '2014/2227(IMM)', '2014/2536(RSP)', '2014/2557(RSO)', '2014/2604(RSP)', '2014/3015(RSP)',
+    '2015/2009(INI)', '2015/2073(IMM)', '2015/2081(INI)', '2015/2594(RSP)', '2015/2600(RSP)', '2015/2659(RSP)', '2015/2901(RSP)', '2015/2996(RSP)', '2015/3029(RSP)',
+    '2016/0357(COD)', '2016/0360(COD)', '2016/2031(INI)', '2016/2040(IMM)', '2016/2069(IMM)', '2016/2205(DEC)', '2016/2661(RSP)', '2017/2034(IMM)', '2017/2062(IMM)',
+    '2017/2205(INL)', '2017/2207(INI)', '2017/2264(REG)', '2017/2595(RSP)', '2017/2657(RSP)', '2017/2836(RSP)', '2017/2872(RSP)', '2017/2902(RSP)', '2018/0330(COD)',
+    '2018/2002(INL)', '2018/2027(IMM)', '2018/2033(INI)', '2018/2087(INI)', '2018/2154(INI)', '2018/2917(RSP)', '2018/2921(RSP)'
+}
 
 @app.route('/dossier/<path:d_id>')
-def view_dossier(d_id):
+def dossier(d_id):
     d = db.dossier(d_id)
     if not d:
         return not_found_error(None)
     d['amendments'] = db.get("ams_by_dossier", d_id) or []
+    if d_id in v1dossiers:
+        template = "v1dossier.html"
+    else:
+        template = "dossier.html"
+    d['activities'] = merge_events(d)
+    progress = 0
+    for a in d['activities']:
+        if a.get('type') in stage2percent:
+            progress = stage2percent[a['type']]
+            break
+    stage_progress = stage2percent.get(d['procedure'].get('stage_reached'), 0)
+    progress = max(progress, stage_progress)
     return render(
-        'dossier.html',
+        template,
         dossier=d,
         d=d_id,
         url=request.base_url,
         now_date=date.today().strftime("%Y-%m-%d"),
+        progress=progress,
+        exclude_from_json=('now_date', 'url', 'd', 'progress'),
     )
+
+
+@app.route('/committees')
+def committees():
+    r = db.keys('dossiers_by_committee', count=True) or {}
+    s = sorted(x for x in r.keys())
+    return render('committees.html', committees=s, dossier_count=r)
+
+
+@app.route('/committee/<string:c_id>')
+def committee(c_id):
+    c = db.get('com_votes_by_committee', c_id) or None
+    return render('committee.html', committee=c)
 
 
 @app.route('/subjects')
 def subjects():
     r = db.keys('dossiers_by_subject', count=True) or {}
     s = sorted(x for x in r.keys())
-    return render('subjects.html', subjects=s, dossier_count=r)
+    return render('subjects.html', subjects=s, dossier_count=r, exclude_from_json=('subjects',))
 
 
 @app.route('/subject/<path:subject>')
@@ -256,7 +326,7 @@ def notification_view_or_create(g_id):
         ids=[listdossiers(db.dossier(d.name)) for d in inactive_items if d.type=='dossiers']
     if ds and request.args.get('format','')=='json' or request.headers.get('X-Requested-With'):
         return jsonify(count=len(ds), dossiers=tojson(ds))
-    return render_template('view_notif_group.html',
+    return render('view_notif_group.html',
                            dossiers=ds,
                            active_dossiers=len(ds),
                            inactive_dossiers=len(ids),
@@ -404,20 +474,14 @@ def printdict(d):
 
 @app.template_filter()
 def asdate(value):
-    if type(value)==type(int()):
-        value=datetime.fromtimestamp(value)
-    if type(value) not in [str, bytes]:
-        return value.strftime('%Y/%m/%d')
-    return value.split(' ')[0]
-
-
-@app.template_filter()
-def asdate(value):
     if isinstance(value, int):
         value=datetime.fromtimestamp(value)
     if type(value) not in [str, unicode]:
         return value.strftime('%Y/%m/%d')
-    return value.split(' ')[0]
+    d = asDate(value)
+    if d.year == 9999:
+        return ''
+    return d.strftime('%Y/%m/%d')
 
 
 @app.template_filter()
@@ -501,6 +565,14 @@ def protect_email(email_address):
 @app.template_filter()
 def reftopath(ref):
     return "%s/%s" % (ref[-4:-1], ref[:9])
+
+
+@app.template_filter()
+def group_icon(value):
+    if not value: return ''
+    if type(value)==type(list()): value=value[0]
+    if value=='NA': value='NI'
+    return "static/images/%s.gif" % value.lower().replace('/','_')
 
 
 def getDate():
