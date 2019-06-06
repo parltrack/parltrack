@@ -29,18 +29,66 @@ th { text-align: left; }
 td, th { border: 1px solid #888888; padding: 8px; }
 p { margin: 4px !important; font-size: 18px; }
 .content { flex: 1; }
-.jumbo { font-size: 5em !important; padding: 0.2em; }
+.jumbo { font-size: 5em !important; padding: 0; width: 100% !important; }
+.jumbo.icon { font-size: 15em !important; padding: 0.4em; }
 .small { font-size: 0.8em !important; }
 .highlight { font-weight: bold !important; background: #ccccff; padding: 2px 4px; }
 .nondisplayed { display: none; position: relative; }
+.title { color: #666666 !important; }
+.left_padded { padding-left: 5em !important; }
 #track_dossier:hover .nondisplayed { display: block !important; position: absolute; right: 0; bottom: 0; padding: 48px; }
+.blink {
+    animation-duration: 0.04s;
+    animation-name: blink;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+    animation-timing-function: ease-in-out;
+}
+@keyframes blink {
+    from {
+        opacity: 1;
+		  color: #F00;
+		  background: #000;
+    }
+    to {
+        opacity: 0;
+		  color: #F0F;
+		  background: #0F0;
+    }
+}
+.super_blink {
+    animation-duration: 0.04s;
+    animation-name: super_blink;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+    animation-timing-function: ease-in-out;
+}
+@keyframes super_blink {
+    from {
+        margin-left: 30px;
+        margin-top: 30px;
+        font-weight: 100;
+        opacity: 1;
+		  color: #FF0;
+		  background: #F00;
+    }
+    to {
+        margin-top: -30px;
+        margin-left: -30px;
+        font-weight: 800;
+        opacity: 0;
+		  color: #0FF;
+		  background: #0F0;
+    }
+}
 </style>
   </head>
-  <body>
+  <body class="{% if not display_mode %}{%elif display_mode == "hard"%}super_blink{%else%}blink{% endif %}">
   <div class="ui menu">
       <a class="header item{% if request.url_rule.endpoint == 'home' %} active{% endif %}" href="{{ url_for('home') }}">Home</a>
       <a class="item{% if request.url_rule.endpoint == 'meps' %} active{% endif %}" href="{{ url_for('meps') }}">MEPs</a>
       <a class="item{% if request.url_rule.endpoint == 'dossiers' %} active{% endif %}" href="{{ url_for('dossiers') }}">Dossiers</a>
+      <a class="item{% if request.url_rule.endpoint == 'committees' %} active{% endif %}" href="{{ url_for('committees') }}">Committees</a>
       <a class="item{% if request.url_rule.endpoint == 'subjects' %} active{% endif %}" href="{{ url_for('subjects') }}">Subjects</a>
       <a class="item" href="/blog">Blog</a>
       <a class="item{% if request.url_rule.endpoint == 'about' %} active{% endif %}" href="{{ url_for('about') }}">About</a>
@@ -70,7 +118,7 @@ p { margin: 4px !important; font-size: 18px; }
           </div>
         </div>
         <div class="eight wide right aligned bottom aligned column">
-          <h4 class="ui inverted header">ParlTrack - 2018</h4>
+          <h4 class="ui inverted header">ParlTrack - 2011-2019</h4>
         <div class="smalltext"><a href="http://www.europarl.europa.eu/tools/disclaimer/default_en.htm">© European Union, 2011 – Source: European Parliament</a></div>
         </div>
       </div>
