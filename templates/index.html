@@ -3,49 +3,61 @@
 <div class="ui vertical segment">
   <div class="ui center aligned stackable grid container">
     <div class="row">
-      <div class="nine wide left aligned column">
-        <h1 class="jumbo">Parltrack</h1>
-      </div>
-      <div class="seven wide left aligned column">
+      <div class="sixteen wide center aligned column">
+         <h1 class="ui fluid image jumbo title">Parltrack</h1>
       </div>
     </div>
     <div class="row">
       <div class="nine wide left aligned column">
-		<p>Parltrack is a European initiative to improve the transparency of legislative processes. It combines information on dossiers, representatives, vote results and committee agendas into a unique database and allows the tracking of dossiers using email and RSS. Most of the data presented is also available for further processing in JSON format. Using Parltrack it's easy to see at a glance which dossiers are being handled by committees and MEPs.</p>
+		<p class="ui padded basic segment">Parltrack is a European initiative to improve the transparency of legislative processes. It combines information on dossiers, representatives, vote results and committee agendas into a unique database and allows the tracking of dossiers using email and RSS. Most of the data presented is also available for further processing in JSON format. Using Parltrack it's easy to see at a glance which dossiers are being handled by committees and MEPs.
         <br />
-        <p>If you need advice on how the EP works: please visit these sources:
+        <br />
+        <br />
+        If you need advice on how the EP works: please visit these sources:
         <a href="http://www.europarl.europa.eu/aboutparliament/en">European Parliament</a> or
         <a href="https://edri.org/files/2012EDRiPapers/activist_guide_to_the_EU.pdf">Activist guide to the EU (PDF)</a>.</p>
       </div>
       <div class="seven wide left aligned column">
-          <img src="{{ url_for('static', filename='images/main_img.png') }}" alt="The Plenary of the European Parliament in Strassbourg" />
+          <i class="jumbo blue heartbeat icon"></i>
+          <!--<img src="{{ url_for('static', filename='images/main_img.png') }}" alt="Parltrack" />-->
       </div>
 	</div>
-    <div class="ui divider"> </div>
-    <div class="three column row">
+    <div class="five column row">
       <div class="column">
-        <div class="ui statistic">
+        <div class="ui pink statistic">
           <div class="value">{{ mep_count }}</div>
           <div class="label">MEPs</div>
         </div>
       </div>
       <div class="column">
-        <div class="ui statistic">
+        <div class="ui purple statistic">
+          <div class="value">{{ dossier_count }}</div>
+          <div class="label">Dossiers</div>
+        </div>
+      </div>
+      <div class="column">
+        <div class="ui yellow statistic">
+          <div class="value">{{ votes }}</div>
+          <div class="label">Votes</div>
+        </div>
+      </div>
+      <div class="column">
+        <div class="ui olive statistic">
           <div class="value">{{ active_mep_count }}</div>
           <div class="label">Active MEPs</div>
         </div>
       </div>
       <div class="column">
-        <div class="ui statistic">
-          <div class="value">{{ dossier_count }}</div>
-          <div class="label">Dossiers</div>
+        <div class="ui teal statistic">
+          <div class="value">{{ amendments }}</div>
+          <div class="label">Amendments</div>
         </div>
       </div>
     </div>
     <div class="row">
       <div class="sixteen wide left aligned column">
         <h2>Sources</h2>
-        <p>Parltrack currently monitors the European law-making using the data available from europarl.europa.eu. The data is being scraped from <a href="http://www.europarl.europa.eu/oeil/">OEIL</a>, <a href="http://www.europarl.europa.eu/activities/plenary/pv/calendar.do?language=EN&amp;LEG_ID=7">EP plenary minutes</a>, <a href="http://www.europarl.europa.eu/members/public/geoSearch.do?language=EN">online MEP profiles</a>, <a href="http://www.ipex.eu/IPEXL-WEB/epdoc.do">IPEX</a> and parliamentary <a href="http://www.europarl.europa.eu/activities/committees/committeesList.do?language=EN">committee agendas</a>.</p>
+        <p>Parltrack currently monitors the European law-making using the data available from europarl.europa.eu. The data is being scraped from <a href="http://www.europarl.europa.eu/oeil/">OEIL</a>, <a href="http://www.europarl.europa.eu/activities/plenary/pv/calendar.do?language=EN&amp;LEG_ID=7">EP plenary minutes</a>, <a href="http://www.europarl.europa.eu/members/public/geoSearch.do?language=EN">online MEP profiles</a> and parliamentary <a href="http://www.europarl.europa.eu/activities/committees/committeesList.do?language=EN">committee agendas</a>.</p>
         <h2>Copyright</h2>
         <p>The EP releases this data under the <a href="http://www.europarl.europa.eu/portal/en/legal-notice">following terms</a>:</p>
         <blockquote><p>As a general rule, the reuse (reproduction or use) of textual data and multimedia items which are the property of the European Union (identified by the words '© European Union, [year(s)] – Source: European Parliament' or '© European Union, [year(s)] – EP' ) or of third parties (© External source, [year(s)]), and for which the European Union holds the rights of use, is authorised, for personal use or for further non-commercial or commercial dissemination, provided that the entire item is reproduced and the source is acknowledged.</p></blockquote>
@@ -53,26 +65,10 @@
 
         <p>The <a href="/dumps">data available as JSON</a> from Parltrack is available under the <a href="http://www.opendatacommons.org/licenses/odbl/">Open Database License v1.0</a> (ODBL). Parltrack is <a href="https://github.com/parltrack/parltrack/">available</a> as free software under the <a href="https://www.gnu.org/licenses/agpl.html">Affero GPL v3+</a> license.</p>
 
-        <p>The image of the EP plenary is by Stefan Marsiske, under the <a href="https://creativecommons.org/licenses/by-sa/3.0/deed.en">Creative Commons Attribution-Share Alike 3.0 Unported</a> license.</p>
         <h2>Privacy</h2>
-        <p>Parltrack currently does not use cookies per default. The preferences of the users however are stored in cookies. These do not allow tracking, except setting your email address would - but we never do*. The only private information stored are the email addresses of the users of the monitoring feature. These email addresses are used for the sole purpose of notifying users of changes. Web server access logs are stored for a maximum of one year for statistical purposes only.</p>
-        <p class="small">* we opt to ask you to <a href="https://www.indiegogo.com/parltrack2013/">donate</a> instead of selling your private data.
+        <p>Parltrack currently does not use cookies per default. The preferences of the users however are stored in cookies. These do not allow tracking, except setting your email address would - but we never do. The only private information stored are the email addresses of the users of the monitoring feature. These email addresses are used for the sole purpose of notifying users of changes. Web server access logs are stored for a maximum of one year for statistical purposes only.</p>
         <h2>Contact</h2>
         <span id="e26628950">[javascript protected email address]</span><script type="text/javascript">/*<![CDATA[*/eval("var a=\"lv_GM34mAXRy.WDagtbj9V0Qq+nFKZC285-uULNYJzO76cIe1pofHikd@hxrPSBsETw\";var b=a.split(\"\").sort().join(\"\");var c=\"@zxHPxz7fW7PxH7_1S\";var d=\"\";for(var e=0;e<c.length;e++)d+=b.charAt(a.indexOf(c.charAt(e)));document.getElementById(\"e26628950\").innerHTML=\"<a href=\\\"mailto:\"+d+\"\\\">\"+d+\"</a>\"")/*]]>*/</script>
-        <h2>Credit</h2>
-        <p>Parltrack is inspired by <a href="http://euwiki.org/Tratten">Tratten</a>.</p>
-        <p>The following persons have earned eternal gratefulness for directly contributing to Parltrack Erik, Peter, Asciimoo, Smari, Sandra, Niels, Andreas, Rufus, Michel, Eric, Xavier, Jeremie, Bram, Pudo, Kirsten, Karsten, Javier, Rejo, Ante, Walter, Benjamin, Glyn, Ton, Gijs, Felix, Anne, Theodora, Danya, Matthias, André, Cory, Marco.</p>
-        <p>The maintainer(s) of Parltrack would like to express their deepest datalove to its supporters during the <a href="https://indiegogo.com/parltrack2013/" target="_blank">Parltrack 2013</a> funding campaign: András Veres-Szentkirályi, Julien Rabier, Rafael F.Font, tilmann_ch, Yoann, lowry1, Mélissa Richard, Mael Bunet, Karsten Gerloff, Rémont, Fabian Hanneforth, Tomas Hecker, Markus Ostenried, Felix Erckenbrecht, Walter van Holst, Mario Gustke, Lucie Post, David Gayou, Jacques Kreitmann, Sara Magdalena Goldberger, Felix Treguer, wintersolutions.de, Nico Madysa, Dave Durant, Daniel Bohrer, Kai, Jonathan Gray (@jwyg), Kai Nikulainen, Jérôme Lang, Ulrich Maasmeier, Dr. Maximillian Dornseif, Thorsten, David Hermanns, Christian Drieling, Piet, Ulf Mayer, Manfried Meyer-Stumpf, Forskningsavdelningen, Claudia Borges, Johannes Jähnke, Marco Nolden, Fabian Hanneforth, fin, Herbert Waloschek, Frederic, Lutz Mache, Alain, Raphael Brandis, Alek Tarkowski, Tilmann Z, Alexander Mikhailian, Jean-Grégoire Foulon and a bunch of anonymous supporters.</p>
-        <h2>Donate</h2>
-        <p class="centered small">Give some datalove back to the maintainer.</p>
-        <p class="centered small">Parltrack is provided by a volunteer and needs your support to keep it running and independent.</p>
-        <p class="centered">Please Donate</p>
-        <form class="centered" action="https://www.paypal.com/cgi-bin/webscr" method="post">
-            <input type="hidden" name="cmd" value="_s-xclick">
-            <input type="hidden" name="hosted_button_id" value="6SWAFD6RK2C78">
-            <input type="image" src="{{ url_for('static', filename='images/paypaldonate.gif') }}" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
-        </form>
-        <p class="centered small">...and also please tell your friends about this. Your support is much appreciated, thanks!</p>
       </div>
 	</div>
   </div>
