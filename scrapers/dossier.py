@@ -15,7 +15,7 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with parltrack  If not, see <http://www.gnu.org/licenses/>.
 
-# (C) 2009-2011,2018 by Stefan Marsiske, <stefan.marsiske@gmail.com>
+# (C) 2009-2011,2018-2019 by Stefan Marsiske, <parltrack@ctrlc.hu>
 
 import notification_model as notif
 
@@ -30,8 +30,10 @@ from lxml.etree import tostring, _ElementUnicodeResult
 from lxml.html.soupparser import fromstring
 from itertools import zip_longest
 from operator import itemgetter
-from webapp import mail
+from webapp import mail, app
 from flask_mail import Message
+from config import ROOT_URL
+import unicodedata
 
 BASE_URL = 'https://oeil.secure.europarl.europa.eu'
 
@@ -87,21 +89,22 @@ def scrape(url, save=True):
                         item[u'docs'].extend(final['docs'])
                 break
 
-    if save:
-        return process(
-            dossier,
-            ref,
-            db.dossier,
-            'ep_dossiers',
-            ref,
-            nopreserve=['other', 'forecasts'],
-            onchanged=onchanged,
-        ) #, nostore=True) # todo remove nostore, and possibly also from process()
+    return process(
+        dossier,
+        ref,
+        db.dossier,
+        'ep_dossiers',
+        ref,
+        nopreserve=['other', 'forecasts'],
+        nostore=not save,
+        onchanged=onchanged,
+    )
     return dossier
 
 def scrape_basic(root, ref):
     res={}
     for para in root.xpath('//div[@id="basic-information-data"]//p/strong'):
+        if not para.xpath('./text()'): continue
         title = junws(para)
         log(4,"title: %s" % title)
         if title in [ref, 'Status']: continue
@@ -188,6 +191,7 @@ def scrape_ep_key_players(root):
         if len(tmp) == 0:
             tmp = junws(cells[0])
             abbr, name = tmp.split(" ",1)
+            name = unicodedata.normalize('NFKD', name).encode('ascii','ignore').decode('utf8')
             if name.endswith(" (Associated committee)"):
                 associated=True
                 name=name[:-23]
@@ -196,7 +200,8 @@ def scrape_ep_key_players(root):
                 raise ValueError("bad html in key players EP section, linkless committee name")
             player['associated']=associated
         elif len(tmp) == 1:
-            tmp=str(tmp[0])
+            tmp=unws(tmp[0])
+            tmp = unicodedata.normalize('NFKD', tmp).encode('ascii','ignore').decode('utf8')
             if tmp.endswith(" (Associated committee)"):
                 associated=True
                 tmp=tmp[:-23]
@@ -756,8 +761,10 @@ stage2inst={ 'Debate in Council': u'CSL',
              'Commission draft budget published': u'EC',
              'Amended legislative proposal for reconsultation published': u'EC',
              'Commission preliminary draft budget published': u'EC',
+             'Commission response to text adopted in plenary': u'EC',
              'Proposal withdrawn by Commission': u'EC',
 
+             'Indicative plenary sitting date, 1st reading/single reading': 'EP',
              'Results of vote in Parliament': u'EP',
              'Debate in Parliament': u'EP',
              'Vote in plenary scheduled': u'EP',
@@ -896,10 +903,15 @@ def checkUrl(url):
     #log(2, htmldiff(data,d))
     #log(2, makemsg(data,d))
 
+def onfinished(daisy=True):
+    if daisy:
+        from scraper_service import add_job
+        add_job("pvotes",{"year":"all"})
+        add_job("amendments",{"all":True})
 
 def onchanged(doc, diff):
     id = doc['procedure']['reference']
-    dossiers = notif.session.query(notif.Item).filter(notif.Item.value==id).all()
+    dossiers = notif.session.query(notif.Item).filter(notif.Item.name==id).all()
     subject_items = notif.session.query(notif.Item).filter(notif.Item.type=='subjects').all()
     search_items = notif.session.query(notif.Item).filter(notif.Item.type=='search').all()
     recipients = set()
@@ -907,37 +919,40 @@ def onchanged(doc, diff):
         for s in i.group.subscribers:
             recipients.add(s.email)
     for i in subject_items:
-        if i.value in (x for x in doc['procedure']['subject']):
+        if i.name in (x for x in doc['procedure']['subject']):
             for s in i.group.subscribers:
                 recipients.add(s.email)
     for i in search_items:
-        q = create_search_regex(i.value)
+        q = create_search_regex(i.name)
         if dossier_search(q, doc):
             for s in i.group.subscribers:
                 recipients.add(s.email)
+    if not recipients:
+        return
     log(3, "sending dossier changes to " + ', '.join(recipients))
     msg = Message("[PT] %s %s" % (doc['procedure']['reference'],doc['procedure']['title']),
 		  sender = "parltrack@parltrack.euwiki.org",
 		  bcc = list(recipients))
     #msg.html = htmldiff(doc,d)
-    msg.body = makemsg(doc)
-    mail.send(msg)
+    msg.body = makemsg(doc,diff)
+    with app.context():
+        mail.send(msg)
     return
 
 
-def makemsg(d):
+def makemsg(doc,diff):
     return (u"Parltrack has detected a change in %s %s on OEIL.\n\nPlease follow this URL: %s/dossier/%s to see the dossier.\n\nChanges follow\n%s\n\n\nsincerly,\nYour Parltrack team" %
-            (d['procedure']['reference'],
-             d['procedure']['title'],
+            (doc['procedure']['reference'],
+             doc['procedure']['title'],
              ROOT_URL,
-             d['procedure']['reference'],
-             textdiff(d)))
+             doc['procedure']['reference'],
+             textdiff(diff)))
 
 
 if __name__ == '__main__':
     from utils.utils import jdump
     #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=1992/0449B(COD)&l=en")))
-    print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil//popups/ficheprocedure.do?reference=2018/0252(NLE)&l=en")))
+    print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil//popups/ficheprocedure.do?reference=2018/0252(NLE)&l=en", save=False)))
 
     #print(jdump(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2011/2080(ACI)&l=en")))
     #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2017/2139(DEC)&l=en")))
