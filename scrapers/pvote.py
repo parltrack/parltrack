@@ -163,16 +163,17 @@ def scrape(term, date):
                 g = str(group.get('Identifier'))
                 if not g in v['votes'][stype]['groups']:
                     v['votes'][stype]['groups'][g]=[]
-                for mep in group.xpath('PoliticalGroup.Member.Name'):
-                    m = {#'_id': int(mep.get('MepId')),     # it's a totally useless and confusing id that is nowhere else used
-                         }
-                    name = junws(mep)
-                    mepid = db.getMep(name, v['ts'], abbr=g)
-                    if mepid:
-                        m['mepid']= mepid
-                    else:
-                        m['name']= name
-                    v['votes'][stype]['groups'][g].append(m)
+                for tag in ['Member.Name', 'PoliticalGroup.Member.Name']:
+                    for mep in group.xpath(tag):
+                        m = {#'_id': int(mep.get('MepId')),     # it's a totally useless and confusing id that is nowhere else used
+                             }
+                        name = junws(mep)
+                        mepid = db.getMep(name, v['ts'], abbr=g)
+                        if mepid:
+                            m['mepid']= mepid
+                        else:
+                            m['name']= name
+                        v['votes'][stype]['groups'][g].append(m)
         # save
         process(v, v['voteid'], db.vote, 'ep_votes', v['title'])
         votes.append(v)
@@ -182,4 +183,4 @@ if __name__ == '__main__':
     import sys
     term = int(sys.argv[1])
     date = sys.argv[2]
-    scrape(term, date)
+    print(jdump(scrape(term, date)))
