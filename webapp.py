@@ -10,6 +10,7 @@ import notification_model as notif
 
 import diff_match_patch
 
+from math import ceil, floor
 from datetime import datetime, date
 from flask import Flask, render_template, request
 from flask import Flask, render_template, request, redirect
@@ -125,6 +126,7 @@ def mep(mep_id, mep_name):
         return not_found_error(None)
     #mep['amendments'] = db.get("ams_by_mep", mep_id) or []
     mep['amendments'] = []
+    mep['dossiers'] = db.get('dossiers_by_mep',mep_id) or []
     return render(
         'mep.html',
         mep=mep,
@@ -191,6 +193,8 @@ def dossier(d_id):
     if not d:
         return not_found_error(None)
     d['amendments'] = db.get("ams_by_dossier", d_id) or []
+    d['votes'] = db.get('votes_by_dossier',d_id) or []
+    d['vmatrix'] = votematrices(d['votes'])
     if d_id in v1dossiers:
         template = "v1dossier.html"
     else:
@@ -596,6 +600,72 @@ def tojson(data):
     #    return data.isoformat()
     return data
 
+def votematrices(votes):
+    res = []
+    for vote in votes: # can have multiple votes
+        print(vote.keys())
+        matrix = { 'title': vote['title'],
+                   'time': vote['ts'],
+                   'totals': dict(sorted([(c,vote['votes'][c]['total']) for c in ['+','0','-'] if c in vote['votes']],key=lambda x: x[1], reverse=True)),
+                   'max': 0,
+                   'countries': {},
+                   'groups': {},
+                   'votes': {}}
+        res.append(matrix)
+        meps = []
+        # we need two passes over the data, to collect all meps, so we can
+        # query all their contries in one go, but we can already prepare some
+        # stuff in the first pass
+        for type in ['+','-','0']:
+            for group, vs in vote['votes'].get(type,{'groups':{}})['groups'].items():
+                if group not in matrix['groups'].keys():
+                    matrix['groups'][group]={'0':0,'+':0,'-':0,'total':0}
+                for mep in vs:
+                    if not 'mepid' in mep: continue # we skip unresolvable meps
+                    meps.append((mep['mepid'],group,type))
+        # query countries for meps
+        mepcountries = db.countries_for_meps([m[0] for m in meps], vote['ts'])
+        # second pass where we create a matrix: groups x countries, where each
+        # cell contains a {'0':x,'+':y,'-':z,'total':t} dict.
+        # and we also create aggregate totals for groups and countries, so
+        # those can be displayed as well.
+        for mepid, group, choice in meps:
+            if mepid in mepcountries:
+                country = COUNTRIES[mepcountries[mepid]['country']]
+            else:
+                country = '??'
+            if not country in matrix['countries']:
+                matrix['countries'][country]={'0':0,'+':0,'-':0,'total':0}
+            if not group in matrix['votes']:
+                matrix['votes'][group]={}
+            if not country in matrix['votes'][group]:
+                matrix['votes'][group][country]={'0':0,'+':0,'-':0,'total':0}
+            matrix['votes'][group][country][choice]+=1
+            matrix['votes'][group][country]['total']+=1
+            matrix['countries'][country][choice]+=1
+            matrix['countries'][country]['total']+=1
+            matrix['groups'][group][choice]+=1
+            matrix['groups'][group]['total']+=1
+        def round(x):
+            if x<0: return int(floor(x))
+            else: return int(ceil(x))
+        # lets precalc also color class in a 3rd pass
+        cgmax = max(c['+']-c['-'] for cs in matrix['votes'].values() for c in cs.values()) - min(c['+']-c['-'] for cs in matrix['votes'].values() for c in cs.values())
+        cmax = max(x.get('+',0)-x.get('-',0) for x in matrix['countries'].values()) - min(x.get('+',0)-x.get('-',0) for x in matrix['countries'].values())
+        gmax = max(x.get('+',0)-x.get('-',0) for x in matrix['groups'].values()) - min(x.get('+',0)-x.get('-',0) for x in matrix['groups'].values())
+        for k, v in matrix['countries'].items():
+            v['class']=round((v['+']-v['-'])*10/cmax)
+        for k, v in matrix['groups'].items():
+            v['class']=round((v['+']-v['-'])*10/gmax)
+        for g, cs in matrix['votes'].items():
+            for c, v in cs.items():
+                v['class']=round((v['+']-v['-'])*10/cgmax)
+
+        # sort countries/groups in descending order
+        matrix['countries']=sorted(matrix['countries'].items(),key=lambda x: x[1]['+']-x[1]['-'],reverse=True)
+        matrix['groups']=sorted(matrix['groups'].items(),key=lambda x: x[1]['+']-x[1]['-'],reverse=True)
+    return res
+
 
 if not config.DEBUG:
     app.logger.setLevel(logging.INFO)
@@ -605,7 +675,8 @@ if not config.DEBUG:
 #----------------------------------------------------------------------------#
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=config.WEBSERVER_PORT, threaded=False)
+    dossier('2016/0279(COD)')
+    #app.run(host='0.0.0.0', port=config.WEBSERVER_PORT, threaded=False)
 '''
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
