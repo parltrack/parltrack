@@ -21,7 +21,7 @@ def merge_events(d):
                     item['date']=item['date'][0]
                 else:
                     print("more than one date in: ", item)
-            if not item.get("body"):
+            if not item.get("body") and item.get('type')!='Final act published in Official Journal':
                 log(2,"merge_events: no body for {!r}".format({k:v for k, v in item.items() if k!='summary'}))
                 #continue #print(item)
             activities.append(item)
