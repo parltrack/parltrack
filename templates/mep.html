@@ -275,11 +275,11 @@
   <h3>Rapporteur</h3>
   <table border="1" class="tablesorter">
      <tbody>
-    {%for doc,resp in mep.dossiers%}
+    {%for ref, title, type in mep.dossiers%}
     <tr>
-       <td>{{resp}}</td>
-       <td><a href="/dossier/{{doc.procedure.reference}}">{{doc.procedure.reference}}</a></td>
-       <td>{{doc.procedure.title}}</td>
+       <td>{{type}}</td>
+       <td><a href="/dossier/{{ref}}">{{ref}}</a></td>
+       <td>{{title}}</td>
     </tr>
     {%endfor%}
   </tbody>
@@ -289,13 +289,19 @@
 <div id='cv' class="ui tab" data-tab="cv">
   {% if mep.Birth %}
     <h3>Born</h3>
-      {{mep.Birth.date|asdate}} {{mep.Birth.place}}
+      {{mep.Birth.date|asdate}} - {{mep.Birth.place}}
   {%endif%}
-  <ul>
-    {%for line in mep.CV%}
-    <li>{{line}}</li>
-    {%endfor%}
-  </ul>
+  {% if mep.CV %}
+  {%for title, lines in mep.CV.items()%}
+    {%if title!="updated"%}
+       <h3>{{title}}</h3>
+       <ul>
+         {%for line in lines%}
+           <li>{{line}}</li>
+         {%endfor%}
+       </ul>
+    {%endif%}
+  {%endfor%}{%endif%}
 </div>
 
 {% if mep.amendments|length %}
