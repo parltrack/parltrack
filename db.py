@@ -67,6 +67,10 @@ class Client:
         cmd = {"cmd": "mepid_by_name", "params": {"name": name, "group": group, "date": date, 'gabbr': gabbr}}
         return self.send_req(cmd)
 
+    def countries_for_meps(self, meps, date):
+        cmd = {"cmd": "countries_for_meps", "params": {"mepids": meps, "date": date}}
+        return self.send_req(cmd)
+
     def meps_by_name(self, name):
         name = normalize_name(name)
         cmd = {"cmd": "get", "params": {"source": "meps_by_name", "key": name}}
@@ -125,16 +129,21 @@ class Client:
         return self.get('dossier_refs', None)
 
     def getMep(self, name, date=None,group=None, abbr=None):
-        if name in self.mepCache:
-            return self.mepCache[name]
+        if date and (name, (date.year,date.month)) in self.mepCache:
+            # we only cache if there is also a date, and then we cache only year/month
+            # this might lead to confusion if there is two different meps
+            # with the same name in the same month.
+            return self.mepCache[(name, (date.year,date.month))]
         if not name: return
 
         mepid = self.mepid_by_name(name, date=date, group=group, gabbr=abbr)
         if mepid:
-            self.mepCache[name]=mepid
+            if date:
+                self.mepCache[(name,(date.year,date.month))]=mepid
             return mepid
         log(2,'no mepid found for "%s"' % name)
-        self.mepCache[name]=None
+        if date:
+            self.mepCache[(name,(date.year,date.month))]=None
 
 def cleanup_singleton():
     log(3,"cleaning up {}".format(PIDFILE))
@@ -271,6 +280,8 @@ def mainloop():
                 res = reindex(**query.get('params', {})) or None
             elif query.get('cmd', '') == 'mepid_by_name':
                 res = mepid_by_name(**query.get('params', {})) or None
+            elif query.get('cmd', '') == 'countries_for_meps':
+                res = countries_for_meps(**query.get('params', {})) or None
             else:
                 log(2,'invalid or missing cmd')
                 continue
@@ -397,12 +408,12 @@ def mepid_by_name(name=None, date=None, group=None, gabbr=None):
 
     # filter by group abbrev
     if gabbr is not  None:
-        gmeps = [mep for mep in meps if matchInterval(mep['Groups'], date)['Organization']==gabbr]
+        gmeps = [mep for mep in meps if matchInterval(mep['Groups'], date).get('Organization')==gabbr]
         if len(gmeps) == 1: return gmeps[0]['UserID'] # lucky us
 
     # filter by groups
     if group is not None:
-        gmeps = [mep for mep in meps if matchInterval(mep['Groups'], date)['Organization']==group]
+        gmeps = [mep for mep in meps if matchInterval(mep['Groups'], date).get('Organization')==group]
         if len(gmeps) == 1: return gmeps[0]['UserID'] # lucky us
 
     log(1, 'mep "{}" not found'.format(name))
@@ -412,9 +423,18 @@ def mepid_by_name(name=None, date=None, group=None, gabbr=None):
 def matchInterval(items,tdate):
     for item in items:
         start = item['start']
-        end = date.today().isoformat() if item['end'] == '31-12-9999T00:00:00' else item['end']
+        end = date.today().isoformat() if item['end'] in ['9999-12-31T00:00:00', '31-12-9999T00:00:00'] else item['end']
         if start <= tdate <=end: return item
-    return None
+    return {}
+
+def countries_for_meps(mepids,date):
+    res = {}
+    for mepid in mepids:
+        mep = DBS['ep_meps'][mepid]
+        constituency = matchInterval(mep['Constituencies'], date)
+        if constituency:
+            res[mepid]=constituency
+    return res
 
 
 ######  indexes ######
@@ -528,11 +548,12 @@ def idx_com_votes_by_committee():
 def idx_votes_by_dossier():
     res = {}
     for vote in DBS['ep_votes'].values():
-        dossier = vote.get('ep_ref', '')
-        if not dossier:
+        dossiers = vote.get('epref', [])
+        if not dossiers:
             continue
-        if not dossier in res: res[dossier] = []
-        res[dossier].append(vote)
+        for dossier in set(dossiers):
+            if not dossier in res: res[dossier] = []
+            res[dossier].append(vote)
     return res
 
 def idx_dossiers_by_doc():
@@ -547,6 +568,39 @@ def idx_dossiers_by_doc():
             for doc in e.get('docs',[]):
                 if not doc['title'] in res: res[doc['title']]=[]
                 if dossier not in res[doc['title']]: res[doc['title']].append(dossier)
+    return res
+
+def idx_dossiers_by_mep():
+    res = {}
+    for dossier in DBS['ep_dossiers'].values():
+        ref = dossier['procedure']['reference']
+        title = dossier['procedure']['title']
+        for committee in dossier.get('committees',[]):
+            if 'type' not in committee and 'responsible' not in committee:
+                log(2, "warning committee in %s has neither type nor responsible" % ref)
+                continue
+            type=committee.get('type') or ('Responsible Committee' if committee['responsible'] else "Committee Opinion")
+            for rapporteur in committee.get('rapporteur',[]):
+                if not 'mepref' in rapporteur:
+                    log(2,"no mepref for rapporteur in %s %s" % (ref,rapporteur))
+                    continue
+                if rapporteur['mepref'] not in DBS['ep_meps']:
+                    log(2,"idx_dossiers_by_mep: mepref %s for %s is not in ep_meps" % (rapporteur['mepref'], ref))
+                    continue
+                if not rapporteur['mepref'] in res:
+                    res[rapporteur['mepref']]=[]
+                res[rapporteur['mepref']].append((ref,title,type))
+            type="%s Shadow" % type
+            for shadow in committee.get('shadows',[]):
+                if not 'mepref' in shadow:
+                    log(2,"no mepref for shadow in %s %s" % (ref,shadow))
+                    continue
+                if shadow['mepref'] not in DBS['ep_meps']:
+                    log(2,"idx_dossiers_by_mep: mepref %s for %s is not in ep_meps" % (shadow['mepref'], ref))
+                    continue
+                if not shadow['mepref'] in res:
+                    res[shadow['mepref']]=[]
+                res[shadow['mepref']].append((ref,title,type))
     return res
 
 def idx_active_dossiers():
@@ -589,6 +643,7 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
 
           'ep_dossiers': {'indexes': [{"fn": idx_active_dossiers, "name": "active_dossiers"},
                                       {"fn": idx_dossiers_by_doc, "name": "dossiers_by_doc"},
+                                      {"fn": idx_dossiers_by_mep, "name": "dossiers_by_mep"},
                                       {"fn": idx_dossier_refs, "name": "dossier_refs"},
                                       {"fn": idx_dossiers_by_subject, "name": "dossiers_by_subject"},
                                       {"fn": idx_dossiers_by_committee, "name": "dossiers_by_committee"}],
