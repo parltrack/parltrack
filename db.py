@@ -71,6 +71,10 @@ class Client:
         cmd = {"cmd": "countries_for_meps", "params": {"mepids": meps, "date": date}}
         return self.send_req(cmd)
 
+    def names_by_mepids(self, mepids):
+        cmd = {"cmd": "names_by_mepids", "params": {"mepids": mepids}}
+        return self.send_req(cmd)
+
     def meps_by_name(self, name):
         name = normalize_name(name)
         cmd = {"cmd": "get", "params": {"source": "meps_by_name", "key": name}}
@@ -282,6 +286,8 @@ def mainloop():
                 res = mepid_by_name(**query.get('params', {})) or None
             elif query.get('cmd', '') == 'countries_for_meps':
                 res = countries_for_meps(**query.get('params', {})) or None
+            elif query.get('cmd', '') == 'names_by_mepids':
+                res = names_by_mepids(**query.get('params', {})) or None
             else:
                 log(2,'invalid or missing cmd')
                 continue
@@ -434,6 +440,13 @@ def countries_for_meps(mepids,date):
         constituency = matchInterval(mep['Constituencies'], date)
         if constituency:
             res[mepid]=constituency
+    return res
+
+def names_by_mepids(mepids):
+    res = {}
+    for mepid in mepids:
+        mep = DBS['ep_meps'][mepid]
+        res[mepid]=mep['Name']['full']
     return res
 
 
