@@ -81,6 +81,7 @@ p { margin: 4px !important; font-size: 18px; }
 		  background: #0F0;
     }
 }
+{% block styles %}{% endblock %}
 </style>
   </head>
   <body class="{% if not display_mode %}{%elif display_mode == "hard"%}super_blink{%else%}blink{% endif %}">
