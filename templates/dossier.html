@@ -3,6 +3,29 @@
 {% block rss %}
 <link rel="alternate" type="application/atom+xml" title="Changes for {{ dossier.procedure.reference }} feed" href="/dossier/atom/{{dossier.procedure.reference}}" />
 {% endblock %}
+{% block styles %}
+.scale-10 { background-color: #ff0000; }
+.scale-9  { background-color: #ff0000; }
+.scale-8  { background-color: #ff2009; }
+.scale-7  { background-color: #ff4010; }
+.scale-6  { background-color: #ff601a; }
+.scale-5  { background-color: #ff8022; }
+.scale-4  { background-color: #ffa02b; }
+.scale-3  { background-color: #ffc033; }
+.scale-2  { background-color: #ffe03c; }
+.scale-1  { background-color: #ffff40; }
+.scale0  { background-color: #ccccff; }
+.scale1  { background-color: #ccffcc; }
+.scale2  { background-color: #b2ffb2; }
+.scale3  { background-color: #99ff99; }
+.scale4  { background-color: #80ff80; }
+.scale5  { background-color: #60ff60; }
+.scale6  { background-color: #40ff40; }
+.scale7  { background-color: #20ff20; }
+.scale8  { background-color: #00ff00; }
+.scale9  { background-color: #00ff00; }
+.scale10 { background-color: #00ff00; }
+{% endblock %}
 {% block content %}
 <div class="ui vertical segment">
   <div class="ui center aligned stackable grid container">
@@ -10,7 +33,7 @@
      <div class="ui horizontal list">
       <div class="item"><a href="/dossier/atom/{{dossier.procedure.reference}}">Track RSS</a></div>
       <div class="item"><a href="{{url}}?format=json">download json</a></div>
-      <div class="item"><a class="hidden" id="wikinotes" href="{{dossier.procedure.reference|reftopath}}">Notes</a></div>
+      <!--<div class="item"><a class="hidden" id="wikinotes" href="{{dossier.procedure.reference|reftopath}}">Notes</a></div>-->
       <div class="item" id="track_dossier"><a href="#">Subscribe</a>
           <div class="nondisplayed" id="notif_subscr">
           <div>
@@ -28,84 +51,6 @@
     </div>
     <div class="row">
       <div class="left aligned column">
-<h2 class="epheader" id="dossier_title">{{ dossier.procedure.reference }}</h2>
-{% if dossier.finalref %}<p class="epheader">{{dossier.finalref}}</p>{% endif %}
-<p class="epheader">{{dossier.procedure.title}}</p>
-
-<div class="hidden epheader">
-<b>{{dossier.procedure.title}}</b> <a href="/dossier/{{dossier.procedure.reference}}">{{dossier.procedure.reference}}</a><br>
-{% set fc = dossier.activities[0] if dossier.activities|length and dossier.activities[0].date > now_date %}
-{% if fc %}
-   <a href="/dossier/{{dossier.procedure.reference}}#activities">Next event</a>: <b><abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr></b> {{fc.type}}
-{%endif%}
-
-{%if dossier.committees %}
-<table border="1">
-   <tr>
-      <td></td>
-      {%for committee in dossier.committees %}
-          <td align="center">
-             {% if committee.committee|length == 4 %}<a href="/committee/{{committee.committee}}#dossiers">{{committee.committee}}</a>
-             {%elif committee_map[committee.committee]|length == 4 %}<a href="/committee/{{committee_map[committee.committee]}}#dossiers">{{committee.committee}}</a>
-             {%else%}{{committee.committee}}{%endif%}
-          </td>
-      {%endfor%}
-   </tr>
-   <tr>
-      <td>Lead Rapporteur</td>
-      {%for committee in dossier.committees %}
-          {% if committee.type == "Responsible Committee" %}
-          <td>
-             {% for a in committee.rapporteur %}
-             <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.group}}">{{a.group}}</a>){% if not loop.last %},{%endif%}
-             {% if not loop.last%}<br />{%endif%}
-             {% endfor %}
-          </td>
-          {% else %}
-          <td></td>
-          {% endif  %}
-      {%endfor%}
-   </tr>
-   <tr>
-       <td>Opinion Rapporteur(s)</td>
-   {%for committee in dossier.committees %}
-       {% if not committee.type == "Responsible Committee" %}
-       <td>
-          {% for a in committee.rapporteur if not committee.type == "Responsible Committee" %}
-          <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.group}}">{{a.group}}</a>){% if not loop.last %},{%endif%}
-          {% if not loop.last%}<br />{%endif%}
-          {% endfor %}
-       </td>
-       {% else %}
-       <td></td>
-       {% endif  %}
-   {%endfor%}
-   </tr>
-</table>
-{%endif%}
-{% if dossier.procedure.dossier_of_the_committee %}Lead committee dossier: 
- <ul>
-    {% for x in dossier.procedure.dossier_of_the_committee %}
-    <li><a href="http://www.europarl.europa.eu/committees/en/libe/documents-search.html?linkedDocument=true&ufolderComCode={{dossier.procedure.committee}}&ufolderLegId={{x.split('/')[1]}}&ufolderId={{x.split('/')[2]}}&urefProcYear=&urefProcNum=&urefProcCode=">{{x}}</a></li>
-    {% endfor %}
- </ul>
- {%endif%}<br>
-{% if dossier.procedure.legal_basis %}
-Legal basis: {%for sub in dossier.procedure.legal_basis%}
-    {% if sub[:48] == "Rules of Procedure of the European Parliament EP" %}
-    <a href="http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//TEXT+RULES-EP+20120110+RULE-{{sub[49:51]}}+DOC+XML+V0//EN">RoP {{sub[48:]}}</a>
-    {% else %}
-    {{sub}}
-    {% endif %}
-{% if not loop.last %}, {%endif%}{%endfor%}
-{% endif %}
-</div>
-<h4>Progress: {{dossier.procedure.stage_reached}}</h4>
-<div class="ui indicating progress"  data-value="{{ progress }}" data-total="100">
-   <div class="bar">
-       <div class="progress"></div>
-   </div>
-</div>
 <div id="tabs"  class="ui top attached tabular menu">
     <a class="active item" data-tab="general">General</a>
     {% if dossier.activities %}<a class="item" data-tab="activities">Activities</a>{% endif %}
@@ -119,18 +64,25 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
 
 <div>
    <b>{{dossier.procedure.reference}} {{dossier.procedure.title}}</b><br>
-     {% for fc in dossier.activities if fc.date>now_date %}
-        {% if loop.first %}
-           Next event: {{fc.type}} <abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr>
-           {% if not loop.last %}
-           <a class='button'>more...</a>
-              <ul class="hidden">
-           {% endif %}
-        {% else %}
-           <li>{{fc.type}} <abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr></li>
-        {%endif%}
-        {% if not loop.first and loop.last %}</ul>{% endif%}
-     {% endfor %}
+   {% for fc in dossier.activities if fc.date>now_date %}
+      {% if loop.first %}
+         Next event: {{fc.type}} <abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr>
+         {% if not loop.last %}
+         <a class='button'>more...</a>
+            <ul class="hidden">
+         {% endif %}
+      {% else %}
+         <li>{{fc.type}} <abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr></li>
+      {%endif%}
+      {% if not loop.first and loop.last %}</ul>{% endif%}
+   {% endfor %}
+
+   <h4>Progress: {{dossier.procedure.stage_reached}}</h4>
+   <div class="ui indicating progress"  data-value="{{ progress }}" data-total="100">
+      <div class="bar">
+          <div class="progress"></div>
+      </div>
+   </div>
 
 {%for committee in dossier.committees %}
    {% if loop.first %}
@@ -149,26 +101,26 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
        </td>
        <td>
           {% for a in committee.rapporteur %}
-             <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.group}}">{{a.group}}</a>){% if not loop.last %},{%endif%}
+             <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.abbr}}">{{a.group}}</a>){% if not loop.last %},{%endif%}
           {% endfor %}
        </td>
        <td>
           {% for a in committee.shadows %}
-             <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.group}}">{{a.group}}</a>){% if not loop.last %},{%endif%}
+             <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.abbr}}">{{a.group}}</a>){% if not loop.last %},{%endif%}
           {% endfor %}
        </td>
   </tr>
   {% if loop.last %}</table>{% endif %}
   {%endfor%}
-  {% if dossier.procedure.dossier_of_the_committee %}Lead committee dossier: 
+  {% if dossier.procedure.dossier_of_the_committee %}<h5>Lead committee dossier:<h5> 
    <ul>
       {% for x in dossier.procedure.dossier_of_the_committee %}
       <li><a href="http://www.europarl.europa.eu/committees/en/libe/documents-search.html?linkedDocument=true&ufolderComCode={{dossier.procedure.committee}}&ufolderLegId={{x.split('/')[1]}}&ufolderId={{x.split('/')[2]}}&urefProcYear=&urefProcNum=&urefProcCode=">{{x}}</a></li>
       {% endfor %}
    </ul>
-  {%endif%}<br>
+  {%endif%}
    {% if dossier.procedure.legal_basis %}
-   Legal Basis
+   <h5>Legal Basis:</h5>
      {%for sub in dossier.procedure.legal_basis%}{{sub}}{% if not loop.last %}, {%endif%}{%endfor%}
    {% endif %}
 </div>
@@ -199,7 +151,7 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
  {%if loop.last %}</ul>{%endif%}
 {%endfor%}
 
-<div>Subjects
+<div><h5>Subjects</h5>
 {%for sub in dossier.procedure.subject%}
     {% if loop.first %}<ul>{% endif %}
     <li><a href="/dossiers?sub={{sub.split(' ')[0]}}&amp;subtitle={{sub}}">{{sub}}</a></li>
@@ -207,7 +159,7 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
 {%endfor%}
 </div>
 
-<div>Links
+<div><h5>Links</h5>
 <ul>
   {% if dossier.celexid %}<li>The final text on <a href="http://eur-lex.europa.eu/legal-content/EN/TXT/?uri={{dossier.celexid[:-3]}}">Eurlex</a></li>{% endif %}
   <li><a href="{{dossier.meta.source}}">OEIL</a></li>
@@ -238,7 +190,7 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
           <div class="title left_padded"><i class="dropdown icon"></i>Details</div>
           <div class="content left_padded">
              {% for a in act.summary %}
-                 <p>{{ a }}</p>
+                 <p>{{ a|striptags }}</p>
              {% endfor %}
           </div>
        </div>
@@ -265,7 +217,7 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
    <ul>
    {% for act in dossier.activities %}
       {%for doc in act.docs%}
-         <li>{{doc.type}}: 
+         <li>{{act.type}}:
          {%if doc.celexid %}
             <a href='http://eur-lex.europa.eu/legal-content/EN/TXT/?uri={{doc.celexid[:-3]}}'>{{doc.title}}</a>
          {%else%}
@@ -283,21 +235,29 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
       {%endfor%}
    {%endfor%}
    {%for doc in dossier.docs%}
-     <li>
-     {{doc.type}}
-     {% if doc.celexid %}
-       <a href="http://eur-lex.europa.eu/legal-content/EN/TXT/?uri={{doc.celexid[:-3]}}">{{doc.title}}</a>
-       {% elif doc.url  %}<a href="{{doc.url}}">{{doc.title}}</a>
-     {%else%}{{doc.title}}{% endif %}
-     {%if doc.summary%}
-        [<a class="button">summary</a>]
-        <div class="hidden">
-          {%for line in doc.summary %}
-          {{line|striptags}}
-          {%endfor%}
-        </div>
+     {%if doc.docs|length > 0 %}
+        <li>
+        {{doc.type}}:
+        {%for d in doc.docs%}
+            {% if d.celexid %}
+            <a href="http://eur-lex.europa.eu/legal-content/EN/TXT/?uri={{d.celexid[:-3]}}">{{d.title}}</a>
+            {% elif d.url  %}<a href="{{d.url}}">{{d.title}}</a>
+            {%else%}{{d.title}}{% endif %}
+
+
+            {%if d.summary%}
+               <div class="ui accordion">
+                  <div class="title left_padded"><i class="dropdown icon"></i>Summary</div>
+                  <div class="content left_padded">
+                     {% for a in d.summary %}
+                         <p>{{ a|striptags }}</p>
+                     {% endfor %}
+                  </div>
+               </div>
+            {%endif%}
+        {%endfor%}
+        </li>
      {%endif%}
-     </li>
    {%endfor%}
    </ul>
 </div>
@@ -305,67 +265,58 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
 {% if dossier.votes %}
 <div id="votes" class="ui tab" data-tab="votes">
 <h3>Votes</h3>
-{%for vote in dossier.votes|sort(attribute='ts')%}
-<h4>{{vote.linkedtitle|safe}}</h4>
-  <div>{{vote.ts|asdate}}</div>
-  <div class='votes-graph'> </div>
-  <table border="1" class="votes">
+{%for vote in dossier.vmatrix|sort(attribute='time')%}
+<h4>{{vote.title|safe}}</h4>
+  <div>{{vote.time|asdate}} Outcome: {% for c,r in vote.totals.items()%}{{c}}: {{r}}{% if not loop.last%}, {%endif%}{%endfor%}</div>
+  <table style="font-size: 0.7em !important;" class="ui definition table celled collapsing compact small">
      <thead>
         <tr>
-          <td>Position</td>
-          <td>Total</td>
-          {% for g in vote.groups|sort %}
-            <td><a rel="nofollow" href="/meps/{{g}}?date={{vote.ts|asdate}}">{{g}}</a></td>
+          <th />
+          <th />
+          {% for c,_ in vote.countries %}
+            <th>{{c}}</th>
           {%endfor%}
-          <td>correctional</td>
+        </tr>
+        <tr>
+          <td />
+          <td>Total</td>
+          {% for _,c in vote.countries %}
+          <td class="scale{{c['class']}}">
+            <div class="ui" data-tooltip="{%if c['+']>0 %}+{{c['+']}}{%endif%}
+                                          {%if c['-']>0 %}-{{c['-']}}{%endif%}
+                                          {%if c['0']>0 %}={{c['0']}}{%endif%}" data-position="center">
+              <br/>
+            </div>
+          </td>
+          {%endfor%}
         </tr>
      </thead>
      <tbody>
-       <tr>
-         <td>For</td>
-         {% if 'For' in vote.keys() %}
-           <td>{{vote.For.total}}</td>
-           {% for v in vote.For.groups %}
-              <td class="for" title="{{v.group}}">{{v.votes|length}}</td>
+        {% for g, gt in vote.groups %}
+        <tr>
+           <td>{{g}}</td>
+           <td class="scale{{gt['class']}}">
+             <div class="ui" data-tooltip="{%if gt['+']>0%}+{{gt['+']}}{%endif%}
+                                           {%if gt['-']>0%}-{{gt['-']}}{%endif%}
+                                           {%if gt['0']>0%}={{gt['0']}}{%endif%}" data-position="center">
+               <br/>
+             </div>
+           </td>
+           {% for c,_ in vote.countries %}
+              {% if g in vote.votes and c in vote.votes[g] %}
+                 <td class="scale{{vote.votes[g][c]['class']}}">
+                   <div class="ui" data-tooltip="{%if vote.votes[g][c]['+']>0%}+{{vote.votes[g][c]['+']}}{%endif%}
+                                                 {%if vote.votes[g][c]['-']>0%}-{{vote.votes[g][c]['-']}}{%endif%}
+                                                 {%if vote.votes[g][c]['0']>0%}={{vote.votes[g][c]['0']}}{%endif%}" data-position="center">
+                     <br/>
+                   </div>
+                 </td>
+              {% else %}
+                 <td />
+              {%endif%}
            {%endfor%}
-           {% if 'correctional' in vote.For%}
-             <td>{{vote.For.correctional|length}}</td>
-           {% else %}<td>0</td>
-           {%endif%}
-         {% else %}
-             <td>0</td>
-         {%endif%}
-       </tr>
-       <tr>
-         <td>Against</td>
-         {% if 'Against' in vote.keys() %}
-           <td>{{vote.Against.total}}</td>
-           {% for v in vote.Against.groups %}
-              <td class="against" title="{{vote.group}}">{{v.votes|length}}</td>
-           {%endfor%}
-           {% if 'correctional' in vote.Against%}
-             <td>{{vote.Against.correctional|length}}</td>
-           {% else %}<td>0</td>
-           {%endif%}
-         {% else %}
-             <td>0</td>
-         {%endif%}
-       </tr>
-       <tr>
-         <td>Abstain</td>
-         {% if 'Abstain' in vote.keys() %}
-           <td>{{vote.Abstain.total}}</td>
-           {% for v in vote.Abstain.groups %}
-              <td class="abstain" title="{{v.group}}">{{v.votes|length}}</td>
-           {%endfor%}
-           {% if 'correctional' in vote.Abstain%}
-             <td>{{vote.Abstain.correctional|length}}</td>
-           {% else %}<td>0</td>
-           {%endif%}
-         {% else %}
-             <td>0</td>
-         {%endif%}
-       </tr>
+        </tr>
+        {% endfor %}
      </tbody>
   </table>
 {%endfor%}
