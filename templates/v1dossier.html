@@ -17,79 +17,12 @@
   <div class="ui center aligned stackable grid container">
     <div class="row">
       <div class="left aligned column">
-<h2 class="epheader">{{ dossier.procedure.reference }}</h2>
-{% if dossier.finalref %}<p class="epheader">{{dossier.finalref}}</p>{% endif %}
-<p class="epheader">{{dossier.procedure.title}}</p>
-
-<div class="hidden epheader">
-<b>{{dossier.procedure.title}}</b> <a href="/dossier/{{dossier.procedure.reference}}">{{dossier.procedure.reference}}</a><br>
-{% for fc in dossier.activities if fc.date>now_date %}
-   {% if loop.first %}
-      <a href="/dossier/{{dossier.procedure.reference}}#activities">Next event</a>: <b><abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr></b> {{fc.type}}
-   {%endif%}
-{% endfor %}
-
-{%if dossier.committees %}
-<table border="1">
-   <tr>
-      <td></td>
-      {%for committee in dossier.committees %}
-          <td align="center">
-             {% if committee.committee|length == 4 %}<a href="/committee/{{committee.committee}}#dossiers">{{committee.committee}}</a>
-             {%elif committee_map[committee.committee]|length == 4 %}<a href="/committee/{{committee_map[committee.committee]}}#dossiers">{{committee.committee}}</a>
-             {%else%}{{committee.committee}}{%endif%}
-          </td>
-      {%endfor%}
-   </tr>
-   <tr>
-      <td>Lead Rapporteur</td>
-      {%for committee in dossier.committees %}
-          {% if committee.responsible %}
-          <td>
-             {% for a in committee.rapporteur %}
-             <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.group}}">{{a.group}}</a>){% if not loop.last %},{%endif%}
-             {% if not loop.last%}<br />{%endif%}
-             {% endfor %}
-          </td>
-          {% else %}
-          <td></td>
-          {% endif  %}
-      {%endfor%}
-   </tr>
-   <tr>
-       <td>Opinion Rapporteur(s)</td>
-   {%for committee in dossier.committees %}
-       {% if not committee.responsible %}
-       <td>
-          {% for a in committee.rapporteur if not committee.responsible %}
-          <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.group}}">{{a.group}}</a>){% if not loop.last %},{%endif%}
-          {% if not loop.last%}<br />{%endif%}
-          {% endfor %}
-       </td>
-       {% else %}
-       <td></td>
-       {% endif  %}
-   {%endfor%}
-   </tr>
-</table>
-{%endif%}
-{% if dossier.procedure.dossier_of_the_committee %}Lead committee dossier:  <a href="http://www.europarl.europa.eu/committees/en/libe/documents-search.html?linkedDocument=true&ufolderComCode={{dossier.procedure.committee}}&ufolderLegId={{dossier.procedure.dossier_of_the_committee.split('/')[1]}}&ufolderId={{dossier.procedure.dossier_of_the_committee.split('/')[2]}}&urefProcYear=&urefProcNum=&urefProcCode=">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}<br>
-{% if dossier.procedure.legal_basis %}
-Legal basis: {%for sub in dossier.procedure.legal_basis%}
-    {% if sub[:48] == "Rules of Procedure of the European Parliament EP" %}
-    <a href="http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//TEXT+RULES-EP+20120110+RULE-{{sub[49:51]}}+DOC+XML+V0//EN">RoP {{sub[48:]}}</a>
-    {% else %}
-    {{sub}}
-    {% endif %}
-{% if not loop.last %}, {%endif%}{%endfor%}
-{% endif %}
-</div>
 
 <p><strong>{{dossier.procedure.stage_reached}}</strong></p>
 <div id="tabs"  class="ui top attached tabular menu">
     <a class="active item" data-tab="general">General</a>
     {% if dossier.activities %}<a class="item" data-tab="activities">Activities</a>{% endif %}
-    <a  class="item" data-tab="documents">Documents</a>
+    {% if dossier.docs %}<a  class="item" data-tab="documents">Documents</a>{%endif%}
     {% if dossier.votes %}<a class="item" data-tab="votes">Votes</a>{%endif%}
     {% if dossier.amendments and 0%}<a class="item" data-tab="ams">Amendments ({{dossier.amendments|length}})</a>{%endif%}
     {% if dossier.changes %}<a class="item" data-tab="history">History</a>{%endif%}
@@ -221,23 +154,23 @@ Legal basis: {%for sub in dossier.procedure.legal_basis%}
         </li>
      {%endfor%}
      {%for agent in act.commission %}<li class='agent'>DG {{agent.DG}}, {{agent.Commissioner}}</li>{%endfor%}
-     {%for agent in act.committees%}
+     {%if act.rapporteur %}
         <li class='agent'>
-          {%if agent.responsible%}
-             <strong>{% if agent.committee|length == 4 %}<a href="/committee/{{agent.committee}}">{{agent.committee}}</a>
-               {%elif committee_map[agent.committee]|length == 4 %}<a href="/committee/{{committee_map[agent.committee]}}">{{agent.committee}}</a>
-               {%else%}{{agent.committee}}{%endif%}</strong>
-             {%if dossier.procedure.dossier_of_the_committee and dossier.procedure.dossier_of_the_committee[:4]==agent.committee %}<a href="http://www.europarl.europa.eu/committees/en/libe/documents-search.html?linkedDocument=true&ufolderComCode={{dossier.procedure.committee}}&ufolderLegId={{dossier.procedure.dossier_of_the_committee.split('/')[1]}}&ufolderId={{dossier.procedure.dossier_of_the_committee.split('/')[2]}}&urefProcYear=&urefProcNum=&urefProcCode=">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
+          {%if act.responsible%}
+             <strong>{% if act.committee|length == 4 %}<a href="/committee/{{act.committee}}">{{act.committee}}</a>
+               {%elif committee_map[act.committee]|length == 4 %}<a href="/committee/{{committee_map[act.committee]}}">{{act.committee}}</a>
+               {%else%}{{act.committee}}{%endif%}</strong>
+             {%if dossier.procedure.dossier_of_the_committee and dossier.procedure.dossier_of_the_committee[:4]==act.committee %}<a href="http://www.europarl.europa.eu/committees/en/libe/documents-search.html?linkedDocument=true&ufolderComCode={{dossier.procedure.committee}}&ufolderLegId={{dossier.procedure.dossier_of_the_committee.split('/')[1]}}&ufolderId={{dossier.procedure.dossier_of_the_committee.split('/')[2]}}&urefProcYear=&urefProcNum=&urefProcCode=">{{dossier.procedure.dossier_of_the_committee}}</a>{%endif%}
           {%else%}
-             {% if agent.committee|length == 4 %}<a href="/committee/{{agent.committee}}">{{agent.committee}}</a>
-             {%elif committee_map[agent.committee]|length == 4 %}<a href="/committee/{{committee_map[agent.committee]}}">{{agent.committee}}</a>
-             {%else%}{{agent.committee}}{%endif%}
+             {% if act.committee|length == 4 %}<a href="/committee/{{act.committee}}">{{act.committee}}</a>
+             {%elif committee_map[act.committee]|length == 4 %}<a href="/committee/{{committee_map[act.committee]}}">{{act.committee}}</a>
+             {%else%}{{act.committee}}{%endif%}
           {%endif%}
-          {% for mep in agent.rapporteur %}
+          {% for mep in act.rapporteur %}
              {%if mep.name%}<a href="/mep/{{mep.name}}">{{mep.name}}</a>{%endif%}{%if mep.group%} <a href="/meps/{{mep.group}}">{{mep.group}}</a>{%endif%}{% if not loop.first %},{%endif%}
           {% endfor %}
         </li>
-     {%endfor%}
+     {%endif%}
      </ul>
    </li>
   {%endfor%}
