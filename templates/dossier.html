@@ -4,6 +4,7 @@
 <link rel="alternate" type="application/atom+xml" title="Changes for {{ dossier.procedure.reference }} feed" href="/dossier/atom/{{dossier.procedure.reference}}" />
 {% endblock %}
 {% block styles %}
+.scale-11 { background-color: #ff0000; }
 .scale-10 { background-color: #ff0000; }
 .scale-9  { background-color: #ff0000; }
 .scale-8  { background-color: #ff2009; }
@@ -14,7 +15,7 @@
 .scale-3  { background-color: #ffc033; }
 .scale-2  { background-color: #ffe03c; }
 .scale-1  { background-color: #ffff40; }
-.scale0  { background-color: #ccccff; }
+.scale0  { background-color: #eeeeff; }
 .scale1  { background-color: #ccffcc; }
 .scale2  { background-color: #b2ffb2; }
 .scale3  { background-color: #99ff99; }
@@ -25,6 +26,7 @@
 .scale8  { background-color: #00ff00; }
 .scale9  { background-color: #00ff00; }
 .scale10 { background-color: #00ff00; }
+.scale11 { background-color: #00ff00; }
 {% endblock %}
 {% block content %}
 <div class="ui vertical segment">
@@ -304,12 +306,27 @@
            </td>
            {% for c,_ in vote.countries %}
               {% if g in vote.votes and c in vote.votes[g] %}
-                 <td class="scale{{vote.votes[g][c]['class']}}">
-                   <div class="ui" data-tooltip="{%if vote.votes[g][c]['+']>0%}+{{vote.votes[g][c]['+']}}{%endif%}
-                                                 {%if vote.votes[g][c]['-']>0%}-{{vote.votes[g][c]['-']}}{%endif%}
-                                                 {%if vote.votes[g][c]['0']>0%}={{vote.votes[g][c]['0']}}{%endif%}" data-position="center">
+                <td class="popup scale{{vote.votes[g][c]['class']}}"
+                    data-html="<table class='ui table compact small'><tr>
+                               {%if vote.votes[g][c]['+']|length>0%}<th>+{{vote.votes[g][c]['+']|length}}</th>{%endif%}
+                               {%if vote.votes[g][c]['-']|length>0%}<th>-{{vote.votes[g][c]['-']|length}}</th>{%endif%}
+                               {%if vote.votes[g][c]['0']|length>0%}<th>={{vote.votes[g][c]['0']|length}}</th>{%endif%}
+                               </tr>
+                               <tr class='top aligned'>
+                                 {%if vote.votes[g][c]['+']|length>0%}<td><div class='ui list'>
+                                     {%for name, id in vote.votes[g][c]['+']%}
+                                        <a class='item' href='/mep/{{id}}/{{name}}'>{{name}}</a>
+                                     {%endfor%}</div></td>{%endif%}
+                                 {%if vote.votes[g][c]['-']|length>0%}<td><div class='ui list'>
+                                     {%for name, id in vote.votes[g][c]['-']%}
+                                        <a class='item' href='/mep/{{id}}/{{name}}'>{{name}}</a>
+                                    {%endfor%}</div></td>{%endif%}
+                                 {%if vote.votes[g][c]['0']|length>0%}<td><div class='ui list'>
+                                     {%for name, id in vote.votes[g][c]['0']%}
+                                        <a class='item' href='/mep/{{id}}/{{name}}'>{{name}}</a>
+                                    {%endfor%}</div></td>{%endif%}
+                               </tr></table>">
                      <br/>
-                   </div>
                  </td>
               {% else %}
                  <td />
@@ -341,6 +358,7 @@
 </div>
 <script type="text/javascript">
   $(document).ready(function() {
+    $('.popup').popup({hoverable:true, lastResort: true});
     $("#tabs .item").tab({history:false});
     $('.ui.accordion').accordion({
         clearable: true,
@@ -350,6 +368,7 @@
         duration : 100,
         total    : 100,
      });
+;
   });
 </script>
 <script type="text/javascript" src="/static/js/dossier.js"></script>
