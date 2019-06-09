@@ -625,6 +625,7 @@ def votematrices(votes):
                     meps.append((mep['mepid'],group,type))
         # query countries for meps
         mepcountries = db.countries_for_meps([m[0] for m in meps], vote['ts'])
+        mepnames = db.names_by_mepids([m[0] for m in meps])
         # second pass where we create a matrix: groups x countries, where each
         # cell contains a {'0':x,'+':y,'-':z,'total':t} dict.
         # and we also create aggregate totals for groups and countries, so
@@ -639,8 +640,8 @@ def votematrices(votes):
             if not group in matrix['votes']:
                 matrix['votes'][group]={}
             if not country in matrix['votes'][group]:
-                matrix['votes'][group][country]={'0':0,'+':0,'-':0,'total':0}
-            matrix['votes'][group][country][choice]+=1
+                matrix['votes'][group][country]={'0':[],'+':[],'-':[],'total':0}
+            matrix['votes'][group][country][choice].append((mepnames[mepid], mepid))
             matrix['votes'][group][country]['total']+=1
             matrix['countries'][country][choice]+=1
             matrix['countries'][country]['total']+=1
@@ -650,16 +651,27 @@ def votematrices(votes):
             if x<0: return int(floor(x))
             else: return int(ceil(x))
         # lets precalc also color class in a 3rd pass
-        cgmax = max(c['+']-c['-'] for cs in matrix['votes'].values() for c in cs.values()) - min(c['+']-c['-'] for cs in matrix['votes'].values() for c in cs.values())
-        cmax = max(x.get('+',0)-x.get('-',0) for x in matrix['countries'].values()) - min(x.get('+',0)-x.get('-',0) for x in matrix['countries'].values())
-        gmax = max(x.get('+',0)-x.get('-',0) for x in matrix['groups'].values()) - min(x.get('+',0)-x.get('-',0) for x in matrix['groups'].values())
+        cgmax = max(len(c['+'])-len(c['-'])
+                    for cs in matrix['votes'].values()
+                    for c in cs.values()) - min(len(c['+'])-len(c['-'])
+                                                for cs in matrix['votes'].values()
+                                                for c in cs.values())
+        cmax = max(x.get('+',0)-x.get('-',0)
+                   for x in matrix['countries'].values()) - min(x.get('+',0)-x.get('-',0)
+                                                                for x in matrix['countries'].values())
+        gmax = max(x.get('+',0)-x.get('-',0)
+                   for x in matrix['groups'].values()) - min(x.get('+',0)-x.get('-',0)
+                                                             for x in matrix['groups'].values())
         for k, v in matrix['countries'].items():
             v['class']=round((v['+']-v['-'])*10/cmax)
         for k, v in matrix['groups'].items():
             v['class']=round((v['+']-v['-'])*10/gmax)
         for g, cs in matrix['votes'].items():
             for c, v in cs.items():
-                v['class']=round((v['+']-v['-'])*10/cgmax)
+                v['class']=round((len(v['+'])-len(v['-']))*10/cgmax)
+                for type in ['+','-','0']:
+                    if type not in v: continue
+                    v[type]=sorted(v[type])
 
         # sort countries/groups in descending order
         matrix['countries']=sorted(matrix['countries'].items(),key=lambda x: x[1]['+']-x[1]['-'],reverse=True)
