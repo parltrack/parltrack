@@ -189,7 +189,7 @@ def issectionhead(decl, text,ptr,curstate,state, ids):
          (decl.endswith('_BG.pdf') and text[ptr].strip().startswith(u'%s.' % ids[1])) or
          (decl.endswith('_EL.pdf') and text[ptr].strip().startswith(u'(%s)' % ids[2]))))
 
-def scrape(decl):
+def scrape(decl, **kwargs):
     mep_id = decl.split('/')[-1].split('_')[0]
     data = {'mep_id': mep_id, 'url': unicode(decl), 'date': ''}
     log(3,"findecl scraping %s" % mep_id)

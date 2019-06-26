@@ -18,7 +18,7 @@ from random import randrange
 from tempfile import mkstemp
 from threading import Thread
 from utils.log import log, set_logfile
-from utils.utils import dateJSONhandler, create_search_regex, dossier_search, end_of_term
+from utils.utils import dateJSONhandler, create_search_regex, dossier_search, mep_search, end_of_term
 
 
 PIDFILE='/tmp/db.pid'
@@ -80,6 +80,14 @@ class Client:
         cmd = {"cmd": "get", "params": {"source": "meps_by_name", "key": name}}
         return self.send_req(cmd)
 
+    def comagenda(self, id):
+        cmd = {"cmd": "get", "params": {"source": "ep_comagendas", "key": id}}
+        return self.send_req(cmd)
+
+    def activities(self,mep_id,type=None,d_id=None):
+        cmd = {"cmd": "activities", "params": {"mep_id": mep_id, "type": type, "d_id": d_id}}
+        return self.send_req(cmd)
+
     def send_req(self, cmd):
         server_address = '/tmp/pt-db.sock'
         req = msgpack.dumps(cmd, default=dateJSONhandler, use_bin_type = True)
@@ -117,8 +125,8 @@ class Client:
     def dossier(self,id):
         return self.get('ep_dossiers', id)
 
-    def activities(self,id):
-        return self.get('ep_mep_activities', id)
+    def activities_by_dossier(self,id):
+        return self.get('activities_by_dossier', id)
 
     def vote(self,id):
         return self.get('ep_votes', id)
@@ -184,6 +192,7 @@ def singleton():
 
 def reindex(table):
     for idx in TABLES[table]['indexes']:
+        log(3,"indexing: %s" % idx['name'])
         IDXs[idx['name']]=idx['fn']()
 
 def reindex_all():
@@ -288,6 +297,8 @@ def mainloop():
                 res = countries_for_meps(**query.get('params', {})) or None
             elif query.get('cmd', '') == 'names_by_mepids':
                 res = names_by_mepids(**query.get('params', {})) or None
+            elif query.get('cmd','') == 'activities':
+                res = activities(**query.get('params',{})) or None
             else:
                 log(2,'invalid or missing cmd')
                 continue
@@ -369,6 +380,10 @@ def search(source, query):
         for d in DBS[source].values():
             if dossier_search(search_re, d):
                 res.append(d)
+    if source == 'ep_meps':
+        for m in DBS[source].values():
+            if mep_search(search_re, m):
+                res.append(m)
     return res
 
 
@@ -449,6 +464,18 @@ def names_by_mepids(mepids):
         res[mepid]=mep['Name']['full']
     return res
 
+def activities(mep_id, type, d_id):
+    activities = get("ep_mep_activities", mep_id)
+    if type:
+        activities = {k:v for k,v in activities.items() if k==type}
+    if d_id:
+        activities = {
+            k:[x for x in v if d_id in x.get('dossiers', [])]
+            for k,v in activities.items()
+            if isinstance(v, list) and len([x for x in v if d_id in x.get('dossiers', [])])
+        }
+    return activities
+    
 
 ######  indexes ######
 
@@ -515,9 +542,17 @@ def idx_ams_by_dossier():
 def idx_dossiers_by_subject():
     res = {}
     for d in DBS['ep_dossiers'].values():
-        for s in d['procedure'].get('subject',[]):
-            if not s in res: res[s] = []
-            res[s].append(d)
+        s = d['procedure'].get('subject')
+        if s is None: continue
+        if isinstance(s, list):
+            for x in s:
+                id, title = x.split(' ', 1)
+                if not id in res: res[id] = []
+                res[id].append(d)
+        else:
+            for id in s.keys():
+                if not id in res: res[id] = []
+                res[id].append(d)
     return res
 
 def idx_dossiers_by_committee():
@@ -533,9 +568,22 @@ def idx_dossiers_by_committee():
                 d = d[0]
             if d < end_of_term(4):
                 continue
-            n = c['committee_full']
+            n = c['committee']
             if not n in res: res[n] = []
             res[n].append(d)
+    return res
+
+def idx_subject_map():
+    res = {}
+    for d in DBS['ep_dossiers'].values():
+        s = d['procedure'].get('subject')
+        if s is None: continue
+        if isinstance(s, list):
+            for x in s:
+                id, title = x.split(' ', 1)
+                res[id]=title
+        else:
+            res.update(s)
     return res
 
 def idx_com_votes_by_dossier():
@@ -602,7 +650,7 @@ def idx_dossiers_by_mep():
                     continue
                 if not rapporteur['mepref'] in res:
                     res[rapporteur['mepref']]=[]
-                res[rapporteur['mepref']].append((ref,title,type))
+                res[rapporteur['mepref']].append((ref,title,type, committee['committee']))
             type="%s Shadow" % type
             for shadow in committee.get('shadows',[]):
                 if not 'mepref' in shadow:
@@ -613,7 +661,24 @@ def idx_dossiers_by_mep():
                     continue
                 if not shadow['mepref'] in res:
                     res[shadow['mepref']]=[]
-                res[shadow['mepref']].append((ref,title,type))
+                res[shadow['mepref']].append((ref,title,type, committee['committee']))
+    # opinion shadows are somewhere else
+    for mepid, acts in DBS['ep_mep_activities'].items():
+        for cs in acts.get('COMPARL-SHADOW',[]):
+            dossiers = cs.get('dossiers')
+            if not dossiers:
+                log(2, "no dossiers in comparl-shadow entry: %s" % cs)
+                continue
+            for ref in dossiers:
+                if not mepid in res:
+                    res[mepid]=[]
+                dossier = DBS['ep_dossiers'].get(ref)
+                if not dossier:
+                    log(2,"unknown dossier in shadow opinions: %s" % ref)
+                    continue
+                title = dossier['procedure']['title']
+                res[mepid].append((ref,title,"Opinion Committee Shadow", cs['committee']))
+
     return res
 
 def idx_active_dossiers():
@@ -629,18 +694,17 @@ def idx_active_dossiers():
             res['active'].append(dossier)
     return res
 
-def idx_activities_by_mep():
+def idx_activities_by_dossier():
     res = {}
-    for act in DBS['ep_mep_activities'].values():
-        mep_id = act['mep_id']
-        if not mep_id in res: res[mep_id] = []
-        res[mep_id].append(act)
-    return res
-
-def idx_dossier_refs():
-    res = []
-    for doc in DBS['ep_dossiers'].values():
-        res.append(doc['procedure']['reference'])
+    for mep_id, acts in DBS['ep_mep_activities'].items():
+        for type in acts.keys():
+            if type in ['mep_id', 'meta', 'changes', 'WEXP', 'WDECL']: continue
+            for act in acts[type]:
+                refs = act.get('dossiers',[])
+                for ref in refs:
+                    if ref is None: continue
+                    if not ref in res: res[ref] = []
+                    res[ref].append((act, type, mep_id, DBS['ep_meps'][mep_id]['Name']['full']))
     return res
 
 TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_by_dossier"},
@@ -648,7 +712,7 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
                             'key': lambda x: x.get('id')},
 
           'ep_comagendas': {"indexes": [],
-                            'key': lambda x: x.get('_id')},
+                            'key': lambda x: x.get('id')},
 
           'ep_com_votes': {'indexes': [{"fn": idx_com_votes_by_dossier, "name": "com_votes_by_dossier"},
                                        {"fn": idx_com_votes_by_committee, "name": "com_votes_by_committee"}],
@@ -657,8 +721,8 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
           'ep_dossiers': {'indexes': [{"fn": idx_active_dossiers, "name": "active_dossiers"},
                                       {"fn": idx_dossiers_by_doc, "name": "dossiers_by_doc"},
                                       {"fn": idx_dossiers_by_mep, "name": "dossiers_by_mep"},
-                                      {"fn": idx_dossier_refs, "name": "dossier_refs"},
                                       {"fn": idx_dossiers_by_subject, "name": "dossiers_by_subject"},
+                                      {"fn": idx_subject_map, "name": "subject_map"},
                                       {"fn": idx_dossiers_by_committee, "name": "dossiers_by_committee"}],
                           'key': lambda x: x['procedure']['reference']},
 
@@ -668,7 +732,7 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
                                   {"fn": idx_meps_by_name, "name": "meps_by_name"}],
                       'key': lambda x: x['UserID']},
 
-          'ep_mep_activities': {'indexes': [{"fn": idx_activities_by_mep, "name": "activities_by_mep"},],
+          'ep_mep_activities': {'indexes': [{"fn": idx_activities_by_dossier, "name": "activities_by_dossier"},],
                                 'key': lambda x: x['mep_id']},
 
           'ep_votes': {'indexes': [{"fn": idx_votes_by_dossier, "name": "votes_by_dossier"}],

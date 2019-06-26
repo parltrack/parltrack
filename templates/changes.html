@@ -6,7 +6,7 @@
         {% for k, changes in data.changes|dictsort|reverse %}
         <div class="changelog-item">
            <div class="changelog-timestamp more">{{k[:10]}}</div>
-           <table class="changelog-entries{% if not loop.first %} hidden{% endif %}">
+           <table class="ui table changelog-entries{% if not loop.first %} hidden{% endif %}">
            {% for change in changes|sort(attribute='path') %}
                <tr class='changelog-entry'>
                   <td class="changelog-path">{{change.path|join('/')}}</td>

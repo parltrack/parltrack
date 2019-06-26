@@ -6,12 +6,6 @@
 {% block styles %}
 <link type="text/css" href="/static/js/css/jit/BarChart.css" rel="stylesheet" />
 {% endblock %}
-{% block scripts %}
-<script type="text/javascript" src="/static/js/jit-yc.js"></script>
-<!--[if IE]><script language="javascript" type="text/javascript" src="/static/js/excanvas.js"></script><![endif]-->
-<script type="text/javascript" src="/static/js/jitchart.js"></script>
-<script type="text/javascript" src="/static/js/dossier.js"></script>
-{% endblock %}
 {% block content %}
 <div class="ui vertical segment">
   <div class="ui center aligned stackable grid container">
@@ -306,11 +300,6 @@
 </div>
 </div>
 </div>
-<script type="text/javascript">
-  $(document).ready(function() {
-    $("#tabs .item").tab({history:false});
-  });
-</script>
 <script type="text/javascript" src="/static/js/dossier.js"></script>
 {% endblock %}
 

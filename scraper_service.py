@@ -52,7 +52,7 @@ def consume(pool, scraper):
         job = pool.get(True)
         if 'onfinished' in job:
             onfinished_args = job['onfinished']
-            del(job['onfinished'])
+            #del(job['onfinished'])
         else:
             onfinished_args = {}
         scraper._lock.acquire()

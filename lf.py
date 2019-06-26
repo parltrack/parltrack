@@ -16,7 +16,7 @@ def parse(line):
         date = datetime.fromisoformat(tokens[0])
     except:
         return line
-    if tokens[1] not in ['db','dossier','dossiers','mep','meps','mgr','pvote','pvotes', 'amendment', 'amendments']:
+    if tokens[1] not in ['db','dossier','dossiers','mep','meps','mgr','pvote','pvotes', 'amendment', 'amendments', 'comagenda', 'comagendas']:
         return line
     module = tokens[1]
     if tokens[2] not in LEVELS:
@@ -42,6 +42,8 @@ def dump(date, module, level, levelz, msg):
         "pvotes": "\033[38;2;127;127;127mpvotes\033[0m",
         "amendment": "amendment",
         "amendments": "\033[38;2;127;127;127mamendments\033[0m",
+        "comagenda": "comagenda",
+        "comagendas": "\033[38;2;127;127;127mcomagendas\033[0m",
     }
     if dlevel<level:
         return

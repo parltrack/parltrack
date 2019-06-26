@@ -68,9 +68,10 @@
         <h2>Privacy</h2>
         <p>Parltrack currently does not use cookies per default. The preferences of the users however are stored in cookies. These do not allow tracking, except setting your email address would - but we never do. The only private information stored are the email addresses of the users of the monitoring feature. These email addresses are used for the sole purpose of notifying users of changes. Web server access logs are stored for a maximum of one year for statistical purposes only.</p>
         <h2>Contact</h2>
-        <span id="e26628950">[javascript protected email address]</span><script type="text/javascript">/*<![CDATA[*/eval("var a=\"lv_GM34mAXRy.WDagtbj9V0Qq+nFKZC285-uULNYJzO76cIe1pofHikd@hxrPSBsETw\";var b=a.split(\"\").sort().join(\"\");var c=\"@zxHPxz7fW7PxH7_1S\";var d=\"\";for(var e=0;e<c.length;e++)d+=b.charAt(a.indexOf(c.charAt(e)));document.getElementById(\"e26628950\").innerHTML=\"<a href=\\\"mailto:\"+d+\"\\\">\"+d+\"</a>\"")/*]]>*/</script>
+        {{ 'parltrack@ctrlc.hu'|protect_email|safe }}
       </div>
 	</div>
   </div>
 </div>
+<script src="{{ url_for('static', filename='js/protect_address.js') }}"></script>
 {% endblock %}

@@ -18,7 +18,7 @@
 # (C) 2019 by Stefan Marsiske, <parltrack@ctrlc.hu>
 
 import re,sys
-from utils.utils import fetch, fetch_raw, unws, jdump
+from utils.utils import fetch, fetch_raw, unws, jdump, getpdf
 from utils.process import process
 from utils.mappings import buildings, SEIRTNUOC, COMMITTEE_MAP, ORGMAPS, GROUP_MAP, DELEGATIONS, MEPS_ALIASES, TITLES
 from utils.log import log
@@ -36,7 +36,7 @@ CONFIG = {
     'abort_on_error': True,
 }
 
-def scrape(id):
+def scrape(id, **kwargs):
     # we ignore the /meps/en/<id>/<name>/home path, since we can get all info also from other pages
     url = "http://www.europarl.europa.eu/meps/en/%s/name/cv" % id
     xml = fetch_raw(url) # we have to patch up the returned html...
@@ -47,7 +47,7 @@ def scrape(id):
     mep = {
         'UserID'    : id,
         'Name'      : mangleName(unws(' '.join(root.xpath('//*[@id="name-mep"]//text()'))), id),
-        'Photo'     : "http://www.europarl.europa.eu/mepphoto/%s.jpg" % id,
+        'Photo'     : "https://www.europarl.europa.eu/mepphoto/%s.jpg" % id,
         'meta'      : {'url': url},
         'Twitter'   : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@class="ep_share"]//a[@title="Twitter"]/@href')],
         'Homepage'  : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@class="ep_share"]//a[@title="Website"]/@href')],
@@ -130,9 +130,10 @@ def scrape(id):
     # activities
     activities=parse_acts(id, terms)
     process(activities, id, db.activities, 'ep_mep_activities', mep['Name']['full'], nodiff=True)
-    del activities
 
-    #return mep
+    if __name__ == '__main__':
+        return (mep,activities)
+    del activities
     del mep
 
 def deobfus_mail(txt):
@@ -176,6 +177,20 @@ def parse_hist_date(txt):
     else:
         raise ValueError
     return datetime.strptime(unws(start), u"%d-%m-%Y"), datetime.strptime(unws(end), u"%d-%m-%Y")
+
+refre=re.compile(r'([0-9]{4}/[0-9]{4}[A-Z]?\((?:ACI|APP|AVC|BUD|CNS|COD|COS|DCE|DEA|DEC|IMM|INI|INL|INS|NLE|REG|RPS|RSO|RSP|SYN)\))')
+pdfrefcache={}
+def pdf2ref(url):
+    if url in pdfrefcache:
+        return pdfrefcache[url]
+    text = getpdf(url)
+    for line in text:
+        if line.startswith("\x0c"): return None
+        m = refre.search(line)
+        if m:
+            pdfrefcache[url]=m.group(1)
+            return m.group(1)
+    pdfrefcache[url]=None
 
 def parse_acts(id, terms):
     activity_types=(('plenary-speeches', 'CRE'),
@@ -221,7 +236,7 @@ def parse_acts(id, terms):
                                         'url': str(fnode.xpath('./@href')[0]),
                                         'size': unws(fnode.xpath('./span/text()')[0])}
                                         for fnode in node.xpath('.//div[@class="ep-a_links"]//a')],
-                            'authors': unws(''.join(node.xpath('.//span[@class="ep_name erpl-biblio-authors"]//text()'))),
+                            'authors': [{'name': name.strip(), "mepid": db.mepid_by_name(name.strip())} for name in unws(''.join(node.xpath('.//span[@class="ep_name erpl-biblio-authors"]//text()'))).split(',')],
                         }
                         for info in node.xpath('.//span[@class="erpl-biblio-addinfo"]'):
                             label, value = info.xpath('.//span[@class="erpl-biblio-addinfo-label"]')
@@ -244,11 +259,15 @@ def parse_acts(id, terms):
 
                         item = {
                             'url': str(node.xpath('.//a/@href')[0]),
-                            'title': unws(''.join(node.xpath('.//a//text()'))),
                             'date': datetime.strptime(node.xpath('.//time/@datetime')[0], u"%Y-%m-%dT%H:%M:%S"),
                             'date-type': str(node.xpath('.//time/@itemprop')[0]),
                             'reference': ref,
                         }
+
+                        if type in ['opinions-shadow', 'opinions']:
+                            item['title']=unws(''.join(node.xpath('.//div[@class="ep-p_text erpl-activity-title"]//text()')))
+                        else:
+                            item['title']=unws(''.join(node.xpath('.//a//text()')))
 
                         abbr = unws(''.join(node.xpath('.//abbr/text()')))
                         if abbr:
@@ -264,6 +283,47 @@ def parse_acts(id, terms):
                             formats.append(elem)
                         if formats:
                             item['formats']=formats
+
+                        if type=='opinions-shadow':
+                            for f in item['formats']:
+                                if f['type'] == 'PDF':
+                                    ref = pdf2ref(f['url'])
+                                    if ref is not None:
+                                        item['dossiers']=[ref]
+                                    break
+                        else:
+                           # try to deduce dossier from document reference
+                           dossiers = db.get('dossiers_by_doc', item['reference']) or []
+                           if len(dossiers)>0:
+                               item['dossiers']=[d['procedure']['reference'] for d in dossiers]
+                           elif not '+DOC+PDF+' in item['url']:
+                               # try to figure out the associated dossier by making an (expensive) http request to the ep
+                               #log(4, "fetching %s" % item['url'])
+                               try:
+                                   refroot = fetch(item['url'])
+                               except:
+                                   refroot = None
+                               if refroot is not None:
+                                   if '/doceo/' in item['url']: # stupid new EP site removed the spand with the procedure, bastards.
+                                       fulla = refroot.xpath('//table[@class="buttondocwin"]//a/img[@src="/doceo/data/img/navi_moredetails.gif"]/..')
+                                       if fulla:
+                                           fullurl = fulla[0].get('href')
+                                           if fullurl.endswith('.html'):
+                                               if fullurl[-7:-5]!='EN':
+                                                   fullurl=fullurl[:-7]+'EN.html'
+                                               log(4,'loading activity full text page')
+                                               refroot = fetch(fullurl)
+                                       else:
+                                           log(4,'no fulla for %s' % item['url'])
+                                   anchor = refroot.xpath('//span[@class="contents" and text()="Procedure : "]')
+                                   if len(anchor)==1:
+                                       dossier = anchor[0].xpath("./following-sibling::a/text()")
+                                       if len(dossier)==1:
+                                           item['dossiers']=[unws(dossier[0])]
+                                       elif len(dossier)>1:
+                                           log(2,"more than one dossier in ep info page: %d %s" % (len(dossier),item['url']))
+                                   elif len(anchor)>1:
+                                       log(2,"more than one anchor in ep info page: %d %s" % (len(anchor),item['url']))
 
                     item['term']=term
                     if TYPE not in activities:
@@ -452,9 +512,11 @@ def parse_history(id, root, mep):
     return terms
 
 def onfinished(daisy=True):
+    db.commit('ep_mep_activities')
+    db.reindex('ep_mep_activities')
     if daisy:
         from scraper_service import add_job
-        add_job("dossiers",{"all":True})
+        add_job("dossiers",{"all":True, 'onfinished': {'daisy': True}})
 
 if __name__ == '__main__':
     #scrape(28390)
@@ -465,5 +527,5 @@ if __name__ == '__main__':
     #scrape(1393) # 1-3rd term
     #scrape(96992)
     #scrape(1275)
-    scrape(int(sys.argv[1]))
+    print(jdump(scrape(int(sys.argv[1]))))
     #print(jdump({k: v for k,v in scrape(1428).items() if k not in ['changes']}))

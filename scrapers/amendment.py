@@ -588,8 +588,7 @@ def parse_block(block, url, reference, date, committee, rapporteur, PE):
 
             # convert to pt mep _ids
             for text in filter(None,splitNames(names)):
-                #mepid=db.getMep(text,date)
-                mepid=523
+                mepid=db.getMep(text,date)
                 if mepid:
                     try: am['meps'].append(mepid)
                     except KeyError: am['meps']=[mepid]
@@ -600,8 +599,7 @@ def parse_block(block, url, reference, date, committee, rapporteur, PE):
         elif rapporteur:
             am['authors']=rapporteur
             for text in filter(None,splitNames(rapporteur)):
-                #mepid=db.getMep(text,date)
-                mepid=523
+                mepid=db.getMep(text,date)
                 if mepid:
                     try: am['meps'].append(mepid)
                     except KeyError: am['meps']=[mepid]
@@ -658,7 +656,7 @@ def parse_block(block, url, reference, date, committee, rapporteur, PE):
 
 refre=re.compile(r'([0-9]{4}/[0-9]{4}[A-Z]?\((?:ACI|APP|AVC|BUD|CNS|COD|COS|DCE|DEA|DEC|IMM|INI|INL|INS|NLE|REG|RPS|RSO|RSP|SYN)\))')
 amstart=re.compile(r' *(Emendamenti|Amende?ment)\s*[0-9A-Z]+( a|/PP)?$')
-def scrape(url, meps=None):
+def scrape(url, meps=None, **kwargs):
     prolog=True
     res=[]
     block=None
@@ -744,5 +742,5 @@ def scrape(url, meps=None):
 
 if __name__ == "__main__":
     from utils.utils import jdump
-    #print(jdump(scrape("http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+COMPARL+PE-609.623+01+DOC+PDF+V0//EN&language=EN", "Krišjānis Kariņš")))
+    print(jdump(scrape("http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+COMPARL+PE-609.623+01+DOC+PDF+V0//EN&language=EN", "Krišjānis Kariņš")))
     print(jdump(scrape(sys.argv[1],"dummy rapporteur")))

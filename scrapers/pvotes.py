@@ -30,7 +30,7 @@ CONFIG = {
 }
 
 # 'http://www.europarl.europa.eu/plenary/en/minutes.html?clean=false&leg=7&refSittingDateStart=01/01/2011&refSittingDateEnd=31/12/2011&miType=title&miText=Roll-call+votes&tabActif=tabResult&startValue=10'
-def crawl(year, term):
+def crawl(year, term, **kwargs):
     listurl = 'http://www.europarl.europa.eu/plenary/en/minutes.html'
     PARAMS = '?clean=false&leg=%s&refSittingDateStart=01/01/%s&refSittingDateEnd=31/12/%s&miType=title&miText=Roll-call+votes&tabActif=tabResult'
     params = PARAMS % (term, year, year)
@@ -43,7 +43,10 @@ def crawl(year, term):
             if not date.strip(): continue
             #print(term, date.strip())
             date = datetime.strptime(date.strip(), "%d-%m-%Y").strftime("%Y-%m-%d")
-            add_job('pvote', payload={'term':term, 'date': date})
+            payload = dict(kwargs)
+            payload['term'] = term
+            payload['date'] = date
+            add_job('pvote', payload=payload)
         i+=1
         root=fetch("%s%s&action=%s" % (listurl,params,i))
         prevdates=dates

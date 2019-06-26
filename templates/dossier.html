@@ -53,20 +53,27 @@
     </div>
     <div class="row">
       <div class="left aligned column">
-<div id="tabs"  class="ui top attached tabular menu">
-    <a class="active item" data-tab="general">General</a>
-    {% if dossier.activities %}<a class="item" data-tab="activities">Activities</a>{% endif %}
-    <a  class="item" data-tab="documents">Documents</a>
-    {% if dossier.votes %}<a class="item" data-tab="votes">Votes</a>{%endif%}
-    {% if dossier.amendments and 0%}<a class="item" data-tab="ams">Amendments ({{dossier.amendments|length}})</a>{%endif%}
-    {% if dossier.changes %}<a class="item" data-tab="history">History</a>{%endif%}
-</div>
-<br/><br/>
+         <div id="tabs"  class="ui top attached tabular menu wrapped">
+            <a class="active item" data-tab="general">General</a>
+            {% if dossier.events %}<a class="item" data-tab="events">Events</a>{% endif %}
+            <a  class="item" data-tab="documents">Documents</a>
+            {% if dossier.activities %}<a class="item" data-tab="activities">Activities</a>{%endif%}
+            {% if dossier.vmatrix %}<a class="item" data-tab="votes">Votes</a>{%endif%}
+            {% if dossier.amendments %}<a class="item" data-tab="ams">Amendments ({{dossier.amendments|length}})</a>{%endif%}
+            {% if dossier.changes %}<a class="item" data-tab="history">History</a>{%endif%}
+         </div>
+         <br/><br/>
 <div id="general" class="ui active tab" data-tab="general">
 
 <div>
    <b>{{dossier.procedure.reference}} {{dossier.procedure.title}}</b><br>
-   {% for fc in dossier.activities if fc.date>now_date %}
+   {% if msg %}
+   <div class="ui negative message">
+      <div class="header"><i class="exclamation triangle icon"></i> Error</div>
+      <p>{{ msg|safe }}</p>
+   </div>
+   {% endif %}
+   {% for fc in dossier.events if fc.date>now_date %}
       {% if loop.first %}
          Next event: {{fc.type}} <abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr>
          {% if not loop.last %}
@@ -88,7 +95,7 @@
 
 {%for committee in dossier.committees %}
    {% if loop.first %}
-      <table border="1" class="tablesorter">
+      <table class="ui table">
       <thead><tr><th>Role</td><th>Committee</th><th>Rapporteur</th><th>Shadows</th></tr></thead>
    {% endif %}
     <tr>
@@ -171,11 +178,11 @@
 </ul></div>
 </div>
 
-{% if dossier.activities %}
-<div id="activities" class="ui tab" data-tab="activities">
-<h3>Activites</h3>
+{% if dossier.events %}
+<div id="events" class="ui tab" data-tab="events">
+<h3>Events</h3>
 <div class="ui feed">
-   {%for act in dossier.activities %}
+   {%for act in dossier.events %}
 	  <div class="event">
 		 <!-- <div class="label">
 			<img src="/static/images/x.gif">
@@ -217,7 +224,7 @@
 <div id="documents" class="ui tab" data-tab="documents">
 <h3>Documents</h3>
    <ul>
-   {% for act in dossier.activities %}
+   {% for act in dossier.events %}
       {%for doc in act.docs%}
          <li>{{act.type}}:
          {%if doc.celexid %}
@@ -264,7 +271,29 @@
    </ul>
 </div>
 
-{% if dossier.votes %}
+{% if dossier.activities %}
+<div id="activities" class="ui tab" data-tab="activities">
+    <h3>Activities</h3>
+    <ul>
+        {%for mepid, nametypes in dossier.activities %}
+        <li><a href="/mep/{{mepid}}/{{nametypes['name']}}">{{nametypes['name']}}</a>
+            <div class="ui accordion">
+                {%for type, acts in nametypes['types'].items()%}
+                <div class="title"><i class="dropdown icon"></i>{{TYPES[type]}} ({{acts|length}})</div>
+                <div class="content">
+                    <ul>{%for act in acts -%}
+                      <li>{{act.date|asdate}} <a href="{{act.url}}">{{act.title}}</a></li>
+                    {%- endfor%}</ul>
+                </div>
+                {%endfor%}
+            </div>
+        </li>
+        {%endfor%}
+    </ul>
+</div>
+{%endif%}
+
+{% if dossier.vmatrix %}
 <div id="votes" class="ui tab" data-tab="votes">
 <h3>Votes</h3>
 {%for vote in dossier.vmatrix|sort(attribute='time')%}
@@ -272,7 +301,7 @@
   <div>{{vote.time|asdate}} Outcome: {% for c,r in vote.totals.items()%}{{c}}: {{r}}{% if not loop.last%}, {%endif%}{%endfor%}</div>
   <table style="font-size: 0.7em !important;" class="ui definition table celled collapsing compact small">
      <thead>
-        <tr>
+        <tr class="ui center aligned">
           <th />
           <th />
           {% for c,_ in vote.countries %}
@@ -283,50 +312,57 @@
           <td />
           <td>Total</td>
           {% for _,c in vote.countries %}
-          <td class="scale{{c['class']}}">
-            <div class="ui" data-tooltip="{%if c['+']>0 %}+{{c['+']}}{%endif%}
-                                          {%if c['-']>0 %}-{{c['-']}}{%endif%}
-                                          {%if c['0']>0 %}={{c['0']}}{%endif%}" data-position="center">
-              <br/>
-            </div>
+          <td class="ui center aligned scale{{c['class']}}">
+            <div class="ui" data-tooltip="{%- if c['+']>0 %}For: {{c['+']}} {%endif -%}
+                                          {%- if c['-']>0 %}Against: {{c['-']}} {%endif -%}
+                                          {%- if c['0']>0 %}Abstain: {{c['0']}}{%endif -%}" data-position="center">{{c['+']+c['-']+c['0']}}</div>
           </td>
           {%endfor%}
         </tr>
      </thead>
      <tbody>
         {% for g, gt in vote.groups %}
-        <tr>
-           <td>{{g}}</td>
+        <tr class="ui center aligned">
+           <td>{{g}} <img class="group_icon" alt="icon: {{g}}" src="/{{g|group_icon}}" /></td>
            <td class="scale{{gt['class']}}">
-             <div class="ui" data-tooltip="{%if gt['+']>0%}+{{gt['+']}}{%endif%}
-                                           {%if gt['-']>0%}-{{gt['-']}}{%endif%}
-                                           {%if gt['0']>0%}={{gt['0']}}{%endif%}" data-position="center">
-               <br/>
-             </div>
+             <div class="ui" data-tooltip="{%if- gt['+']%}For: {{gt['+']}} {%endif -%}
+                                           {%if- gt['-']%}Against: {{gt['-']}} {%endif -%}
+                                           {%if- gt['0']%}Abstain: {{gt['0']}}{%endif -%}" data-position="center">{{gt['+']+gt['-']+gt['0']}}</div>
            </td>
            {% for c,_ in vote.countries %}
               {% if g in vote.votes and c in vote.votes[g] %}
-                <td class="popup scale{{vote.votes[g][c]['class']}}"
-                    data-html="<table class='ui table compact small'><tr>
-                               {%if vote.votes[g][c]['+']|length>0%}<th>+{{vote.votes[g][c]['+']|length}}</th>{%endif%}
-                               {%if vote.votes[g][c]['-']|length>0%}<th>-{{vote.votes[g][c]['-']|length}}</th>{%endif%}
-                               {%if vote.votes[g][c]['0']|length>0%}<th>={{vote.votes[g][c]['0']|length}}</th>{%endif%}
-                               </tr>
-                               <tr class='top aligned'>
-                                 {%if vote.votes[g][c]['+']|length>0%}<td><div class='ui list'>
-                                     {%for name, id in vote.votes[g][c]['+']%}
-                                        <a class='item' href='/mep/{{id}}/{{name}}'>{{name}}</a>
-                                     {%endfor%}</div></td>{%endif%}
-                                 {%if vote.votes[g][c]['-']|length>0%}<td><div class='ui list'>
-                                     {%for name, id in vote.votes[g][c]['-']%}
-                                        <a class='item' href='/mep/{{id}}/{{name}}'>{{name}}</a>
-                                    {%endfor%}</div></td>{%endif%}
-                                 {%if vote.votes[g][c]['0']|length>0%}<td><div class='ui list'>
-                                     {%for name, id in vote.votes[g][c]['0']%}
-                                        <a class='item' href='/mep/{{id}}/{{name}}'>{{name}}</a>
-                                    {%endfor%}</div></td>{%endif%}
-                               </tr></table>">
-                     <br/>
+                <td class="scale{{vote.votes[g][c]['class']}}">
+						<div class="ui center aligned tooltipz">
+                            <div class='ui left aligned top fixed-width'>
+                               <h3>{{country_abbrs[c]}} {{g}}</h3>
+                               <div>
+                               {%if vote.votes[g][c]['+']|length%}<h4>For ({{vote.votes[g][c]['+']|length}})</h4>
+                                 <div class='ui container'>
+                                     {%- for name, id in vote.votes[g][c]['+'] -%}
+                                        <a class='item' href='/mep/{{id}}/{{name}}'>{{name}}</a>{% if not loop.last %}, {% endif -%}
+                                    {%endfor -%}</div>{%endif%}
+                               </div>
+                               <div>
+                               {%if vote.votes[g][c]['-']|length%}
+                                 {%if vote.votes[g][c]['+']|length%}<div class='ui divider'></div>{%endif%}
+                                 <h4>Against ({{vote.votes[g][c]['-']|length}})</h4>
+                                 <div class='ui container'>
+                                     {%- for name, id in vote.votes[g][c]['-']%}
+                                        <a class='item' href='/mep/{{id}}/{{name}}'>{{name}}</a>{% if not loop.last %}, {% endif -%}
+                                    {%endfor -%}</div>{%endif%}
+                               </div>
+                               <div>
+                               {%if vote.votes[g][c]['0']|length%}
+                                 {%if vote.votes[g][c]['+']|length or vote.votes[g][c]['-']|length%}<div class='ui divider'></div>{%endif%}
+                                 <h4>Abstain ({{vote.votes[g][c]['0']|length}})</h4>
+                                 <div class='ui container'>
+                                     {%- for name, id in vote.votes[g][c]['0']%}
+                                        <a class='item' href='/mep/{{id}}/{{name}}'>{{name}}</a>{% if not loop.last %}, {% endif -%}
+                                    {%endfor -%}</div>{%endif%}
+								 </div>
+								 <i></i>
+							</div>
+							{{vote.votes[g][c].get('+',[])|length+vote.votes[g][c].get('-',[])|length+vote.votes[g][c].get('0',[])|length}}</div>
                  </td>
               {% else %}
                  <td />
@@ -340,7 +376,7 @@
 </div>
 {% endif %}
 
-{% if dossier.amendments and 0%}
+{% if dossier.amendments %}
    <div id="ams" class="ui tab" data-tab="ams">
       {% import 'am_tpl.html' as ams %}
       {{ ams.render(dossier.amendments) }}
@@ -356,21 +392,6 @@
 </div>
 </div>
 </div>
-<script type="text/javascript">
-  $(document).ready(function() {
-    $('.popup').popup({hoverable:true, lastResort: true});
-    $("#tabs .item").tab({history:false});
-    $('.ui.accordion').accordion({
-        clearable: true,
-        placeholder: 'any'
-     }) ;
-     $('.ui.progress') .progress({
-        duration : 100,
-        total    : 100,
-     });
-;
-  });
-</script>
 <script type="text/javascript" src="/static/js/dossier.js"></script>
-{% endblock %}
+{%endblock%}
 

@@ -113,7 +113,7 @@ def getXML(term, date):
     return None, None
 
 
-def scrape(term, date):
+def scrape(term, date, **kwargs):
     log(3,"scraping P%d %s" % (term, date))
     url, root = getXML(term, date)
     if (url, root) == (None, None):

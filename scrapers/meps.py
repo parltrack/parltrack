@@ -53,7 +53,10 @@ def scrape(all=False, **kwargs):
     if all:
         log(3,"mepids not in unlisted nor in directory {!r}".format(meps))
         for id in meps:
-            add_job('mep', payload={'id':id})
+            payload={'id':id}
+            if 'onfinished' in kwargs:
+                payload['onfinished'] = kwargs['onfinished']
+            add_job('mep', payload)
 
 if __name__ == '__main__':
     #actives = {e['UserID'] for e in db.meps_by_activity(True)}

@@ -9,7 +9,7 @@
           {% for s in committees %}
           <div class="item">
             <div class="content">
-             <div class="header">{{ s }}</div>
+             <div class="header">{{ s }} {{ committee_map[s] }}</div>
              <div class="description">
                 <a class="ui blue horizontal basic label" href="/committee/{{s}}">{{ dossier_count[s] }} dossiers</a>
              </div>

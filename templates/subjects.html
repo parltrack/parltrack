@@ -9,10 +9,10 @@
           {% for s in subjects %}
           <div class="item">
             <div class="content">
-             <div class="header">{{ s }}</div>
+             <div class="header">{{ s }} {{ subjectmap[s] }}</div>
              <div class="description">
                 <a class="ui blue horizontal basic label" href="/subject/{{s}}">{{ dossier_count[s] }} dossiers</a>
-                <a class="ui purple horizontal basic label" href="#" onclick="$('#subject_name').val('{{s}}');$('.modal').modal('show');">subscribe</a>
+                <a class="ui purple horizontal basic label subscribe" href="#" data-name="{{s}}">subscribe</a>
              </div>
            </div>
           </div>
@@ -40,36 +40,12 @@
     </div>
   </div>
   <div class="actions">
-    <input type="button" value="Subscribe" class="ui button" onclick="subscribe();">
-    <div class="ui black deny button" onclick="$('.modal').modal('hide');">
+    <input type="button" value="Subscribe" class="ui button" id="subscribe_link">
+    <div class="ui black deny button" id="hide">
       Cancel
     </div>
     </div>
   </div>
 </div>
-<script type="text/javascript">
-var subscribe = function() {
-  var group = $('#group_name').val();
-  var subject = $('#subject_name').val();
-  if(!group) {
-      $.ajax({url: '/notification', success: function(data) { group = data;
-          $.ajax({url: group, success: function(data) {
-              $.ajax({url: group+'/add/subjects/'+subject});
-          }});
-      }});
-  } else {
-  $.ajax({url: '/notification/'+group, success: function(data) {
-      $.ajax({url: '/notification/'+group+'/add/subjects/'+subject, success: function(data) {
-          $('#notif_subscr h3').html(data);
-          }});
-      }});
-  }
-  $('.modal').modal('hide');
-  return false;
-}
-
-$(document).ready(function() {
-  $('.modal').modal('hide');
-});
-</script>
+<script src="{{ url_for('static', filename='js/subjects.js') }}"></script>
 {% endblock %}

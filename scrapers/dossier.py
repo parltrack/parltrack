@@ -46,7 +46,7 @@ CONFIG = {
     'abort_on_error': True,
 }
 
-def scrape(url, save=True):
+def scrape(url, save=True, **kwargs):
     log(4, 'scrape %s' % url)
     root=fetch(url)
 
@@ -138,6 +138,12 @@ def scrape_basic(root, ref):
             for link in node.xpath('./descendant-or-self::a'):
                 if not title in res: res[title]=[]
                 res[title].append(toText(link))
+    subjects = {}
+    for s in res.get('subject',[]):
+        id, title = s.split(' ', 1)
+        subjects[id]=title
+    else:
+        res['subject']=subjects
     return res
 
 """
@@ -906,8 +912,8 @@ def checkUrl(url):
 def onfinished(daisy=True):
     if daisy:
         from scraper_service import add_job
-        add_job("pvotes",{"year":"all"})
-        add_job("amendments",{"all":True})
+        add_job("pvotes",{"year":"all", "onfinished": {"daisy": True}})
+        add_job("amendments",{"all":True, "onfinished": {"daisy": True}})
 
 def onchanged(doc, diff):
     id = doc['procedure']['reference']
@@ -951,8 +957,10 @@ def makemsg(doc,diff):
 
 if __name__ == '__main__':
     from utils.utils import jdump
+    print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2012/2039(INI)&l=en")))
     #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=1992/0449B(COD)&l=en")))
-    print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil//popups/ficheprocedure.do?reference=2018/0252(NLE)&l=en", save=False)))
+    #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil//popups/ficheprocedure.do?reference=2018/0252(NLE)&l=en", save=False)))
+    #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil//popups/ficheprocedure.do?reference=2011/0901(COD)&l=en")))
 
     #print(jdump(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2011/2080(ACI)&l=en")))
     #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2017/2139(DEC)&l=en")))

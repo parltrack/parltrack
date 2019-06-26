@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="ui vertical segment">
+  <div class="ui center aligned stackable grid container">
+    <div class="row">
+      <div class="left aligned column ui accordion">
+         <h1>Activities of {{ mep_name }}{% if dossier_id %} related to {{ dossier_id|asdossier|safe}} {%endif%}</h1>
+          {% for t in activities %}
+          {% if activities[t] is iterable and t not in ('meta', 'changes') %}
+          <div class="{% if type or dossier_id %}active {% endif %}title"><h2>{{ t|asactivity}} ({{activities[t]|length}})<i class="dropdown icon"></i></h2></div>
+          <div class="{% if type or dossier_id %}active {% endif %}content">
+             <div class="ui fluid divided items">
+             {% for a in activities[t] %}
+             <div class="item">
+             <div class="content">
+                <div class="header">
+                   {% if t == 'amendments' %}
+                        <div class="title hover">Amendment {{a.seq}} <a class="anchorLink" name="am-{{a.seq}}-{{a.src|asPE}}" href="#am-{{a.seq}}-{{a.src|asPE}}">#</a></div>
+                   {% else %}
+                      {{ a['title'] }}
+                   {% endif %}
+                </div>
+                <div class="description">
+                   {% if not dossier_id %}<h3><a href="{{ a['url'] }}">{{ a['reference'] }}</a></h3>{%endif%}
+                   {% if t == 'amendments' %}
+                        <div class="authors">{% for m in a.meps%}{{m|asmep|safe}}{% if not loop.last %}, {%endif%}{%endfor%}</div>
+                        <div class="location">{% for d,l in a.location%}<div>{{d}}<br />{{l}}</div>{%endfor%}</ul></div>
+                        <div class="ui segment diff">{{a|asdiff|safe}}</div>
+                   {% else %}
+                     {{ a['text'] }}
+                   {% endif %}
+                </div>
+                <div class="meta">
+                   {{ a['date']|asdate }}
+                   {% if 'committee' in a %}<br />Committee: 
+                      {% if a['committee'] is iterable and a['committee'] is not string -%}
+								 {%- for c in a['committee'] %}<a href='/committee/{{c}}'>{{ c }}</a>{%endfor-%}
+						    {%-else-%}
+							    <a href='/committee/{{a['committee']}}'>{{ a['committee'] }}</a>
+                      {%-endif-%}
+					    {%-endif-%}
+                   {% if 'dossiers' in a %}<br />Dossiers: {% for d in a['dossiers']%}{{ d|asdossier|safe }}{% endfor %}{% endif %}
+                   {% if 'formats' in a %}<br />Documents: {% for f in a['formats']%}<a href="{{ f['url'] }}">{{ f['type'] }}</a>{{f['size']}} {% endfor %}{% endif %}
+                   {% if 'authors' in a and t!= 'amendments' %}<br />Authors: {{ a['authors'] }}{% endif %}
+                </div>
+             </div>
+             </div>
+             {% endfor %}
+          </div>
+          </div>
+          {% endif %}
+          {% endfor %}
+      </div>
+	</div>
+  </div>
+</div>
+   <script>
+      $(document).ready(function() {
+         $('.ui.accordion').accordion();
+      });
+   </script>
+{% endblock %}

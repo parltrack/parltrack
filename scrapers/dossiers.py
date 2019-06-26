@@ -39,7 +39,7 @@ handlers=[ProxyHandler({'http': PROXY})]
 
 BASE_URL = 'https://oeil.secure.europarl.europa.eu'
 
-def get_new_dossiers():
+def get_new_dossiers(**kwargs):
     f = feedparser.parse('https://oeil.secure.europarl.europa.eu/oeil/search/result.rss?s1&all&limit=250&lang=en', handlers=handlers)
     if not f:
         return
@@ -50,9 +50,11 @@ def get_new_dossiers():
         if ref in refs: continue
         url=html.unescape(urljoin(BASE_URL, urlunsplit(('','')+urlsplit(item.link)[2:])))
         log(4,'adding dossier scraping job %s' % url)
-        add_job('dossier', payload={'url':url})
+        payload = dict(kwargs)
+        payload['url'] = url
+        add_job('dossier', payload=payload)
 
-def get_all_dossiers():
+def get_all_dossiers(**kwargs):
     for year in range(datetime.date.today().year, 1971, -1):
         tree=fetch('https://oeil.secure.europarl.europa.eu/oeil/widgets/resultwidget.do?lang=en&noHeader=false&q=objectReferenceN:N-%s/*\(*\)' % (year))
         tmp = tree.xpath('//span[@class="ep_name" and (starts-with(normalize-space(),"Results found :") or starts-with(normalize-space(),"Result found :"))]/text()')
@@ -72,25 +74,29 @@ def get_all_dossiers():
             ref = unws(item.xpath('./reference/text()')[0])
             if '*' in ref: ref = ref[:ref.index('*')]
             log(4,'adding dossier scraping job %s' % url)
-            add_job('dossier', payload={'url':url})
+            payload = dict(kwargs)
+            payload['url'] = url
+            add_job('dossier', payload=payload)
             i+=1
         if i!=count: log(1,"total %d, expected %d" % (i, count))
 
-def get_active_dossiers():
+def get_active_dossiers(**kwargs):
     i=0
     for doc in db.dossiers_by_activity(True):
         url = doc['meta']['source']
         ref = doc['procedure']['reference']
         log(4,'adding dossier scraping job %s' % url)
-        add_job('dossier', payload={'url':url})
+        payload = dict(kwargs)
+        payload['url'] = url
+        add_job('dossier', payload=payload)
         i+=1
     log(3,"total %d" % i)
 
 def scrape(all=False, **kwargs):
-    if all: get_all_dossiers()
+    if all: get_all_dossiers(**kwargs)
     else:
-        get_new_dossiers()
-        get_active_dossiers()
+        get_new_dossiers(**kwargs)
+        get_active_dossiers(**kwargs)
 
 if __name__ == '__main__':
     scrape(all=True)

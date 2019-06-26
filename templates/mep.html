@@ -1,33 +1,29 @@
 {% extends "base.html" %}
+{% import 'display_changes.html' as changes with context %}
 {% block title %}{{mep.Name.full}} | {%endblock%}
 {% block rss %}
 <link rel="alternate" type="application/atom+xml" title="Changes for {{ mep.Name.full }} feed" href="{{url}}/atom" />
-{% endblock %}
-{% block topbar %}
-<a href="{{url}}/atom"><img src="/static/images/rss.gif" alt="rss icon" /></a>
-<a href="{{url}}/atom">track atom</a>
-<a href="{{url}}?format=json">download json</a>
 {% endblock %}
 {% block content %}
 <div class="ui vertical segment">
   <div class="ui center aligned stackable grid container">
     <div class="row">
       <div class="left aligned column">
-<h2>{{ mep.Name.full }}</h2>
+         <h2>{{ changes.display_changes(mep, ['Name', 'full']) }}</h2>
 <div id="tabs"  class="ui top attached tabular menu">
     <a class="active item" data-tab="general">General</a>
     {% if 'Addresses' in mep %}<a class="item" data-tab="contact">Contact</a>{%endif%}
     <a class="item" data-tab="committees">Committees</a>
     {% if mep.dossiers %}<a class="item" data-tab="dossiers">Dossiers ({{mep.dossiers|length()}})</a>{%endif%}
+    <a class="item" data-tab="activities">Activities</a>
     <a class="item" data-tab="cv">Bio</a>
-    {% if mep.amendments|length %}<a class="item" data-tab="amendments">Amendments ({{mep.amendments|length }})</a>{%endif%}
     {% if mep.changes  %}<a class="item" data-tab="history">History</a>{%endif%}
     <a class="item" data-tab="links">Links</a>
 </div>
 <br /><br />
 <div id="general" class="ui active tab" data-tab="general">
-<div class="mepshot">
-  <img alt="headshot of {{mep.Name.full}}" src="http://www.europarl.europa.eu/mepphoto/{{mep.UserID}}.jpg" />
+<div class="mepshot right floated">
+  <img alt="headshot of {{mep.Name.full}}" src="https://www.europarl.europa.eu/mepphoto/{{mep.UserID}}.jpg" />
   <br />
 </div>
 <h3>Constituencies</h3>
@@ -42,15 +38,17 @@
 </ul>
 {%for c in mep.Constituencies|sort(attribute='start',reverse=True) if c.end and c.end<today %}
   {% if loop.first %}
-      <div class="more" >Show earlier Constituencies...</div>
-      <ul class="hidden">
+    <div class="ui accordion">
+      <div class="title"><i class="dropdown icon"></i>Show earlier Constituencies...</div>
+      <div class="content">
+        <ul>
   {% endif %}
     <li>
     {{c.party}}
     <img class="group_icon" alt="icon: {{countries[c.country]}}" src="/static/images/{{countries[c.country]|lower}}.gif" /> {{c.country}}
     {% if c.start and c.end%}{{c.start|asdate}} - {{c.end|asdate}}{% endif %}
     </li>
-    {% if loop.last %}</ul>{%endif%}
+    {% if loop.last %}</ul></div></div>{%endif%}
 {% endfor %}
 <h3>Groups</h3>
 {%for c in mep.Groups if not c.end or c.end>today %}
@@ -77,8 +75,10 @@
 {% endfor %}
 {%for c in mep.Groups if c.end and c.end<=today %}
    {% if loop.first %}
-      <div class="more">Show earlier groups...</div>
-      <ul class="hidden">
+    <div class="ui accordion">
+      <div class="title"><i class="dropdown icon"></i>Show earlier Groups...</div>
+      <div class="content">
+        <ul>
    {%endif%}
    <li>
     {% if c.groupid %}
@@ -100,7 +100,7 @@
     {%if c.group%}{{c.group}}{%else%}{{c.Organization}}{%endif%}
     {% if c.start and c.end%}{{c.start|asdate}} - {{c.end|asdate}}{% endif %}
   </li>
-  {% if loop.last %}</ul>{%endif%}
+  {% if loop.last %}</ul></div></div>{%endif%}
 {% endfor %}
 
 {% if 'Staff' in mep %}
@@ -115,16 +115,18 @@
 {% endfor %}
 </ul>
 {%for c in mep.Staff if c.end and c.end<=today %}
-   {% if loop.first %}
-      <div class="more">Show earlier staff positions...</div>
-      <ul class="hidden">
+  {% if loop.first %}
+    <div class="ui accordion">
+      <div class="title"><i class="dropdown icon"></i>Show earlier staff roles...</div>
+      <div class="content">
+        <ul>
     {%endif%}
     <li>
-    {{c.role}} of
-    {{c.Organization}}
-    {% if c.start and c.end%}{{c.start|asdate}} - {{c.end|asdate}}{% endif %}
-  </li>
-  {% if loop.last %}</ul>{%endif%}
+        {{c.role}} of
+        {{c.Organization}}
+        {% if c.start and c.end%}{{c.start|asdate}} - {{c.end|asdate}}{% endif %}
+     </li>
+  {% if loop.last %}</ul></div></div>{%endif%}
 {% endfor %}
 {% endif %}
 </div>
@@ -133,7 +135,7 @@
 <h3>Committees</h3>
 {%for c in mep.Committees if not c.end or c.end>today%}
    {% if loop.first %}
-<table border="1" class="tablesorter">
+<table class="ui table">
 <thead><tr><th>Role</th><th>Committee</th><th>Start</th><th>End</th></tr></thead>
 <tbody>
    {% endif %}
@@ -151,9 +153,11 @@
    {% endif %}
 {% endfor %}
 {%for c in mep.Committees if c.end and c.end<=today %}
-   {% if loop.first %}
-      <div class="more">Show earlier commitees...</div>
-      <table border="1" class="tablesorter hidden">
+  {% if loop.first %}
+    <div class="ui accordion">
+      <div class="title"><i class="dropdown icon"></i>Show earlier committees...</div>
+      <div class="content">
+      <table class="ui table">
          <thead><tr><th>Role</th><th>Committee</th><th>Start</th><th>End</th></tr></thead>
          <tbody>
    {%endif%}
@@ -167,14 +171,14 @@
        </tr>
    {% if loop.last %}
          </tbody>
-      </table>
+      </table></div></div>
    {%endif%}
 {% endfor %}
 
 <h3>Delegations</h3>
 {%for c in mep.Delegations if not c.end or c.end>today %}
       {% if loop.first %}
-         <table border="1" class="tablesorter">
+         <table class="ui table">
          <thead><tr><th>Role</th><th>Delegation</th><th>Start</th><th>End</th></tr></thead>
          <tbody>
       {%endif%}
@@ -190,10 +194,12 @@
    {% endfor %}
    {%for c in mep.Delegations if c.end and c.end<=today %}
       {% if loop.first %}
-         <div class="more">Show earlier delegations...</div>
-         <table border="1" class="hidden tablesorter">
-            <thead><tr><th>Role</th><th>Delegation</th><th>Start</th><th>End</th></tr></thead>
-            <tbody>
+         <div class="ui accordion">
+           <div class="title"><i class="dropdown icon"></i>Show earlier delegations...</div>
+           <div class="content">
+              <table class="ui table">
+                 <thead><tr><th>Role</th><th>Delegation</th><th>Start</th><th>End</th></tr></thead>
+                 <tbody>
       {%endif%}
        <tr>
           <td>{{c.role}} of</td>
@@ -202,7 +208,7 @@
           <td>{% if c.end %}{{c.end|asdate}}{% endif %}</td>
        </tr>
       {% if loop.last %}
-         </tbody></table>
+         </tbody></table></div></div>
       {%endif%}
 {% endfor %}
 </div>
@@ -210,56 +216,72 @@
 {% if 'Addresses' in mep %}
 <div id="contact" class="ui tab" data-tab="contact">
 <h3>Contact</h3>
-{% if mep.Homepage or mep.Mail or mep.Twiter or mep.Facebook %}
-<h4>Online</h4>
-<ul>
+{%if mep.Homepage or mep.Mail or mep.Twiter or mep.Facebook or mep.Instagram %}
 {% if mep.Homepage%}
+  <h5>Homepage</h5>
+  <ul>
   {% for url in mep.Homepage %}
-      <li><dl><dt>Homepage</dt><dd><a href="{{url}}">{{url}}</a></dd></dl></li>
+      <li><a href="{{url}}">{{ changes.display_changes(mep, ['Homepage', loop.index-1]) }}</a></li>
   {% endfor %}
+  </ul>
 {%endif%}
 {% if mep.Twitter%}
+  <h5>Twitter</h5>
+  <ul>
   {% for url in mep.Twitter %}
-      <li><dl><dt>Twitter</dt><dd><a href="{{url}}">{{url}}</a></dd></dl></li>
+      <li><a href="{{url}}">{{ changes.display_changes(mep, ['Twitter', loop.index-1]) }}</a></li>
   {% endfor %}
+  </ul>
 {%endif%}
 {% if mep.Facebook %}
+  <h5>Facebook</h5>
+  <ul>
   {% for url in mep.Facebook  %}
-      <li><dl><dt>Facebook </dt><dd><a href="{{url}}">{{url}}</a></dd></dl></li>
+      <li><a href="{{url}}">{{ changes.display_changes(mep, ['Facebook', loop.index-1]) }}</a></li>
   {% endfor %}
+  </ul>
 {%endif%}
-{% if mep.Mail%}
+{%if mep.Instagram%}
+  <h5>Instagram</h5>
+  {%for url in mep.Instagram %}
+      <li><a href="{{url}}">{{ changes.display_changes(mep, ['Instagram', loop.index-1]) }}</a></li>
+  {% endfor %}
+  </ul>
+{%endif%}
+{%if mep.Mail%}
+  <h5>Email</h5>
+  <ul>
   {% for mail in mep.Mail %}
-      <li><dl><dt>Mail</dt><dd>{{mail|protect_email|safe}}</dd></dl></li>
+      <li>{{mail|protect_email|safe}}</li>
   {% endfor %}
+  </ul>
 {%endif%}
-</ul>
 {%endif%}
 <h4>Brussels</h4>
 <ul>
-   <li><dl><dt>Phone</dt><dd>{{mep.Addresses.Brussels.Phone}}</dd></dl></li>
-   <li><dl><dt>Fax</dt><dd>{{mep.Addresses.Brussels.Fax}}</dd></dl></li>
-   <li><dl><dt>Office</dt><dd>{{mep.Addresses.Brussels.Address.Building}} {{mep.Addresses.Brussels.Address.Office}}</dd></dl></li>
-   <li><dl><dt class='more'><a>Full Address</a></dt><dd class='hidden'>
+   <li>Phone: {{mep.Addresses.Brussels.Phone}}</li>
+   <li>Fax: {{mep.Addresses.Brussels.Fax}}</li>
+   <li>Office: {{mep.Addresses.Brussels.Address.Building}} {{mep.Addresses.Brussels.Address.Office}}</li>
+   <li>Full Address
       <ul>
-        <li><dl><dt>City</dt><dd>{{mep.Addresses.Brussels.Address.City}}</dd></dl></li>
-        <li><dl><dt>Zip</dt><dd>{{mep.Addresses.Brussels.Address.Zip}}</dd></dl></li>
-        <li><dl><dt>Street</dt><dd>{{mep.Addresses.Brussels.Address.Street}}</dd></dl></li>
+        <li>City: {{mep.Addresses.Brussels.Address.City}}</li>
+        <li>Zip: {{mep.Addresses.Brussels.Address.Zip}}</li>
+        <li>Street: {{mep.Addresses.Brussels.Address.Street}}</li>
       </ul>
    </dd></dl></li>
 </ul>
 <h4>Strasbourg</h4>
 <ul>
-   <li><dl><dt>Phone</dt><dd>{{mep.Addresses.Strasbourg.Phone}}</dd></dl></li>
-   <li><dl><dt>Fax</dt><dd>{{mep.Addresses.Strasbourg.Fax}}</dd></dl></li>
-   <li><dl><dt>Office</dt><dd>{{mep.Addresses.Strasbourg.Address.Building}} {{mep.Addresses.Strasbourg.Address.Office}}</dd></dl></li>
-   <li><dl><dt class='more'><a>Full Address</a></dt><dd class='hidden'>
+   <li>Phone: {{mep.Addresses.Strasbourg.Phone}}</li>
+   <li>Fax: {{mep.Addresses.Strasbourg.Fax}}</li>
+   <li>Office: {{mep.Addresses.Strasbourg.Address.Building}} {{mep.Addresses.Strasbourg.Address.Office}}</li>
+   <li>Full Address
       <ul>
-         <li><dl><dt>City</dt><dd>{{mep.Addresses.Strasbourg.Address.City}}</dd></dl></li>
-         <li><dl><dt>Zip</dt><dd>{{mep.Addresses.Strasbourg.Address.Zip1}} - {{mep.Addresses.Strasbourg.Address.Zip2}}</dd></dl></li>
-         <li><dl><dt>Street</dt><dd>{{mep.Addresses.Strasbourg.Address.Street}}</dd></dl></li>
+         <li>City: {{mep.Addresses.Strasbourg.Address.City}}</li>
+         <li>Zip: {{mep.Addresses.Strasbourg.Address.Zip1}} - {{mep.Addresses.Strasbourg.Address.Zip2}}</li>
+         <li>Street: {{mep.Addresses.Strasbourg.Address.Street}}</li>
       </ul>
-   </dd></dl></li>
+   </li>
 </ul>
 <h4>Postal</h4>
 <ul>
@@ -273,12 +295,14 @@
 {% if mep.dossiers %}
   <div id='dossiers' class="ui tab" data-tab="dossiers">
   <h3>Rapporteur</h3>
-  <table border="1" class="tablesorter">
-     <tbody>
-    {%for ref, title, type in mep.dossiers%}
+  <table class="ui table">
+    <thead><tr><th>Type</th><th>Dossier</th><th>Committee</th><th>Title</th></tr></thead>
+    <tbody>
+    {%for ref, title, type, committee in mep.dossiers%}
     <tr>
-       <td>{{type}}</td>
+       <td style="font-weight: bold; color: white; background-color: {%if type=='Responsible Committee'%}#B03060{%elif type==''%}{%elif type=='Committee Opinion'%}#B413EC{%elif type=='Responsible Committee Shadow'%}#0E6EB8{%elif type == 'Opinion Committee Shadow'%}#008080{%else%}#A0A0A0{%endif%};">{{type}}</td>
        <td><a href="/dossier/{{ref}}">{{ref}}</a></td>
+       <td><a href="/committee/{{committee}}">{{committee}} {{committee_map[committee]}}</a></td>
        <td>{{title}}</td>
     </tr>
     {%endfor%}
@@ -286,6 +310,17 @@
   </table>
   </div>
 {%endif%}
+<div id='activities' class="ui tab" data-tab="activities">
+   <h3><a href="/activities/{{ mep.UserID }}">Activities</a></h3>
+   <h4>By types</h4>
+   {% for d,c in mep.activities.types.items() %}
+      <a href="/activities/{{ mep.UserID }}/type/{{ d }}">{{ d|asactivity }} ({{ c }})</a><br />
+   {% endfor %}
+   <h4>By dossiers</h4>
+   {% for d,c in mep.activities.dossiers.items() %}
+      <a href="/activities/{{ mep.UserID }}/dossier/{{ d }}">{{ d }} ({{ c }})</a><br />
+   {% endfor %}
+</div>
 <div id='cv' class="ui tab" data-tab="cv">
   {% if mep.Birth %}
     <h3>Born</h3>
@@ -304,22 +339,12 @@
   {%endfor%}{%endif%}
 </div>
 
-{% if mep.amendments|length %}
-<div id='amendments' class="ui tab" data-tab="amendments">
-    <h3>Amendments</h3>
-    {% import 'am_tpl.html' as ams %}
-    {{ ams.render(mep.amendments) }}
-</div>
-{%endif%}
-
 <div id='links' class="ui tab" data-tab="links">
   <h3>{{mep.Name.full}} on</h3>
   <ul>
      {% if mep.meta %}<li><a href="{{mep.meta.url}}">EP official site</a></li>{% endif %}
      <li><a href="https://secure.wikimedia.org/wikipedia/en/wiki/{{mep.Name.sur.replace(' ','_')}}_{{mep.Name.family.title().replace(' ','_')}}">... wikipedia</a></li>
      <li><a href="https://encrypted.google.com/search?q={{mep.Name.sur}}+{{mep.Name.family.title()}}">... google</a></li>
-     <li><a href="https://memopol.lqdn.fr/europe/parliament/deputy/{{mep.Name.sur}}{{mep.Name.family.title()}}/">... Political Memory</a></li>
-     <li><a href="http://www.votewatch.eu/en/{{mep.Name.sur.lower()}}-{{mep.Name.family.lower()}}.html">... Votewatch</a></li>
   </ul>
   {% if mep.term7 or mep.term6 %}
      <h3>Activities</h3>
@@ -363,25 +388,6 @@
 </div>
 </div>
 </div>
-<script type="text/javascript">
-     $(document).ready(function() {
-       $("#tabs .item").tab({history:false});
-       $('#ranking_date').click(function() {
-        if($(this).attr('value') == 'DD/MM/YYYY') $(this).attr('value', '');
-       });
-       $('#ranking_form').submit(function() {
-        window.location = '/meps/'+$('#ranking_date').attr('value');
-        return false;
-       });
-
-       //if(window.location.hash.substring(1).slice(0,3)=='am-') {
-       //   anchored=$('a[name|="'+window.location.hash.substring(1)+'"]');
-       //   if(anchored) {
-       //     anchored.parents('.hidden').removeClass('hidden');
-       //     $( "#tabs" ).tabs('select','#amendments');
-       //     $(document).scrollTop(anchored.offset().top-16);
-       //   }
-       //}
-     });
-    </script>
+<script src="{{ url_for('static', filename='js/mep.js') }}"></script>
+<script src="{{ url_for('static', filename='js/protect_address.js') }}"></script>
 {% endblock %}

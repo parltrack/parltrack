@@ -260,6 +260,21 @@ def fetch(url, retries=5, ignore=[], params=None, prune_xml=False):
         xml = xml[xml.find('?>')+2:]
     return fromstring(xml)
 
+from tempfile import mkstemp
+from sh import pdftotext
+import os
+def getpdf(pdf):
+    (fd, fname)=mkstemp()
+    fd=os.fdopen(fd, 'wb')
+    try:
+        fd.write(fetch_raw(pdf, binary=True))
+    except:
+        return []
+    fd.close()
+    text=pdftotext('-layout', fname, '-')
+    os.unlink(fname)
+    return text.split('\n')
+
 def jdump(d, stats=None):
     # simple json dumper default for saver
     res=json.dumps(d, indent=1, default=dateJSONhandler, ensure_ascii=False)
@@ -312,6 +327,13 @@ def create_search_regex(query):
     if len(search_terms) == 1:
         return re.compile(re.escape(search_terms[0]), re.I | re.M | re.U)
     return re.compile('(?=.*' + ')(?=.*'.join(map(re.escape, search_terms)) + ')', re.I | re.M | re.U)
+
+
+def mep_search(search_re, m):
+    if (
+        search_re.search(m['Name']['full'])
+        ): return True
+    return False
 
 
 def dossier_search(search_re, d):

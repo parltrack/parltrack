@@ -42,7 +42,7 @@ skipurls=['http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-%2f%2fEP%2f%2fN
           'http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-%2f%2fEP%2f%2fNONSGML%2bCOMPARL%2bPE-469.721%2b02%2bDOC%2bPDF%2bV0%2f%2fEN',
           'http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-%2f%2fEP%2f%2fNONSGML%2bCOMPARL%2bPE-469.723%2b03%2bDOC%2bPDF%2bV0%2f%2fEN']
 
-def getComAms(term, update=False):
+def getComAms(term, update=False, **kwargs):
     seen = set()
     urltpl="http://www.europarl.europa.eu/committees/en/%s/search-in-documents.html"
     #for doctype in ['AMCO', 'RPCD', 'OPCD']:
@@ -75,7 +75,10 @@ def getComAms(term, update=False):
                 r = junws(rs[0])
                 tmp.append(u)
                 try:
-                    add_job('amendment', payload={'url':u,'meps':r})
+                    payload = dict(kwargs)
+                    payload['url'] = u
+                    payload['meps'] = r
+                    add_job('amendment', payload=payload)
                 except:
                     print(u, r)
 
@@ -88,13 +91,13 @@ def getComAms(term, update=False):
             i+=1
             root=fetch(url, params="%s&%s" % (postdata, nexttpl % i))
 
-def scrape(all=False):
+def scrape(all=False, **kwargs):
     if all:
         # todo enable also 6th term
         for term in range(7,CURRENT_TERM+1):
-            getComAms(term)
+            getComAms(term, update=False, **kwargs)
     else:
-        getComAms(CURRENT_TERM, update=True)
+        getComAms(CURRENT_TERM, update=True, **kwargs)
 
 if __name__ == "__main__":
     scrape(all=False)

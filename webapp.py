@@ -23,19 +23,29 @@ from pprint import pprint
 from random import shuffle, randrange, randint, choice
 from sys import version_info
 from urllib.parse import unquote
-from utils.utils import asDate, clean_lb
+from utils.utils import asDate, clean_lb, jdump
 from utils.devents import merge_events
+from utils.objchanges import getitem
 from utils.mappings import (
     SEIRTNUOC as COUNTRIES,
+    COUNTRIES as COUNTRY_ABBRS,
     COMMITTEE_MAP,
     stage2percent,
 )
 
 from db import Client
 
+db = Client()
+
 if version_info[0] == 3:
     unicode = str
 
+ep_wtf_dossiers = {
+    '2012/2039(INI)': "This dossier is a true EPWTF and you need to consider it together with <a href='/dossier/2012/2039(INL)'>2012/2039(INL)</a>",
+    '2012/2039(INL)': "This dossier is a true EPWTF and you need to consider it together with <a href='/dossier/2012/2039(INI)'>2012/2039(INI)</a>"
+}
+
+mepnames = db.names_by_mepids(db.keys('ep_meps', None))
 
 def highlight(q, s):
     s = str(escape(s))
@@ -54,7 +64,13 @@ app.config.from_object('config')
 mail = Mail()
 mail.init_app(app)
 
-db = Client()
+def get_changes(obj, path):
+    ret = []
+    for date, changelog in obj['changes'].items():
+        for c in changelog:
+            if c['path'][:len(path)] == path:
+                ret.append({'date': date, 'type': c['type'], 'data': c['data']})
+    return getitem(obj, path), ret
 
 
 def render(template, **kwargs):
@@ -75,6 +91,8 @@ def render(template, **kwargs):
     kwargs['committee_map'] = COMMITTEE_MAP
     kwargs['today'] = date.today().strftime("%Y-%m-%d")
     kwargs['countries'] = COUNTRIES
+    kwargs['country_abbrs'] = COUNTRY_ABBRS
+    kwargs['get_changes'] = get_changes
     return render_template(template, **kwargs)
 
 
@@ -89,7 +107,7 @@ def home():
     meps = db.count('ep_meps', None) or 0
     dossiers = db.count('ep_dossiers', None) or 0
     active_meps = db.count('meps_by_activity', "active") or 0
-    votes = db.count('ep_votes', None) or 0 
+    votes = db.count('ep_votes', None) or 0
     amendments = db.count('ep_amendments', None) or 0
     return render(
         'index.html',
@@ -110,13 +128,80 @@ def about():
 def dumps():
     return render('dumps.html')
 
+group_positions={u'Chair': 10,
+                 u'Treasurer/Vice-Chair/Member of the Bureau': 10,
+                 u'Co-Chair': 8,
+                 u'First Vice-Chair/Member of the Bureau': 8,
+                 u'Vice-Chair': 6,
+                 u"Vice-President": 6,
+                 u'Deputy Chair': 5,
+                 u'Chair of the Bureau': 4,
+                 u'Vice-Chair/Member of the Bureau': 8,
+                 u'Secretary to the Bureau': 4,
+                 u'Member of the Bureau': 2,
+                 u'Treasurer': 2,
+                 u'Co-treasurer': 1,
+                 u'Deputy Treasurer': 1,
+                 u'Member': 0,
+                 u'Observer': 0,
+                 u'': 0,
+                 }
+com_positions={"Chair": 4,
+               "Vice-President": 3,
+               "Vice-Chair": 3,
+               "Member": 2,
+               "Substitute": 1,
+               'Observer': 0,
+               }
+staff_positions={"President": 7,
+                 "Chair": 6,
+                 "Vice-President": 6,
+                 "Quaestor": 5,
+                 "Member": 4,
+                 'Observer': 0,
+                 }
 
 @app.route('/meps')
 def meps():
     # TODO date handling
-    date = getDate()
+    date = asdate(datetime.now())
     meps = db.meps_by_activity(True)
-    return render('meps.html', date=date, meps=meps)
+    rankedMeps=[]
+    for mep in meps:
+        score=0
+        ranks=[]
+        # get group rank
+        for group in mep.get('Groups',[]):
+            if not 'end' in group or (group['start']<=date and group['end']>=date):
+                if not 'role' in group:
+                    group['role']='Member'
+                score=group_positions.get(group['role'], 1)
+                if not 'groupid' in group:
+                    group['groupid']=group['Organization']
+                elif type(group.get('groupid'))==list:
+                    group['groupid']=group['groupid'][0]
+                ranks.append((group_positions[group['role']],group['role'],group.get('groupid',group['Organization'])))
+                mep['Groups']=[group]
+                break
+        # get committee ranks
+        tmp=[]
+        for com in mep.get('Committees',[]):
+            if not 'end' in com or (com['start']<=date and com['end']>=date):
+                score+=com_positions[com['role']]
+                ranks.append((com_positions[com['role']],com['role'],com['Organization']))
+                tmp.append(com)
+        mep['Committees']=tmp
+        # get ep staff ranks
+        tmp=[]
+        for staff in mep.get('Staff',[]):
+            if not 'end' in staff or (staff['start']<=date and staff['end']>=date):
+                score+=staff_positions[staff['role']]
+                ranks.append((staff_positions[staff['role']],staff['role'],staff['Organization']))
+                tmp.append(staff)
+        if len(tmp):
+            mep['Staff']=tmp
+        rankedMeps.append((score,sorted(ranks, reverse=True),mep))
+    return render('meps.html', date=date, meps=[x for x in sorted(rankedMeps,key=lambda x: x[0], reverse=True)])
 
 
 @app.route('/mep/<int:mep_id>/<string:mep_name>')
@@ -124,9 +209,36 @@ def mep(mep_id, mep_name):
     mep = db.mep(mep_id)
     if not mep:
         return not_found_error(None)
-    #mep['amendments'] = db.get("ams_by_mep", mep_id) or []
-    mep['amendments'] = []
-    mep['dossiers'] = db.get('dossiers_by_mep',mep_id) or []
+    amendments = db.get("ams_by_mep", mep_id) or []
+    activities = db.activities(mep_id) or []
+    acts = {'types':{}, 'dossiers':{}}
+    acts['types']['amendments'] = len(amendments)
+    for a in amendments:
+        if not a['reference'] in acts['dossiers']:
+            acts['dossiers'][a['reference']] = 1
+        else:
+            acts['dossiers'][a['reference']] += 1
+
+    for a,v in activities.items():
+        if a in ('meta', 'changes') or not isinstance(v, list):
+            continue
+        acts['types'][a] = len(v)
+        for e in v:
+            if not 'dossiers' in e:
+                continue
+            for d in e['dossiers']:
+                if not d in acts['dossiers']:
+                    acts['dossiers'][d] = 1
+                else:
+                    acts['dossiers'][d] += 1
+
+    acts['types']={k: v for k,v in sorted(acts['types'].items(), key=lambda x:asactivity(x[0]))}
+    acts['dossiers']={k: v for k,v in sorted(acts['dossiers'].items(), key=lambda x: x[1], reverse=True)}
+    mep['activities'] = acts
+
+    if isinstance(mep.get('CV'),list):
+        mep['CV']={'': mep['CV']}
+    mep['dossiers'] = sorted(db.get('dossiers_by_mep',mep_id) or [], reverse=True)
     return render(
         'mep.html',
         mep=mep,
@@ -136,6 +248,31 @@ def mep(mep_id, mep_name):
         committees={},
         exclude_from_json=('d', 'group_cutoff', 'committees'),
     )
+
+
+@app.route('/activities/<int:mep_id>', defaults={'d_id':None, 't':None})
+@app.route('/activities/<int:mep_id>/type/<string:t>', defaults={'d_id':None})
+@app.route('/activities/<int:mep_id>/dossier/<path:d_id>', defaults={'t':None})
+@app.route('/activities/<int:mep_id>/<string:t>/<path:d_id>')
+def activities(mep_id, t, d_id):
+    if mep_id not in mepnames:
+        return render('errors/404.html'), 404
+    a = db.activities(mep_id, t, d_id) or {}
+    if t == 'amendment' or t is None:
+        ams = db.get('ams_by_mep',mep_id)
+        print(len(ams))
+        if d_id is not None:
+            ams = [a for a in ams if a['reference']==d_id]
+        a['amendments'] = sorted(ams, key=lambda x: (x['reference'], -x['seq']), reverse=True)
+    return render(
+        'activities.html',
+        activities=a,
+        mep_name=mepnames.get(mep_id),
+        mep_id=mep_id,
+        type=t,
+        dossier_id=d_id,
+    )
+
 
 
 @app.route('/mep/<int:mep_id>')
@@ -163,13 +300,17 @@ def dossiers():
     dossiers = db.dossiers_by_activity(True)
     ds = []
     for d in dossiers:
+        lead_c = [x['committee'] for x in d.get('committees', []) if x.get('type') == "Responsible Committee"]
         ds.append({
-            'name': d['procedure']['reference'],
+            'reference': d['procedure']['reference'],
+            'title': d['procedure']['title'],
+            'stage_reached': d['procedure']['stage_reached'],
+            'lead_committee': '' if not lead_c else lead_c[0],
         })
     return render('dossiers.html', dossiers=ds, date=date)
 
 # these dossiers have been scraped by us in v1, but are not existing anymore as
-# of 20190605, we keep them and display them using the old v1 template. 
+# of 20190605, we keep them and display them using the old v1 template.
 v1dossiers = {
     '1991/2118(INS)', '1992/2223(INS)', '1994/2195(INI)', '1995/2078(INI)', '1995/2189(INI)', '1996/2143(INI)', '1997/2015(INI)', '1997/2044(INI)', '1998/2041(INI)',
     '1998/2077(INI)', '1998/2078(INI)', '1998/2101(INI)', '1998/2165(INI)', '1999/2010(INS)', '1999/2184(INI)', '2000/2126(INI)', '2000/2323(INI)', '2001/2061(INI)',
@@ -193,15 +334,39 @@ def dossier(d_id):
     if not d:
         return not_found_error(None)
     d['amendments'] = db.get("ams_by_dossier", d_id) or []
-    d['votes'] = db.get('votes_by_dossier',d_id) or []
-    d['vmatrix'] = votematrices(d['votes'])
+    d['vmatrix'] = votematrices(db.get('votes_by_dossier',d_id) or [])
     if d_id in v1dossiers:
         template = "v1dossier.html"
     else:
         template = "dossier.html"
     d['activities'] = merge_events(d)
+
+    # get activities by meps
+    meps={}
+    for act, type, mepid, mepname in (db.activities_by_dossier(d_id) or []):
+        if type in ["REPORT", "REPORT-SHADOW", "COMPARL"]: continue
+        if type == 'COMPARL-SHADOW':
+            continue
+        #    pass # todo add this to the committee info
+        #else:
+        if not mepid in meps: meps[mepid]={'name': mepname, 'types': {}}
+        if not type in meps[mepid]['types']: meps[mepid]['types'][type]=[]
+        meps[mepid]['types'][type].append(act)
+    # todo sort meps by number of activities
+    d['activities']=sorted(meps.items(), key=lambda x: sum(len(y) for y in x[1]['types'].values()), reverse=True)
+    types = {
+        'CRE': 'Plenary Speeches',
+        "MOTION": 'Institutional Motions',
+        "OQ": 'Oral Questions',
+        'WEXP': 'Written Explanations',
+        'MINT': 'Major Interpellations',
+        "WQ": 'Written Questions',
+        "IMOTION": 'Individiual Motions',
+        "WDECL": 'Written Declarations',
+    }
+
     progress = 0
-    for a in d['activities']:
+    for a in d.get('events',[]):
         if a.get('type') in stage2percent:
             progress = stage2percent[a['type']]
             break
@@ -214,7 +379,9 @@ def dossier(d_id):
         url=request.base_url,
         now_date=date.today().strftime("%Y-%m-%d"),
         progress=progress,
-        exclude_from_json=('now_date', 'url', 'd', 'progress'),
+        TYPES=types,
+        msg=ep_wtf_dossiers.get(d_id),
+        exclude_from_json=('now_date', 'url', 'd', 'progress', 'TYPES'),
     )
 
 
@@ -235,15 +402,17 @@ def committee(c_id):
 def subjects():
     r = db.keys('dossiers_by_subject', count=True) or {}
     s = sorted(x for x in r.keys())
-    return render('subjects.html', subjects=s, dossier_count=r, exclude_from_json=('subjects',))
+    sm = db.get('subject_map',None)
+    return render('subjects.html', subjects=s, dossier_count=r, subjectmap=sm, exclude_from_json=('subjects','subjectmap'))
 
 
 @app.route('/subject/<path:subject>')
 def subject(subject):
-    r = db.get('dossiers_by_subject', subject) or []
+    r = sorted(db.get('dossiers_by_subject', subject) or [], key=lambda x: x['procedure']['reference'], reverse=True)
+    sm = db.get('subject_map',None)
     if not r:
         return not_found_error(None)
-    return render('subject.html', dossiers=r, subject=subject)
+    return render('subject.html', dossiers=r, subject=subject, subjectmap=sm, exclude_from_json=('subjectmap'))
 
 
 def dossier_sort_key(d):
@@ -262,7 +431,7 @@ def search():
     if not q:
         return redirect('/')
     dossiers = db.search('ep_dossiers', q) or []
-    meps = db.meps_by_name(q) or []
+    meps = db.meps_by_name(q) or db.search('ep_meps', q) or []
     res = {
         'meps': sorted(meps, key=mep_sort_key),
         'dossiers': sorted(dossiers, key=dossier_sort_key, reverse=True),
@@ -478,9 +647,11 @@ def printdict(d):
 
 @app.template_filter()
 def asdate(value):
+    if not value:
+        return 'unknown date'
     if isinstance(value, int):
         value=datetime.fromtimestamp(value)
-    if type(value) not in [str, unicode]:
+    if hasattr(value, 'strftime'):
         return value.strftime('%Y/%m/%d')
     d = asDate(value)
     if d.year == 9999:
@@ -503,27 +674,19 @@ def asPE(obj): # should have a new and old item
 
 @app.template_filter()
 def asmep(value):
-    #if not hasattr(request, 'meps'):
-    #    request.meps = {}
-    #if value in request.meps:
-    #    mep = request.meps[value]
-    #else:
-    #    mep = db.get('ep_meps', value)
-    #    request.meps[value] = mep
-    mep = db.get('ep_meps', value)
-    return u'<a href="/mep/%d/%s">%s</a>' % (mep['UserID'], mep['Name']['full'],mep['Name']['full'])
+    #if isinstance(value, int):
+    #    value = str(value)
+    if value not in mepnames:
+        return '<b>Unknown MEP</b>'
+    return u'<a href="/mep/%d/%s">%s</a>' % (value, mepnames[value], mepnames[value])
 
 
-# TODO
 @app.template_filter()
 def asdossier(value):
-    doc=db.get('ep_dossiers', value)
-    if not doc:
-        return value
-    return (u'<a href="/dossier/%s">%s</a> %s' %
-            (doc['procedure']['reference'],
-             doc['procedure']['reference'],
-             doc['procedure']['title']))
+    #doc=db.get('ep_dossiers', value)
+    #if not doc:
+    #    return value
+    return (u'<a href="/dossier/%s">%s</a>' % (value, value))
 
 
 @app.template_filter()
@@ -550,20 +713,11 @@ def protect_email(email_address):
     key = ''.join(char_list)
 
     cipher_text = ''
-    id = 'e' + str(randrange(1,999999999))
 
     for a in email_address:
         cipher_text += key[ character_set.find(a) ]
 
-    script = 'var a="'+key+'";var b=a.split("").sort().join("");var c="'+cipher_text+'";var d="";'
-    script += 'for(var e=0;e<c.length;e++)d+=b.charAt(a.indexOf(c.charAt(e)));'
-    script += 'document.getElementById("'+id+'").innerHTML="<a href=\\"mailto:"+d+"\\">"+d+"</a>"'
-
-
-    script = "eval(\""+ script.replace("\\","\\\\").replace('"','\\"') + "\")"
-    script = '<script type="text/javascript">/*<![CDATA[*/'+script+'/*]]>*/</script>'
-
-    return '<span id="'+ id + '">[javascript protected email address]</span>'+ script
+    return '<span class="protected_address" data-key="'+key+'" data-ctext="'+cipher_text+'">[javascript protected email address]</span>'
 
 
 @app.template_filter()
@@ -577,6 +731,22 @@ def group_icon(value):
     if type(value)==type(list()): value=value[0]
     if value=='NA': value='NI'
     return "static/images/%s.gif" % value.lower().replace('/','_')
+
+@app.template_filter()
+def asactivity(value):
+    return {'CRE': 'plenary speeches',
+            "REPORT": 'reports',
+            "REPORT-SHADOW": 'shadow reports',
+            "COMPARL": 'opinions',
+            "COMPARL-SHADOW": 'shadow opinions',
+            "MOTION": 'institutional motions',
+            "OQ": 'oral questions',
+            'WEXP': 'written explanations',
+            'MINT': 'major interpellations',
+            "WQ": 'written questions',
+            "IMOTION": 'individual motions',
+            "amendments": 'amendments',
+            "WDECL": 'written declarations'}.get(value,"unknown").capitalize()
 
 
 def getDate():
@@ -603,7 +773,6 @@ def tojson(data):
 def votematrices(votes):
     res = []
     for vote in votes: # can have multiple votes
-        print(vote.keys())
         matrix = { 'title': vote['title'],
                    'time': vote['ts'],
                    'totals': dict(sorted([(c,vote['votes'][c]['total']) for c in ['+','0','-'] if c in vote['votes']],key=lambda x: x[1], reverse=True)),
