@@ -64,8 +64,8 @@ def getComAms(term, update=False, **kwargs):
                 if (len(u)<=13):
                     log(2,'url is too short, skipping: "%s"' % u)
                     continue
-                if u in seen or u in skipurls or not u.endswith('EN'):
-                    log(3,"skipping url: %s" % u)
+                if u in seen or u in skipurls or (not u.endswith('EN') and not u.endswith('_EN.pdf')):
+                    log(3,"skipping url: %s" % repr(u))
                     continue
                 seen.add(u)
                 rs = a.xpath('../../../p[@class="rapporteurs clearfix"]')
