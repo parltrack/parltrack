@@ -912,8 +912,10 @@ def checkUrl(url):
 def onfinished(daisy=True):
     if daisy:
         from scraper_service import add_job
+        add_job("mep_activities",{"all": True, "onfinished": {"daisy": True}})
         add_job("pvotes",{"year":"all", "onfinished": {"daisy": True}})
         add_job("amendments",{"all":True, "onfinished": {"daisy": True}})
+        add_job("comagendas",{"onfinished": {"daisy": True}})
 
 def onchanged(doc, diff):
     id = doc['procedure']['reference']
