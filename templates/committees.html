@@ -6,12 +6,12 @@
       <div class="left aligned column">
          <h1>Committees ({{ committees|length }})</h1>
           <div class="ui fluid items">
-          {% for s in committees %}
+          {% for s,c in committees.items() %}
           <div class="item">
             <div class="content">
-             <div class="header">{{ s }} {{ committee_map[s] }}</div>
+               <div class="header">{% if s %}<a href="/committee/{{ s }}">{{ c.organization }}</a> ({{ s }}){% else %}{{ c.organization }}{% endif %}</div>
              <div class="description">
-                <a class="ui blue horizontal basic label" href="/committee/{{s}}">{{ dossier_count[s] }} dossiers</a>
+                <span class="ui {% if c.active %}blue {% endif %}label">{% if c.active %}Active{% else %}Inactive{% endif %}</span> Dossiers: {{ c.dossiers or 0 }}
              </div>
            </div>
           </div>

@@ -300,7 +300,7 @@
     <tbody>
     {%for ref, title, type, committee in mep.dossiers%}
     <tr>
-       <td style="font-weight: bold; color: white; background-color: {%if type=='Responsible Committee'%}#B03060{%elif type==''%}{%elif type=='Committee Opinion'%}#B413EC{%elif type=='Responsible Committee Shadow'%}#0E6EB8{%elif type == 'Opinion Committee Shadow'%}#008080{%else%}#A0A0A0{%endif%};">{{type}}</td>
+       <td class="rapporteur {%if type=='Responsible Committee'%}responsible{%elif type=='Committee Opinion'%}opinion{%elif type=='Responsible Committee Shadow'%}responsible shadow{%elif type == 'Opinion Committee Shadow'%}opinion shadow{%endif%};">{{type}}</td>
        <td><a href="/dossier/{{ref}}">{{ref}}</a></td>
        <td><a href="/committee/{{committee}}">{{committee}} {{committee_map[committee]}}</a></td>
        <td>{{title}}</td>

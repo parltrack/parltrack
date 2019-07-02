@@ -41,7 +41,10 @@
 					    {%-endif-%}
                    {% if 'dossiers' in a %}<br />Dossiers: {% for d in a['dossiers']%}{{ d|asdossier|safe }}{% endfor %}{% endif %}
                    {% if 'formats' in a %}<br />Documents: {% for f in a['formats']%}<a href="{{ f['url'] }}">{{ f['type'] }}</a>{{f['size']}} {% endfor %}{% endif %}
-                   {% if 'authors' in a and t!= 'amendments' %}<br />Authors: {{ a['authors'] }}{% endif %}
+                   {% if 'authors' in a and t!= 'amendments' %}<br />Authors: 
+							 {% if t=="WDECL" and a.authors is iterable and a.authors is not string %}
+								 {% for m in a.authors %}{{m['mepid']|asmep|safe}}{% if not loop.last %}, {%endif%}{%endfor%}
+							{%else%}{{ a['authors'] }}{% endif %}{%endif%}
                 </div>
              </div>
              </div>
@@ -54,9 +57,5 @@
 	</div>
   </div>
 </div>
-   <script>
-      $(document).ready(function() {
-         $('.ui.accordion').accordion();
-      });
-   </script>
+<script type="text/javascript" src="/static/js/activities.js"></script>
 {% endblock %}

@@ -1,6 +1,6 @@
 {% macro render(mep) -%}
 <div class="item">
-   <div class="image">
+   <div class="image mepshot">
        <a href="{{ url_for('mep', mep_id=mep['UserID'], mep_name=mep['Name']['full']) }}"><img src="{{ mep['Photo'] }}"/></a>
    </div>
    <div class="content">

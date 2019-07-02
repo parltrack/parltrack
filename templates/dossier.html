@@ -3,31 +3,6 @@
 {% block rss %}
 <link rel="alternate" type="application/atom+xml" title="Changes for {{ dossier.procedure.reference }} feed" href="/dossier/atom/{{dossier.procedure.reference}}" />
 {% endblock %}
-{% block styles %}
-.scale-11 { background-color: #ff0000; }
-.scale-10 { background-color: #ff0000; }
-.scale-9  { background-color: #ff0000; }
-.scale-8  { background-color: #ff2009; }
-.scale-7  { background-color: #ff4010; }
-.scale-6  { background-color: #ff601a; }
-.scale-5  { background-color: #ff8022; }
-.scale-4  { background-color: #ffa02b; }
-.scale-3  { background-color: #ffc033; }
-.scale-2  { background-color: #ffe03c; }
-.scale-1  { background-color: #ffff40; }
-.scale0  { background-color: #eeeeff; }
-.scale1  { background-color: #ccffcc; }
-.scale2  { background-color: #b2ffb2; }
-.scale3  { background-color: #99ff99; }
-.scale4  { background-color: #80ff80; }
-.scale5  { background-color: #60ff60; }
-.scale6  { background-color: #40ff40; }
-.scale7  { background-color: #20ff20; }
-.scale8  { background-color: #00ff00; }
-.scale9  { background-color: #00ff00; }
-.scale10 { background-color: #00ff00; }
-.scale11 { background-color: #00ff00; }
-{% endblock %}
 {% block content %}
 <div class="ui vertical segment">
   <div class="ui center aligned stackable grid container">
@@ -110,12 +85,12 @@
        </td>
        <td>
           {% for a in committee.rapporteur %}
-             <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.abbr}}">{{a.group}}</a>){% if not loop.last %},{%endif%}
+             <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.abbr}}"><img class="ui middle aligned image" alt="icon: {{a.abbr}}" src="/{{a.abbr|group_icon}}" /> {{a.abbr}}</a>){% if not loop.last %},{%endif%}
           {% endfor %}
        </td>
        <td>
           {% for a in committee.shadows %}
-             <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.abbr}}">{{a.group}}</a>){% if not loop.last %},{%endif%}
+             <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.abbr}}"><img class="ui middle aligned image" alt="icon: {{a.abbr}}" src="/{{a.abbr|group_icon}}" /> {{a.abbr}}</a>){% if not loop.last %},{%endif%}
           {% endfor %}
        </td>
   </tr>
@@ -123,9 +98,13 @@
   {%endfor%}
   {% if dossier.procedure.dossier_of_the_committee %}<h5>Lead committee dossier:<h5> 
    <ul>
-      {% for x in dossier.procedure.dossier_of_the_committee %}
-      <li><a href="http://www.europarl.europa.eu/committees/en/libe/documents-search.html?linkedDocument=true&ufolderComCode={{dossier.procedure.committee}}&ufolderLegId={{x.split('/')[1]}}&ufolderId={{x.split('/')[2]}}&urefProcYear=&urefProcNum=&urefProcCode=">{{x}}</a></li>
-      {% endfor %}
+     {% if dossier.procedure.dossier_of_the_committee is not string %}
+      {%for x in dossier.procedure.dossier_of_the_committee -%}
+      <li><a href="http://www.europarl.europa.eu/committees/en/{{x.split('/')[0].lower()}}/search-in-documents.html?linkedDocument=true&ufolderComCode={{dossier.procedure.committee}}&ufolderLegId={{x.split('/')[1]}}&ufolderId={{x.split('/')[2]}}&urefProcYear=&urefProcNum=&urefProcCode=">{{x}}</a></li>
+      {%-endfor-%}
+      {%-else-%}
+      <li><a href="http://www.europarl.europa.eu/committees/en/{{dossier.procedure.dossier_of_the_committee.split('/')[0].lower()}}/search-in-documents.html?linkedDocument=true&ufolderComCode={{dossier.procedure.committee}}&ufolderLegId={{dossier.procedure.dossier_of_the_committee.split('/')[1]}}&ufolderId={{dossier.procedure.dossier_of_the_committee.split('/')[2]}}&urefProcYear=&urefProcNum=&urefProcCode=">{{dossier.procedure.dossier_of_the_committee}}</a></li>
+      {%-endif-%}
    </ul>
   {%endif%}
    {% if dossier.procedure.legal_basis %}
@@ -161,11 +140,19 @@
 {%endfor%}
 
 <div><h5>Subjects</h5>
-{%for sub in dossier.procedure.subject%}
+{%if dossier.procedure.subject is mapping %}
+{%for sid, sub in dossier.procedure.subject.items()%}
     {% if loop.first %}<ul>{% endif %}
-    <li><a href="/dossiers?sub={{sub.split(' ')[0]}}&amp;subtitle={{sub}}">{{sub}}</a></li>
+       <li><a href="/subject/{{sid}}">{{sid}} {{sub}}</a></li>
     {% if loop.last %} </ul>{% endif %}
 {%endfor%}
+{%else%}
+{%for sub in dossier.procedure.subject%}
+    {% if loop.first %}<ul>{% endif %}
+       <li><a href="/subject/{{sub.split()[0]}}">{{sub}}</a></li>
+    {% if loop.last %} </ul>{% endif %}
+{%endfor%}
+{%endif%}
 </div>
 
 <div><h5>Links</h5>
@@ -299,7 +286,7 @@
 {%for vote in dossier.vmatrix|sort(attribute='time')%}
 <h4>{{vote.title|safe}}</h4>
   <div>{{vote.time|asdate}} Outcome: {% for c,r in vote.totals.items()%}{{c}}: {{r}}{% if not loop.last%}, {%endif%}{%endfor%}</div>
-  <table style="font-size: 0.7em !important;" class="ui definition table celled collapsing compact small">
+  <table class="ui definition table celled collapsing compact small voteheatmaptable">
      <thead>
         <tr class="ui center aligned">
           <th />
@@ -323,7 +310,7 @@
      <tbody>
         {% for g, gt in vote.groups %}
         <tr class="ui center aligned">
-           <td>{{g}} <img class="group_icon" alt="icon: {{g}}" src="/{{g|group_icon}}" /></td>
+           <td class="ui left aligned"><img class="ui middle aligned image" alt="icon: {{g}}" src="/{{g|group_icon}}" /> {{g}}</td>
            <td class="scale{{gt['class']}}">
              <div class="ui" data-tooltip="{%if- gt['+']%}For: {{gt['+']}} {%endif -%}
                                            {%if- gt['-']%}Against: {{gt['-']}} {%endif -%}

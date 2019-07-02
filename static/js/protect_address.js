@@ -6,6 +6,5 @@ $(document).ready(function() {
       var d="";
       for(var e=0;e<c.length;e++)d+=b.charAt(a.indexOf(c.charAt(e)));
       $(this).html("<a href=\"mailto:"+d+"\">"+d+"</a>");
-      //eval(""+ script.replace("\\","\\\\").replace('"','\\"') + "\")"
    });
 });

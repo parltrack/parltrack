@@ -11,8 +11,22 @@
                <tr>
                   <th>Reference</th>
                   <th>Title</th>
-                  <th>Stage Reached</th>
-                  <th>Lead Committee</th>
+                  <th data-filter='ddl' data-default-filter='["Active"]'
+                      data-filter-group='{"Active": ["Preparatory phase in Parliament",
+                      										 "Awaiting Council 1st reading position / budgetary conciliation convocation",
+                      										 "Awaiting Parliament 1st reading / single reading / budget 1st stage",
+                      										 "Awaiting Council decision on delegated act",
+                      										 "Awaiting committee decision",
+                      										 "Provisional agreement between Parliament and Council on final act",
+                      										 "Awaiting final decision"],
+                      						 "Inactive": ["Procedure completed",
+                      										  "Awaiting signature of act",
+                      										  "Procedure completed, awaiting publication in Official Journal",
+                      										  "Procedure lapsed or withdrawn",
+                      										  "Procedure completed - delegated act enters into force",
+                      										  "Procedure completed - delegated act rejected",
+																	  "Procedure rejected"]}'>Stage Reached</th>
+                  <th data-filter='ddl'>Lead Committee</th>
                </tr>
                </thead>
                <tbody>
@@ -31,6 +45,6 @@
 	</div>
   </div>
 </div>
-<script src="{{ url_for('static', filename='js/TableFilter.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ptfilter.js') }}"></script>
 <script src="{{ url_for('static', filename='js/dossiers.js') }}"></script>
 {% endblock %}

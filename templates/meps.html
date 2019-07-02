@@ -11,10 +11,10 @@
                <thead>
                   <tr>
                      <th>Name</th>
-                     <th>Role</th>
-                     {% if not group %}<th>Group</th>{% endif %}
-                     {% if not country %}<th>Country</th>{% endif %}
-                     <th>Party</th>
+                     <th data-filter="ddl">Role</th>
+                     {% if not group %}<th data-filter="ddl">Group</th>{% endif %}
+                     {% if not country %}<th data-filter="ddl">Country</th>{% endif %}
+                     <th data-filter="ddl">Party</th>
                   </tr>
                </thead>
                <tbody>
@@ -43,9 +43,9 @@
                            {% endif %}
                         </td>
                      {% endif %}
-                        <td>
-                           {% if 'Constituencies' in ranking.2 %}{{ ranking.2.Constituencies.0.party }}{% endif %}
-                        </td>
+                     <td>
+                        {% if 'Constituencies' in ranking.2 %}{{ ranking.2.Constituencies.0.party }}{% endif %}
+                     </td>
                   </tr>
                   {% endfor %}
                </tbody>
@@ -55,21 +55,8 @@
 	</div>
   </div>
 </div>
-<script src="{{ url_for('static', filename='js/TableFilter.js') }}"></script>
-<script>
-$(document).ready(function () {
-  // Initialise Plugin
-  $('#ranking').tableFilter({
-    columnFilters: [     
-       { columnName: 'name', inputType: 'empty', includeData: false},
-       { columnName: 'role', inputType: 'ddl'},
-       { columnName: 'group', inputType: 'ddl', onlyText: true},
-       { columnName: 'country', inputType: 'ddl', onlyText: true},
-       { columnName: 'party', inputType: 'ddl'}
-    ]
-  });
-}); 
-</script>
+<script src="{{ url_for('static', filename='js/ptfilter.js') }}"></script>
+<script src="{{ url_for('static', filename='js/meps.js') }}"></script>
 
 {% endblock %}
 

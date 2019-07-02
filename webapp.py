@@ -30,6 +30,8 @@ from utils.mappings import (
     SEIRTNUOC as COUNTRIES,
     COUNTRIES as COUNTRY_ABBRS,
     COMMITTEE_MAP,
+    GROUPIDS,
+    ACTIVITY_MAP,
     stage2percent,
 )
 
@@ -130,6 +132,7 @@ def dumps():
 
 group_positions={u'Chair': 10,
                  u'Treasurer/Vice-Chair/Member of the Bureau': 10,
+                 u'Co-President': 9,
                  u'Co-Chair': 8,
                  u'First Vice-Chair/Member of the Bureau': 8,
                  u'Vice-Chair': 6,
@@ -161,18 +164,47 @@ staff_positions={"President": 7,
                  'Observer': 0,
                  }
 
+@app.route('/meps/<string:filter1>/<string:filter2>')
+@app.route('/meps/<string:filter1>')
 @app.route('/meps')
-def meps():
+def meps(filter1=None, filter2=None):
     # TODO date handling
+    group_filter = None
+    country_filter = None
+    print(repr(filter1),repr(filter2))
+    if filter1 is not None:
+        if filter1 in GROUPIDS:
+            group_filter = filter1
+        elif filter1 in COUNTRY_ABBRS:
+            country_filter = filter1
+        else:
+            return render('errors/404.html'), 404
+    if filter2 is not None:
+        if country_filter is None and filter2 in COUNTRY_ABBRS:
+            country_filter = filter2
+        elif group_filter is None and filter2 in GROUPIDS:
+            group_filter = filter2
+        else:
+            return render('errors/404.html'), 404
     date = asdate(datetime.now())
     meps = db.meps_by_activity(True)
     rankedMeps=[]
     for mep in meps:
-        score=0
+        score=-1
         ranks=[]
+        if country_filter is not None:
+            from_country = False
+            for c in mep.get('Constituencies',[]):
+                if not 'end' in c or (c['start']<=date and c['end']>=date):
+                    if country_filter and c.get('country')!= COUNTRY_ABBRS[country_filter]: continue
+                    from_country = True
+                    break
+            if not from_country: continue
+        in_group=False
         # get group rank
         for group in mep.get('Groups',[]):
             if not 'end' in group or (group['start']<=date and group['end']>=date):
+                if group_filter and group.get('groupid')!= group_filter: continue
                 if not 'role' in group:
                     group['role']='Member'
                 score=group_positions.get(group['role'], 1)
@@ -182,7 +214,9 @@ def meps():
                     group['groupid']=group['groupid'][0]
                 ranks.append((group_positions[group['role']],group['role'],group.get('groupid',group['Organization'])))
                 mep['Groups']=[group]
+                in_group = True
                 break
+        if group_filter and not in_group: continue
         # get committee ranks
         tmp=[]
         for com in mep.get('Committees',[]):
@@ -201,7 +235,11 @@ def meps():
         if len(tmp):
             mep['Staff']=tmp
         rankedMeps.append((score,sorted(ranks, reverse=True),mep))
-    return render('meps.html', date=date, meps=[x for x in sorted(rankedMeps,key=lambda x: x[0], reverse=True)])
+    return render('meps.html',
+                  date=date,
+                  group=group_filter,
+                  country=country_filter,
+                  meps=[x for x in sorted(rankedMeps,key=lambda x: x[0], reverse=True)])
 
 
 @app.route('/mep/<int:mep_id>/<string:mep_name>')
@@ -212,7 +250,8 @@ def mep(mep_id, mep_name):
     amendments = db.get("ams_by_mep", mep_id) or []
     activities = db.activities(mep_id) or []
     acts = {'types':{}, 'dossiers':{}}
-    acts['types']['amendments'] = len(amendments)
+    if len(amendments):
+        acts['types']['amendments'] = len(amendments)
     for a in amendments:
         if not a['reference'] in acts['dossiers']:
             acts['dossiers'][a['reference']] = 1
@@ -249,7 +288,6 @@ def mep(mep_id, mep_name):
         exclude_from_json=('d', 'group_cutoff', 'committees'),
     )
 
-
 @app.route('/activities/<int:mep_id>', defaults={'d_id':None, 't':None})
 @app.route('/activities/<int:mep_id>/type/<string:t>', defaults={'d_id':None})
 @app.route('/activities/<int:mep_id>/dossier/<path:d_id>', defaults={'t':None})
@@ -257,13 +295,15 @@ def mep(mep_id, mep_name):
 def activities(mep_id, t, d_id):
     if mep_id not in mepnames:
         return render('errors/404.html'), 404
+    if t and t not in ACTIVITY_MAP.keys():
+        return render('errors/404.html'), 404
     a = db.activities(mep_id, t, d_id) or {}
-    if t == 'amendment' or t is None:
-        ams = db.get('ams_by_mep',mep_id)
-        print(len(ams))
+    if t in {'amendments', None}:
+        ams = db.get('ams_by_mep',mep_id) or []
         if d_id is not None:
             ams = [a for a in ams if a['reference']==d_id]
-        a['amendments'] = sorted(ams, key=lambda x: (x['reference'], -x['seq']), reverse=True)
+        if ams:
+            a['amendments'] = sorted(ams, key=lambda x: (x['reference'], -x['seq']), reverse=True)
     return render(
         'activities.html',
         activities=a,
@@ -331,6 +371,7 @@ v1dossiers = {
 @app.route('/dossier/<path:d_id>')
 def dossier(d_id):
     d = db.dossier(d_id)
+    clean_lb(d)
     if not d:
         return not_found_error(None)
     d['amendments'] = db.get("ams_by_dossier", d_id) or []
@@ -387,15 +428,65 @@ def dossier(d_id):
 
 @app.route('/committees')
 def committees():
-    r = db.keys('dossiers_by_committee', count=True) or {}
-    s = sorted(x for x in r.keys())
-    return render('committees.html', committees=s, dossier_count=r)
+    s = db.committees()
+    s = dict(sorted(s.items(), key=lambda x: x[1]['active'], reverse=True))
+    return render('committees.html', committees=s)
 
 
 @app.route('/committee/<string:c_id>')
 def committee(c_id):
-    c = db.get('com_votes_by_committee', c_id) or None
-    return render('committee.html', committee=c)
+    c = {}
+    c['votes'] = db.get('com_votes_by_committee', c_id) or None
+    c['agendas'] = db.get('comagenda_by_committee', c_id) or None
+    c['shortname'] = c_id
+    c['name'] = COMMITTEE_MAP.get(c_id, "Unknown committee")
+    if c['agendas']:
+        for a in c['agendas']:
+            if 'time' in a and a['time']:
+                a['date'] = a['time']['date']
+            if 'date' not in a:
+                a['date'] = ''
+
+    rankedMeps=[]
+    for mep in (db.get('meps_by_committee', c_id) or []):
+        for com in reversed(mep['Committees']):
+            if com.get('abbr')==c_id:
+                score=com_positions[com['role']]
+                mep['crole']=com['role']
+                if com.get('end')=='9999-12-31T00:00:00':
+                    rankedMeps.append((score,mep,True))
+                else:
+                    rankedMeps.append((score,mep,False))
+                break
+    c['meps'] = sorted(rankedMeps,key=lambda x: (x[2],x[0],x[1]['Name']['full']), reverse=True) or None
+
+    c['dossiers'] = db.get('dossiers_by_committee', c_id) or None
+    if c['dossiers']:
+        for d in c['dossiers']:
+            clean_lb(d)
+            del d['changes']
+            tmp=[c for c in d['committees'] if c['committee']==c_id]
+            if len(tmp)>0:
+                d['crole']=tmp[0].get('type') or ("Responsible" if tmp[0].get('responsible') else "Opinion")
+                d['rapporteur']={m['name']: m for c in d['committees'] if c.get('type')=="Responsible Committee" or c.get('responsible') for m in c.get('rapporteur',[])}.values()
+                d['rapporteur_groups'] = sorted({k['abbr'] for k in d['rapporteur'] if k.get('abbr')})
+                for event in d.get('events',[]):
+                    if event.get('type') in ['Non-legislative initial document',
+                                             "Non-legislative basic document published",
+                                             'Commission/Council: initial legislative document',
+                                             "Legislative proposal",
+                                             "Legislative proposal published"] and 'docs' in event and len(event['docs'])>0:
+                        if 'title' in event['docs'][0]:
+                            d['comdoc']={'title': event['docs'][0]['title'],
+                                         'url': event['docs'][0].get('url'), }
+                            break
+
+    return render(
+        'committee.html',
+        committee=c,
+        now_date=date.today().strftime("%Y-%m-%d"),
+        exclude_from_json=('now_date',)
+    )
 
 
 @app.route('/subjects')
@@ -669,13 +760,27 @@ def asdiff(obj): # should have a new and old item
 
 @app.template_filter()
 def asPE(obj): # should have a new and old item
-    return unquote(obj).split('+')[2]
+    obj = unquote(obj)
+    if 'www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML' in obj:
+        # old style nonsgml urls
+        #http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+COMPARL+PE-595.712+02+DOC+PDF+V0//EN&language=EN
+        return obj.split('+')[2]
+    elif 'www.europarl.europa.eu/doceo/document/' in obj and obj.endswith('_EN.pdf'):
+        # new doceo style urls
+        #http://www.europarl.europa.eu/doceo/document/JURI-AM-597416_EN.pdf
+        tmp = obj.split('/')[-1][:-len('_EN.pdf')].split('-')[-1]
+        return "%s.%s" % (tmp[:3], tmp[3:])
+    else:
+        print("bad doceo style url for asPE(): %s" % repr(obj))
+        return "Unknown"
 
 
 @app.template_filter()
 def asmep(value):
     #if isinstance(value, int):
     #    value = str(value)
+    #if isinstance(value, str):
+    #    value = int(value)
     if value not in mepnames:
         return '<b>Unknown MEP</b>'
     return u'<a href="/mep/%d/%s">%s</a>' % (value, mepnames[value], mepnames[value])
@@ -734,19 +839,7 @@ def group_icon(value):
 
 @app.template_filter()
 def asactivity(value):
-    return {'CRE': 'plenary speeches',
-            "REPORT": 'reports',
-            "REPORT-SHADOW": 'shadow reports',
-            "COMPARL": 'opinions',
-            "COMPARL-SHADOW": 'shadow opinions',
-            "MOTION": 'institutional motions',
-            "OQ": 'oral questions',
-            'WEXP': 'written explanations',
-            'MINT': 'major interpellations',
-            "WQ": 'written questions',
-            "IMOTION": 'individual motions',
-            "amendments": 'amendments',
-            "WDECL": 'written declarations'}.get(value,"unknown").capitalize()
+    return ACTIVITY_MAP.get(value,"unknown").capitalize()
 
 
 def getDate():

@@ -1,37 +1,23 @@
 {% extends "base.html" %}
-{% block title %}{{ Committee }} | {% endblock %}
+{% block title %}{{committee.shortname}} | {% endblock %}
 {% block rss %}
 <link rel="alternate" type="application/atom+xml" title="Changes for {{ Committee }} feed" href="{{url}}/atom" />
 {% endblock %}
-{% block scripts %}
-<script type="text/javascript" src="/static/js/jquery.tablesorter.min.js"> </script>
-<script type="text/javascript" src="/static/js/picnet.table.filter.min.js"></script>
-<script type='text/javascript' src='/static/js/fullcalendar.min.js'></script>
-<script type='text/javascript' src='/static/js/jquery.qtip.min.js'></script>
-<script type='text/javascript' src='/static/js/radarcal.js'></script>
-<script type="text/javascript" src="/static/js/committee.js"></script>
-{% endblock %}
-{% block styles %}
-<link rel='stylesheet' type='text/css' href='/static/css/fullcalendar.css' />
-{%endblock%}
-{% block topbar %}
-<a href="{{url}}/atom"><img src="/static/images/rss.gif" alt="rss icon" /></a>
-<a href="{{url}}/atom">track atom</a>
-<a href="{{url}}?format=json">download json</a> 
-{% endblock %}
 {% block content %}
-<h2>{{Committee}} ({{c}})</h2>
-<div id="tabs">
-  <ul>
-    <li><a href="#meetings">Meetings</a></li>
-    <li><a href="#dossiers">Dossiers</a></li>
-    <li><a href="#members">Members</a></li>
-    <li><a href="#calendar-tab">Calendar</a></li>
-  </ul>
-<div id="meetings">
-{%for group in committee.agendas|groupby('date')|sort(reverse=True) if group.grouper >= today %}
-    <div>{{group.grouper}} {% if group.end %} - {{group.end}}{% endif %}</div>
-    <table border="1" class="tablesorter">
+<div class="ui vertical segment">
+  <div class="ui center aligned stackable grid container">
+    <div class="row">
+      <div class="left aligned column">
+<h2>{{committee.name}} ({{committee.shortname}})</h2>
+<div id="tabs"  class="ui top attached tabular menu">
+    <a href="#meetings" data-tab="meetings" class="active item">Meetings</a>
+    {%if committee.dossiers %}<a href="#dossiers" data-tab="dossiers" class="item">Dossiers</a>{%endif%}
+    <a href="#members" data-tab="members" class="item">Members</a>
+</div>
+<div class="ui tab" id="meetings" data-tab="meetings">
+{%for group in committee.agendas|groupby("date")|sort(reverse=True) if group.grouper >= today %}
+    <div>{{group.grouper|asdate}} {% if group.end %} - {{group.end|asdate}}{% endif %}</div>
+    <table class="ui table">
        <thead><tr><th>Committee Dossier</th><th>Title</th><th>Dossier</th><th>Deadline</th><th>Notes</th></tr></thead>
        <tbody>
     {% for meet in group.list %}
@@ -39,8 +25,8 @@
         <td><a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{meet.comdossier}}&amp;body={{meet.committee}}&amp;language=EN">{{meet.comdossier}}</a></td>
         <td>{{meet.title}}</td>
         <td>{%if meet.epdoc %}<a href="/dossier/{{meet.epdoc}}">{{meet.epdoc}}</a>{%else%}{{meet.comdoc}}{%endif%}</td>
-        <td>{%if meet.tabling_deadline %}<div><strong>Tabling Deadline</strong> {{meet.tabling_deadline}}</div>{%endif%}</td>
-        <td>{%for line in meet.list if not line.startswith('Deadline for tabling amendments') %}
+        <td>{%if meet.tabling_deadline %}<div><strong>Tabling Deadline</strong> {{meet.tabling_deadline|asdate}}</div>{%endif%}</td>
+        <td>{%for line in meet.list if not line.startswith("Deadline for tabling amendments") %}
            {%if loop.first %}<ul>{%endif%}
            <li>{{line}}</li>
            {%if loop.last %}</ul>{%endif%}
@@ -50,18 +36,18 @@
     </tbody></table>
 {%endfor%}
 <h3>Earlier meetings</h3>
-{%for group in committee.agendas|groupby('date')|sort(reverse=True) if group.grouper < today %}
-    <div class="more">{{group.grouper}} {% if group.end %} - {{group.end}}{% endif %}</div>
-    <table border="1" class="hidden tablesorter">
+{%for group in committee.agendas|groupby("date")|sort(reverse=True) if group.grouper < today %}
+    <div class="more">{{group.grouper|asdate}} {% if group.end %} - {{group.end|asdate}}{% endif %}</div>
+    <table border="1" class="ui table hidden">
        <thead><tr><th>Committee Dossier</th><th>Title</th><th>Dossier</th><th>Deadline</th><th>Notes</th></tr></thead>
        <tbody>
-    {% for meet in group.list|sort(attribute='seq_no') %}
+    {% for meet in group.list|sort(attribute="seq_no") %}
       <tr>
         <td><a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{meet.comdossier}}&amp;body={{meet.committee}}&amp;language=EN">{{meet.comdossier}}</a></td>
         <td>{{meet.title}}</td>
         <td>{%if meet.epdoc %}<a href="/dossier/{{meet.epdoc}}">{{meet.epdoc}}</a>{%else%}{{meet.comdoc}}{%endif%}</td>
-        <td>{%if meet.tabling_deadline %}<div><strong>Tabling Deadline</strong> {{meet.tabling_deadline}}</div>{%endif%}</td>
-        <td>{%for line in meet.list if not line.startswith('Deadline for tabling amendments') %}
+        <td>{%if meet.tabling_deadline %}<div><strong>Tabling Deadline</strong> {{meet.tabling_deadline|asdate}}</div>{%endif%}</td>
+        <td>{%for line in meet.list if not line.startswith("Deadline for tabling amendments") %}
            {%if loop.first %}<ul>{%endif%}
            <li>{{line}}</li>
            {%if loop.last %}</ul>{%endif%}
@@ -71,28 +57,45 @@
     </tbody></table>
 {%endfor%}
 </div>
-<div id="dossiers">
-<table border="1" id='sortedlist2' class="tablesorter">
+{%if committee.dossiers %}
+<div class="ui tab" id="dossiers" data-tab="dossiers">
+<table id="dossierlist" class="ui table">
     <thead>
       <tr>
-        <th filter-type='ddl'>Role</th>
-        <th filter='false'>Dossier</th>
-        <th filter='false'>Forecasts</th>
-        <th filter-type='ddl'>Stage Reached</th>
-        <th filter='false'>Legal Basis</th>
-        <th filter='false'>Name</th>
-        <th filter='false'>Committee Dossier</th>
-        <th filter-type='ddl'>Rapporteur</th>
-        <th filter='false'>Commission Doc</th>
+        <th data-filter="ddl">Role</th>
+        <th>Dossier</th>
+        <th>Forecasts</th>
+        <th data-filter="ddl" 
+            data-default-filter='["Active"]'
+            data-filter-group='{"Active": ["Preparatory phase in Parliament",
+                      							 "Awaiting Council 1st reading position / budgetary conciliation convocation",
+                      							 "Awaiting Parliament 1st reading / single reading / budget 1st stage",
+                      							 "Awaiting Council decision on delegated act",
+                      							 "Awaiting committee decision",
+                      							 "Provisional agreement between Parliament and Council on final act",
+                      							 "Awaiting final decision"],
+                      			  "Inactive": ["Procedure completed",
+                      							   "Awaiting signature of act",
+                      							   "Procedure completed, awaiting publication in Official Journal",
+                      							   "Procedure lapsed or withdrawn",
+                      							   "Procedure completed - delegated act enters into force",
+                      							   "Procedure completed - delegated act rejected",
+														   "Procedure rejected"]}'>Stage Reached</th>
+        <th>Legal Basis</th>
+        <th>Name</th>
+        <th>Committee Dossier</th>
+        <th data-filter="ddl">Rapporteur</th>
+        <th data-filter="ddl">Group</th>
+        <th>Commission Doc</th>
       </tr>
     </thead>
     <tbody>
       {% for dossier in committee.dossiers %}
       <tr>
-        <td>{% if dossier.crole %}Responsible{%else%}Opinion{%endif%}</td>
+        <td>{%if dossier.crole%}{{dossier.crole.replace("Committee",'').strip()}}{%endif%}</td>
         <td><a href="/dossier/{{dossier.procedure.reference}}">{{dossier.procedure.reference}}</a></td>
-        <td class='forecasts'>{% for fc in dossier.activities|sort(attribute='date') if fc.date >= now_date %}
-           <div class="vevent"><abbr title="{{fc.date.isoformat()}}" class="dtstart">{{ fc.date|asdate }}</abbr> - <span class="summary">{{ fc.type }}</span></div>
+        <td class="forecasts">{% for fc in dossier.forecasts|sort(attribute="date") if fc.date >= now_date %}
+           <div class="vevent"><abbr title="{{fc.date|asdate}}" class="dtstart">{{ fc.date|asdate }}</abbr> - <span class="summary">{{ fc.type }}</span></div>
            {% if loop.first and loop.length>1 %}
               <div class="more" >More..</div>
               <div class="hidden">
@@ -102,28 +105,32 @@
            {% endif %}
           {% endfor %}</td>
         <td>{{ dossier.procedure.stage_reached }}</td>
-        <td>{% for sub in dossier.procedure.legal_basis %}{% if not loop.first %}, {% endif %}{{ sub }}{% endfor %}</td>
+        <td>{%for sub in dossier.procedure.legal_basis %}{%if not loop.first %}, {%endif%}{{ sub }}{%else%}{{dossier.procedure.get("Modified legal basis","")}}{%endfor%}</td>
         <td>{{ dossier.procedure.title }}</td>
-        <td>{{ dossier.procedure.dossier_of_the_committee }}</td>
-        <td>{% for r in dossier.rapporteur %}{% if not loop.first %}, {% endif %}<a href="/mep/{{r.name}}">{{ r.name }}</a> ({{r.group}}){% endfor %}</td>
+        <td>{%if dossier.procedure.dossier_of_the_committee is iterable and dossier.procedure.dossier_of_the_committee is not string -%}
+          {%for d in dossier.procedure.dossier_of_the_committee%}<a href="http://www.europarl.europa.eu/committees/en/{{d.split('/')[0].lower()}}/search-in-documents.html?linkedDocument=true&ufolderComCode={{dossier.procedure.committee}}&ufolderLegId={{d.split('/')[1]}}&ufolderId={{d.split('/')[2]}}&urefProcYear=&urefProcNum=&urefProcCode=">{{d}}</a>{% if not loop.last %}, {% endif %}{%endfor%}{%else%}{{dossier.procedure.dossier_of_the_committee}}{%endif%}</td>
+        <td>{% for r in dossier.rapporteur %}{% if not loop.first %}, {% endif %}<a href="/mep/{{r.name}}">{{ r.name }}</a>{%if r.abbr%} ({{r.abbr}}){%endif%}{% endfor %}</td>
+        <td>{% for r in dossier.rapporteur_groups %}{% if not loop.first %}, {% endif %}{{ r }}{% endfor %}</td>
         <td>{% if dossier.comdoc %}<a href="{{dossier.comdoc.url}}">{{ dossier.comdoc.title }}</a>{% endif %}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
-<div id="members">
-<table border="1" id='sortedlist' class="tablesorter">
+{%endif%}
+<div class="ui tab" id="members" data-tab="members">
+<table id="meplist" class="ui table">
    <thead>
       <tr>
-         <th filter='false'>Name</th>
-         <th filter-type='ddl'>Role</th>
-         <th filter-type='ddl'>Group</th>
-         <th filter-type='ddl'>Country</th>
+         <th>Name</th>
+         <th data-filter="ddl">Role</th>
+         <th data-filter="ddl">Group</th>
+         <th data-filter="ddl">Country</th>
+         <th data-filter="ddl" data-default-filter='["current"]'>Current</th>
       </tr>
    </thead>
    <tbody>
-      {% for mep in committee.meps %}
+      {% for score, mep, current in committee.meps %}
       <tr>
          <td><a href="/mep/{{ mep.Name.full }}">{{ mep.Name.full }}</a></td>
          <td>{{ mep.crole }}</td>
@@ -139,31 +146,18 @@
              {% endif %}
          </td>
          <td><img class="group_icon" alt="icon: {{countries[mep.Constituencies.0.country]}}" src="/static/images/{{countries[mep.Constituencies.0.country]|lower}}.gif" /> <a rel="nofollow" href="/meps/{{ countries[mep.Constituencies.0.country] }}?date={{now_date|asdate}}">{{ mep.Constituencies.0.country }}</a></td>
+         <td>{% if current%}<i class="check square icon"> current</i>{%else%}<i class="square full icon"> former</i>{%endif%}</td>
       </tr>
       {% endfor %}
    </tbody>
 </table>
 </div>
-   <div id='calendar-tab'>
-     <div id="calendar_legend">
-       <ul id='legend'>
-         <li class='ep-vote'>Plenary sitting agenda, vote</li>
-         <li class='ep-debate'>Plenary sitting agenda, debate</li>
-         <li class='ep-sitting'>EP plenary sitting (indicative date)</li>
-         <li class='ep-2ndsitting'>'EP plenary sitting, 2nd reading'</li>
-         <li class='ep-3rdsitting'>EP plenary sitting, 3rd reading'</li>
-         <li class='ep-1streading'>EP: report scheduled for adoption in committee, 1st or single reading</li>
-         <li class='ep-2ndreading'>'EP: report scheduled for adoption in committee, 2nd reading'</li>
-         <li class='tabling-deadline'>'EP: Deadline for committee ammendments'</li>
-         <li class='committee-agenda'>'EP: on committee agenda'</li>
-         <li class='council-debate-expected'>Council: debate or examination expected</li>
-         <li class='council-final'>Council: final act scheduled</li>
-         <li class='council-agree'>Council: political agreement on final act expected</li>
-         <li class='council-pos'>Council: political agreement on position expected</li>
-       </ul>
-     </div>
-     <div id='calendar'></div>
-   </div>
 </div>
+</div>
+</div>
+</div>
+</div>
+<script src="{{ url_for('static', filename='js/ptfilter.js') }}"></script>
+<script src="{{ url_for('static', filename='js/committee.js') }}"></script>
 {% endblock %}
 
