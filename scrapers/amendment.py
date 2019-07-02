@@ -22,11 +22,11 @@ from utils.utils import fetch_raw, unws
 from utils.log import log
 from utils.mappings import COMMITTEE_MAP
 from utils.process import process
-#from utils.bbox import getdims
 from tempfile import mkstemp
 from sh import pdftotext
 from db import db
 from dateutil.parser import parse
+from config import CURRENT_TERM as TERM
 
 CONFIG = {
     'threads': 8,
@@ -37,24 +37,11 @@ CONFIG = {
     'abort_on_error': True,
 }
 
-# TODO get current term
-TERM=8
-
 def getraw(pdf):
     (fd, fname)=mkstemp()
     fd=os.fdopen(fd, 'wb')
     fd.write(fetch_raw(pdf, binary=True))
     fd.close()
-    #x,y,h,w = 70,63,631,473
-    #x,y,h,w = 67,69,671,461
-    #x,y,h,w = getdims(fname)
-    #log(4, "dims0: %d %d %d %d" % (x,y,h,w))
-    #if x > 89*1.15 or x < 89*0.85: x = 89
-    #if y > 67*1.15 or y < 67*0.85: y = 67
-    #if h > 629*1.15 or h < 629*0.85: h = 629
-    #if w > 461*1.15 or w < 461*0.85: w = 461
-    #log(4, "dims1: %d %d %d %d" % (x,y,h,w))
-
     text=pdftotext(#'-nopgbrk',
                    '-layout',
                    #'-x', x,
@@ -65,8 +52,6 @@ def getraw(pdf):
                    '-')
     os.unlink(fname)
     # remove pagebreaks and footers
-    #print(text)
-    #sys.exit(0)
     return unpaginate(text,pdf)
 
 mepmaps={ 'Elisa Ferrreira': 'Elisa Ferreira',
@@ -304,7 +289,8 @@ def unpaginate(text, url):
             if (url=='http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+COMPARL+PE-532.324+01+DOC+PDF+V0//EN&language=EN' and
                 tmp in ["Paragraph 8", "Pervenche Berès, Frédéric Daerden"]):
                 continue
-            if (url=='http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+COMPARL+PE-593.898+01+DOC+PDF+V0//EN&language=EN' and
+            if (url in  ['http://www.europarl.europa.eu/doceo/document/CJ25-AM-593898_EN.pdf',
+                         'http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+COMPARL+PE-593.898+01+DOC+PDF+V0//EN&language=EN'] and
                 tmp=="(2016/2204(INI))"):
                 continue
             if (url=='http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+COMPARL+PE-594.137+01+DOC+PDF+V0//EN&language=EN' and
@@ -742,5 +728,5 @@ def scrape(url, meps=None, **kwargs):
 
 if __name__ == "__main__":
     from utils.utils import jdump
-    print(jdump(scrape("http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+COMPARL+PE-609.623+01+DOC+PDF+V0//EN&language=EN", "Krišjānis Kariņš")))
-    print(jdump(scrape(sys.argv[1],"dummy rapporteur")))
+    #print(jdump(scrape("http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+COMPARL+PE-609.623+01+DOC+PDF+V0//EN&language=EN", "Krišjānis Kariņš")))
+    print(jdump(scrape(sys.argv[1],"ANDERSSON Max")))

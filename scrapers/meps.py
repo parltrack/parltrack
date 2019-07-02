@@ -35,6 +35,9 @@ def scrape(all=False, **kwargs):
         sources = ['http://www.europarl.europa.eu/meps/en/incoming-outgoing/incoming/xml',
                    'http://www.europarl.europa.eu/meps/en/incoming-outgoing/outgoing/xml',
                    'http://www.europarl.europa.eu/meps/en/full-list/xml']
+    payload={}
+    if 'onfinished' in kwargs:
+        payload['onfinished']=kwargs['onfinished']
     if all:
         actives = {e['UserID'] for e in db.meps_by_activity(True)}
         inactives = {e['UserID'] for e in db.meps_by_activity(False)}
@@ -44,19 +47,19 @@ def scrape(all=False, **kwargs):
                           1275, 2187, 34004, 28309, 1490, 28169, 28289, 28841, 1566,
                           2174, 4281, 28147, 28302, ]:
             meps.discard(unlisted)
-            add_job('mep', payload={'id':unlisted})
+            payload['id']=unlisted
+            add_job('mep', dict(payload))
     for src in sources:
         root = fetch(src, prune_xml=True)
         for id in root.xpath("//mep/id/text()"):
             if all: meps.discard(int(id))
-            add_job('mep', payload={'id':int(id)})
+            payload['id']=int(id)
+            add_job('mep', dict(payload))
     if all:
         log(3,"mepids not in unlisted nor in directory {!r}".format(meps))
         for id in meps:
-            payload={'id':id}
-            if 'onfinished' in kwargs:
-                payload['onfinished'] = kwargs['onfinished']
-            add_job('mep', payload)
+            payload['id']=id
+            add_job('mep', dict(payload))
 
 if __name__ == '__main__':
     #actives = {e['UserID'] for e in db.meps_by_activity(True)}
