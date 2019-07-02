@@ -18,6 +18,7 @@ from random import randrange
 from tempfile import mkstemp
 from threading import Thread
 from utils.log import log, set_logfile
+from utils.mappings import COMMITTEE_MAP
 from utils.utils import dateJSONhandler, create_search_regex, dossier_search, mep_search, end_of_term
 
 
@@ -55,6 +56,10 @@ class Client:
 
     def count(self, source, key):
         cmd = {"cmd": "count", "params": {"source": source, "key": key}}
+        return self.send_req(cmd)
+
+    def committees(self, key=None):
+        cmd = {"cmd": "committees", "params": {"key": key}}
         return self.send_req(cmd)
 
     def reindex(self, table):
@@ -277,28 +282,8 @@ def mainloop():
         try:
             log(3, 'incoming connection')
             query = read_req(connection)
-            if query.get('cmd', '') == 'get':
-                res = get(**query.get('params', {})) or None
-            elif query.get('cmd', '') == 'keys':
-                res = keys(**query.get('params', {})) or None
-            elif query.get('cmd', '') == 'put':
-                res = put(**query.get('params', {})) or None
-            elif query.get('cmd', '') == 'commit':
-                res = commit(**query.get('params', {})) or None
-            elif query.get('cmd', '') == 'search':
-                res = search(**query.get('params', {})) or None
-            elif query.get('cmd', '') == 'count':
-                res = count(**query.get('params', {})) or None
-            elif query.get('cmd', '') == 'reindex':
-                res = reindex(**query.get('params', {})) or None
-            elif query.get('cmd', '') == 'mepid_by_name':
-                res = mepid_by_name(**query.get('params', {})) or None
-            elif query.get('cmd', '') == 'countries_for_meps':
-                res = countries_for_meps(**query.get('params', {})) or None
-            elif query.get('cmd', '') == 'names_by_mepids':
-                res = names_by_mepids(**query.get('params', {})) or None
-            elif query.get('cmd','') == 'activities':
-                res = activities(**query.get('params',{})) or None
+            if query.get('cmd') in function_map:
+                res = function_map[query['cmd']](**query.get('params', {}))
             else:
                 log(2,'invalid or missing cmd')
                 continue
@@ -464,6 +449,32 @@ def names_by_mepids(mepids):
         res[mepid]=mep['Name']['full']
     return res
 
+def committees(key=None):
+    res = {}
+    for m in DBS['ep_meps'].values():
+        for c in m.get('Committees', []):
+            cname = c.get('abbr', COMMITTEE_MAP.get(c['Organization'], None))
+            if cname is None: continue
+            if cname not in res:
+                res[cname] = {
+                    'active': True if c['end'] > date.today().isoformat() else False,
+                    'organization': c.get('Organization'),
+                    }
+            elif c['end'] > date.today().isoformat():
+                res[cname]['active'] = True
+
+    for d in DBS['ep_dossiers'].values():
+        for c in d.get('committees', []):
+            if c.get('type') != "Responsible Committee": continue
+            if not c['committee'] in res:
+                res[c['committee']] = {'active': False, 'organization': COMMITTEE_MAP[c['committee']]}
+            if not res[c['committee']].get('dossiers'):
+                res[c['committee']]['dossiers'] = 1
+            else:
+                res[c['committee']]['dossiers'] += 1
+    return res
+
+
 def activities(mep_id, type, d_id):
     activities = get("ep_mep_activities", mep_id)
     if type:
@@ -497,6 +508,18 @@ def idx_meps_by_country():
         for country in countries:
             if not country in res: res[country] = []
             res[country].append({k:v for k,v in mep.items() if k not in ['changes', 'activities']})
+    return res
+
+def idx_meps_by_committee():
+    res = {}
+    for mep in DBS['ep_meps'].values():
+        committees = set([c.get('abbr')
+                         for c in mep.get('Committees',[])
+                         if c])
+        for c in committees:
+            if not c in res:
+                res[c] = []
+            res[c].append({k:v for k,v in mep.items() if k not in ['changes', 'activities']})
     return res
 
 def idx_meps_by_group():
@@ -561,12 +584,12 @@ def idx_dossiers_by_committee():
         for c in d.get('committees',[]):
             if not 'date' in c:
                 continue
-            d = c['date']
-            if isinstance(d, list):
-                if not d:
+            date = c['date']
+            if isinstance(date, list):
+                if not date:
                     continue
-                d = d[0]
-            if d < end_of_term(4):
+                date = date[0]
+            if date < end_of_term(4):
                 continue
             n = c['committee']
             if not n in res: res[n] = []
@@ -707,11 +730,21 @@ def idx_activities_by_dossier():
                     res[ref].append((act, type, mep_id, DBS['ep_meps'][mep_id]['Name']['full']))
     return res
 
+def idx_comagenda_by_committee():
+    res = {}
+    for k,a in DBS['ep_comagendas'].items():
+        k = k[:4]
+        if k not in res:
+            res[k] = []
+        res[k].append(a)
+    return res
+
+
 TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_by_dossier"},
                                         {"fn": idx_ams_by_mep, "name": "ams_by_mep"}],
                             'key': lambda x: x.get('id')},
 
-          'ep_comagendas': {"indexes": [],
+          'ep_comagendas': {"indexes": [{"fn": idx_comagenda_by_committee, "name": "comagenda_by_committee"}],
                             'key': lambda x: x.get('id')},
 
           'ep_com_votes': {'indexes': [{"fn": idx_com_votes_by_dossier, "name": "com_votes_by_dossier"},
@@ -722,6 +755,7 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
                                       {"fn": idx_dossiers_by_doc, "name": "dossiers_by_doc"},
                                       {"fn": idx_dossiers_by_mep, "name": "dossiers_by_mep"},
                                       {"fn": idx_dossiers_by_subject, "name": "dossiers_by_subject"},
+                                      {"fn": idx_dossiers_by_committee, "name": "dossiers_by_committee"},
                                       {"fn": idx_subject_map, "name": "subject_map"},
                                       {"fn": idx_dossiers_by_committee, "name": "dossiers_by_committee"}],
                           'key': lambda x: x['procedure']['reference']},
@@ -729,6 +763,7 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
           'ep_meps': {'indexes': [{"fn": idx_meps_by_activity, "name": "meps_by_activity"},
                                   {"fn": idx_meps_by_country, "name": "meps_by_country"},
                                   {"fn": idx_meps_by_group, "name": "meps_by_group"},
+                                  {"fn": idx_meps_by_committee, "name": "meps_by_committee"},
                                   {"fn": idx_meps_by_name, "name": "meps_by_name"}],
                       'key': lambda x: x['UserID']},
 
@@ -740,6 +775,22 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
 }
 
 db = Client()
+
+function_map = {
+    'get': get,
+    'keys': keys,
+    'put': put,
+    'commit': commit,
+    'search': search,
+    'count': count,
+    'reindex': reindex,
+    'mepid_by_name': mepid_by_name,
+    'countries_for_meps': countries_for_meps,
+    'names_by_mepids': names_by_mepids,
+    'committees': committees,
+    'activities': activities,
+
+}
 
 if __name__ == '__main__':
     set_logfile("/tmp/db.log")
