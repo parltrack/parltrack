@@ -315,9 +315,11 @@ def asDate(d):
 
 # shorten legal bases
 def clean_lb(dossier):
-    for lbstrip, prefix in [("Treaty on the Functioning of the EU ", 'TFEU'),
-                            ("Rules of Procedure of the European Parliament EP ", 'RoP')]:
-        for i, lb in enumerate(dossier['procedure']['legal_basis']):
+    for lbstrip, prefix in [("Treaty on the Functioning of the EU TFEU ", 'TFEU'),
+                            ("Treaty on the Functioning of the EU ", 'TFEU'),
+                            ("Rules of Procedure of the European Parliament EP ", 'RoP'),
+                            ("Rules of Procedure EP ", 'RoP')]:
+        for i, lb in enumerate(dossier['procedure'].get('legal_basis',[])):
             if lb.startswith(lbstrip):
                 dossier['procedure']['legal_basis'][i]="%s %s" % (prefix,lb[len(lbstrip):])
 
@@ -354,7 +356,8 @@ terms = {
     5: {'start': '1999-07-20', 'end': '2004-07-19'},
     6: {'start': '2004-07-20', 'end': '2009-07-13'},
     7: {'start': '2009-07-14', 'end': '2014-06-30'},
-    8: {'start': '2014-07-01', 'end': ''},
+    8: {'start': '2014-07-01', 'end': '2019-07-01'},
+    9: {'start': '2019-07-02', 'end': ''},
 }
 
 

@@ -1,6 +1,6 @@
 import os
 
-CURRENT_TERM=8
+CURRENT_TERM=9
 
 USER_AGENT='parltrack/0.8'
 PROXY='http://localhost:8123/'
