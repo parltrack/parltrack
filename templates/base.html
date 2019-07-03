@@ -22,11 +22,13 @@
     <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/semantic.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/jquery.address.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/protect_address.js') }}"></script>
     <noscript>
        <link href="{{ url_for('static', filename='css/noscript.css') }}" rel="stylesheet" type="text/css" />
     </noscript>
   </head>
   <body class="{% if not display_mode %}{%elif display_mode == "hard"%}super_blink{%else%}blink{% endif %}">
+	  <div class="ribbon"><span>BETA</span></div>
 <div class="content">
   <div class="ui stackable menu">
       <a class="header item{% if request.url_rule.endpoint == 'home' %} active{% endif %}" href="{{ url_for('home') }}">Home</a>
@@ -36,6 +38,7 @@
       <a class="item{% if request.url_rule.endpoint == 'subjects' %} active{% endif %}" href="{{ url_for('subjects') }}">Subjects</a>
       <a class="item" href="/blog">Blog</a>
       <a class="item{% if request.url_rule.endpoint == 'about' %} active{% endif %}" href="{{ url_for('about') }}">About</a>
+      <a class="item{% if request.url_rule.endpoint == 'dumps' %} active{% endif %}" href="{{ url_for('dumps') }}">Dumps</a>
 	  <div class="right menu">
 	  	 <div class="ui right aligned category search item">
 	  		<div class="ui transparent icon input">
@@ -52,12 +55,18 @@
 
 <div class="ui inverted vertical footer segment">
   <div class="ui container">
+     <div class="eight wide column">
+      <div class="ui inverted header">
+         <div class="smalltext"><i class="twitter icon"></i><a href="https://twitter.com/parltrack">@parltrack</a></div>
+         <div class="smalltext"><i class="envelope icon"></i>{{ 'parltrack@ctrlc.hu'|protect_email|safe }}</div>
+      </div>
+     </div>
       <div class="ui stackable inverted equal height stackable grid">
         <div class="eight wide column">
-          <div class="ui inverted list">
-			<div class="smalltext"><a href="https://github.com/parltrack/parltrack/">code</a> <a href="https://www.gnu.org/licenses/agpl.html">AGPLv3.0+</a></div>
-			<div class="smalltext"><a href="{{ url_for('dumps') }}">data</a> <a href="http://www.opendatacommons.org/licenses/odbl/">ODBLv1.0</a></div>
-			<div class="smalltext">site content <a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-By-Sa-3.0</a></div>
+           <div class="ui inverted list">
+              <div class="smalltext"><a href="https://github.com/parltrack/parltrack/">code</a> <a href="https://www.gnu.org/licenses/agpl.html">AGPLv3.0+</a></div>
+              <div class="smalltext"><a href="{{ url_for('dumps') }}">data</a> <a href="http://www.opendatacommons.org/licenses/odbl/">ODBLv1.0</a></div>
+              <div class="smalltext">site content <a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-By-Sa-3.0</a></div>
           </div>
         </div>
         <div class="eight wide right aligned bottom aligned column">
