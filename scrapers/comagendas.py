@@ -32,7 +32,7 @@ CONFIG = {
 
 BASE_URL = 'http://www.europarl.europa.eu'
 
-def scrape():
+def scrape(**kwargs):
     #urltpl="http://www.europarl.europa.eu/committees/en/%s/documents-search.html"
     urltpl="http://www.europarl.europa.eu/committees/en/%s/search-in-documents.html"
     postdata="docType=AGEN&leg=8&miType=text&tabActif=tabResult#sidesForm"

@@ -17,7 +17,7 @@ CONFIG = {
 }
 
 # activities
-def scrape(id):
+def scrape(id, **kwargs):
     mep = db.mep(id)
     terms = {c.get('term') for c in mep.get('Constituencies',[])}
     acts = parse_acts(id, terms)

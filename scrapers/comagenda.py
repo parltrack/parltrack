@@ -176,7 +176,7 @@ def getactors(node):
         res[ax[0]]=ax[1]
     return res
 
-def scrape(url, committee):
+def scrape(url, committee, **kwargs):
     comid = committee
     root=fetch(url)
     lines=[x for x in root.xpath('//td[@class="contents"]/div/*') if unws(' '.join(x.xpath('.//text()')))]
@@ -331,7 +331,7 @@ def notify(data,d):
         msg = Message("[PT-Com] %s: %s" %
                       (data['committee'],
                        data['title']),
-                      sender = "parltrack@parltrack.euwiki.org",
+                      sender = "parltrack@parltrack.org",
                       bcc = g['active_emails'])
         msg.body = (u"Parltrack has detected %s%s on the schedule of %s \n"
                     u"\n  on %s"

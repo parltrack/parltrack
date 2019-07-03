@@ -64,7 +64,7 @@ def getterms(year):
         return [5+(year-2004)//5,
                 6+(year-2004)//5]
 
-def scrape(year=None):
+def scrape(year=None, **kwargs):
     if year==None: # only scrape current year
         years = [datetime.now().year]
     elif year == "all":

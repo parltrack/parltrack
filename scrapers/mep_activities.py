@@ -10,7 +10,7 @@ CONFIG = {
     'error_handler': None,
 }
 
-def scrape(all=False):
+def scrape(all=False, **kwargs):
     if all:
         for id in db.keys('ep_meps'):
             add_job('mep_activity', id)
