@@ -901,7 +901,7 @@ def checkUrl(url):
     #        if len(g['active_emails'])==0:
     #            continue
     #        msg = Message("[PT] %s %s" % (data['procedure']['reference'],data['procedure']['title']),
-    #                      sender = "parltrack@parltrack.euwiki.org",
+    #                      sender = "parltrack@parltrack.org",
     #                      bcc = g['active_emails'])
     #        #msg.html = htmldiff(data,d)
     #        msg.body = makemsg(data,d)
@@ -939,7 +939,7 @@ def onchanged(doc, diff):
         return
     log(3, "sending dossier changes to " + ', '.join(recipients))
     msg = Message("[PT] %s %s" % (doc['procedure']['reference'],doc['procedure']['title']),
-		  sender = "parltrack@parltrack.euwiki.org",
+		  sender = "parltrack@parltrack.org",
 		  bcc = list(recipients))
     #msg.html = htmldiff(doc,d)
     msg.body = makemsg(doc,diff)
