@@ -257,6 +257,7 @@
   </ul>
 {%endif%}
 {%endif%}
+{%if mep.Addresses.Brussels%}
 <h4>Brussels</h4>
 <ul>
    <li>Phone: {{mep.Addresses.Brussels.Phone}}</li>
@@ -270,6 +271,8 @@
       </ul>
    </dd></dl></li>
 </ul>
+{%endif%}
+{%if mep.Addresses.Strasbourg%}
 <h4>Strasbourg</h4>
 <ul>
    <li>Phone: {{mep.Addresses.Strasbourg.Phone}}</li>
@@ -283,12 +286,15 @@
       </ul>
    </li>
 </ul>
+{%endif%}
+{%if mep.Addresses.Postal %}
 <h4>Postal</h4>
 <ul>
   {%for a in mep.Addresses.Postal%}
   <li>{{a}}</li>
   {%endfor%}
 </ul>
+{%endif%}
 </div>
 {%endif%}
 
