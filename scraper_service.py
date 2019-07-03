@@ -10,6 +10,7 @@ from json import loads, dumps
 from queue import Queue
 from threading import Thread, RLock
 from datetime import datetime
+from subprocess import Popen
 
 from utils.log import log, set_logfile
 
@@ -102,6 +103,7 @@ def consume(pool, scraper):
             if scraper.CONFIG.get('table') is not None:
                 db.reindex(scraper.CONFIG['table'])
                 db.commit(scraper.CONFIG['table'])
+                Popen(['/bin/sh','./publish-dump.sh', "%s.json" % scraper.CONFIG['table']])
 
             if hasattr(scraper, 'onfinished'):
                 try:
@@ -113,6 +115,19 @@ def consume(pool, scraper):
                 else:
                     log(3, "{0} job's on_finished callback finished (params: {1})".format(scraper._name, onfinished_args))
 
+
+scrapers = {}
+
+
+def get_all_jobs():
+    queue_lens = {}
+    job_counts = {}
+    for k,v in scrapers.items():
+        queue_lens[k] = v._queue.qsize()
+        v._lock.acquire()
+        job_counts[k] = v._job_count
+        v._lock.release()
+    return {'queues': queue_lens, 'job_counts': job_counts}
 
 
 def load_scrapers():
@@ -140,6 +155,7 @@ def load_scrapers():
         else:
             s.CONFIG = CONFIG.copy()
         s.add_job = add_job
+        s.get_all_jobs = get_all_jobs
         s._lock = RLock()
         s._job_count = 0
         if s.CONFIG['abort_on_error']:
@@ -147,6 +163,7 @@ def load_scrapers():
         Thread(target=run_scraper, args=(s,), name=s._name).start()
         log(3, 'scraper %s added' % scraper)
     return scrapers
+
 
 scrapers = load_scrapers()
 
@@ -172,10 +189,7 @@ class RequestHandler(asyncore.dispatcher_with_send):
             self.notify('Missing "command" attribute', type='error')
             return
         if data['command'] in ['l', 'ls', 'list']:
-            queue_lens = {}
-            for k,v in self.scrapers.items():
-                queue_lens[k] = v._queue.qsize()
-            self.notify('scraper queue list', queues=queue_lens)
+            self.notify('scraper queue list', **get_all_jobs())
 
         if data['command'] in ['c', 'call']:
             if data.get('scraper') not in self.scrapers:
