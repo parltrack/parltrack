@@ -23,7 +23,7 @@ from pprint import pprint
 from random import shuffle, randrange, randint, choice
 from sys import version_info
 from urllib.parse import unquote
-from utils.utils import asDate, clean_lb, jdump
+from utils.utils import asDate, clean_lb, jdump, file_size
 from utils.devents import merge_events
 from utils.objchanges import getitem
 from utils.mappings import (
@@ -128,7 +128,18 @@ def about():
 
 @app.route('/dumps')
 def dumps():
-    return render('dumps.html')
+    arch = {} # todo implement this
+    stats = {}
+    for table in ['ep_amendments', 'ep_comagendas',  'ep_dossiers',  'ep_mep_activities',  'ep_meps',  'ep_votes']:
+        try:
+            s = os.stat("/var/www/parltrack/dumps/%s.json.lz" % table)
+        except:
+            continue
+        stats[table]={
+                'size': file_size(s.st_size),
+                'updated': date.fromtimestamp(s.st_mtime).isoformat()
+                }
+    return render('dumps.html', stats=stats, arch=arch)
 
 group_positions={u'Chair': 10,
                  u'Treasurer/Vice-Chair/Member of the Bureau': 10,
@@ -248,7 +259,7 @@ def mep(mep_id, mep_name):
     if not mep:
         return not_found_error(None)
     amendments = db.get("ams_by_mep", mep_id) or []
-    activities = db.activities(mep_id) or []
+    activities = db.activities(mep_id) or {}
     acts = {'types':{}, 'dossiers':{}}
     if len(amendments):
         acts['types']['amendments'] = len(amendments)
@@ -468,8 +479,8 @@ def committee(c_id):
             tmp=[c for c in d['committees'] if c['committee']==c_id]
             if len(tmp)>0:
                 d['crole']=tmp[0].get('type') or ("Responsible" if tmp[0].get('responsible') else "Opinion")
-                d['rapporteur']={m['name']: m for c in d['committees'] if c.get('type')=="Responsible Committee" or c.get('responsible') for m in c.get('rapporteur',[])}.values()
-                d['rapporteur_groups'] = sorted({k['abbr'] for k in d['rapporteur'] if k.get('abbr')})
+                d['rapporteur']=list({m['name']: m for c in d['committees'] if c.get('type')=="Responsible Committee" or c.get('responsible') for m in c.get('rapporteur',[])}.values())
+                d['rapporteur_groups'] = sorted({'IND/DEM' if k['abbr'][0]=='ID' else 'NA' if k['abbr'][0]=='NA' else k['abbr'] for k in d['rapporteur'] if k.get('abbr')})
                 for event in d.get('events',[]):
                     if event.get('type') in ['Non-legislative initial document',
                                              "Non-legislative basic document published",
@@ -602,22 +613,20 @@ def notification_view_or_create(g_id):
 def notification_add_detail(g_id, item, value):
     group = notif.session.query(notif.Group).filter(notif.Group.name==g_id).first()
     if not group:
-        return 'unknown group '+g_id
-    # TODO handle restricted groups
-    #if group.restricted:
-    #    return 'restricted group'
-    email = group.subscribers[0].email
+        return 'unknown group '+g_id, 500
+    email = ''
+    if group.subscribers:
+        email = [x.email for x in group.subscribers if not x.activation_key]
     if item == 'emails':
-        email = value
+        email = [value]
         emails = [s.email for s in group.subscribers]
-        active_emails = [s.email for s in group.subscribers if not s.activation_key]
         if value in emails:
             return 'already subscribed to this group'
         i = notif.Subscriber(email=value, activation_key=gen_token())
         group.subscribers.append(i)
 
     elif item == 'dossiers':
-        d = db.dossier_by_id(value)
+        d = db.dossier(value)
         if not d:
             return 'unknown dossier - '+value
         i = notif.Item(name=value, type='dossier', activation_key=gen_token())
@@ -625,9 +634,11 @@ def notification_add_detail(g_id, item, value):
     elif item == 'subject':
         i = notif.Item(name=value, type='subject', activation_key=gen_token())
         group.items.append(i)
+    if not email:
+        return 'unknown email', 500
     msg = Message("Parltrack Notification Subscription Verification",
-            sender = "parltrack@parltrack.euwiki.org",
-            recipients = [email])
+            sender = "parltrack@parltrack.org",
+            recipients = email)
     msg.body = "Your verification key is %sactivate?key=%s\nNotification group url: %snotification/%s" % (request.url_root, i.activation_key, request.url_root, g_id)
     mail.send(msg)
 
@@ -636,7 +647,7 @@ def notification_add_detail(g_id, item, value):
     return 'OK'
 
 
-@app.route('/notification/<string:g_id>/del/<any(dossiers, emails):item>/<path:value>')
+@app.route('/notification/<string:g_id>/del/<any(dossiers, emails, subscribers):item>/<path:value>')
 def notification_del_detail(g_id, item, value):
     group = notif.session.query(notif.Group).filter(notif.Group.name==g_id).first()
     if not group:
@@ -658,7 +669,7 @@ def notification_del_detail(g_id, item, value):
         sub.activation_key = gen_token()
         notif.session.commit()
         msg = Message("Parltrack Notification Unsubscription Verification",
-                sender = "parltrack@parltrack.euwiki.org",
+                sender = "parltrack@parltrack.org",
                 recipients = [value])
         msg.body = "Your verification key is %sactivate?key=%s&?delete=1\nNotification group url: %snotification/%s" % (request.url_root, sub.activation_key, request.url_root, g_id)
         mail.send(msg)
@@ -669,7 +680,6 @@ def notification_del_detail(g_id, item, value):
 
 @app.route('/activate')
 def activate():
-    db = connect_db()
     k = request.args.get('key')
     delete = True if request.args.get('delete') else False
     if not k:

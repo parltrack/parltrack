@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Dumps | {% endblock %}
+{% block content %}
+<div class="ui vertical segment">
+  <div class="ui center aligned stackable grid container">
+    <div class="row">
+       <div class="sixteen wide left aligned column">
+          <h1>Dumps</h1>
+          <p>Parltrack publishes complete dumps of its database on a daily basis. These dumps are in JSON format, and they are compressed with the <a href="https://www.nongnu.org/lzip/lzip.html">lzip</a>[1] tool.</p>
+          <p>Due to most of the dumps being between 400 and 800 megabytes (at the time of writing in mid 2019) they might not be suitable to load all at once since when loaded into RAM they might use significantly more memory. To facilitate a record-by-record stream processing of these dumps, they are formatted in the following way, each line is one record, each prefixed either with:
+          <ul>
+             <li>'[' for the first record,</li>
+             <li>',' for the other records,</li>
+             <li>']' on its own for the last line</li>
+          </ul>
+          This means you can read the uncompressed JSON line-by-line, strip of the first character and process the rest of the line as JSON, you can stop processing if after stripping the first character an empty string remains, this means the end of the JSON stream.
+          </p>
+
+          <table class="ui table">
+             <thead>
+             <tr><th>Table</th><th>Description</th><th>Dump</th><th>Size</th><th>Last Updated</th><th>Previous dumps</th></tr>
+             </thead>
+
+             <tr>
+                <td>MEPs</td>
+                {%if stats.ep_meps%}
+                   <td>This dump contains all the basic information about the MEPs</td> 
+                   <td><a href="/dumps/ep_meps.json.lz">ep_meps.json.lz</a></td>
+                   <td>{{stats.ep_meps.size}}</td>
+                   <td>{{stats.ep_meps.updated}}</td>
+                {%else%}
+                   <td>The ep_meps dump seems to be missing.</td><td></td><td></td><td></td>
+                {%endif%}
+                <td>
+                {%if arch.ep_meps%}
+                      <ul>
+                         {%for file in arch.ep_meps%}
+                            <li><a href="/dumps/arch/{{file}}">{{file}}</a></li>
+                         {%endfor%}
+                      </ul>
+                {%endif%}
+                </td>
+             </tr>
+
+
+             <tr>
+                <td>Dossiers</td>
+                {%if stats.ep_dossiers%}
+                   <td>This dump contains all the basic information about the dossiers in the EP</td>
+                   <td><a href="/dumps/ep_dossiers.json.lz">ep_dossiers.json.lz</a></td>
+                   <td>{{stats.ep_dossiers.size}}</td>
+                   <td>{{stats.ep_dossiers.updated}}</td>
+                {%else%}
+                   <td>The ep_dossiers dump seems to be missing.</td><td></td><td></td><td></td>
+                {%endif%}
+                <td>
+                {%if arch.ep_dossiers%}
+                   <ul>
+                      {%for file in arch.ep_dossiers%}
+                         <li><a href="/dumps/arch/{{file}}">{{file}}</a></li>
+                      {%endfor%}
+                   </ul>
+                {%endif%}
+                </td>
+             </tr>
+
+             <tr>
+                <td>Amendments</td>
+                {%if stats.ep_amendments%}
+                   <td>This dump contains most of the committee amendments</td>
+                   <td><a href="/dumps/ep_amendments.json.lz">ep_amendments.json.lz</a></td>
+                   <td>{{stats.ep_amendments.size}}</td>
+                   <td>{{stats.ep_amendments.updated}}</td>
+                {%else%}
+                   <td>The ep_amendments dump seems to be missing.</td><td></td><td></td><td></td>
+                {%endif%}
+                <td>
+                {%if arch.ep_amendments%}
+                   <ul>
+                      {%for file in arch.ep_amendments%}
+                         <li><a href="/dumps/arch/{{file}}">{{file}}</a></li>
+                      {%endfor%}
+                   </ul>
+                {%endif%}
+                </td>
+             </tr>
+
+             <tr>
+                <td>MEP Activities</td>
+                {%if stats.ep_mep_activities%}
+                   <td>This dump contains most of the activities of MEPs (such as plenary speeches, questions, interpellations, etc)</td>
+                   <td><a href="/dumps/ep_mep_activities.json.lz">ep_mep_activities.json.lz</a></td>
+                   <td>{{stats.ep_mep_activities.size}}</td>
+                   <td>{{stats.ep_mep_activities.updated}}</td>
+                {%else%}
+                   <td>The ep_mep_activities dump seems to be missing.</td><td></td><td></td><td></td>
+                {%endif%}
+                <td>
+                {%if arch.ep_mep_activities%}
+                   <h3>Previous dumps of ep_mep_activities</h3>
+                   <ul>
+                      {%for file in arch.ep_mep_activities%}
+                         <li><a href="/dumps/arch/{{file}}">{{file}}</a></li>
+                      {%endfor%}
+                   </ul>
+                {%endif%}
+                </td>
+             </tr>
+
+             <tr>
+                <td>MEP Plenary Votes</td>
+                {%if stats.ep_votes%}
+                   <td>This dump contains most of the plenary roll-call votes</td>
+                   <td><a href="/dumps/ep_votes.json.lz">ep_votes.json.lz</a></td>
+                   <td>{{stats.ep_votes.size}}</td>
+                   <td>{{stats.ep_votes.updated}}</td>
+                {%else%}
+                   <td>The ep_votes dump seems to be missing.</td><td></td><td></td><td></td>
+                {%endif%}
+                <td>
+                {%if arch.ep_votes%}
+                   <ul>
+                      {%for file in arch.ep_votes%}
+                         <li><a href="/dumps/arch/{{file}}">{{file}}</a></li>
+                      {%endfor%}
+                   </ul>
+                {%endif%}
+                </td>
+             </tr>
+
+             <tr>
+                <td>Committee Agendas</td>
+                {%if stats.ep_comagendas%}
+                   <td>This dump contains most of the committee agendas</td>
+                   <td><a href="/dumps/ep_comagendas.json.lz">ep_comagendas.json.lz</a></td>
+                   <td>{{stats.ep_comagendas.size}}</td>
+                   <td>{{stats.ep_comagendas.updated}}</td>
+                {%else%}
+                   <td>The ep_comagendas dump seems to be missing.</td><td></td><td></td><td></td>
+                {%endif%}
+                <td>
+                {%if arch.ep_comagendas%}
+                   <ul>
+                      {%for file in arch.ep_comagendas%}
+                         <li><a href="/dumps/arch/{{file}}">{{file}}</a></li>
+                      {%endfor%}
+                   </ul>
+                {%endif%}
+                </td>
+             </tr>
+          </table>
+
+          <p>[1] previously parltrack used xz, but due to claims <a href="https://www.nongnu.org/lzip/xz_inadequate.html">xz being inadequate for long-term archiving</a> we switched to lzip.</p>
+       </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
