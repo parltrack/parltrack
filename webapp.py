@@ -448,7 +448,7 @@ def committees():
 def committee(c_id):
     c = {}
     c['votes'] = db.get('com_votes_by_committee', c_id) or None
-    c['agendas'] = db.get('comagenda_by_committee', c_id) or None
+    c['agendas'] = db.get('comagenda_by_committee', c_id) or []
     c['shortname'] = c_id
     c['name'] = COMMITTEE_MAP.get(c_id, "Unknown committee")
     if c['agendas']:
