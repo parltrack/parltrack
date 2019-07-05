@@ -9,3 +9,4 @@ sh
 sqlalchemy
 cachecontrol[filecache]
 ipython
+python-dateutil
