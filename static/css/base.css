@@ -71,6 +71,9 @@ div [class*="left floated"] { float: left; margin-left: 0.25em; }
 		  background: #0F0;
     }
 }
+.ui.message p {
+    opacity: 1 !important;
+}
 .tooltipz {
     position:relative;
     text-align:left;
@@ -116,7 +119,7 @@ div [class*="left floated"] { float: left; margin-left: 0.25em; }
     height:12px;
     left:50%;
     transform:translate(-50%,-50%) rotate(45deg);
-    background-color:#EEEEEE;
+    background-color:#FFFFFF;
     box-shadow:0 1px 8px rgba(0,0,0,0.5);
 }
 .tooltipz .right {
@@ -127,7 +130,7 @@ div [class*="left floated"] { float: left; margin-left: 0.25em; }
     transform:translate(0, -50%);
     padding:10px 20px;
     color:#444444;
-    background-color:#EEEEEE;
+    background-color:#FFFFFF;
     font-weight:normal;
     font-size:13px;
     border-radius:8px;
@@ -160,7 +163,49 @@ div [class*="left floated"] { float: left; margin-left: 0.25em; }
     left:0;
     top:50%;
     transform:translate(50%,-50%) rotate(-45deg);
-    background-color:#EEEEEE;
+    background-color:#FFFFFF;
+    box-shadow:0 1px 8px rgba(0,0,0,0.5);
+}
+.tooltipz .bottom {
+    min-width:200px; 
+    top:30px;
+    left:50%;
+    transform:translate(-50%, 0);
+    padding:10px 20px;
+    color:#444444;
+    background-color:#FFFFFF;
+    font-weight:normal;
+    font-size:13px;
+    border-radius:8px;
+    position:absolute;
+    z-index:99999999;
+    box-sizing:border-box;
+    box-shadow:0 1px 8px rgba(0,0,0,0.5);
+    display:none;
+}
+
+.tooltipz:hover .bottom {
+    display:block;
+}
+
+.tooltipz .bottom i {
+    position:absolute;
+    bottom:100%;
+    left:50%;
+    margin-left:-12px;
+    width:24px;
+    height:12px;
+    overflow:hidden;
+}
+
+.tooltipz .bottom i::after {
+    content:'';
+    position:absolute;
+    width:12px;
+    height:12px;
+    left:50%;
+    transform:translate(-50%,50%) rotate(45deg);
+    background-color:#FFFFFF;
     box-shadow:0 1px 8px rgba(0,0,0,0.5);
 }
 .rapporteur {

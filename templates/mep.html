@@ -17,7 +17,7 @@
     <div class="header">
        This is a historical view ({{date|asdate}})
     </div>
-    <p>Changes: {% for d, c in change_dates %}<a href="?date={{d}}" class="tooltipz">{{d|asdate}}<span class='top'>{{c}}</span></a>{% if not loop.last %}, {%endif%}{%endfor%}</p>
+    <p>Changes: {% for d, c in change_dates %}<a href="?date={{d}}" class="tooltipz">{{d|asdate}}<span class='bottom'>{{c}}<i></i></span></a>{% if not loop.last %}, {%endif%}{%endfor%}</p>
     <p><a href="?">View current state</a> | <a href="#/history">View Changes for this date</a></p>
   </div>
 </div>
