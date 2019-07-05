@@ -64,7 +64,8 @@ def consume(pool, scraper):
             ret = scraper.scrape(**job)
         except Exception as e:
             log(1, "failed to execute {0} job {1} ({2})".format(scraper._name, job, repr(e)))
-            traceback.print_exc(file=sys.stdout)
+            #traceback.print_exc(file=sys.stdout)
+            log(1,''.join(traceback.format_exc()))
             sys.stdout.flush()
             if scraper.CONFIG['abort_on_error']:
                 scraper._lock.acquire()
