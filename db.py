@@ -93,6 +93,10 @@ class Client:
         cmd = {"cmd": "activities", "params": {"mep_id": mep_id, "type": type, "d_id": d_id}}
         return self.send_req(cmd)
 
+    def dossier_titles(self):
+        cmd = {"cmd": "dossier_titles", 'params': {}}
+        return self.send_req(cmd)
+
     def send_req(self, cmd):
         server_address = '/tmp/pt-db.sock'
         req = msgpack.dumps(cmd, default=dateJSONhandler, use_bin_type = True)
@@ -143,7 +147,7 @@ class Client:
         return self.get('active_dossiers', "active" if key else "inactive")
 
     def dossier_refs(self):
-        return self.get('dossier_refs', None)
+        return self.keys('ep_dossiers', None)
 
     def getMep(self, name, date=None,group=None, abbr=None):
         if date and (name, (date.year,date.month)) in self.mepCache:
@@ -486,7 +490,13 @@ def activities(mep_id, type, d_id):
             if isinstance(v, list) and len([x for x in v if d_id in x.get('dossiers', [])])
         }
     return activities
-    
+
+def dossier_titles_by_refs():
+    res = {}
+    for r,d in DBS['ep_dossiers'].items():
+        res[r]=d['procedure']['title']
+    return res
+
 
 ######  indexes ######
 
@@ -789,7 +799,7 @@ function_map = {
     'names_by_mepids': names_by_mepids,
     'committees': committees,
     'activities': activities,
-
+    'dossier_titles': dossier_titles_by_refs,
 }
 
 if __name__ == '__main__':
