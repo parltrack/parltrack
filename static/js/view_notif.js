@@ -1,8 +1,9 @@
 var submit = function() {
    var group_id = $('#group_id').val()
    $.ajax({url: group_id, success: function(data) {
-      $.ajax({url: group_id+'/add/emails/'+$('#notif_form div').children('input:first').attr('value'), success: function(data) { $('#notif_subscr h3').html(data); }});
-      $.ajax({url: group_id+'/add/dossiers/'+$('#content > h2:first').html()});
+      if($('#email_name').val()) $.ajax({url: group_id+'/del/emails/'+$('#email_name').val()});
+      if($('#dossier_name').val()) $.ajax({url: group_id+'/del/dossiers/'+$('#dossier_name').val()});
+      if($('#subject_name').val()) $.ajax({url: group_id+'/del/subjects/'+$('#subject_name').val()});
    }
  });
  return false;
@@ -15,7 +16,7 @@ $(document).ready(function() {
   $('#submit').click(function() {
       submit();
   });
-  $('#notif_form').submit(submit());
+  $('#notif_form').submit(submit);
   $('#hide').click(function() {
     $('.modal').modal('hide');
   });

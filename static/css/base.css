@@ -72,7 +72,6 @@ div [class*="left floated"] { float: left; margin-left: 0.25em; }
     }
 }
 .tooltipz {
-    display:inline-block;
     position:relative;
     text-align:left;
     width: 100%;
@@ -169,16 +168,16 @@ div [class*="left floated"] { float: left; margin-left: 0.25em; }
    color: white;
    background-color: #A0A0A0;
 }
-.rapporteur .responsible {
+.rapporteur.responsible {
    background-color: #B03060;
 }
-.rapporteur .responsible .shadow {
+.rapporteur.responsible_shadow {
    background-color: #0E6EB8;
 }
-.rapporteur .opinion {
+.rapporteur.opinion {
    background-color: #B413EC;
 }
-.rapporteur .opinion .shadow {
+.rapporteur.opinion_shadow {
    background-color: #008080;
 }
 .scale-11 { background-color: #ff0000; }

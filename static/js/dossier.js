@@ -42,7 +42,7 @@ $(document).ready(function() {
   $('#notif_form').submit(function() {
       var group = $('#groupinput').val();
       var email = $('#emailinput').val();
-      var dossier = $('#dossier_title').html();
+      var dossier = $('#dossier_ref').html();
       //console.log(email, dossier, group);
       if(!group) {
           $.ajax({url: '/notification', success: function(data) { group = data;
