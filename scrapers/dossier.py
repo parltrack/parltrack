@@ -899,7 +899,7 @@ def checkUrl(url):
         seenurls[url]=(res.xpath('//h1/text()') or [''])[0]!="Not available in English."
     return seenurls[url]
 
-def onfinished(daisy=True):
+def onfinished(daisy=False):
     if daisy:
         add_job("mep_activities",{"all": False, "onfinished": {"daisy": True}})
         add_job("pvotes",{"year":None, "onfinished": {"daisy": True}})
