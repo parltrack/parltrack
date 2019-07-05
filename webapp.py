@@ -1011,8 +1011,8 @@ if not config.DEBUG:
 #----------------------------------------------------------------------------#
 
 if __name__ == '__main__':
-    dossier('2016/0279(COD)')
-    #app.run(host='0.0.0.0', port=config.WEBSERVER_PORT, threaded=False)
+    #dossier('2016/0279(COD)')
+    app.run(host='0.0.0.0', port=config.WEBSERVER_PORT, threaded=False)
 '''
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
