@@ -3,7 +3,7 @@
 from db import db
 from utils.log import log
 from utils.utils import jdump
-from utils.objchanges import diff, patch # todo decide if to remove this sanity check?
+from utils.objchanges import diff, patch
 from datetime import datetime
 
 def process(obj, id, getter, table, name, nopreserve=[], nodiff=False, nostore=False, onchanged=None):
@@ -25,7 +25,6 @@ def process(obj, id, getter, table, name, nopreserve=[], nodiff=False, nostore=F
 
     # generate diff
     prev = getter(id)
-    if prev is not None and 'activities' in prev: del prev['activities'] # todo remove after first activity scrape
     if prev is not None:
         d=diff({k:v for k,v in prev.items() if not k in ['meta', 'changes', '_id']},
                {k:v for k,v in obj.items() if not k in ['meta', 'changes', '_id']})
@@ -43,7 +42,6 @@ def process(obj, id, getter, table, name, nopreserve=[], nodiff=False, nostore=F
             obj[c['path'][0]]=prev[c['path'][0]]
         d = d1
     else:
-        #log(4,"no previous record for {} in {}".format(obj.get('voteid'),obj.get('url'))) # todo remove after pvotes is working
         d=diff({}, {k:v for k,v in obj.items() if not k in ['meta', 'changes', '_id']})
 
     if d:
@@ -86,5 +84,7 @@ def process(obj, id, getter, table, name, nopreserve=[], nodiff=False, nostore=F
 from subprocess import Popen
 def publish_logs(get_all_jobs):
     jobs=get_all_jobs()
+    log(4,"publish_logs, jobs: %s" % jobs)
+    log(4, "publish_logs conds: %s %s %s" % (not any(jobs['queues'].values()),  not any(jobs['job_counts'].values()), not any(jobs['queues'].values()) and not any(jobs['job_counts'].values())))
     if not any(jobs['queues'].values()) and not any(jobs['job_counts'].values()):
         Popen(['/bin/sh','./publish-log.sh'])
