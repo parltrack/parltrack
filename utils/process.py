@@ -81,3 +81,10 @@ def process(obj, id, getter, table, name, nopreserve=[], nodiff=False, nostore=F
     if __name__ == '__main__':
         print(jdump(obj))
     return obj
+
+
+from subprocess import Popen
+def publish_logs(get_all_jobs):
+    jobs=get_all_jobs()
+    if not any(jobs['queues'].values()) and not any(jobs['job_counts'].values()):
+        Popen(['/bin/sh','./publish-log.sh'])

@@ -185,7 +185,7 @@ def sortpaths(a,b):
     if a<b: return 1
     return 0
 
-def patch(obj, changes, guess=False, date=''):
+def patch(obj, changes):
     res = deepcopy(obj)
     for l in sorted({len(x['path']) for x in changes}):
         # first handle deletes, they are indexed based on the old indexes
@@ -246,3 +246,76 @@ def patch(obj, changes, guess=False, date=''):
             else:
                 print("wtf change", change, obj)
     return res
+
+def revert(obj, changes):
+    res = deepcopy(obj)
+    #clen = len(changes)
+    for l in sorted({len(x['path']) for x in changes}, reverse=True):
+        # undo adds, they are indexed based on the new indexes
+        for change in sorted(changes, key=functools.cmp_to_key(sortpaths)):
+            if change['type']!='added': continue
+            if len(change['path'])!=l: continue
+            obj=getitem(res,change['path'][:-1])
+            if obj is None:
+                print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
+                raise ValueError()
+                return
+                #return (i,clen)
+
+            if isinstance(obj,dict) and change['path'][-1] not in obj:
+                print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
+                raise ValueError()
+                return
+            elif isinstance(obj,list) and change['path'][-1]>=len(obj):
+                print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
+                raise ValueError()
+                return
+            elif change['data']==obj[change['path'][-1]]:
+                #print("\tdeleting", change['path'])
+                del obj[change['path'][-1]]
+            else:
+                print("wtf add: %s\nobj: %s" % (change, obj))
+
+        # undo deletes
+        for change in sorted(changes, key=lambda x: x['path']):
+            if change['type']!='deleted': continue
+            if len(change['path'])!=l: continue
+            obj=getitem(res,change['path'][:-1])
+            if obj is None:
+                print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
+                #print(list(x['path'] for x in sorted(changes, key=functools.cmp_to_key(sortpaths))))
+                raise ValueError()
+                return
+            #print("\tadding", change['path'])
+            if isinstance(obj,list):
+                obj.insert(change['path'][-1],deepcopy(change['data']))
+            else:
+                obj[change['path'][-1]]=deepcopy(change['data'])
+
+
+        # handle changes
+        for change in changes:
+            if change['type']!='changed': continue
+            if len(change['path'])!=l: continue
+            obj=getitem(res,change['path'][:-1])
+            if obj is None:
+                print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
+                raise ValueError()
+                return
+            if isinstance(obj,dict) and change['path'][-1] not in obj:
+                print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
+                raise ValueError()
+                return
+            elif isinstance(obj,list) and change['path'][-1]>=len(obj):
+                print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
+                raise ValueError()
+                return
+            elif obj[change['path'][-1]]==change['data'][1]:
+                #print("\tchanging", change['path'])
+                obj[change['path'][-1]]=deepcopy(change['data'][0])
+            else:
+                print("wtf change: %s\nobj: %s" % (change, obj))
+
+    #print(dumps(res))
+    return res
+

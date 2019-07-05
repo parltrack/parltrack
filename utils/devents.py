@@ -25,7 +25,7 @@ def merge_events(d):
                 log(2,"merge_events: no body for {!r}".format({k:v for k, v in item.items() if k!='summary'}))
                 #continue #print(item)
             activities.append(item)
-    res=sorted(activities,key=lambda x: x['date'], reverse=True)
+    res=sorted(activities,key=lambda x: x['date'][0] if isinstance(x['date'],list) else x['date'], reverse=True)
     return res
 
 if __name__ == '__main__':

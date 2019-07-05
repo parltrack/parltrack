@@ -319,7 +319,7 @@ def clean_lb(dossier):
                             ("Treaty on the Functioning of the EU ", 'TFEU'),
                             ("Rules of Procedure of the European Parliament EP ", 'RoP'),
                             ("Rules of Procedure EP ", 'RoP')]:
-        for i, lb in enumerate(dossier['procedure'].get('legal_basis',[])):
+        for i, lb in enumerate(dossier.get('procedure', {}).get('legal_basis',[])):
             if lb.startswith(lbstrip):
                 dossier['procedure']['legal_basis'][i]="%s %s" % (prefix,lb[len(lbstrip):])
 
