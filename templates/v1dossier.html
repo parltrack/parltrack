@@ -12,6 +12,18 @@
     <div class="row">
       <div class="left aligned column">
 
+{% if change_dates %}
+<div class="ui yellow icon message">
+  <i class="pink icon history"></i>
+  <div class="content">
+    <div class="header">
+       This is a historical view ({{now_date|asdate}})
+    </div>
+    <p>Changes: {% for d, c in change_dates %}<a href="?date={{d}}" class="tooltipz">{{d|asdate}}<span class='top'>{{c}}</span></a>{% if not loop.last %}, {%endif%}{%endfor%}</p>
+    <p><a href="?">View current state</a> | <a href="#/history">View Changes for this date</a></p>
+  </div>
+</div>
+{% endif %}
 <p><strong>{{dossier.procedure.stage_reached}}</strong></p>
 <div id="tabs"  class="ui top attached tabular menu">
     <a class="active item" data-tab="general">General</a>

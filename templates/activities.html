@@ -4,10 +4,10 @@
   <div class="ui center aligned stackable grid container">
     <div class="row">
       <div class="left aligned column ui accordion">
-         <h1>Activities of {{ mep_name }}{% if dossier_id %} related to {{ dossier_id|asdossier|safe}} {%endif%}</h1>
+         <h1>{% if activities|length == 1%}{{activities[type]|length}} {{type|asactivity}}{%else%}Activities{%endif%} of <a href="/mep/{{mep_id}}">{{ mep_name }}</a>{% if dossier_id %} related to {{ dossier_id|asdossier|safe}}{%endif%}</h1>
           {% for t in activities %}
-          {% if activities[t] is iterable and t not in ('meta', 'changes') %}
-          <div class="{% if type or dossier_id %}active {% endif %}title"><h2>{{ t|asactivity}} ({{activities[t]|length}})<i class="dropdown icon"></i></h2></div>
+          {% if activities[t] is iterable and t not in ('mep_id', 'meta', 'changes') %}
+          {% if activities|length > 1%}<div class="{% if type or dossier_id %}active {% endif %}title"><h2>{{ t|asactivity}} ({{activities[t]|length}})<i class="dropdown icon"></i></h2></div>{%endif%}
           <div class="{% if type or dossier_id %}active {% endif %}content">
              <div class="ui fluid divided items">
              {% for a in activities[t] %}
@@ -31,7 +31,7 @@
                    {% endif %}
                 </div>
                 <div class="meta">
-                   {{ a['date']|asdate }}
+                   {%if 'date' in a %}{{ a['date']|asdate }}{%endif%}
                    {% if 'committee' in a %}<br />Committee: 
                       {% if a['committee'] is iterable and a['committee'] is not string -%}
 								 {%- for c in a['committee'] %}<a href='/committee/{{c}}'>{{ c }}</a>{%endfor-%}

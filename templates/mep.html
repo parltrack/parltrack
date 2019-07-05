@@ -10,6 +10,18 @@
     <div class="row">
       <div class="left aligned column">
          <h2>{{ changes.display_changes(mep, ['Name', 'full']) }}</h2>
+{% if change_dates %}
+<div class="ui yellow icon message">
+  <i class="pink icon history"></i>
+  <div class="content">
+    <div class="header">
+       This is a historical view ({{date|asdate}})
+    </div>
+    <p>Changes: {% for d, c in change_dates %}<a href="?date={{d}}" class="tooltipz">{{d|asdate}}<span class='top'>{{c}}</span></a>{% if not loop.last %}, {%endif%}{%endfor%}</p>
+    <p><a href="?">View current state</a> | <a href="#/history">View Changes for this date</a></p>
+  </div>
+</div>
+{% endif %}
 <div id="tabs"  class="ui top attached tabular menu">
     <a class="active item" data-tab="general">General</a>
     {% if 'Addresses' in mep %}<a class="item" data-tab="contact">Contact</a>{%endif%}
@@ -306,7 +318,7 @@
     <tbody>
     {%for ref, title, type, committee in mep.dossiers%}
     <tr>
-       <td class="rapporteur {%if type=='Responsible Committee'%}responsible{%elif type=='Committee Opinion'%}opinion{%elif type=='Responsible Committee Shadow'%}responsible shadow{%elif type == 'Opinion Committee Shadow'%}opinion shadow{%endif%};">{{type}}</td>
+       <td class="rapporteur{%if type=='Responsible Committee'%} responsible{%elif type=='Committee Opinion'%} opinion{%elif type=='Responsible Committee Shadow'%} responsible shadow{%elif type == 'Opinion Committee Shadow'%} opinion shadow{%endif%}">{{type}}</td>
        <td><a href="/dossier/{{ref}}">{{ref}}</a></td>
        <td><a href="/committee/{{committee}}">{{committee}} {{committee_map[committee]}}</a></td>
        <td>{{title}}</td>
@@ -316,6 +328,7 @@
   </table>
   </div>
 {%endif%}
+
 <div id='activities' class="ui tab" data-tab="activities">
    <h3><a href="/activities/{{ mep.UserID }}">Activities</a></h3>
    <h4>By types</h4>
@@ -323,9 +336,16 @@
       <a href="/activities/{{ mep.UserID }}/type/{{ d }}">{{ d|asactivity }} ({{ c }})</a><br />
    {% endfor %}
    <h4>By dossiers</h4>
-   {% for d,c in mep.activities.dossiers.items() %}
-      <a href="/activities/{{ mep.UserID }}/dossier/{{ d }}">{{ d }} ({{ c }})</a><br />
-   {% endfor %}
+   <table class="ui table">
+      <thead>
+         <tr><td>Count</td><td>Dossier Reference</td><td>Title</td></tr>
+      </thead>
+      <tbody>
+         {% for d,c in mep.activities.dossiers.items() %}
+            <tr><td>{{c}}</td><td><a href="/activities/{{ mep.UserID }}/dossier/{{ d }}">{{ d }}</a></td><td>{{ dossier_titles[d] }}</td></tr>
+         {% endfor %}
+      </tbody>
+   </table>
 </div>
 <div id='cv' class="ui tab" data-tab="cv">
   {% if mep.Birth %}

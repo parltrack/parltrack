@@ -9,7 +9,7 @@
     <div class="row">
      <div class="ui horizontal list">
       <div class="item"><a href="/dossier/atom/{{dossier.procedure.reference}}">Track RSS</a></div>
-      <div class="item"><a href="{{url}}?format=json">download json</a></div>
+      <div class="item"><a href="{{url}}?format=json" rel="nofollow">download json</a></div>
       <!--<div class="item"><a class="hidden" id="wikinotes" href="{{dossier.procedure.reference|reftopath}}">Notes</a></div>-->
       <div class="item" id="track_dossier"><a href="#">Subscribe</a>
           <div class="nondisplayed" id="notif_subscr">
@@ -28,6 +28,18 @@
     </div>
     <div class="row">
       <div class="left aligned column">
+         {% if change_dates %}
+         <div class="ui yellow icon message">
+           <i class="pink icon history"></i>
+           <div class="content">
+             <div class="header">
+                This is a historical view ({{now_date|asdate}})
+             </div>
+             <p>Changes: {% for d, c in change_dates %}<a href="?date={{d}}" class="tooltipz">{{d|asdate}}<span class='top'>{{c}}</span></a>{% if not loop.last %}, {%endif%}{%endfor%}</p>
+             <p><a href="?">View current state</a> | <a href="#/history">View Changes for this date</a></p>
+           </div>
+         </div>
+         {% endif %}
          <div id="tabs"  class="ui top attached tabular menu wrapped">
             <a class="active item" data-tab="general">General</a>
             {% if dossier.events %}<a class="item" data-tab="events">Events</a>{% endif %}
@@ -41,7 +53,7 @@
 <div id="general" class="ui active tab" data-tab="general">
 
 <div>
-   <b>{{dossier.procedure.reference}} {{dossier.procedure.title}}</b><br>
+   <b><span id="dossier_ref">{{dossier.procedure.reference}}</span> {{dossier.procedure.title}}</b><br>
    {% if msg %}
    <div class="ui negative message">
       <div class="header"><i class="exclamation triangle icon"></i> Error</div>

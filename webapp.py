@@ -25,7 +25,7 @@ from sys import version_info
 from urllib.parse import unquote
 from utils.utils import asDate, clean_lb, jdump, file_size
 from utils.devents import merge_events
-from utils.objchanges import getitem
+from utils.objchanges import getitem, revert
 from utils.mappings import (
     SEIRTNUOC as COUNTRIES,
     COUNTRIES as COUNTRY_ABBRS,
@@ -48,6 +48,7 @@ ep_wtf_dossiers = {
 }
 
 mepnames = db.names_by_mepids(db.keys('ep_meps', None))
+dossier_titles = db.dossier_titles()
 
 def highlight(q, s):
     s = str(escape(s))
@@ -95,6 +96,7 @@ def render(template, **kwargs):
     kwargs['countries'] = COUNTRIES
     kwargs['country_abbrs'] = COUNTRY_ABBRS
     kwargs['get_changes'] = get_changes
+    kwargs['dossier_titles'] = dossier_titles
     return render_template(template, **kwargs)
 
 
@@ -128,9 +130,15 @@ def about():
 
 @app.route('/dumps')
 def dumps():
-    arch = {} # todo implement this
+    TABLE_NAMES=['ep_amendments', 'ep_comagendas',  'ep_dossiers',  'ep_mep_activities',  'ep_meps',  'ep_votes']
+    arch = {}
+    for file in os.listdir('/var/www/parltrack/dumps/arch'):
+        table,rest = file.split('-',1)
+        _date,_ = rest.split('.',1)
+        if not table in arch: arch[table]=[]
+        arch[table].append((file,_date))
     stats = {}
-    for table in ['ep_amendments', 'ep_comagendas',  'ep_dossiers',  'ep_mep_activities',  'ep_meps',  'ep_votes']:
+    for table in TABLE_NAMES:
         try:
             s = os.stat("/var/www/parltrack/dumps/%s.json.lz" % table)
         except:
@@ -139,6 +147,18 @@ def dumps():
                 'size': file_size(s.st_size),
                 'updated': date.fromtimestamp(s.st_mtime).isoformat()
                 }
+    first=True
+    for file in sorted(os.listdir('/var/www/parltrack/logs'), reverse=True):
+        s = os.stat("/var/www/parltrack/logs/%s" % file)
+        if first:
+            stats['scraper_logs']={
+                    'size': file_size(s.st_size),
+                    'updated': date.fromtimestamp(s.st_mtime).isoformat()
+                    }
+            first=False
+            continue
+        if not 'scraper_logs' in arch: arch['scraper_logs']=[]
+        arch['scraper_logs'].append((file, date.fromtimestamp(s.st_mtime).isoformat()))
     return render('dumps.html', stats=stats, arch=arch)
 
 group_positions={u'Chair': 10,
@@ -258,6 +278,7 @@ def mep(mep_id, mep_name):
     mep = db.mep(mep_id)
     if not mep:
         return not_found_error(None)
+    mep, changes, date = timetravel(mep)
     amendments = db.get("ams_by_mep", mep_id) or []
     activities = db.activities(mep_id) or {}
     acts = {'types':{}, 'dossiers':{}}
@@ -278,9 +299,8 @@ def mep(mep_id, mep_name):
                 continue
             for d in e['dossiers']:
                 if not d in acts['dossiers']:
-                    acts['dossiers'][d] = 1
-                else:
-                    acts['dossiers'][d] += 1
+                    acts['dossiers'][d] = 0
+                acts['dossiers'][d] += 1
 
     acts['types']={k: v for k,v in sorted(acts['types'].items(), key=lambda x:asactivity(x[0]))}
     acts['dossiers']={k: v for k,v in sorted(acts['dossiers'].items(), key=lambda x: x[1], reverse=True)}
@@ -289,14 +309,24 @@ def mep(mep_id, mep_name):
     if isinstance(mep.get('CV'),list):
         mep['CV']={'': mep['CV']}
     mep['dossiers'] = sorted(db.get('dossiers_by_mep',mep_id) or [], reverse=True)
+    # add legal opinions to activities
+    comparl_count = 0
+    for (ref, title, type, committee) in mep['dossiers']:
+        if type.endswith("Committee Legal Basis Opinion"):
+            comparl_count+=1
+            if not ref in acts['dossiers']:
+                acts['dossiers'][ref] = 0
+            acts['dossiers'][ref] += 1
+    if comparl_count>0: acts['types']['COMPARL-LEG'] = comparl_count
+
     return render(
         'mep.html',
         mep=mep,
         d=mep_id,
+        change_dates=changes,
         group_cutoff=datetime(2004,7,20).strftime("%Y-%m-%d"),
-        # TODO
-        committees={},
-        exclude_from_json=('d', 'group_cutoff', 'committees'),
+        date=date,
+        exclude_from_json=('d', 'group_cutoff'),
     )
 
 @app.route('/activities/<int:mep_id>', defaults={'d_id':None, 't':None})
@@ -309,12 +339,26 @@ def activities(mep_id, t, d_id):
     if t and t not in ACTIVITY_MAP.keys():
         return render('errors/404.html'), 404
     a = db.activities(mep_id, t, d_id) or {}
+    if t in {'COMPARL-LEG', None}:
+        # add legal opinions to activities
+        for (ref, title, type, committee) in sorted(db.get('dossiers_by_mep',mep_id) or [], reverse=True):
+            if not type.endswith("Committee Legal Basis Opinion"): continue
+            if not 'COMPARL-LEG' in a: a['COMPARL-LEG']=[]
+            if d_id is not None:
+                if d_id == ref:
+                    a['COMPARL-LEG'].append({'reference': ref, 'url': '/dossier/%s' % ref, 'title': title, 'committee': committee})
+            else:
+                a['COMPARL-LEG'].append({'reference': ref, 'url': '/dossier/%s' % ref, 'title': title, 'committee': committee})
+
     if t in {'amendments', None}:
         ams = db.get('ams_by_mep',mep_id) or []
         if d_id is not None:
             ams = [a for a in ams if a['reference']==d_id]
         if ams:
             a['amendments'] = sorted(ams, key=lambda x: (x['reference'], -x['seq']), reverse=True)
+
+    for k in ['mep_id', 'changes', 'meta']:
+        if k in a: del a[k]
     return render(
         'activities.html',
         activities=a,
@@ -382,16 +426,20 @@ v1dossiers = {
 @app.route('/dossier/<path:d_id>')
 def dossier(d_id):
     d = db.dossier(d_id)
-    clean_lb(d)
     if not d:
         return not_found_error(None)
+    d, changes, date = timetravel(d)
+    clean_lb(d)
+    # some amendments have letters as seq numbers m(
     d['amendments'] = db.get("ams_by_dossier", d_id) or []
+    for a in d['amendments']:
+        a['seq']=str(a['seq'])
     d['vmatrix'] = votematrices(db.get('votes_by_dossier',d_id) or [])
-    if d_id in v1dossiers:
+    if d_id in v1dossiers or 'activities' in d:
         template = "v1dossier.html"
     else:
         template = "dossier.html"
-    d['activities'] = merge_events(d)
+        d['activities'] = merge_events(d)
 
     # get activities by meps
     meps={}
@@ -429,7 +477,8 @@ def dossier(d_id):
         dossier=d,
         d=d_id,
         url=request.base_url,
-        now_date=date.today().strftime("%Y-%m-%d"),
+        now_date=date,
+        change_dates=changes,
         progress=progress,
         TYPES=types,
         msg=ep_wtf_dossiers.get(d_id),
@@ -471,7 +520,7 @@ def committee(c_id):
                 break
     c['meps'] = sorted(rankedMeps,key=lambda x: (x[2],x[0],x[1]['Name']['full']), reverse=True) or None
 
-    c['dossiers'] = db.get('dossiers_by_committee', c_id) or None
+    c['dossiers'] = db.get('dossiers_by_committee', c_id) or []
     if c['dossiers']:
         for d in c['dossiers']:
             clean_lb(d)
@@ -562,7 +611,7 @@ def gen_notif_id():
     return '/notification/'+nid
 
 def listdossiers(d):
-    for act in d['activities']:
+    for act in d.get('activities', []):
         if act.get('type') in ['Non-legislative initial document',
                                'Commission/Council: initial legislative document',
                                "Legislative proposal",
@@ -585,7 +634,6 @@ def listdossiers(d):
 
 @app.route('/notification/<string:g_id>')
 def notification_view_or_create(g_id):
-    # TODO g_id validation
     group = notif.session.query(notif.Group).filter(notif.Group.name==g_id).first()
     if not group:
         group = notif.Group(name=g_id, activation_key=gen_token())
@@ -596,17 +644,24 @@ def notification_view_or_create(g_id):
     active_items = [d for d in group.items if not d.activation_key]
     inactive_items = [d for d in group.items if d.activation_key]
     if len(active_items):
-        ds=[listdossiers(db.dossier(d.name)) for d in active_items if d.type=='dossiers']
+        ds=[listdossiers(db.dossier(d.name)) for d in active_items if d.type=='dossier']
     if len(inactive_items):
-        ids=[listdossiers(db.dossier(d.name)) for d in inactive_items if d.type=='dossiers']
-    if ds and request.args.get('format','')=='json' or request.headers.get('X-Requested-With'):
-        return jsonify(count=len(ds), dossiers=tojson(ds))
+        ids=[listdossiers(db.dossier(d.name)) for d in inactive_items if d.type=='dossier']
+    if ds and request.headers.get('X-Requested-With'):
+        return jsonify(count=len(ds), dossiers=ds)
     return render('view_notif_group.html',
                            dossiers=ds,
                            active_dossiers=len(ds),
                            inactive_dossiers=len(ids),
                            date=datetime.now(),
-                           group=group)
+                           group={
+                               'name': group.name,
+                               'id': group.id,
+                               'items': [{'name': i.name, 'type': i.type} for i in group.items if not i.activation_key],
+                               'subscribers': [{'email': s.email} for s in group.subscribers if not s.activation_key],
+                               'pending_subscribers': [{'email': s.email} for s in group.subscribers if s.activation_key],
+                               'inactive_items': [{'name': i.name, 'type': i.type} for i in group.items if i.activation_key],
+                           })
 
 
 @app.route('/notification/<string:g_id>/add/<any(dossiers, emails, subject):item>/<path:value>')
@@ -639,11 +694,12 @@ def notification_add_detail(g_id, item, value):
     msg = Message("Parltrack Notification Subscription Verification",
             sender = "parltrack@parltrack.org",
             recipients = email)
-    msg.body = "Your verification key is %sactivate?key=%s\nNotification group url: %snotification/%s" % (request.url_root, i.activation_key, request.url_root, g_id)
-    mail.send(msg)
 
     notif.session.add(i)
     notif.session.commit()
+    print("activation_key %s" % i.activation_key)
+    msg.body = "Your verification key is %sactivate?key=%s\nNotification group url: %snotification/%s" % (request.url_root, i.activation_key, request.url_root, g_id)
+    mail.send(msg)
     return 'OK'
 
 
@@ -652,12 +708,12 @@ def notification_del_detail(g_id, item, value):
     group = notif.session.query(notif.Group).filter(notif.Group.name==g_id).first()
     if not group:
         return 'unknown group '+g_id
-    # TODO handle restricted groups
-    #if group.restricted:
-    #    return 'restricted group'
+    active_emails = [s.email for s in group.subscribers if not s.activation_key]
+    msg = Message("Parltrack Notification Unsubscription Verification",
+            sender = "parltrack@parltrack.org",
+            recipients = active_emails)
     if item == 'emails':
-        active_emails = [s.email for s in group.subscribers if not s.activation_key]
-        if value not in 'active_emails':
+        if value not in active_emails:
             return 'Cannot complete this action'
         sub = None
         for x in group.subscribers:
@@ -667,14 +723,19 @@ def notification_del_detail(g_id, item, value):
         if not sub:
             return 'Cannot complete this action'
         sub.activation_key = gen_token()
+        notif.session.add(sub)
         notif.session.commit()
-        msg = Message("Parltrack Notification Unsubscription Verification",
-                sender = "parltrack@parltrack.org",
-                recipients = [value])
         msg.body = "Your verification key is %sactivate?key=%s&?delete=1\nNotification group url: %snotification/%s" % (request.url_root, sub.activation_key, request.url_root, g_id)
         mail.send(msg)
-        db.notifications.save(group)
-    # TODO items
+    else:
+        item = notif.session.query(notif.Item).filter(notif.Item.name==g_id).first()
+        if not item:
+            return 'Cannot complete this action'
+        item.activation_key = gen_token()
+        notif.session.add(item)
+        notif.session.commit()
+        msg.body = "Your verification key is %sactivate?key=%s&?delete=1\nNotification group url: %snotification/%s" % (request.url_root, item.activation_key, request.url_root, g_id)
+        mail.send(msg)
     return 'OK'
 
 
@@ -861,21 +922,11 @@ def getDate():
 def gen_token():
     return sha1(''.join([chr(randint(1, 128)) for x in range(128)]).encode()).hexdigest()
 
-
-def tojson(data):
-    #if type(data)==type(ObjectId()):
-    #    return
-    #if type(data)==type(dict()):
-    #    return dict([(k,tojson(v)) for k,v in data.items() if not type(ObjectId()) in [type(k), type(v)]])
-    #if '__iter__' in dir(data):
-    #    return [tojson(x) for x in data if type(x)!=type(ObjectId())]
-    #if hasattr(data, 'isoformat'):
-    #    return data.isoformat()
-    return data
-
 def votematrices(votes):
     res = []
     for vote in votes: # can have multiple votes
+        if not 'votes' in vote:
+            continue
         matrix = { 'title': vote['title'],
                    'time': vote['ts'],
                    'totals': dict(sorted([(c,vote['votes'][c]['total']) for c in ['+','0','-'] if c in vote['votes']],key=lambda x: x[1], reverse=True)),
@@ -950,6 +1001,25 @@ def votematrices(votes):
         matrix['groups']=sorted(matrix['groups'].items(),key=lambda x: x[1]['+']-x[1]['-'],reverse=True)
     return res
 
+
+def timetravel(obj):
+    date = getDate().isoformat()
+    changes = []
+    for d,c in sorted(obj.get('changes', {}).items(), key=lambda x: x[0], reverse=True):
+        if date > d:
+            break
+        if not c:
+            del(obj['changes'][d])
+            continue
+        if len(changes) and changes[-1][0] in obj['changes']:
+            del(obj['changes'][changes[-1][0]])
+        try:
+            obj = revert(obj, c)
+        except:
+            print('failed to revert obj', d, c)
+            break
+        changes.append((d, ', '.join(set('.'.join(map(str, x['path'])).replace(' ', '_') for x in c))))
+    return obj, changes, date
 
 if not config.DEBUG:
     app.logger.setLevel(logging.INFO)

@@ -4,29 +4,31 @@
         <h3>History</h3>
         <p><small>(these mark the time of scraping, not the official date of the change)</small></p>
         {% for k, changes in data.changes|dictsort|reverse %}
-        <div class="changelog-item">
-           <div class="changelog-timestamp more">{{k[:10]}}</div>
-           <table class="ui table changelog-entries{% if not loop.first %} hidden{% endif %}">
-           {% for change in changes|sort(attribute='path') %}
-               <tr class='changelog-entry'>
-                  <td class="changelog-path">{{change.path|join('/')}}</td>
-                  <td class="changelog-type">{{change.type}}</td>
-                  {% if change.type == "changed" %}
-                     <td class="changelog-data">
-                        <div class="changelog-old">
-                           <div class="centered">Old</div>
-                           {%if change.data.0 %}{{change.data.0|printdict|safe}}{%else%}&nbsp;{%endif%}</div>
-                        <div class="changelog-new">
-                           <div class="centered">New</div>
-                           {%if change.data.1 %}{{change.data.1|printdict|safe}}{%else%}&nbsp;{%endif%}</div>
-                     </td>
-                  {% else %}
-                     <td colspan="2" class="changelog-data">{{change.data|printdict|safe}}</td>
-                  {% endif %}
-               </tr>
-           {% endfor %}
-           </table>
-        </div>
+           {% if changes %}
+              <div class="changelog-item">
+                 <div class="changelog-timestamp more"><a href="?date={{k}}" rel="nofollow">{{k[:10]}}</a></div>
+                 <table class="ui table changelog-entries{% if not loop.first %} hidden{% endif %}">
+                 {% for change in changes|sort(attribute='path') %}
+                     <tr class='changelog-entry'>
+                        <td class="changelog-path">{{change.path|join('/')}}</td>
+                        <td class="changelog-type">{{change.type}}</td>
+                        {% if change.type == "changed" %}
+                           <td class="changelog-data">
+                              <div class="changelog-old">
+                                 <div class="centered">Old</div>
+                                 {%if change.data.0 %}{{change.data.0|printdict|safe}}{%else%}&nbsp;{%endif%}</div>
+                              <div class="changelog-new">
+                                 <div class="centered">New</div>
+                                 {%if change.data.1 %}{{change.data.1|printdict|safe}}{%else%}&nbsp;{%endif%}</div>
+                           </td>
+                        {% else %}
+                           <td colspan="2" class="changelog-data">{{change.data|printdict|safe}}</td>
+                        {% endif %}
+                     </tr>
+                 {% endfor %}
+                 </table>
+              </div>
+           {%endif%}
         {% endfor %}
      </div>
    {%endif%}
