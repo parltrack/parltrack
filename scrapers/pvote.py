@@ -179,6 +179,10 @@ def scrape(term, date, **kwargs):
         votes.append(v)
     return votes
 
+from utils.process import publish_logs
+def onfinished(daisy=True):
+    publish_logs(get_all_jobs)
+
 if __name__ == '__main__':
     import sys
     term = int(sys.argv[1])

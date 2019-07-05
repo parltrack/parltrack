@@ -726,6 +726,10 @@ def scrape(url, meps=None, **kwargs):
     log(3,"total amendments %d in %s" % (len(res),url))
     return res
 
+from utils.process import publish_logs
+def onfinished(daisy=True):
+    publish_logs(get_all_jobs)
+
 if __name__ == "__main__":
     from utils.utils import jdump
     #print(jdump(scrape("http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+COMPARL+PE-609.623+01+DOC+PDF+V0//EN&language=EN", "Krišjānis Kariņš")))

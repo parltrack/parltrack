@@ -191,6 +191,10 @@ def pdf2ref(url):
             return m.group(1)
     pdfrefcache[url]=None
 
+from utils.process import publish_logs
+def onfinished(daisy=True):
+    publish_logs(get_all_jobs)
+
 if __name__ == '__main__':
     #print(jdump(scrape(1275)))
     #scrape(28390)

@@ -356,7 +356,7 @@ def parse_history(id, root, mep):
 def onfinished(daisy=True):
     if daisy:
         from scraper_service import add_job
-        add_job("dossiers",{"all":True, 'onfinished': {'daisy': True}})
+        add_job("dossiers",{"all":False, 'onfinished': {'daisy': True}})
 
 if __name__ == '__main__':
     #scrape(28390)

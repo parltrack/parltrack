@@ -291,34 +291,7 @@ def save(data):
 
         id = item['committee']+d+str(item['seq_no'])
         item['id'] = id
-        # TODO PROCESS
         process(item, id, db.comagenda, 'ep_comagendas', id+' - '+item['title'])
-        #print(jdump(item))
-        #res=db.ep_comagendas.find_one(query) or {}
-        #d=diff(dict([(k,v) for k,v in res.items() if not k in ['_id', 'meta', 'changes']]),
-        #       dict([(k,v) for k,v in item.items() if not k in ['_id', 'meta', 'changes',]]))
-        #if d:
-        #    now=datetime.utcnow().replace(microsecond=0)
-        #    if not 'meta' in item: item[u'meta']={}
-        #    if not res:
-        #        log(3, (u'adding %s%s %s' % (u'%s ' % item['epdoc'] if 'epdoc' in item else '',
-        #                                            item['committee'],
-        #                                            item['title'])).encode('utf8'))
-        #        item['meta']['created']=now
-        #        if stats: stats[0]+=1
-        #        notify(item,None)
-        #    else:
-        #        log(3, (u'updating %s%s %s' % (u'%s ' % item['epdoc'] if 'epdoc' in item else '',
-        #                                            item['committee'],
-        #                                            item['title'])).encode('utf8'))
-        #        log(3, d)
-        #        item['meta']['updated']=now
-        #        if stats: stats[1]+=1
-        #        item['_id']=res['_id']
-        #        notify(item,d)
-        #    item['changes']=res.get('changes',{})
-        #    item['changes'][now.isoformat()]=d
-        #    #db.ep_comagendas.save(item)
     return data
 
 #TODO
@@ -348,6 +321,39 @@ def notify(data,d):
                      "%s/dossier/%s" % (ROOT_URL, data['epdoc']),
                     ))
         mail.send(msg)
+def onchanged(doc, diff):
+    id = doc['procedure']['reference']
+    dossiers = notif.session.query(notif.Item).filter(notif.Item.name==id).all()
+    subject_items = notif.session.query(notif.Item).filter(notif.Item.type=='subjects').all()
+    search_items = notif.session.query(notif.Item).filter(notif.Item.type=='search').all()
+    recipients = set()
+    for i in dossiers:
+        for s in i.group.subscribers:
+            recipients.add(s.email)
+    for i in subject_items:
+        if i.name in (x for x in doc['procedure']['subject']):
+            for s in i.group.subscribers:
+                recipients.add(s.email)
+    for i in search_items:
+        q = create_search_regex(i.name)
+        if dossier_search(q, doc):
+            for s in i.group.subscribers:
+                recipients.add(s.email)
+    if not recipients:
+        return
+    log(3, "sending dossier changes to " + ', '.join(recipients))
+    msg = Message("[PT] %s %s" % (doc['procedure']['reference'],doc['procedure']['title']),
+		  sender = "parltrack@parltrack.org",
+		  bcc = list(recipients))
+    #msg.html = htmldiff(doc,d)
+    msg.body = makemsg(doc,diff)
+    with app.app_context():
+        mail.send(msg)
+    return
+
+from utils.process import publish_logs
+def onfinished(daisy=True):
+    publish_logs(get_all_jobs)
 
 if __name__ == "__main__":
     if len(sys.argv)>1:

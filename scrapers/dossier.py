@@ -49,6 +49,9 @@ CONFIG = {
 def scrape(url, save=True, **kwargs):
     log(4, 'scrape %s' % url)
     root=fetch(url)
+    if root.xpath('//span[@class="ep_name" and contains(text(),"This procedure or document does not exist!")]') != []:
+        log(1,"this url returns a soft 404: %s" % url)
+        return
 
     tmp = root.xpath('//div[@id="procedure-file-header"]//div[@class="ep_title"]')
     if len(tmp)!=2: raise ValueError("dossier proc header has not two components")
@@ -99,7 +102,6 @@ def scrape(url, save=True, **kwargs):
         nostore=not save,
         onchanged=onchanged,
     )
-    return dossier
 
 def scrape_basic(root, ref):
     res={}
@@ -381,7 +383,7 @@ def scrape_events(root):
     for row in root.xpath('//div[@id="key_events-data"]//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-row ")]'):
         cells = row.xpath('.//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-cell ")]')
         if len(cells) != 4:
-            log(1,"Events table has not 3 columns")
+            log(1,"Events table has not 4 columns")
             raise ValueError("bad dossier html, events")
         event = {}
         events.append(event)
@@ -682,6 +684,9 @@ def fetchSummary(path):
 fuckedSummaries={
     "https://oeil.secure.europarl.europa.eu/oeil/popups/summary.do?id=910263&t=e&l=en": [("<m<", "&lt;m&lt;")],
     'https://oeil.secure.europarl.europa.eu/oeil/popups/summary.do?id=910263&t=d&l=en': [("<m<", "&lt;m&lt;")],
+    'https://oeil.secure.europarl.europa.eu/oeil/popups/summary.do?id=1132498&t=e&l=en': [('The 2011 draft budget ', '<p>The 2011 draft budget ')],
+
+
 }
 
 ################ old/obsolete stuff below #################
@@ -894,27 +899,11 @@ def checkUrl(url):
         seenurls[url]=(res.xpath('//h1/text()') or [''])[0]!="Not available in English."
     return seenurls[url]
 
-#def save(data, stats):
-    #if not NOMAIL:
-    #    m=db.notifications.find({'dossiers': data['procedure']['reference']},['active_emails'])
-    #    for g in m:
-    #        if len(g['active_emails'])==0:
-    #            continue
-    #        msg = Message("[PT] %s %s" % (data['procedure']['reference'],data['procedure']['title']),
-    #                      sender = "parltrack@parltrack.org",
-    #                      bcc = g['active_emails'])
-    #        #msg.html = htmldiff(data,d)
-    #        msg.body = makemsg(data,d)
-    #        mail.send(msg)
-    #log(2, htmldiff(data,d))
-    #log(2, makemsg(data,d))
-
 def onfinished(daisy=True):
     if daisy:
-        from scraper_service import add_job
-        add_job("mep_activities",{"all": True, "onfinished": {"daisy": True}})
-        add_job("pvotes",{"year":"all", "onfinished": {"daisy": True}})
-        add_job("amendments",{"all":True, "onfinished": {"daisy": True}})
+        add_job("mep_activities",{"all": False, "onfinished": {"daisy": True}})
+        add_job("pvotes",{"year":None, "onfinished": {"daisy": True}})
+        add_job("amendments",{"all":False, "onfinished": {"daisy": True}})
         add_job("comagendas",{"onfinished": {"daisy": True}})
 
 def onchanged(doc, diff):
@@ -943,7 +932,7 @@ def onchanged(doc, diff):
 		  bcc = list(recipients))
     #msg.html = htmldiff(doc,d)
     msg.body = makemsg(doc,diff)
-    with app.context():
+    with app.app_context():
         mail.send(msg)
     return
 
@@ -958,8 +947,14 @@ def makemsg(doc,diff):
 
 
 if __name__ == '__main__':
+    #d = db.dossier('2018/0044(COD)')
+    #onchanged(d, sorted(d['changes'].items(), reverse=True)[0][1])
+
     from utils.utils import jdump
-    print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2012/2039(INI)&l=en")))
+    import sys
+    print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=%s&l=en" % sys.argv[1])))
+
+    #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2012/2039(INI)&l=en")))
     #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=1992/0449B(COD)&l=en")))
     #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil//popups/ficheprocedure.do?reference=2018/0252(NLE)&l=en", save=False)))
     #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil//popups/ficheprocedure.do?reference=2011/0901(COD)&l=en")))

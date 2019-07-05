@@ -11,14 +11,16 @@ CONFIG = {
 }
 
 def scrape(all=False, **kwargs):
+    payload = dict(kwargs)
     if all:
         for id in db.keys('ep_meps'):
-            add_job('mep_activity', id)
+            payload['id'] = id
+            add_job('mep_activity', payload)
             #print(id)
     else:
         for mep in db.meps_by_activity(True):
-            id = mep['UserID']
-            add_job('mep_activity', id)
+            payload['id'] = mep['UserID']
+            add_job('mep_activity', payload)
             #print(id)
 
 if __name__ == '__main__':
