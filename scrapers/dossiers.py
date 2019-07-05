@@ -21,6 +21,7 @@ from urllib.request import ProxyHandler
 from urllib.parse import urljoin, urlsplit, urlunsplit
 from utils.utils import fetch, fetch_raw, unws
 from lxml.etree import fromstring
+from utils.mappings import SPLIT_DOSSIERS
 from utils.log import log
 from db import db
 from config import CURRENT_TERM, USER_AGENT, PROXY
@@ -82,9 +83,11 @@ def get_all_dossiers(**kwargs):
 
 def get_active_dossiers(**kwargs):
     i=0
+    splitdossiers = set(SPLIT_DOSSIERS)
     for doc in db.dossiers_by_activity(True):
         url = doc['meta']['source']
         ref = doc['procedure']['reference']
+        if ref in splitdossiers: continue
         log(4,'adding dossier scraping job %s' % url)
         payload = dict(kwargs)
         payload['url'] = url

@@ -29,6 +29,7 @@ from utils.objchanges import getitem, revert
 from utils.mappings import (
     SEIRTNUOC as COUNTRIES,
     COUNTRIES as COUNTRY_ABBRS,
+    SPLIT_DOSSIERS as v1dossiers,
     COMMITTEE_MAP,
     GROUPIDS,
     ACTIVITY_MAP,
@@ -403,25 +404,6 @@ def dossiers():
             'lead_committee': '' if not lead_c else lead_c[0],
         })
     return render('dossiers.html', dossiers=ds, date=date)
-
-# these dossiers have been scraped by us in v1, but are not existing anymore as
-# of 20190605, we keep them and display them using the old v1 template.
-v1dossiers = {
-    '1991/2118(INS)', '1992/2223(INS)', '1994/2195(INI)', '1995/2078(INI)', '1995/2189(INI)', '1996/2143(INI)', '1997/2015(INI)', '1997/2044(INI)', '1998/2041(INI)',
-    '1998/2077(INI)', '1998/2078(INI)', '1998/2101(INI)', '1998/2165(INI)', '1999/2010(INS)', '1999/2184(INI)', '2000/2126(INI)', '2000/2323(INI)', '2001/2061(INI)',
-    '2001/2069(INI)', '2002/2264(INI)', '2003/2004(INI)', '2003/2057(INI)', '2003/2107(INI)', '2004/2125(INI)', '2005/2122(INI)', '2005/2138(IMM)', '2005/2148(INI)',
-    '2005/2176(IMM)', '2006/2013(INI)', '2006/2014(INI)', '2006/2015(INI)', '2006/2059(INI)', '2007/0181(CNS)', '2008/2093(IMM)', '2008/2117(INI)', '2008/2121(INI)',
-    '2009/2029(REG)', '2009/2134(INL)', '2009/2170(INI)', '2009/2239(INI)', '2009/2816(RSP)', '2010/2073(INI)', '2011/0341(COD)', '2011/0901(COD)', '2011/2176(INI)',
-    '2011/2184(INI)', '2011/2257(REG)', '2011/2304(IMM)', '2012/0033(NLE)', '2012/0219(NLE)', '2012/2012(REG)', '2012/2024(INI)', '2012/2061(INI)', '2012/2146(IMM)',
-    '2012/2241(IMM)', '2012/2260(INI)', '2012/2274(IMM)', '2012/2303(INI)', '2012/2309(INI)', '2012/2317(INI)', '2012/2324(INI)', '2012/2686(RSP)', '2012/2807(RSP)',
-    '2012/2817(RSP)', '2012/2863(RSP)', '2012/2899(RSP)', '2013/0120(NLE)', '2013/0151(NLE)', '2013/0267(NLE)', '2013/2046(INI)', '2013/2089(INI)', '2013/2102(INI)',
-    '2013/2129(INI)', '2013/2167(INI)', '2013/2171(INI)', '2013/2184(INI)', '2013/2191(IMM)', '2013/2271(IMM)', '2013/2280(IMM)', '2013/2692(RSP)', '2013/2739(RSP)',
-    '2013/2847(RPS)', '2013/2887(RSP)', '2014/2009(INI)', '2014/2034(IMM)', '2014/2227(IMM)', '2014/2536(RSP)', '2014/2557(RSO)', '2014/2604(RSP)', '2014/3015(RSP)',
-    '2015/2009(INI)', '2015/2073(IMM)', '2015/2081(INI)', '2015/2594(RSP)', '2015/2600(RSP)', '2015/2659(RSP)', '2015/2901(RSP)', '2015/2996(RSP)', '2015/3029(RSP)',
-    '2016/0357(COD)', '2016/0360(COD)', '2016/2031(INI)', '2016/2040(IMM)', '2016/2069(IMM)', '2016/2205(DEC)', '2016/2661(RSP)', '2017/2034(IMM)', '2017/2062(IMM)',
-    '2017/2205(INL)', '2017/2207(INI)', '2017/2264(REG)', '2017/2595(RSP)', '2017/2657(RSP)', '2017/2836(RSP)', '2017/2872(RSP)', '2017/2902(RSP)', '2018/0330(COD)',
-    '2018/2002(INL)', '2018/2027(IMM)', '2018/2033(INI)', '2018/2087(INI)', '2018/2154(INI)', '2018/2917(RSP)', '2018/2921(RSP)'
-}
 
 @app.route('/dossier/<path:d_id>')
 def dossier(d_id):
@@ -1018,7 +1000,7 @@ def timetravel(obj):
         except:
             print('failed to revert obj', d, c)
             break
-        changes.append((d, ', '.join(set('.'.join(map(str, x['path'])).replace(' ', '_') for x in c))))
+        changes.append((d, ', '.join(set('.'.join([y for y in x['path'] if isinstance(y, str)]).replace(' ', '_') for x in c))))
     return obj, changes, date
 
 if not config.DEBUG:
