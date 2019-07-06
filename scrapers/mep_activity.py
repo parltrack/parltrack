@@ -147,7 +147,7 @@ def parse_acts(id, terms):
                                                refroot = fetch(fullurl)
                                        else:
                                            log(4,'no fulla for %s' % item['url'])
-                                   anchor = refroot.xpath('//span[@class="contents" and text()="Procedure : "]')
+                                   anchor = refroot.xpath('//span[@class="contents" and text()="Procedure : " and not(ancestor::div[@style="display:none"])]')
                                    if len(anchor)==1:
                                        dossier = anchor[0].xpath("./following-sibling::a/text()")
                                        if len(dossier)==1:

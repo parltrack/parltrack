@@ -181,8 +181,8 @@ def scrape(url, committee, **kwargs):
     root=fetch(url)
     lines=[x for x in root.xpath('//td[@class="contents"]/div/*') if unws(' '.join(x.xpath('.//text()')))]
     if not len(lines): return
-    if not unws(' '.join(lines[2].xpath('.//text()')))=='DRAFT AGENDA':
-        log(1, "NOT DRAFT AGENDA %s in %s" % (unws(' '.join(lines[2].xpath('.//text()'))), url))
+    if not unws(' '.join(lines[2].xpath('.//text()'))) in ['DRAFT AGENDA', '<TitreType> DRAFT AGENDA </TitreType>' ]:
+        log(3, "not DRAFT AGENDA %s in %s" % (unws(' '.join(lines[2].xpath('.//text()'))), url))
     agenda={u'committee': comid,
             u'committee_full': unws(' '.join(lines[0].xpath('.//text()'))),
             u'src': url,
