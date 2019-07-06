@@ -162,6 +162,17 @@ def dumps():
         arch['scraper_logs'].append((file, date.fromtimestamp(s.st_mtime).isoformat()))
     return render('dumps.html', stats=stats, arch=arch)
 
+
+@app.route('/log/<string:date>')
+def logs(date):
+    lf = {f for f in os.listdir("/var/www/parltrack/logs") if f.endswith('.html')}
+    if ('%s.html' % date) not in lf:
+        print(date, lf)
+        return render('errors/404.html'), 404
+    with open('/var/www/parltrack/logs/%s.html' % date, 'r') as f:
+        log = f.read()
+    return render('log_summary.html', date=date, log=log)
+
 group_positions={u'Chair': 10,
                  u'Treasurer/Vice-Chair/Member of the Bureau': 10,
                  u'Co-President': 9,
