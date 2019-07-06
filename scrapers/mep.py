@@ -134,8 +134,8 @@ def scrape(id, **kwargs):
                 raise ValueError
 
     # history
-    terms=parse_history(id, root, mep)
-    process(mep, id, db.mep, 'ep_meps', mep['Name']['full'], (['Addresses'], ['assistants']))
+    parse_history(id, root, mep)
+    process(mep, id, db.mep, 'ep_meps', mep['Name']['full'], nopreserve=(['Addresses'], ['assistants']))
 
     if __name__ == '__main__':
         return mep
@@ -237,14 +237,11 @@ def isabbr(token):
     return True
 
 def parse_history(id, root, mep):
-    terms = []
     for term in root.xpath('//nav[@class="ep_tableofcontent-menu table-of-contents-menu"]//span[text()="History of parliamentary service"]/../../..//li//span[@class="ep_name"]//text()'):
         if not term.endswith("parliamentary term"):
             log(2, 'history menu item does not end as expected with "parliamentary term": %s http://www.europarl.europa.eu/meps/en/%s/name/declarations' % (term, id))
             raise ValueError
             #continue
-        term = int(term[0])
-        terms.append(term)
 
         root = fetch("http://www.europarl.europa.eu/meps/en/%s/name/history/%s" % (id, term))
         body = root.xpath('//span[@id="mep-card-content"]/following-sibling::div')[0]
@@ -351,7 +348,6 @@ def parse_history(id, root, mep):
                                                          x['end'],
                                                          x.get('Organization',
                                                                x.get('party'))))]
-    return terms
 
 def onfinished(daisy=True):
     if daisy:

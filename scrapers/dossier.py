@@ -33,7 +33,7 @@ from operator import itemgetter
 from webapp import mail, app
 from flask_mail import Message
 from config import ROOT_URL
-import unicodedata
+import unicodedata, requests
 
 BASE_URL = 'https://oeil.secure.europarl.europa.eu'
 
@@ -48,7 +48,11 @@ CONFIG = {
 
 def scrape(url, save=True, **kwargs):
     log(4, 'scrape %s' % url)
-    root=fetch(url)
+    try:
+        root=fetch(url)
+    except requests.exceptions.HTTPError:
+        log(1,"this url returns a hard 404: %s" % url)
+        return
     if root.xpath('//span[@class="ep_name" and contains(text(),"This procedure or document does not exist!")]') != []:
         log(1,"this url returns a soft 404: %s" % url)
         return
@@ -735,6 +739,7 @@ stage2inst={ 'Debate in Council': u'CSL',
              'Act approved by Council, 2nd reading': u'CSL',
              'Council draft budget published': u'CSL',
              'Amended budget adopted by Council': u'CSL',
+             "Initial period for examining delegated act 0.8 month(s)": "CSL",
              "Initial period for examining delegated act extended at Council's request by 3 month(s)": 'CSL',
              "Initial period for examining delegated act extended at Council's request by 1 month(s)": "CSL",
              "Council amended draft budget published": 'CSL',
@@ -802,6 +807,7 @@ stage2inst={ 'Debate in Council': u'CSL',
              'Decision by Parliament, 2nd reading': u'EP',
              'Decision by Parliament, 3rd reading': u'EP',
              'Committee referral announced in Parliament, 1st reading/single reading': u'EP',
+             "Internal referral to parliamentary committee(s)": "EP",
              'Committee report tabled for plenary, single reading': u'EP',
              'Committee report tabled for plenary, 1st reading/single reading': u'EP',
              'Report referred back to committee': u'EP',

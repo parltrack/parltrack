@@ -6,7 +6,8 @@ from utils.utils import jdump
 from utils.objchanges import diff, patch
 from datetime import datetime
 
-def process(obj, id, getter, table, name, nopreserve=[], nodiff=False, nostore=False, onchanged=None):
+def process(obj, id, getter, table, name, nopreserve=None, nodiff=False, nostore=False, onchanged=None):
+    if nopreserve is None: nopreserve=[]
     # clear out empty values
     obj = {k:v for k,v in obj.items() if v or v==False}
 
@@ -69,7 +70,7 @@ def process(obj, id, getter, table, name, nopreserve=[], nodiff=False, nostore=F
             log(4,"changes for %s\n%s" % (id, jdump(d)))
             obj['meta']['updated']=now
             obj['changes']=prev.get('changes',{})
-        obj['changes'][now.isoformat()]=d
+            obj['changes'][now.isoformat()]=d
         if not nostore and not db.put(table, obj):
             log(1,"failed to store updated obj {}".format(id))
             raise ValueError
