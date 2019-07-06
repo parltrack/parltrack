@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="ui vertical segment">
+  <div class="ui center aligned stackable grid container">
+    <div class="row">
+      <div class="sixteen wide left aligned column">
+        <h1>Summary for scraper logs from the {{date}}</h1>
+        {{log|safe}}
+      </div>
+	</div>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/ptfilter.js') }}"></script>
+<script src="{{ url_for('static', filename='js/log_summary.js') }}"></script>
+{% endblock %}
