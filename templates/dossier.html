@@ -35,19 +35,19 @@
              <div class="header">
                 This is a historical view ({{now_date|asdate}})
              </div>
-             <p>Changes: {% for d, c in change_dates %}<a href="?date={{d}}" class="tooltipz">{{d|asdate}}<span class='top'>{{c}}</span></a>{% if not loop.last %}, {%endif%}{%endfor%}</p>
-             <p><a href="?">View current state</a> | <a href="#/history">View Changes for this date</a></p>
+				 <p>Changes: {% for d, c in change_dates %}<a href="?date={{d}}" class="tooltipz">{{d|asdate}}<span class='bottom'>{{c}}<i></i></span></a>{% if not loop.last %}, {%endif%}{%endfor%}</p>
+				 <p><a href="?">View current state</a> | <a href="#/history">View Changes for this date</a></p>
            </div>
          </div>
          {% endif %}
          <div id="tabs"  class="ui top attached tabular menu wrapped">
             <a class="active item" data-tab="general">General</a>
-            {% if dossier.events %}<a class="item" data-tab="events">Events</a>{% endif %}
-            <a  class="item" data-tab="documents">Documents</a>
-            {% if dossier.activities %}<a class="item" data-tab="activities">Activities</a>{%endif%}
-            {% if dossier.vmatrix %}<a class="item" data-tab="votes">Votes</a>{%endif%}
-            {% if dossier.amendments %}<a class="item" data-tab="ams">Amendments ({{dossier.amendments|length}})</a>{%endif%}
-            {% if dossier.changes %}<a class="item" data-tab="history">History</a>{%endif%}
+            {% if dossier.events|length > 0 %}<a class="item" data-tab="events">Events ({{dossier.docs|length}})</a>{% endif %}
+            {% if dossier.docs|length > 0 %}<a  class="item" data-tab="documents">Documents</a>{%endif%}
+            {% if dossier.mep_activities|length > 0 %}<a class="item" data-tab="activities">Activities ({{dossier.mep_activities|length}})</a>{%endif%}
+            {% if dossier.vmatrix|length > 0 %}<a class="item" data-tab="votes">Votes ({{dossier.vmatrix|length}})</a>{%endif%}
+            {% if dossier.amendments|length > 0 %}<a class="item" data-tab="ams">Amendments ({{dossier.amendments|length}})</a>{%endif%}
+            {% if dossier.changes|length > 0 %}<a class="item" data-tab="history">History ({{dossier.changes|length}})</a>{%endif%}
          </div>
          <br/><br/>
 <div id="general" class="ui active tab" data-tab="general">
@@ -220,6 +220,7 @@
 </div>
 {% endif %}
 
+{% if dossier.docs|length > 0 %}
 <div id="documents" class="ui tab" data-tab="documents">
 <h3>Documents</h3>
    <ul>
@@ -269,12 +270,13 @@
    {%endfor%}
    </ul>
 </div>
+{%endif%}
 
-{% if dossier.activities %}
+{% if dossier.mep_activities %}
 <div id="activities" class="ui tab" data-tab="activities">
     <h3>Activities</h3>
     <ul>
-        {%for mepid, nametypes in dossier.activities %}
+        {%for mepid, nametypes in dossier.mep_activities %}
         <li><a href="/mep/{{mepid}}/{{nametypes['name']}}">{{nametypes['name']}}</a>
             <div class="ui accordion">
                 {%for type, acts in nametypes['types'].items()%}

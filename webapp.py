@@ -422,49 +422,83 @@ def dossier(d_id):
     if not d:
         return not_found_error(None)
     d, changes, date = timetravel(d)
+
     clean_lb(d)
+
+    d['amendments'] = [a for a in (db.get("ams_by_dossier", d_id) or []) if a.get('date',"0") < date] # filter amendments by timetravel
     # some amendments have letters as seq numbers m(
-    d['amendments'] = db.get("ams_by_dossier", d_id) or []
     for a in d['amendments']:
         a['seq']=str(a['seq'])
-    d['vmatrix'] = votematrices(db.get('votes_by_dossier',d_id) or [])
+    progress = 0
+
     if d_id in v1dossiers or 'activities' in d:
         template = "v1dossier.html"
+        types = None
+        # todo add d['votes'] in v1 expected format
+        #votes = db.get('votes_by_dossier',d_id) or []
+        #for vote in votes:
+        #    groups=[x['group']
+        #            for new in ['For','Against','Abstain']
+        #            if new in vote
+        #            for x in vote[new]['groups']]
+        #    vote['groups']=sorted(set(groups))
+        #    t,r=vote.get('title'),vote.get('report')
+        #    if t and r:
+        #        i=t.index(r)
+        #        if i>=0:
+        #            tmp=r.replace('/','-').split('-')
+        #            rid='-'.join((tmp[0],tmp[2],tmp[1]))
+        #            if rid[0] == 'A':
+        #                type = 'REPORT'
+        #            elif rid[0] == 'B':
+        #                type = 'MOTION'
+        #            else:
+        #                print >>sys.stderr, '[$] unkown vote reference type:', r
+        #            vote['linkedtitle']='%s<a href="http://www.europarl.europa.eu/sides/getDoc.do?type=%s&amp;mode=XML&amp;reference=%s&amp;language=EN">%s</a>%s' \
+        #                                 % (t[:i], type, rid, r, t[i+len(r):])
+        #    for dec in [x for x in ['For','Against','Abstain'] if x in vote]:
+        #        for g in groups:
+        #            if g not in [x['group'] for x in vote[dec]['groups']]:
+        #                vote[dec]['groups'].append({'group':g, 'votes': []})
+        #        vote[dec]['groups'].sort(key=itemgetter('group'))
+        #d['votes']=votes
     else:
         template = "dossier.html"
-        d['activities'] = merge_events(d)
+        d['events'] = merge_events(d)
+        d['vmatrix'] = votematrices([v for v in (db.get('votes_by_dossier',d_id) or []) if v.get('ts','0') < date ]) # filter votes by timetravel date
 
-    # get activities by meps
-    meps={}
-    for act, type, mepid, mepname in (db.activities_by_dossier(d_id) or []):
-        if type in ["REPORT", "REPORT-SHADOW", "COMPARL"]: continue
-        if type == 'COMPARL-SHADOW':
-            continue
-        #    pass # todo add this to the committee info
-        #else:
-        if not mepid in meps: meps[mepid]={'name': mepname, 'types': {}}
-        if not type in meps[mepid]['types']: meps[mepid]['types'][type]=[]
-        meps[mepid]['types'][type].append(act)
-    # todo sort meps by number of activities
-    d['activities']=sorted(meps.items(), key=lambda x: sum(len(y) for y in x[1]['types'].values()), reverse=True)
-    types = {
-        'CRE': 'Plenary Speeches',
-        "MOTION": 'Institutional Motions',
-        "OQ": 'Oral Questions',
-        'WEXP': 'Written Explanations',
-        'MINT': 'Major Interpellations',
-        "WQ": 'Written Questions',
-        "IMOTION": 'Individiual Motions',
-        "WDECL": 'Written Declarations',
-    }
+        # get activities by meps
+        meps={}
+        for act, type, mepid, mepname in (db.activities_by_dossier(d_id) or []):
+            if type in ["REPORT", "REPORT-SHADOW", "COMPARL"]: continue
+            if type == 'COMPARL-SHADOW':
+                continue
+            #    pass # todo add this to the committee info
+            #else:
+            if not mepid in meps: meps[mepid]={'name': mepname, 'types': {}}
+            if not type in meps[mepid]['types']: meps[mepid]['types'][type]=[]
+            if act.get('date','0') < date: # filter for timetravel
+                meps[mepid]['types'][type].append(act)
+        # todo sort meps by number of activities
+        d['mep_activities']=sorted(meps.items(), key=lambda x: sum(len(y) for y in x[1]['types'].values()), reverse=True)
+        types = {
+            'CRE': 'Plenary Speeches',
+            "MOTION": 'Institutional Motions',
+            "OQ": 'Oral Questions',
+            'WEXP': 'Written Explanations',
+            'MINT': 'Major Interpellations',
+            "WQ": 'Written Questions',
+            "IMOTION": 'Individiual Motions',
+            "WDECL": 'Written Declarations',
+        }
 
-    progress = 0
-    for a in d.get('events',[]):
-        if a.get('type') in stage2percent:
-            progress = stage2percent[a['type']]
-            break
-    stage_progress = stage2percent.get(d['procedure'].get('stage_reached'), 0)
-    progress = max(progress, stage_progress)
+        for a in d.get('events',[]):
+            if a.get('type') in stage2percent:
+                progress = stage2percent[a['type']]
+                break
+        stage_progress = stage2percent.get(d['procedure'].get('stage_reached'), 0)
+        progress = max(progress, stage_progress)
+
     return render(
         template,
         dossier=d,
