@@ -98,7 +98,7 @@ def scrape(url, save=True, **kwargs):
         db.dossier,
         'ep_dossiers',
         ref,
-        nopreserve=['other', 'forecasts'],
+        nopreserve=['other', 'forecasts', 'activities'],
         nostore=not save,
         onchanged=onchanged,
     )
