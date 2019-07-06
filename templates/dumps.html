@@ -152,7 +152,7 @@
                 <td>Scraper Log</td>
                 {%if stats.scraper_logs%}
                    <td>This dump contains all the basic information about the MEPs</td> 
-                   <td><a href="/logs/{{stats.scraper_logs.updated}}.log.lz">{{stats.scraper_logs.updated}}.log.lz</a></td>
+                   <td><a href="/logs/{{stats.scraper_logs.updated}}.log.lz">{{stats.scraper_logs.updated}}.log.lz</a> (<a href="/log/{{stats.scraper_logs.updated}}">summary</a>)</td>
                    <td>{{stats.scraper_logs.size}}</td>
                    <td>{{stats.scraper_logs.updated}}</td>
                 {%else%}
@@ -162,7 +162,7 @@
                 {%if arch.scraper_logs%}
                       <ul>
                          {%for file,date in arch.scraper_logs%}
-                            <li><a href="/logs/{{file}}">{{date}}</a></li>
+                            <li><a href="/logs/{{file}}">{{date}}</a> (<a href="/log/{{date}}">summary</a>)</li>
                          {%endfor%}
                       </ul>
                 {%endif%}

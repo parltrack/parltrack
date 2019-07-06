@@ -150,6 +150,7 @@ def dumps():
                 }
     first=True
     for file in sorted(os.listdir('/var/www/parltrack/logs'), reverse=True):
+        if not file.endswith(".log.lz"): continue
         s = os.stat("/var/www/parltrack/logs/%s" % file)
         if first:
             stats['scraper_logs']={
