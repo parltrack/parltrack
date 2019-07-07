@@ -208,6 +208,10 @@ def mangleName(name, id):
             sur=sur[:-len(t)]
             title=t
             break
+        if sur.startswith(t):
+            sur=sur[len(t)+1:]
+            title=t
+            break
     res= { u'full': name,
            u'sur': sur,
            u'family': family}
@@ -242,7 +246,7 @@ def parse_history(id, root, mep):
             log(2, 'history menu item does not end as expected with "parliamentary term": %s http://www.europarl.europa.eu/meps/en/%s/name/declarations' % (term, id))
             raise ValueError
             #continue
-
+        term = int(term[0])
         root = fetch("http://www.europarl.europa.eu/meps/en/%s/name/history/%s" % (id, term))
         body = root.xpath('//span[@id="mep-card-content"]/following-sibling::div')[0]
         for title in body.xpath('.//div[@class="ep_gridrow ep-o_productlist"]//h3'):
