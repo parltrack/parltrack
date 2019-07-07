@@ -104,7 +104,7 @@ def consume(pool, scraper):
             if scraper.CONFIG.get('table') is not None:
                 db.reindex(scraper.CONFIG['table'])
                 db.commit(scraper.CONFIG['table'])
-                Popen(['/bin/sh','./publish-dump.sh', "%s.json" % scraper.CONFIG['table']])
+                Popen(['/bin/sh','./bin/publish-dump.sh', "%s.json" % scraper.CONFIG['table']])
 
             if hasattr(scraper, 'onfinished'):
                 try:

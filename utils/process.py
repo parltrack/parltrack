@@ -88,4 +88,4 @@ def publish_logs(get_all_jobs):
     log(4,"publish_logs, jobs: %s" % jobs)
     log(4, "publish_logs conds: %s %s %s" % (not any(jobs['queues'].values()),  not any(jobs['job_counts'].values()), not any(jobs['queues'].values()) and not any(jobs['job_counts'].values())))
     if not any(jobs['queues'].values()) and not any(jobs['job_counts'].values()):
-        Popen(['/bin/sh','./publish-log.sh'])
+        Popen(['/bin/sh','./bin/publish-log.sh'])
