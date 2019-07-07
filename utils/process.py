@@ -39,7 +39,7 @@ def process(obj, id, getter, table, name, nopreserve=None, nodiff=False, nostore
             if c['type']=='deleted' and len(c['path']) == 1 and c['data'] in ({},[]):
                 d1.append(c)
                 continue
-            log(2,"preserving deleted path {} for obj id: {}".format(c['path'], id))
+            log(3,"preserving deleted path {} for obj id: {}".format(c['path'], id))
             obj[c['path'][0]]=prev[c['path'][0]]
         d = d1
     else:
