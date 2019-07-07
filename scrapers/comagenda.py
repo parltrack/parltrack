@@ -357,7 +357,10 @@ def onfinished(daisy=True):
 
 if __name__ == "__main__":
     if len(sys.argv)>1:
-        if sys.argv[1]=="url":
+        if sys.argv[1]=='url' and len(sys.argv)==4:
+            print(jdump(scrape(sys.argv[2], sys.argv[3])))
+            sys.exit(0)
+        elif sys.argv[1]=="url":
             print('-'*30)
             print(jdump(scrape(sys.argv[2], 'XXXX')))
             print('-'*30)
