@@ -109,7 +109,7 @@ def getXML(term, date):
     if res != (None,None):
         log(1, 'Holy astringent plum-like fruit! Batman, a previously missing plenary vote xml suddenly reappered, from now on use the "lp" url template for (%d, %s)' % (term,date))
         return res
-    log(1, 'still no xml for plenary votes at (%d, %s)' % (term,date))
+    log(2, 'still no xml for plenary votes at (%d, %s)' % (term,date))
     return None, None
 
 
