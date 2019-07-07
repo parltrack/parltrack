@@ -829,7 +829,11 @@ TITLES=[u'Sir',
         u'The Earl of',
         u'(The Earl of)',
         u'The Lord',
-        u'Professor Sir']
+        u'Professor Doktor',
+        u'Doktor Professor',
+        u'Professor Sir',
+        u'Professor',
+]
 
 VOTE_URL_TEMPLATES={
     # older are vote_nominaux style urls
