@@ -349,7 +349,7 @@ def scrape(decl, **kwargs):
             #log(1,'>>>>>>>> %s' % line.encode('utf8'))
         ptr+=1
     if state!=9:
-        log(1, '[wtf] did not reach final state %s' % state)
+        log(2, 'did not reach final state %s in %s' % (state, decl))
         return {}
     else:
         if (len(data['occupation'])>1 and
