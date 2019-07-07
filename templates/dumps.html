@@ -151,12 +151,12 @@
              <tr>
                 <td>Scraper Log</td>
                 {%if stats.scraper_logs%}
-                   <td>This dump contains all the basic information about the MEPs</td> 
+                   <td>This contains all the logs from the last scraping.</td> 
                    <td><a href="/logs/{{stats.scraper_logs.updated}}.log.lz">{{stats.scraper_logs.updated}}.log.lz</a> (<a href="/log/{{stats.scraper_logs.updated}}">summary</a>)</td>
                    <td>{{stats.scraper_logs.size}}</td>
                    <td>{{stats.scraper_logs.updated}}</td>
                 {%else%}
-                   <td>The scraper_log seems to be missing.</td><td></td><td></td><td></td>
+                   <td>The logfile seems to be missing.</td><td></td><td></td><td></td>
                 {%endif%}
                 <td>
                 {%if arch.scraper_logs%}
