@@ -97,12 +97,12 @@
        </td>
        <td>
           {% for a in committee.rapporteur %}
-             <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.abbr}}"><img class="ui middle aligned image" alt="icon: {{a.abbr}}" src="/{{a.abbr|group_icon}}" /> {{a.abbr}}</a>){% if not loop.last %},{%endif%}
+             <a href="/mep/{{a.name}}">{{a.name}}</a> (<a href="/meps/{{a.abbr}}"><img class="ui middle aligned image" alt="icon: {{a.abbr}}" src="/{{a.abbr|group_icon}}" /> {{a.abbr}}</a>){% if not loop.last %},{%endif%}
           {% endfor %}
        </td>
        <td>
           {% for a in committee.shadows %}
-             <a href="/mep/{{a.name}}#dossiers">{{a.name}}</a> (<a href="/meps/{{a.abbr}}"><img class="ui middle aligned image" alt="icon: {{a.abbr}}" src="/{{a.abbr|group_icon}}" /> {{a.abbr}}</a>){% if not loop.last %},{%endif%}
+             <a href="/mep/{{a.name}}">{{a.name}}</a> (<a href="/meps/{{a.abbr}}"><img class="ui middle aligned image" alt="icon: {{a.abbr}}" src="/{{a.abbr|group_icon}}" /> {{a.abbr}}</a>){% if not loop.last %},{%endif%}
           {% endfor %}
        </td>
   </tr>
