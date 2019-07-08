@@ -5,24 +5,23 @@
         <p><small>(these mark the time of scraping, not the official date of the change)</small></p>
         {% for k, changes in data.changes|dictsort|reverse %}
            {% if changes %}
-              <div class="changelog-item">
-                 <div class="changelog-timestamp more"><a href="?date={{k}}" rel="nofollow">{{k[:10]}}</a></div>
-                 <table class="ui table changelog-entries{% if not loop.first %} hidden{% endif %}">
+              <div class="ui accordion changelog-item">
+                 <div class="title">{{k[:10]}}<i class="dropdown icon"></i><a>Show ({{changes|length}}) Changes</a> | <a href="?date={{k}}" rel="nofollow">Timetravel</a></div>
+                 <table class="ui content table small compact">
                  {% for change in changes|sort(attribute='path') %}
-                     <tr class='changelog-entry'>
+                     <tr>
                         <td class="changelog-path">{{change.path|join('/')}}</td>
-                        <td class="changelog-type">{{change.type}}</td>
                         {% if change.type == "changed" %}
-                           <td class="changelog-data">
-                              <div class="changelog-old">
+                           <td class="ui grid container padded changelog-data">
+                              <div class="eight wide column changelog-old">
                                  <div class="centered">Old</div>
                                  {%if change.data.0 %}{{change.data.0|printdict|safe}}{%else%}&nbsp;{%endif%}</div>
-                              <div class="changelog-new">
+                              <div class="eight wide column changelog-new">
                                  <div class="centered">New</div>
                                  {%if change.data.1 %}{{change.data.1|printdict|safe}}{%else%}&nbsp;{%endif%}</div>
                            </td>
                         {% else %}
-                           <td colspan="2" class="changelog-data">{{change.data|printdict|safe}}</td>
+                           <td colspan="2" class="changelog-data {{change.type}}">{{change.data|printdict|safe}}</td>
                         {% endif %}
                      </tr>
                  {% endfor %}
