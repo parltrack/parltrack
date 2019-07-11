@@ -162,15 +162,18 @@ if html:
         print("</tr>")
     print('</tbody></table>')
 
-    print('<h2>Dossier events without known bodies</h2><table class="ui table definition"><thead><tr><th>Event</th><th>Count</th></tr></thead><tbody>')
-    for l,v in sorted(nobody.items(),key=lambda x: x[1], reverse=True):
-        print("<tr><td>%s</td><td>%d</td></tr>" % (l, v))
-    print('</tbody></table>')
+    if len(nobody)>0:
+        print('<h2>Dossier events without known bodies</h2><table class="ui table definition"><thead><tr><th>Event</th><th>Count</th></tr></thead><tbody>')
+        for l,v in sorted(nobody.items(),key=lambda x: x[1], reverse=True):
+            print("<tr><td>%s</td><td>%d</td></tr>" % (l, v))
+        print('</tbody></table>')
 
-    print('<h2>Unknown MEPs</h2><table class="ui table definition"><thead><tr><th>Event</th><th>Count</th></tr></thead><tbody>')
-    for l,v in sorted(nomep.items(),key=lambda x: x[1], reverse=True):
-        print("<tr><td>%s</td><td>%d</td></tr>" % (l, v))
-    print('</tbody></table><h2>Log Entries</h2>')
+    if len(nomep)>0:
+        print('<h2>Unknown MEPs</h2><table class="ui table definition"><thead><tr><th>Event</th><th>Count</th></tr></thead><tbody>')
+        for l,v in sorted(nomep.items(),key=lambda x: x[1], reverse=True):
+            print("<tr><td>%s</td><td>%d</td></tr>" % (l, v))
+        print('</tbody></table><h2>Log Entries</h2>')
+
     print('\n'.join(output))
 else:
     # print stats
