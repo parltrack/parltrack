@@ -368,7 +368,7 @@ def activities(mep_id, t, d_id):
         if d_id is not None:
             ams = [a for a in ams if a['reference']==d_id]
         if ams:
-            a['amendments'] = sorted(ams, key=lambda x: (x['reference'], -x['seq']), reverse=True)
+            a['amendments'] = sorted(ams, key=lambda x: (x['reference'], -x['seq'] if isinstance(x['seq'], int) else x['seq']), reverse=True)
 
     for k in ['mep_id', 'changes', 'meta']:
         if k in a: del a[k]
