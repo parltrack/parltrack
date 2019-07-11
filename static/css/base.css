@@ -16,6 +16,7 @@ p { margin: 4px !important; font-size: 18px; }
 #track_dossier:hover .nondisplayed { display: block !important; position: absolute; right: 0; bottom: 0; padding: 48px; }
 .mepshot img { max-width: 200px; }
 .dropdown .menu { min-width: 30em !important; }
+.fullwidth { width: 100% !important; }
 div [class*="right floated"] { float: right; margin-right: 0.25em; } 
 div [class*="left floated"] { float: left; margin-left: 0.25em; } 
 .wrapped{
