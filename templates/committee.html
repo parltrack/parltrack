@@ -12,7 +12,7 @@
 <div id="tabs"  class="ui top attached tabular menu">
     <a href="#meetings" data-tab="meetings" class="active item">Meetings</a>
     {%if committee.dossiers %}<a href="#dossiers" data-tab="dossiers" class="item">Dossiers</a>{%endif%}
-    <a href="#members" data-tab="members" class="item">Members</a>
+    {% if committee.meps %}<a href="#members" data-tab="members" class="item">Members</a>{% endif %}
 </div>
 <div class="ui tab" id="meetings" data-tab="meetings">
 {%for group in committee.agendas|groupby("date")|sort(reverse=True) if group.grouper >= today %}
@@ -118,6 +118,7 @@
   </table>
 </div>
 {%endif%}
+{% if committee.meps %}
 <div class="ui tab" id="members" data-tab="members">
 <table id="meplist" class="ui table">
    <thead>
@@ -152,6 +153,7 @@
    </tbody>
 </table>
 </div>
+{% endif %}
 </div>
 </div>
 </div>
