@@ -21,7 +21,11 @@
                                  {%if change.data.1 %}{{change.data.1|printdict|safe}}{%else%}&nbsp;{%endif%}</div>
                            </td>
                         {% else %}
-                           <td colspan="2" class="changelog-data {{change.type}}">{{change.data|printdict|safe}}</td>
+                           <td class="ui grid container padded changelog-data {{change.type}}">
+                              <div class="sixteen wide column">
+                                 {{change.data|printdict|safe}}
+                              </div>
+                           </td>
                         {% endif %}
                      </tr>
                  {% endfor %}
