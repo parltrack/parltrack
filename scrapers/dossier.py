@@ -638,6 +638,8 @@ def toGroup(txt):
         return (GROUP_MAP[txt], txt)
     if txt.startswith("ALDE- "):
         return ("ALDE", 'Alliance of Liberals and Democrats for Europe')
+    if txt == "Renew Europe group": # goddamn unique slowfakes - if they get an abbrev i hope it won't be ALDE
+        return ("Renew", "Renew Europe group")
     try:
         _, group = txt.split(' - ', 1)
     except:
