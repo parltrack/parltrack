@@ -10,8 +10,8 @@
       <div class="left aligned column">
 <h2>{{committee.name}} ({{committee.shortname}})</h2>
 <div id="tabs"  class="ui top attached tabular menu">
-    <a href="#meetings" data-tab="meetings" class="active item">Meetings</a>
-    {%if committee.dossiers %}<a href="#dossiers" data-tab="dossiers" class="item">Dossiers</a>{%endif%}
+    {%if committee.agendas %}<a href="#meetings" data-tab="meetings" class="active item">Meetings</a>{%endif%}
+    {%if committee.dossiers %}<a href="#dossiers" data-tab="dossiers" class="item">Dossiers ({{committee.dossiers|length}})</a>{%endif%}
     {% if committee.meps %}<a href="#members" data-tab="members" class="item">Members</a>{% endif %}
 </div>
 <div class="ui tab" id="meetings" data-tab="meetings">
