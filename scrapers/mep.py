@@ -225,7 +225,7 @@ def mangleName(name, id):
         aliases |= set([(u"%s %s"     % (title, family)),
                         (u"%s %s %s"  % (title, family, sur)),
                         (u"%s %s %s"  % (title, sur, family)),
-                        (u"%s%s%s"    % (sur, title, family)),
+                        (u"%s %s %s"  % (sur, title, family)),
                         (u"%s %s %s"  % (sur, family, title)),
                         (u"%s %s %s"  % (family, sur, title)),
                         (u"%s %s %s"  % (family, title, sur))])
