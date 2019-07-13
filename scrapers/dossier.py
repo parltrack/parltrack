@@ -112,7 +112,7 @@ def scrape_basic(root, ref):
     for para in root.xpath('//div[@id="basic-information-data"]//p/strong'):
         if not para.xpath('./text()'): continue
         title = junws(para)
-        log(4,"title: %s" % title)
+        #log(4,"title: %s" % title)
         if title in [ref, 'Status']: continue
         if title == 'Subject': title = 'subject'
         if title == 'Geographical area': title = 'geographical_area'
