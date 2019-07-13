@@ -70,6 +70,8 @@ function filter(table) {
          $('#'+table+' tbody tr').each(function(idx, el) {
             show[idx] = el;
          });
+         var refiltered = {};
+         var prefilled_refilters = {};
          // iterate over all filter widgets which have something set to filter
          $('#'+table+' thead input[value]').each(function(idx, input) {
             var selected = $(input).attr('value'); // filter expression
@@ -77,6 +79,13 @@ function filter(table) {
             var col = $(input).parent().attr('id').split('_')[1]; // get column index
             selected = selected.split('xxxxxYYxxxx'); // split filter expression into values
             var values = [];
+            refiltered[col]={};
+            prefilled_refilters[col] = true;
+            for(key in filtered[col]) {
+               if($.inArray(key, selected)!=-1) continue;
+               refiltered[col][key] = {};
+            }
+
             if(filter_groups[col]) {
                // expand filter_group labels into the filter expression
                for(sval in selected) { // iterate over filter expression
@@ -121,11 +130,11 @@ function filter(table) {
             }
          });
          // rebuild filter widget options
-         var refiltered = {}
          // iterate over all shown rows
          for(row in show) {
             // check each column
             $(show[row]).find('td').each(function(tidx,td) {
+               if(prefilled_refilters[tidx] == true) return;
                if(filtered[tidx] == undefined) return; // skip this column, it is not of our interest
                val=$(td).text().trim(); // get the value of this column
                if(val == '') return;    // we ignore empty values
