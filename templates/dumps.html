@@ -22,6 +22,27 @@
              </thead>
 
              <tr>
+                <td>Scraper Log</td>
+                {%if stats.scraper_logs%}
+                   <td>This contains all the logs from the last scraping.</td> 
+                   <td><a href="/logs/{{stats.scraper_logs.updated}}.log.lz">{{stats.scraper_logs.updated}}.log.lz</a> (<a href="/log/{{stats.scraper_logs.updated}}">summary</a>)</td>
+                   <td>{{stats.scraper_logs.size}}</td>
+                   <td>{{stats.scraper_logs.updated}}</td>
+                {%else%}
+                   <td>The logfile seems to be missing.</td><td></td><td></td><td></td>
+                {%endif%}
+                <td>
+                {%if arch.scraper_logs%}
+                      <ul>
+                         {%for file,date in arch.scraper_logs%}
+                            <li><a href="/logs/{{file}}">{{date}}</a> (<a href="/log/{{date}}">summary</a>)</li>
+                         {%endfor%}
+                      </ul>
+                {%endif%}
+                </td>
+             </tr>
+
+             <tr>
                 <td>MEPs</td>
                 {%if stats.ep_meps%}
                    <td>This dump contains all the basic information about the MEPs</td> 
@@ -148,26 +169,6 @@
                 </td>
              </tr>
 
-             <tr>
-                <td>Scraper Log</td>
-                {%if stats.scraper_logs%}
-                   <td>This contains all the logs from the last scraping.</td> 
-                   <td><a href="/logs/{{stats.scraper_logs.updated}}.log.lz">{{stats.scraper_logs.updated}}.log.lz</a> (<a href="/log/{{stats.scraper_logs.updated}}">summary</a>)</td>
-                   <td>{{stats.scraper_logs.size}}</td>
-                   <td>{{stats.scraper_logs.updated}}</td>
-                {%else%}
-                   <td>The logfile seems to be missing.</td><td></td><td></td><td></td>
-                {%endif%}
-                <td>
-                {%if arch.scraper_logs%}
-                      <ul>
-                         {%for file,date in arch.scraper_logs%}
-                            <li><a href="/logs/{{file}}">{{date}}</a> (<a href="/log/{{date}}">summary</a>)</li>
-                         {%endfor%}
-                      </ul>
-                {%endif%}
-                </td>
-             </tr>
           </table>
 
           <p>[1] previously parltrack used xz, but due to claims <a href="https://www.nongnu.org/lzip/xz_inadequate.html">xz being inadequate for long-term archiving</a> we switched to lzip.</p>
