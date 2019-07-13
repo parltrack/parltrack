@@ -1,4 +1,4 @@
 {% macro display_changes(obj, path) -%}
 {% set val, changes = get_changes(obj, path) -%}
-{{ val }}{% if changes %} <i class="blue history icon tooltipz"><div class="right fixed-width">{% for c in changes %}<div>{{ c.date.split('T')[0] }} {{ c.data.0 }}</div>{% endfor %}</div></i>{% endif %}
+{{ val }}{% if changes %} <i class="blue history icon tooltipz"><div class="right fixed-width">{% for c in changes if c.type!='added' %}<div>{{ c.date.split('T')[0] }} {%if c.type =='changed' %}{{ c.data.0 }}{%else%}{{c.data}}{%endif%}</div>{% endfor %}</div></i>{% endif %}
 {% endmacro %}
