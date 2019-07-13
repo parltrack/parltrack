@@ -775,7 +775,7 @@ MEPS_ALIASES={
     24089: ['W. Tomczak'],
     23770: ['A. Peczak'],
     1249: ['Janis Sakellariou'],
-    124933: ['Ceballos'],
+    124993: ['Ceballos'],
     4379: ['Koldo Gorostiaga'],
     1418: ["COLLINS Kenneth D."],
     185974: ['Solé I Ferrando'],
