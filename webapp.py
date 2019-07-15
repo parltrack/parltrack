@@ -166,16 +166,16 @@ def dumps():
 
 @app.route('/log/<string:date>')
 @app.route('/log')
-def logs(date=None):
-    if not date:
-        date.today().strftime("%Y-%m-%d")
+def logs(ldate=None):
+    if not ldate:
+        ldate=date.today().strftime("%Y-%m-%d")
     lf = {f for f in os.listdir("/var/www/parltrack/logs") if f.endswith('.html')}
-    if ('%s.html' % date) not in lf:
-        print(date, lf)
+    if ('%s.html' % ldate) not in lf:
+        print(ldate, lf)
         return render('errors/404.html'), 404
-    with open('/var/www/parltrack/logs/%s.html' % date, 'r') as f:
+    with open('/var/www/parltrack/logs/%s.html' % ldate, 'r') as f:
         log = f.read()
-    return render('log_summary.html', date=date, log=log)
+    return render('log_summary.html', date=ldate, log=log)
 
 group_positions={u'Chair': 10,
                  u'Treasurer/Vice-Chair/Member of the Bureau': 10,
