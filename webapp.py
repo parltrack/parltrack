@@ -166,7 +166,9 @@ def dumps():
 
 @app.route('/log/<string:date>')
 @app.route('/log')
-def logs(date=date.today().strftime("%Y-%m-%d")):
+def logs(date=None):
+    if not date:
+        date.today().strftime("%Y-%m-%d")
     lf = {f for f in os.listdir("/var/www/parltrack/logs") if f.endswith('.html')}
     if ('%s.html' % date) not in lf:
         print(date, lf)
