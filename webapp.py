@@ -164,7 +164,7 @@ def dumps():
     return render('dumps.html', stats=stats, arch=arch)
 
 
-@app.route('/log/<string:date>')
+@app.route('/log/<string:ldate>')
 @app.route('/log')
 def logs(ldate=None):
     if not ldate:
