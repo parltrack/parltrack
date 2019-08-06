@@ -6,7 +6,7 @@
         {% for k, changes in data.changes|dictsort|reverse %}
            {% if changes %}
               <div class="ui accordion changelog-item">
-                 <div class="title">{{k[:10]}}<i class="dropdown icon"></i><a>Show ({{changes|length}}) Changes</a> | <a href="?date={{k}}" rel="nofollow">Timetravel</a></div>
+                 <div class="title">{{k[:10]}}<i class="dropdown icon"></i><a>Show ({{changes|length}}) Changes</a>{% if not loop.last %} | <a href="?date={{k}}" rel="nofollow">Timetravel</a>{%endif%}</div>
                  <table class="ui content table small compact">
                  {% for change in changes|sort(attribute='path') %}
                      <tr>
