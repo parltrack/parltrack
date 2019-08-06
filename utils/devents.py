@@ -6,6 +6,12 @@ def merge_events(d):
     activities=[]
     for ktype in ['docs','events','forecasts','council','commission','otherinst','committees']:
         for item in d.get(ktype,[]):
+            if ktype == 'committees':
+                for r in item.get('rapporteur',[]):
+                    if 'date' in r:
+                        activities.append({'type':'%s (%s) appointed as rapporteur in %s' %(r['name'], r['abbr'], item['committee']),
+                            'date': r['date'],
+                            'body': "EP"})
             if 'date' not in item:
                 #other.append(item)
                 continue
