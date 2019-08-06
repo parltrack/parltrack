@@ -202,6 +202,7 @@ com_positions={"Chair": 4,
                "Member": 2,
                "Substitute": 1,
                'Observer': 0,
+               'Substitute observer': 0,
                }
 staff_positions={"President": 7,
                  "Chair": 6,
@@ -218,6 +219,7 @@ def meps(filter1=None, filter2=None):
     # TODO date handling
     group_filter = None
     country_filter = None
+    active = False if request.args.get('inactive') else True
     print(repr(filter1),repr(filter2))
     if filter1 is not None:
         if filter1 in GROUPIDS:
@@ -234,7 +236,7 @@ def meps(filter1=None, filter2=None):
         else:
             return render('errors/404.html'), 404
     date = asdate(datetime.now())
-    meps = db.meps_by_activity(True)
+    meps = db.meps_by_activity(active)
     rankedMeps=[]
     for mep in meps:
         score=-1
@@ -375,6 +377,8 @@ def activities(mep_id, t, d_id):
 
     for k in ['mep_id', 'changes', 'meta']:
         if k in a: del a[k]
+    if not t and len(a) == 1:
+        t = list(a.keys())[0]
     return render(
         'activities.html',
         activities=a,
@@ -598,7 +602,7 @@ def subject(subject):
 
 
 def dossier_sort_key(d):
-    if not 'activities' in d:
+    if not 'activities' in d or not len(d['activities']) or not 'date' in d['activities']:
         return ''
     return d['activities'][-1]['date']
 
@@ -1036,7 +1040,7 @@ def votematrices(votes):
 def timetravel(obj):
     date = getDate().isoformat()
     changes = []
-    for d,c in sorted(obj.get('changes', {}).items(), key=lambda x: x[0], reverse=True):
+    for d,c in sorted(obj.get('changes', {}).items(), key=lambda x: x[0], reverse=True)[:-1]:
         if date > d:
             break
         if not c:
