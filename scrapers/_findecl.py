@@ -187,7 +187,10 @@ def issectionhead(decl, text,ptr,curstate,state, ids):
          (state==6 and decl.endswith('_MT.pdf') and text[ptr].strip().startswith(u'G)')) or
          (decl.endswith('_SV.pdf') and text[ptr].strip().startswith(u'%s. ' % ids[0])) or
          (decl.endswith('_BG.pdf') and text[ptr].strip().startswith(u'%s.' % ids[1])) or
-         (decl.endswith('_EL.pdf') and text[ptr].strip().startswith(u'(%s)' % ids[2]))))
+         (decl.endswith('_EL.pdf') and text[ptr].strip().startswith(u'(%s)' % ids[2])) or
+         (decl.endswith('_BG.pdf') and text[ptr].strip().startswith(u'%s)' % ids[1])) or
+         (decl.endswith('_EL.pdf') and text[ptr].strip().startswith(u'%s)' % ids[2]))
+         ))
 
 def scrape(decl, **kwargs):
     mep_id = decl.split('/')[-1].split('_')[0]
