@@ -103,13 +103,17 @@ class Client:
 
         try:
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            log(4,'connecting to db on {}'.format(server_address))
+        except:
+            log(1, "error while connecting to db")
+            raise
+        try:
+            #log(4,'connecting to db on {}'.format(server_address))
             sock.connect(server_address)
 
             log(4,'sending {} bytes: {}...'.format(len(req), repr(cmd)[:120]))
             sock.sendall(struct.pack("I", len(req)))
             sock.sendall(req)
-            log(4,'sent {} bytes'.format(len(req)+4))
+            #log(4,'sent {} bytes'.format(len(req)+4))
 
             # Send request
             # make the sock a file object
@@ -119,9 +123,10 @@ class Client:
             fd.close()
         except:
             log(1, "error during processing request {}".format(cmd))
+            sock.close()
             raise
         else:
-            log(4,'closing socket')
+            #log(4,'closing socket')
             sock.close()
             return res
 
@@ -234,19 +239,19 @@ def init(data_dir):
 
 def read_req(sock):
     size = sock.recv(4)
-    log(4, "req size is {!r}".format(size))
+    #log(4, "req size is {!r}".format(size))
     size = struct.unpack("I", size)[0]
     if size > 1024 * 1024 * 50: # arbitrary upper limit for request 50MB
         log(1, "request is too big: {}MB".format(size / (1024*1024)))
         return {}
-    log(4, 'receiving {} bytes request'.format(size))
+    #log(4, 'receiving {} bytes request'.format(size))
     res = []
     while size>0:
         rsize=65535 if size >= 65535 else size
         res.append(sock.recv(rsize, socket.MSG_WAITALL))
         size -= rsize
     res = b''.join(res)
-    log(4,"size received {}".format(len(res)))
+    #log(4,"size received {}".format(len(res)))
     req = msgpack.loads(res, raw = False)
     log(4, 'received ({}B) {}'.format(len(req),repr(req)[:120]))
     return req
@@ -281,10 +286,10 @@ def mainloop():
 
     while True:
         # Wait for a connection
-        log(3,'waiting for a connection')
+        #log(3,'waiting for a connection')
         connection, client_address = sock.accept()
         try:
-            log(3, 'incoming connection')
+            #log(3, 'incoming connection')
             query = read_req(connection)
             if query.get('cmd') in function_map:
                 res = function_map[query['cmd']](**query.get('params', {}))
@@ -294,7 +299,7 @@ def mainloop():
             log(3,"responding with {} records".format(len(res) if hasattr(res,'__len__') else res))
             fd = connection.makefile(mode = 'wb', buffering = 65535)
             msgpack.dump(res, fd, use_bin_type = True)
-            log(3,'sent data back to the client')
+            #log(3,'sent data back to the client')
             fd.close()
         except:
             log(1, "connection error")
@@ -304,7 +309,6 @@ def mainloop():
             connection.close()
 
 def get(source, key):
-    # TODO error handling
     log(3,'getting src: "{}" key: "{}"'.format(source,key))
     if isinstance(key, list):
         if source in IDXs:
@@ -344,7 +348,6 @@ def keys(source, count=False):
 
 
 def put(table, value):
-    # TODO error handling
     if not table in DBS:
         log(1, 'table not found in db')
         return False
@@ -481,6 +484,8 @@ def committees(key=None):
 
 def activities(mep_id, type, d_id):
     activities = get("ep_mep_activities", mep_id)
+    if not activities:
+        return None
     if type:
         activities = {k:v for k,v in activities.items() if k==type}
     if d_id:
@@ -679,7 +684,7 @@ def idx_dossiers_by_mep():
                     log(2,"no mepref for rapporteur in %s %s" % (ref,rapporteur))
                     continue
                 if rapporteur['mepref'] not in DBS['ep_meps']:
-                    log(2,"idx_dossiers_by_mep: mepref %s for %s is not in ep_meps" % (rapporteur['mepref'], ref))
+                    #log(2,"idx_dossiers_by_mep: mepref %s for %s is not in ep_meps" % (rapporteur['mepref'], ref))
                     continue
                 if not rapporteur['mepref'] in res:
                     res[rapporteur['mepref']]=[]
@@ -690,7 +695,7 @@ def idx_dossiers_by_mep():
                     log(2,"no mepref for shadow in %s %s" % (ref,shadow))
                     continue
                 if shadow['mepref'] not in DBS['ep_meps']:
-                    log(2,"idx_dossiers_by_mep: mepref %s for %s is not in ep_meps" % (shadow['mepref'], ref))
+                    #log(2,"idx_dossiers_by_mep: mepref %s for %s is not in ep_meps" % (shadow['mepref'], ref))
                     continue
                 if not shadow['mepref'] in res:
                     res[shadow['mepref']]=[]
