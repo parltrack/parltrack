@@ -101,20 +101,22 @@ def getXML(term, date):
     if template: # we have known good template, lets use it
         return _get(url_templates[template], term,_date)
     # dang EP is a mess, let's try both templates, maybe one of them magically starts working
-    res = _get(url_templates['vn'], term,_date)
-    if res != (None,None):
-        log(1, 'Holy Hole in a Doughnut! Batman, a previously lost plenary vote xml suddenly reappered, from now on use the "vn" url template for (%d, %s)' % (term,date))
-        return res
     res = _get(url_templates['lp'], term,_date)
     if res != (None,None):
-        log(1, 'Holy astringent plum-like fruit! Batman, a previously missing plenary vote xml suddenly reappered, from now on use the "lp" url template for (%d, %s)' % (term,date))
+        if  date < "2019-07-02":
+            log(3, 'Holy astringent plum-like fruit! Batman, a previously missing plenary vote xml suddenly reappered, from now on use the "lp" url template for (%d, %s)' % (term,date))
         return res
-    log(2, 'still no xml for plenary votes at (%d, %s)' % (term,date))
+    res = _get(url_templates['vn'], term,_date)
+    if res != (None,None):
+        log(3, 'Holy Hole in a Doughnut! Batman, a previously lost plenary vote xml suddenly reappered, from now on use the "vn" url template for (%d, %s)' % (term,date))
+        return res
     return None, None
 
+novotes={'2019-07-03','2019-07-17'}
 
 def scrape(term, date, **kwargs):
-    log(3,"scraping P%d %s" % (term, date))
+    if date in novotes: return
+    log(3,"scraping %d %s" % (term, date))
     url, root = getXML(term, date)
     if (url, root) == (None, None):
         log(1,"could not get votes for %d %s" %(term, date))
