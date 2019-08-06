@@ -4,4 +4,5 @@ $(document).ready(function() {
       clearable: true,
       placeholder: 'any'
   }) ;
+  $('.ui.dropdown').dropdown();
 });

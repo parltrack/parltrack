@@ -22,7 +22,7 @@
   </div>
 </div>
 {% endif %}
-<div id="tabs"  class="ui top attached tabular menu">
+<div id="tabs"  class="ui top attached tabular menu wrapped">
     <a class="active item" data-tab="general">General</a>
     {% if 'Addresses' in mep %}<a class="item" data-tab="contact">Contact</a>{%endif%}
     <a class="item" data-tab="committees">Committees</a>
@@ -348,6 +348,7 @@
    </table>
 </div>
 <div id='cv' class="ui tab" data-tab="cv">
+  <p><a href="?history_filter=CV#/history">See historical changes of the Bio</a></p>
   {% if mep.Birth %}
     <h3>Born</h3>
       {{mep.Birth.date|asdate}} - {{mep.Birth.place}}
@@ -406,7 +407,7 @@
    {%endif%}
 </div>
 {% if mep.changes %}
-   {% import 'changes.html' as changes %}
+   {% import 'changes.html' as changes with context %}
    {{ changes.changes(mep) }}
 {%endif%}
 </div>

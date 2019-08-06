@@ -385,7 +385,7 @@
 {%endif%}
 
 {% if dossier.changes %}
-   {% import 'changes.html' as changes %}
+   {% import 'changes.html' as changes with context %}
    {{ changes.changes(dossier) }}
 {%endif%}
 </div>

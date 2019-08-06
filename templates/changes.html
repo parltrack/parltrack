@@ -2,12 +2,30 @@
    {% if data.changes %}
      <div id="history" data-tab="history" class="ui tab">
         <h3>History</h3>
+        {% if history_filters %}
+        <form method="get" class="ui form">
+         <div class="two fields">
+          <div class="field">
+           <select name="history_filter" class="ui fluid search selection dropdown">
+              <option value="">Filter history</option>
+              {% for f in history_filters %}
+              <option value="{{ f }}"{% if f == history_filter %} selected="selected"{%endif%}>{{ f }}</option>
+              {% endfor %}
+           </select>
+          </div>
+          <div class="field">
+          <input type="submit" value="Filter" class="ui button"/>
+          {% if history_filter %}<a href="?#history" class="ui button">Clear</a>{% endif %}
+          </div>
+         </div>
+        </form>
+        {% endif %}
         <p><small>(these mark the time of scraping, not the official date of the change)</small></p>
         {% for k, changes in data.changes|dictsort|reverse %}
            {% if changes %}
               <div class="ui accordion changelog-item">
-                 <div class="title">{{k[:10]}}<i class="dropdown icon"></i><a>Show ({{changes|length}}) Changes</a>{% if not loop.last %} | <a href="?date={{k}}" rel="nofollow">Timetravel</a>{%endif%}</div>
-                 <table class="ui content table small compact">
+                 <div class="{% if history_filter %}active {% endif %}title">{{k[:10]}}<i class="dropdown icon"></i><a>Show ({{changes|length}}) Changes</a>{% if not loop.last %} | <a href="?date={{k}}" rel="nofollow">Timetravel</a>{%endif%}</div>
+                 <table class="ui {% if history_filter %}active {% endif %}content table small compact">
                  {% for change in changes|sort(attribute='path') %}
                      <tr>
                         <td class="changelog-path">{{change.path|join('/')}}</td>

@@ -32,6 +32,7 @@ $(document).ready(function() {
      duration : 100,
      total    : 100,
   });
+  $('.ui.dropdown').dropdown();
   $('.button').click(function() {
    $(this).next().toggleClass('hidden');
   });

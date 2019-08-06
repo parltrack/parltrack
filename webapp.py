@@ -337,6 +337,17 @@ def mep(mep_id, mep_name):
             acts['dossiers'][ref] += 1
     if comparl_count>0: acts['types']['COMPARL-LEG'] = comparl_count
 
+    history_filters = set()
+    for cs in mep['changes'].values():
+        for c in cs:
+            history_filters.add(change_path_str(c['path']))
+    history_filters = sorted(history_filters)
+
+    history_filter = request.args.get('history_filter')
+    if history_filter:
+        history_filter = [x for x in history_filter.split('.') if not x.isdigit()]
+        mep['changes'] = filter_changes(mep['changes'], history_filter)
+
     return render(
         'mep.html',
         mep=mep,
@@ -344,7 +355,9 @@ def mep(mep_id, mep_name):
         change_dates=changes,
         group_cutoff=datetime(2004,7,20).strftime("%Y-%m-%d"),
         date=date,
-        exclude_from_json=('d', 'group_cutoff'),
+        history_filters=history_filters,
+        history_filter=None if not history_filter else change_path_str(history_filter),
+        exclude_from_json=('d', 'group_cutoff', 'history_filter', 'history_filters'),
     )
 
 @app.route('/activities/<int:mep_id>', defaults={'d_id':None, 't':None})
@@ -507,6 +520,17 @@ def dossier(d_id):
         stage_progress = stage2percent.get(d['procedure'].get('stage_reached'), 0)
         progress = max(progress, stage_progress)
 
+    history_filters = set()
+    for cs in d['changes'].values():
+        for c in cs:
+            history_filters.add(change_path_str(c['path']))
+    history_filters = sorted(history_filters)
+
+    history_filter = request.args.get('history_filter')
+    if history_filter:
+        history_filter = [x for x in history_filter.split('.') if not x.isdigit()]
+        d['changes'] = filter_changes(d['changes'], history_filter)
+
     return render(
         template,
         dossier=d,
@@ -517,7 +541,9 @@ def dossier(d_id):
         progress=progress,
         TYPES=types,
         msg=ep_wtf_dossiers.get(d_id),
-        exclude_from_json=('now_date', 'url', 'd', 'progress', 'TYPES'),
+        history_filters=history_filters,
+        history_filter=None if not history_filter else change_path_str(history_filter),
+        exclude_from_json=('now_date', 'url', 'd', 'progress', 'TYPES', 'history_filter', 'history_filters'),
     )
 
 
@@ -861,7 +887,8 @@ def asdiff(obj): # should have a new and old item
     de=diff_match_patch.diff_match_patch()
     diffs=de.diff_main(' '.join (obj.get('old','')),' '.join (obj.get('new','')))
     de.diff_cleanupSemantic(diffs)
-    return de.diff_prettyHtml(diffs)
+    from utils.utils import diff_prettyHtml
+    return diff_prettyHtml(de, diffs)
 
 
 @app.template_filter()
@@ -946,6 +973,9 @@ def group_icon(value):
 @app.template_filter()
 def asactivity(value):
     return ACTIVITY_MAP.get(value,"unknown").capitalize()
+
+def change_path_str(value):
+    return '.'.join(x for x in value if isinstance(x, str))
 
 
 def getDate():
@@ -1055,6 +1085,17 @@ def timetravel(obj):
             break
         changes.append((d, ', '.join(set('.'.join([y for y in x['path'] if isinstance(y, str)]).replace(' ', '_') for x in c))))
     return obj, changes, date
+
+def filter_changes(changes, filter):
+    ret = {}
+    for d,cs in changes.items():
+        for c in cs:
+            if [x for x in c['path'] if isinstance(x, str)][:len(filter)] == filter:
+                if d in ret:
+                    ret[d].append(c)
+                else:
+                    ret[d] = [c]
+    return ret
 
 if not config.DEBUG:
     app.logger.setLevel(logging.INFO)

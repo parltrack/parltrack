@@ -25,7 +25,7 @@
 </div>
 {% endif %}
 <p><strong>{{dossier.procedure.stage_reached}}</strong></p>
-<div id="tabs"  class="ui top attached tabular menu">
+<div id="tabs"  class="ui top attached tabular menu wrapped">
     <a class="active item" data-tab="general">General</a>
     {% if dossier.activities %}<a class="item" data-tab="activities">Activities</a>{% endif %}
     {% if dossier.activities or dossier.docs %}<a  class="item" data-tab="documents">Documents</a>{%endif%}
