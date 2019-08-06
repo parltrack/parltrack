@@ -377,5 +377,25 @@ def file_size(size):
     # should never resort to exponent values)
     return '{:.1f} {}'.format(size / (1 << (order * 10)), _suffixes[order])
 
+def diff_prettyHtml(self, diffs):
+    """Convert a diff array into a pretty HTML report.
+    Args:
+      diffs: Array of diff tuples.
+    Returns:
+      HTML representation.
+    """
+    html = []
+    for (op, data) in diffs:
+      text = (data.replace("&", "&amp;").replace("<", "&lt;")
+                 .replace(">", "&gt;").replace("\n", "&para;<br>"))
+      if op == self.DIFF_INSERT:
+        html.append("<ins>%s</ins>" % text)
+      elif op == self.DIFF_DELETE:
+        html.append("<del>%s</del>" % text)
+      elif op == self.DIFF_EQUAL:
+        html.append("<span>%s</span>" % text)
+    return "".join(html)
+
+
 if __name__ == "__main__":
     pass
