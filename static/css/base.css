@@ -250,8 +250,8 @@ div [class*="left floated"] { float: left; margin-left: 0.25em; }
 .scale10 { background-color: #00ff00; }
 .scale11 { background-color: #00ff00; }
 .voteheatmaptable {font-size: 0.7em !important;}
-.diff ins {background:#e6ffe6;}
-.diff del {background:#ffe6e6;}
+.diff ins, .diff ins * {background:#e6ffe6;}
+.diff del, .diff del * {background:#ffe6e6;}
 
 .changelog-data.added, .changelog-new {
    background:#e6ffe6;
