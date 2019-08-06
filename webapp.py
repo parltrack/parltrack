@@ -341,7 +341,7 @@ def mep(mep_id, mep_name):
     for cs in mep['changes'].values():
         for c in cs:
             history_filters.add(change_path_str(c['path']))
-    history_filters = sorted(history_filters)
+    history_filters = sorted(history_filters, key=lambda x: x.capitalize())
 
     history_filter = request.args.get('history_filter')
     if history_filter:
@@ -524,7 +524,7 @@ def dossier(d_id):
     for cs in d['changes'].values():
         for c in cs:
             history_filters.add(change_path_str(c['path']))
-    history_filters = sorted(history_filters)
+    history_filters = sorted(history_filters, key=lambda x: x.capitalize())
 
     history_filter = request.args.get('history_filter')
     if history_filter:

@@ -9,7 +9,7 @@
            <select name="history_filter" class="ui fluid search selection dropdown">
               <option value="">Filter history</option>
               {% for f in history_filters %}
-              <option value="{{ f }}"{% if f == history_filter %} selected="selected"{%endif%}>{{ f }}</option>
+              <option value="{{ f }}"{% if f == history_filter %} selected="selected"{%endif%}>{{ f.capitalize() }}</option>
               {% endfor %}
            </select>
           </div>
