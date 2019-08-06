@@ -38,13 +38,12 @@ def add_job(scraper_name, payload):
 
 
 def run_scraper(scraper):
-    error = None
     max_threads = scraper.CONFIG['threads']
     pool = Queue(maxsize=max_threads)
     for i in range(max_threads):
         Thread(target=consume, args=(pool, scraper), name=scraper._name + str(i)).start()
 
-    while error is None:
+    while True:
         pool.put(scraper._queue.get(True), True)
 
 
@@ -100,7 +99,7 @@ def consume(pool, scraper):
             pool.queue.clear()
             log(1, "---------------END OF EXCEPTIONS---------------")
 
-        if job_count == 0 and pool.empty():
+        if job_count == 0 and scraper._queue.empty() and pool.empty():
             if scraper.CONFIG.get('table') is not None:
                 db.reindex(scraper.CONFIG['table'])
                 db.commit(scraper.CONFIG['table'])
@@ -234,5 +233,8 @@ class ScraperServer(asyncore.dispatcher):
 
 
 if __name__ == '__main__':
-    server = ScraperServer('localhost', 7676, scrapers)
+    if len(sys.argv) > 1:
+        server = ScraperServer('localhost', int(sys.argv[1]), scrapers)
+    else:
+        server = ScraperServer('localhost', 7676, scrapers)
     asyncore.loop()
