@@ -115,7 +115,8 @@ def getactors(node):
         # get role Rapporteur|Responsible|Rapporteur for the opinion|Opinions
         role=cells[0].xpath('text()')
         if role and unws(role[0]):
-            if ax[0] and ax[1]: res[ax[0]]=sorted(ax[1])
+            #print(ax[1])
+            if ax[0] and ax[1]: res[ax[0]]=sorted(ax[1], key=lambda x: x.get('name', ''))
             tmp=unws(role[0])[:-1]
             if tmp=="Rapporteur for the opinion":
                 tmp="Rapporteur"
@@ -171,15 +172,16 @@ def getactors(node):
                         item[u'docs']=getdoclist(cells[3])
             ax[1].append(item)
     if ax[0] and ax[1]:
-        print(ax[0], ax[1])
-        #res[ax[0]]=sorted(ax[1])
-        res[ax[0]]=ax[1]
+        #print(ax[0], ax[1])
+        #res[ax[0]]=ax[1]
+        res[ax[0]]=sorted(ax[1], key=lambda x: x.get('name', ''))
     return res
 
 def scrape(url, committee, **kwargs):
     comid = committee
     root=fetch(url)
     lines=[x for x in root.xpath('//td[@class="contents"]/div/*') if unws(' '.join(x.xpath('.//text()')))]
+    lines=[x for x in lines if unws(' '.join(x.xpath('.//text()'))) not in ['<EPHeader>', '</EPHeader>']]
     if not len(lines): return
     if not unws(' '.join(lines[2].xpath('.//text()'))) in ['DRAFT AGENDA', '<TitreType> DRAFT AGENDA </TitreType>' ]:
         log(3, "not DRAFT AGENDA %s in %s" % (unws(' '.join(lines[2].xpath('.//text()'))), url))
@@ -191,7 +193,7 @@ def scrape(url, committee, **kwargs):
     if unws(' '.join(lines[3].xpath('.//text()')))=="INTERPARLIAMENTARY COMMITTEE MEETING":
         log(2, "skipping interparl com meet")
         return
-    if unws(' '.join(lines[6].xpath('.//text()'))).startswith('Room'):
+    if len(lines)>=7 and unws(' '.join(lines[6].xpath('.//text()'))).startswith('Room'):
             agenda.update({u'docid': unws(' '.join(lines[1].xpath('.//text()'))),
                            u'type': unws(' '.join(lines[3].xpath('.//text()'))),
                            u'time': toTime(unws(' '.join(lines[4].xpath('.//text()')))),

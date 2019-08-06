@@ -234,28 +234,35 @@ def scrape_ep_key_players(root):
         # last cell contains date
         tmp = junws(cells[2])
         if tmp:
-            player['date'] = [datetime.strptime(x, u"%d/%m/%Y") for x in tmp.split()]
+            dates = [datetime.strptime(x, u"%d/%m/%Y") for x in tmp.split()]
         elif "The committee decided not to give an opinion" not in junws(cells[1]):
-            player['date'] = []
+            dates = []
             #log(1, "no date found for keyplayer appointment")
             #raise ValueError("bad html in key players EP section, appointment date")
         else:
             player['opinion'] = False
             continue
-        date = player['date'][0] if player.get('date') else None
 
         # middle cell is rappporteur
-        for x in cells[1].xpath('./div/div[not(@class="shadow-rapporteur")]/a[not(@title="Shadow rapporteur")]'):
+        for i,x in enumerate(cells[1].xpath('./div/div[not(@class="shadow-rapporteur")]/a[not(@title="Shadow rapporteur")]')):
             if not 'rapporteur' in player: player['rapporteur']=[]
             (abbr, group) = toGroup(x.xpath('./preceding-sibling::span/span[@class="tiptip"]/@title')[-1])
             name = junws(x)
             if name.startswith('Chair on behalf of committee '):
                 name=name[29:]
+            if len(dates) > i:
+                date = dates[i]
+            else:
+                if len(dates):
+                    date = dates[0]
+                else:
+                    date = ''
             mepid = db.mepid_by_name(name, date, group)
             if not mepid:
                 log(1,'no mepid found for "%s"' % name)
             player['rapporteur'].append({'name': name,
                                          'mepref': mepid,
+                                         'date': date,
                                          'group': group,
                                          'abbr': abbr})
         # check if cell[1] has also shadow rapporteurs listed
@@ -268,6 +275,7 @@ def scrape_ep_key_players(root):
         shadow_root = tmp[0]
         # handle shadow rapporteurs
         shadows = []
+        date = dates[0] if len(dates) else None
         for link in shadow_root.xpath('./a'):
             (abbr, group) = toGroup(link.xpath('./preceding-sibling::span/span[@class="tiptip"]/@title')[-1])
             name = junws(link)

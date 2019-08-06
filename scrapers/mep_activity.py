@@ -16,15 +16,7 @@ CONFIG = {
     'abort_on_error': True,
 }
 
-# activities
-def scrape(id, **kwargs):
-    mep = db.mep(id)
-    terms = {c.get('term') for c in mep.get('Constituencies',[])}
-    acts = parse_acts(id, terms)
-    process(acts, id, db.activities, 'ep_mep_activities', mep['Name']['full'], nodiff=True)
-    return acts
-
-def parse_acts(id, terms):
+def scrape(id, terms, mepname, **kwargs):
     activity_types=(('plenary-speeches', 'CRE'),
                     ('reports', "REPORT"),
                     ('reports-shadow', "REPORT-SHADOW"),
@@ -130,20 +122,20 @@ def parse_acts(id, terms):
                                item['dossiers']=[d['procedure']['reference'] for d in dossiers]
                            elif not '+DOC+PDF+' in item['url']:
                                # try to figure out the associated dossier by making an (expensive) http request to the ep
-                               #log(4, "fetching %s" % item['url'])
+                               log(4, "fetching primary activity page %s" % item['url'])
                                try:
                                    refroot = fetch(item['url'])
                                except:
                                    refroot = None
                                if refroot is not None:
-                                   if '/doceo/' in item['url']: # stupid new EP site removed the spand with the procedure, bastards.
+                                   if '/doceo/' in item['url']: # stupid new EP site removed the span with the procedure, bastards.
                                        fulla = refroot.xpath('//table[@class="buttondocwin"]//a/img[@src="/doceo/data/img/navi_moredetails.gif"]/..')
                                        if fulla:
                                            fullurl = fulla[0].get('href')
                                            if fullurl.endswith('.html'):
                                                if fullurl[-7:-5]!='EN':
                                                    fullurl=fullurl[:-7]+'EN.html'
-                                               log(4,'loading activity full text page')
+                                               log(4,'loading activity full text page %s' % fullurl)
                                                refroot = fetch(fullurl)
                                        else:
                                            log(4,'no fulla for %s' % item['url'])
@@ -175,7 +167,10 @@ def parse_acts(id, terms):
         if TYPE in activities:
             activities[TYPE]=sorted(activities[TYPE],key=lambda x: x['date'])
     activities['mep_id']=id
-    return activities
+    if len(activities.keys())>1:
+        process(activities, id, db.activities, 'ep_mep_activities', mepname, nodiff=True)
+        return activities
+    return {}
 
 refre=re.compile(r'([0-9]{4}/[0-9]{4}[A-Z]?\((?:ACI|APP|AVC|BUD|CNS|COD|COS|DCE|DEA|DEC|IMM|INI|INL|INS|NLE|REG|RPS|RSO|RSP|SYN)\))')
 pdfrefcache={}
@@ -191,8 +186,8 @@ def pdf2ref(url):
             return m.group(1)
     pdfrefcache[url]=None
 
-from utils.process import publish_logs
 def onfinished(daisy=True):
+    from utils.process import publish_logs
     publish_logs(get_all_jobs)
 
 if __name__ == '__main__':
