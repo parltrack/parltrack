@@ -790,6 +790,7 @@ MEPS_ALIASES={
     2148: ["AF UGGLAS Margaretha"],
     2202: ["D'ABOVILLE Gérard"],
     1474: ["DESAMA Claude J.-M.J."],
+    125006: ['Francesc GAMBÚS'],
     1251: ["HERMANS Anna (An) M.A."],
     4548: ["MACCORMICK Professor Sir Neil"],
     4749: ["NISTICÒ Giuseppe"],
