@@ -12,10 +12,10 @@ import diff_match_patch
 
 from math import ceil, floor
 from datetime import datetime, date
-from flask import Flask, render_template, request
 from flask import Flask, render_template, request, redirect
 from flask.json import jsonify
 from flask_mail import Message, Mail
+from flask_caching import Cache
 from hashlib import sha1
 from jinja2 import escape
 from logging import Formatter, FileHandler
@@ -67,6 +67,9 @@ app = Flask(__name__)
 app.config.from_object('config')
 mail = Mail()
 mail.init_app(app)
+cache = Cache()
+cache.init_app(app, config={'CACHE_TYPE': 'filesystem', "CACHE_DIR": "/data/cache/flask/"})
+
 
 def get_changes(obj, path):
     ret = []
@@ -292,6 +295,7 @@ def meps(filter1=None, filter2=None):
 
 
 @app.route('/mep/<int:mep_id>/<string:mep_name>')
+@cache.cached(timeout=1*60*60)
 def mep(mep_id, mep_name):
     mep = db.mep(mep_id)
     if not mep:
@@ -364,6 +368,7 @@ def mep(mep_id, mep_name):
 @app.route('/activities/<int:mep_id>/type/<string:t>', defaults={'d_id':None})
 @app.route('/activities/<int:mep_id>/dossier/<path:d_id>', defaults={'t':None})
 @app.route('/activities/<int:mep_id>/<string:t>/<path:d_id>')
+@cache.cached(timeout=4*60*60)
 def activities(mep_id, t, d_id):
     if mep_id not in mepnames:
         return render('errors/404.html'), 404
@@ -438,6 +443,7 @@ def dossiers():
     return render('dossiers.html', dossiers=ds, date=date)
 
 @app.route('/dossier/<path:d_id>')
+@cache.cached(timeout=4*60*60)
 def dossier(d_id):
     d = db.dossier(d_id)
     if not d:
