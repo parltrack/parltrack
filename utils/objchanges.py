@@ -21,6 +21,8 @@ from operator import itemgetter
 from copy import deepcopy
 import functools
 
+debug = False
+
 def diff(old,new):
     o = normalize(deepcopy(old))
     n = normalize(deepcopy(new))
@@ -195,21 +197,24 @@ def patch(obj, changes):
             if len(change['path'])!=l: continue
             obj=getitem(res,change['path'][:-1])
             if obj is None:
-                print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
+                if debug: print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
+                raise ValueError()
                 return
             if isinstance(obj,dict) and change['path'][-1] not in obj:
-                print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
-                print(change,obj)
+                if debug: print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
+                if debug: print(change,obj)
+                raise ValueError()
                 return
             elif isinstance(obj,list) and change['path'][-1]>=len(obj):
-                print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
-                print(change,obj)
+                if debug: print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
+                if debug: print(change,obj)
                 return
             elif change['data']==obj[change['path'][-1]]:
                 #print("\tdeleting", change['path'])
                 del obj[change['path'][-1]]
             else:
-                print("wtf deleted: %s\nobj: %s" % (change, obj))
+                if debug: print("wtf deleted: %s\nobj: %s" % (change, obj))
+                raise ValueError()
 
         # handle adds
         for change in sorted(changes, key=lambda x: x['path']):
@@ -217,8 +222,9 @@ def patch(obj, changes):
             if len(change['path'])!=l: continue
             obj=getitem(res,change['path'][:-1])
             if obj is None:
-                print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
+                if debug: print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
                 #print(list(x['path'] for x in sorted(changes, key=functools.cmp_to_key(sortpaths))))
+                raise ValueError()
                 return
             #print("\tadding", change['path'])
             if isinstance(obj,list):
@@ -232,19 +238,23 @@ def patch(obj, changes):
             if len(change['path'])!=l: continue
             obj=getitem(res,change['path'][:-1])
             if obj is None:
-                print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
+                if debug: print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
+                raise ValueError()
                 return
             if isinstance(obj,dict) and change['path'][-1] not in obj:
-                print("cannot change %s what is not there in %s" % (change['path'][-1], change['data']))
+                if debug: print("cannot change %s what is not there in %s" % (change['path'][-1], change['data']))
+                raise ValueError()
                 return
             elif isinstance(obj,list) and change['path'][-1]>=len(obj):
-                print("cannot change %s what is not there in %s" % (change['path'][-1], change['data']))
+                if debug: print("cannot change %s what is not there in %s" % (change['path'][-1], change['data']))
+                raise ValueError()
                 return
             elif obj[change['path'][-1]]==change['data'][0]:
                 #print("\tchanging", change['path'])
                 obj[change['path'][-1]]=deepcopy(change['data'][1])
             else:
-                print("wtf change", change, obj)
+                if debug: print("wtf change", change, obj)
+                raise ValueError()
     return res
 
 def revert(obj, changes):
@@ -257,24 +267,25 @@ def revert(obj, changes):
             if len(change['path'])!=l: continue
             obj=getitem(res,change['path'][:-1])
             if obj is None:
-                print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
+                if debug: print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
                 raise ValueError()
                 return
                 #return (i,clen)
 
             if isinstance(obj,dict) and change['path'][-1] not in obj:
-                print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
+                if debug: print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
                 raise ValueError()
                 return
             elif isinstance(obj,list) and change['path'][-1]>=len(obj):
-                print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
+                if debug: print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
                 raise ValueError()
                 return
             elif change['data']==obj[change['path'][-1]]:
-                #print("\tdeleting", change['path'])
+                if debug: print("\tdeleting", change['path'])
                 del obj[change['path'][-1]]
             else:
-                print("wtf add: %s\nobj: %s" % (change, obj))
+                if debug: print("wtf add: %s\nobj: %s" % (change, obj))
+                raise ValueError()
 
         # undo deletes
         for change in sorted(changes, key=lambda x: x['path']):
@@ -282,7 +293,7 @@ def revert(obj, changes):
             if len(change['path'])!=l: continue
             obj=getitem(res,change['path'][:-1])
             if obj is None:
-                print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
+                if debug: print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
                 #print(list(x['path'] for x in sorted(changes, key=functools.cmp_to_key(sortpaths))))
                 raise ValueError()
                 return
@@ -299,22 +310,23 @@ def revert(obj, changes):
             if len(change['path'])!=l: continue
             obj=getitem(res,change['path'][:-1])
             if obj is None:
-                print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
+                if debug: print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
                 raise ValueError()
                 return
             if isinstance(obj,dict) and change['path'][-1] not in obj:
-                print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
+                if debug: print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
                 raise ValueError()
                 return
             elif isinstance(obj,list) and change['path'][-1]>=len(obj):
-                print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
+                if debug: print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
                 raise ValueError()
                 return
             elif obj[change['path'][-1]]==change['data'][1]:
                 #print("\tchanging", change['path'])
                 obj[change['path'][-1]]=deepcopy(change['data'][0])
             else:
-                print("wtf change: %s\nobj: %s" % (change, obj))
+                if debug: print("wtf change: %s\nobj: %s" % (change, obj))
+                raise ValueError()
 
     #print(dumps(res))
     return res
