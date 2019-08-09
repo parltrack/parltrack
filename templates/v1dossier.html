@@ -21,6 +21,9 @@
     </div>
     <p>Changes: {% for d, c in change_dates %}<a href="?date={{d}}" class="tooltipz">{{d|asdate}}<span class='bottom'>{{c}}<i></i></span></a>{% if not loop.last %}, {%endif%}{%endfor%}</p>
     <p><a href="?">View current state</a> | <a href="#/history">View Changes for this date</a></p>
+    {% if tt_fail %}
+    <div class="ui negative message"><div class="header">Sorry, but we failed to recreate history before {{ tt_fail }}</div></div>
+    {% endif %}
   </div>
 </div>
 {% endif %}
