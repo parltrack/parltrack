@@ -5,7 +5,7 @@ CURRENT_TERM=9
 USER_AGENT='parltrack/0.8'
 PROXY='http://localhost:8123/'
 
-ROOT_URL = '/'
+ROOT_URL = 'https://parltrack.org/'
 
 # Base directory
 basedir = os.path.abspath(os.path.dirname(__file__))
