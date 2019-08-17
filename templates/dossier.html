@@ -1,14 +1,10 @@
 {% extends "base.html" %}
 {% block title %}{{ dossier.procedure.reference }} | {% endblock %}
-{% block rss %}
-<link rel="alternate" type="application/atom+xml" title="Changes for {{ dossier.procedure.reference }} feed" href="/dossier/atom/{{dossier.procedure.reference}}" />
-{% endblock %}
 {% block content %}
 <div class="ui vertical segment">
   <div class="ui center aligned stackable grid container">
     <div class="row">
      <div class="ui horizontal list">
-      <div class="item"><a href="/dossier/atom/{{dossier.procedure.reference}}">Track RSS</a></div>
       <div class="item"><a href="{{url}}?format=json" rel="nofollow">download json</a></div>
       <!--<div class="item"><a class="hidden" id="wikinotes" href="{{dossier.procedure.reference|reftopath}}">Notes</a></div>-->
       <div class="item" id="track_dossier"><a href="#">Subscribe</a>
