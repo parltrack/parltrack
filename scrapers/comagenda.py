@@ -293,64 +293,42 @@ def save(data):
 
         id = item['committee']+d+str(item['seq_no'])
         item['id'] = id
-        process(item, id, db.comagenda, 'ep_comagendas', id+' - '+item['title'])
+        process(item, id, db.comagenda, 'ep_comagendas', id+' - '+item['title'], onchanged=onchanged)
     return data
 
-#TODO
-def notify(data,d):
-    if not 'epdoc' in data: return
-    m=db.notifications.find({'dossiers': data['epdoc']},['active_emails'])
-    for g in m:
-        if len(g['active_emails'])==0:
-            continue
-        msg = Message("[PT-Com] %s: %s" %
-                      (data['committee'],
-                       data['title']),
-                      sender = "parltrack@parltrack.org",
-                      bcc = g['active_emails'])
-        msg.body = (u"Parltrack has detected %s%s on the schedule of %s \n"
+def onchanged(doc, diff):
+    id = doc['epdoc']
+    dossiers = notif.session.query(notif.Item).filter(notif.Item.name==id).all()
+    recipients = set()
+    for i in dossiers:
+        for s in i.group.subscribers:
+            recipients.add(s.email)
+    if not recipients:
+        return
+    log(3, "sending comagenda changes to " + ', '.join(recipients))
+    #(recepients, subject, change, date, url)
+    send_html_mail(
+        recipients=list(recipients),
+        subject="[PT-Com] %s: %s" % (doc['committee'],doc['title']),
+        obj = doc,
+        change=diff,
+        date=sorted(doc['changes'].keys())[-1],
+        url='%scommittee/%s' % (ROOT_URL, doc['committee']),
+        text=''.join((u"Parltrack has detected %s%s on the schedule of %s \n"
                     u"\n  on %s"
                     u"\n%s"
                     u"%s"
                     u"\nsee the details here: %s\n"
                     u"\nYour Parltrack team" %
                     (u"a change on " if d else u'',
-                     data['epdoc'],
-                     data['committee'],
-                     data['date'] if 'date' in data else 'unknown date',
-                     ("\n  - %s" % u'\n  - '.join(data['list'])) if 'list' in data and len(data['list'])>0 else u"",
+                     doc['epdoc'],
+                     doc['committee'],
+                     doc['date'] if 'date' in doc else 'unknown date',
+                     ("\n  - %s" % u'\n  - '.join(doc['list'])) if 'list' in doc and len(doc['list'])>0 else u"",
                      "\n %s" % (textdiff(d) if d else ''),
-                     "%s/dossier/%s" % (ROOT_URL, data['epdoc']),
-                    ))
-        mail.send(msg)
-def onchanged(doc, diff):
-    id = doc['procedure']['reference']
-    dossiers = notif.session.query(notif.Item).filter(notif.Item.name==id).all()
-    subject_items = notif.session.query(notif.Item).filter(notif.Item.type=='subjects').all()
-    search_items = notif.session.query(notif.Item).filter(notif.Item.type=='search').all()
-    recipients = set()
-    for i in dossiers:
-        for s in i.group.subscribers:
-            recipients.add(s.email)
-    for i in subject_items:
-        if i.name in (x for x in doc['procedure']['subject']):
-            for s in i.group.subscribers:
-                recipients.add(s.email)
-    for i in search_items:
-        q = create_search_regex(i.name)
-        if dossier_search(q, doc):
-            for s in i.group.subscribers:
-                recipients.add(s.email)
-    if not recipients:
-        return
-    log(3, "sending dossier changes to " + ', '.join(recipients))
-    msg = Message("[PT] %s %s" % (doc['procedure']['reference'],doc['procedure']['title']),
-		  sender = "parltrack@parltrack.org",
-		  bcc = list(recipients))
-    #msg.html = htmldiff(doc,d)
-    msg.body = makemsg(doc,diff)
-    with app.app_context():
-        mail.send(msg)
+                     "%sdossier/%s" % (ROOT_URL, doc['epdoc']),
+                    )))
+    )
     return
 
 from utils.process import publish_logs

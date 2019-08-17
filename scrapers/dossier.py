@@ -18,22 +18,21 @@
 # (C) 2009-2011,2018-2019 by Stefan Marsiske, <parltrack@ctrlc.hu>
 
 import notification_model as notif
+import unicodedata, requests
 
-from db import db
-from utils.log import log
-from utils.process import process
-from utils.mappings import GROUP_MAP, COMMITTEE_MAP
-from utils.utils import fetch, fetch_raw, junws, unws, create_search_regex, dossier_search, textdiff
-from urllib.parse import urljoin
+from config import ROOT_URL
 from datetime import datetime
+from db import db
+from itertools import zip_longest
 from lxml.etree import tostring, _ElementUnicodeResult
 from lxml.html.soupparser import fromstring
-from itertools import zip_longest
 from operator import itemgetter
-from webapp import mail, app
-from flask_mail import Message
-from config import ROOT_URL
-import unicodedata, requests
+from urllib.parse import urljoin
+from utils.log import log
+from utils.mappings import GROUP_MAP, COMMITTEE_MAP
+from utils.notif_mail import send_html_mail
+from utils.process import process
+from utils.utils import fetch, fetch_raw, junws, unws, create_search_regex, dossier_search, textdiff
 
 BASE_URL = 'https://oeil.secure.europarl.europa.eu'
 
@@ -713,7 +712,7 @@ groupurlmap={'http://www.guengl.eu/?request_locale=en': u"GUE/NGL",
              'http://www.efdgroup.eu/?request_locale=en': u'EFD',
              'http://www.ecrgroup.eu/?request_locale=en': u'ECR',
              'http://www.socialistsanddemocrats.eu/gpes/index.jsp?request_locale=en': u'S&D',
-             'http://www.enfgroup-ep.eu/': u'ENF'} # todo fix when website available
+             'http://www.enfgroup-ep.eu/': u'ENF'}
 instmap={'European Parliament': u'EP',
          'European Commission': u'EC',
          'Council of the European Union': u'CSL',
@@ -943,18 +942,21 @@ def onchanged(doc, diff):
     if not recipients:
         return
     log(3, "sending dossier changes to " + ', '.join(recipients))
-    msg = Message("[PT] %s %s" % (doc['procedure']['reference'],doc['procedure']['title']),
-		  sender = "parltrack@parltrack.org",
-		  bcc = list(recipients))
-    #msg.html = htmldiff(doc,d)
-    msg.body = makemsg(doc,diff)
-    with app.app_context():
-        mail.send(msg)
+    #(recepients, subject, change, date, url)
+    send_html_mail(
+        recipients=list(recipients),
+        subject="%s %s" % (doc['procedure']['reference'],doc['procedure']['title']),
+        obj=doc,
+        change=diff,
+        date=sorted(doc['changes'].keys())[-1],
+        url='%sdossier/%s' % (ROOT_URL, doc['procedure']['reference']),
+        text=makemsg(doc, diff)
+    )
     return
 
 
 def makemsg(doc,diff):
-    return (u"Parltrack has detected a change in %s %s on OEIL.\n\nPlease follow this URL: %s/dossier/%s to see the dossier.\n\nChanges follow\n%s\n\n\nsincerly,\nYour Parltrack team" %
+    return (u"Parltrack has detected a change in %s %s on OEIL.\n\nPlease follow this URL: %sdossier/%s to see the dossier.\n\nChanges follow\n%s\n\n\nsincerly,\nYour Parltrack team" %
             (doc['procedure']['reference'],
              doc['procedure']['title'],
              ROOT_URL,

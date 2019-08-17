@@ -1,0 +1,142 @@
+{% block content %}
+<!DOCTYPE html>
+<html class="no-js" lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
+    <title>Changes for {{subject}} [ParlTrack]</title>
+    <meta name="HandheldFriendly" content="True">
+    <meta name="MobileOptimized" content="320">
+<style>
+.table {
+    margin-bottom: 0;
+    width: 100%;
+    background: #fff;
+    margin: 0;
+    border: 1px solid rgba(34,36,38,.15);
+    border-bottom: 1px solid rgba(34,36,38,1);
+    box-shadow: none;
+    border-radius: .28571429rem;
+    text-align: left;
+    color: rgba(0,0,0,.87);
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+.padded {
+    padding: .5em .7em !important;
+}
+
+.horizontal-padded {
+    padding-left: .7em !important;
+    padding-right: .7em !important;
+}
+
+.td {
+   padding: 4px;
+   padding-right: 0;
+   border: 0;
+	-webkit-transition: background .1s ease,color .1s ease;
+	transition: background .1s ease,color .1s ease;
+}
+
+.td:first-of-type {
+   width: 20%;
+}
+
+.td:last-of-type {
+   word-break: break-all;
+}
+
+.change {
+    max-width: 100% !important;
+	 display: -webkit-box;
+	 display: -ms-flexbox;
+	 display: flex;
+	 -webkit-box-orient: horizontal;
+	 -webkit-box-direction: normal;
+	 -ms-flex-direction: row;
+	 flex-direction: row;
+	 -ms-flex-wrap: wrap;
+	 flex-wrap: wrap;
+	 -webkit-box-align: stretch;
+	 -ms-flex-align: stretch;
+	 align-items: stretch;
+
+	 padding: .5em .7em;
+	 margin: 0 !important;
+}
+
+.change div {
+	width: 100% !important;
+}
+
+dt {
+   font-weight: bold;
+   display: inline-block;
+}
+dt::after { content: ":"; }
+
+.added, .added *, ins, ins * {
+	 background: #e6ffe6;
+    text-decoration: underline dotted;
+   padding: 4px 0;
+}
+
+.deleted, .deleted *, del, del * {
+	background: #ffe6e6;
+	text-decoration: line-through;
+   padding: 4px 0;
+}
+
+.changed, .changed * {
+   padding-left: 0rem;
+   padding-right: 0rem;
+   vertical-align: top;
+}
+.column {
+   float: left;
+   width: 50%;
+}
+
+.key {
+   vertical-align: top;
+}
+
+/* Clear floats after the columns */
+.row:after {
+   content: "";
+   display: table;
+   clear: both;
+}
+
+.centered {
+   text-align: center;
+}
+
+body {
+   margin-left: 1em;
+   margin-right: 1em;
+}
+
+.wrapper {
+   max-width: 1024px;
+   margin-left: auto;
+   margin-right: auto;
+}
+</style>
+</head>
+<body>
+   <div class="wrapper">
+      <h1>Changes for {{subject}}</h1>
+      <p><small>Date of changes recorded: {{date}}</small></p>
+      <p>For a complete view on this object please visit <a href="{{url}}">{{url}}</a></p>
+      <div>
+         {{body|safe}}
+      </div>
+      <p>with data&lt;3 your parltrack team</p>
+   </div>
+</body>
+</html>
+{%endblock%}

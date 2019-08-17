@@ -18,14 +18,19 @@
 # (C) 2019 by Stefan Marsiske, <parltrack@ctrlc.hu>
 
 import re,sys
-from utils.utils import fetch, fetch_raw, unws, jdump, getpdf
+import notification_model as notif
+from utils.utils import fetch, fetch_raw, unws, jdump, getpdf, textdiff
 from utils.process import process
-from utils.mappings import buildings, SEIRTNUOC, COMMITTEE_MAP, ORGMAPS, GROUP_MAP, DELEGATIONS, MEPS_ALIASES, TITLES
+from utils.mappings import buildings, SEIRTNUOC, COMMITTEE_MAP, ORGMAPS, GROUP_MAP, DELEGATIONS, MEPS_ALIASES, TITLES, COUNTRIES
 from utils.log import log
+from utils.notif_mail import send_html_mail
+from config import ROOT_URL
 from datetime import datetime
 from lxml.html.soupparser import fromstring
 from db import db
 from scrapers import _findecl as findecl
+from webapp import mail, app
+from flask_mail import Message
 
 CONFIG = {
     'threads': 8,
@@ -135,7 +140,7 @@ def scrape(id, **kwargs):
 
     # history
     parse_history(id, root, mep)
-    process(mep, id, db.mep, 'ep_meps', mep['Name']['full'], nopreserve=(['Addresses'], ['assistants']))
+    process(mep, id, db.mep, 'ep_meps', mep['Name']['full'], nopreserve=(['Addresses'], ['assistants']), onchanged=onchanged)
 
     if __name__ == '__main__':
         return mep
@@ -357,6 +362,49 @@ def onfinished(daisy=True):
     if daisy:
         from scraper_service import add_job
         add_job("dossiers",{"all":False, 'onfinished': {'daisy': True}})
+
+def onchanged(mep, diff):
+    log(4, "calling onchanged for mep")
+    today = datetime.now().isoformat()
+
+    country = mep['Constituencies'][-1]['country']
+    mep_items = notif.session.query(notif.Item).filter(notif.Item.type=='meps_by_country').filter(notif.Item.name==country).all()
+
+    for c in mep.get('Committees', []):
+        if c['end'] > today:
+            committee = c['abbr']
+            mep_items.extend(notif.session.query(notif.Item).filter(notif.Item.type=='meps_by_committee').filter(notif.Item.name==committee).all())
+
+    for g in mep.get('Groups', []):
+        if g['end'] > today:
+            group = g['groupid']
+            mep_items.extend(notif.session.query(notif.Item).filter(notif.Item.type=='meps_by_group').filter(notif.Item.name==group).all())
+
+    recipients = set()
+    for i in mep_items:
+        for s in i.group.subscribers:
+            recipients.add(s.email)
+    if not recipients:
+        log(4, "no subscribers found for mep " + str(mep['UserID']))
+        return
+    log(3, "sending mep changes to " + ', '.join(recipients))
+    send_html_mail(
+        recipients=list(recipients),
+        subject="%s %s" % (mep['UserID'],mep['Name']['full']),
+        obj=mep,
+        change=diff,
+        date=sorted(mep['changes'].keys())[-1],
+        url='%smep/%s' % (ROOT_URL, mep['UserID']),
+        text=makemsg(mep, diff)
+    )
+    return
+
+def makemsg(mep,diff):
+    return (u"Parltrack has detected a change in %s on europarl.eu.\n\nPlease follow this URL: %smep/%s to see the MEP.\n\nChanges follow\n%s\n\n\nsincerly,\nYour Parltrack team" %
+            (mep['Name']['full'],
+             ROOT_URL,
+             mep['UserID'],
+             textdiff(diff)))
 
 if __name__ == '__main__':
     #scrape(28390)
