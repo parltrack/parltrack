@@ -154,6 +154,10 @@ class Client:
     def dossier_refs(self):
         return self.keys('ep_dossiers', None)
 
+    def active_groups(self):
+        cmd = {"cmd": "active_groups", "params": {}}
+        return self.send_req(cmd)
+
     def getMep(self, name, date=None,group=None, abbr=None):
         if date and (name, (date.year,date.month)) in self.mepCache:
             # we only cache if there is also a date, and then we cache only year/month
@@ -503,6 +507,15 @@ def dossier_titles_by_refs():
     return res
 
 
+def active_groups():
+    res = set()
+    for m in IDXs["meps_by_activity"]['active']:
+        groups = [(group.get('groupid'), group.get('Organization')) for group in m.get('Groups',[]) if group]
+        if groups:
+            res.add(groups[-1])
+    return list(map(list, res))
+
+
 ######  indexes ######
 
 
@@ -805,6 +818,7 @@ function_map = {
     'committees': committees,
     'activities': activities,
     'dossier_titles': dossier_titles_by_refs,
+    "active_groups": active_groups,
 }
 
 if __name__ == '__main__':
