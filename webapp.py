@@ -23,7 +23,7 @@ from pprint import pprint
 from random import shuffle, randrange, randint, choice
 from sys import version_info
 from urllib.parse import unquote
-from utils.utils import asDate, clean_lb, jdump, file_size
+from utils.utils import asDate, clean_lb, jdump, file_size, format_dict
 from utils.devents import merge_events
 from utils.objchanges import getitem, revert
 from utils.mappings import (
@@ -219,11 +219,11 @@ staff_positions={"President": 7,
 @app.route('/meps/<string:filter1>')
 @app.route('/meps')
 def meps(filter1=None, filter2=None):
-    # TODO date handling
+    # nice to have extra feature: date handling - show meps on any given date - use db:matchinterval iterating over meps
     group_filter = None
     country_filter = None
     active = False if request.args.get('inactive') else True
-    print(repr(filter1),repr(filter2))
+    #print(repr(filter1),repr(filter2))
     if filter1 is not None:
         if filter1 in GROUPIDS:
             group_filter = filter1
@@ -295,12 +295,12 @@ def meps(filter1=None, filter2=None):
 
 
 @app.route('/mep/<int:mep_id>/<string:mep_name>')
-@cache.cached(timeout=1*60*60)
+@cache.cached(timeout=1*60*60, query_string=True)
 def mep(mep_id, mep_name):
     mep = db.mep(mep_id)
     if not mep:
         return not_found_error(None)
-    mep, changes, date = timetravel(mep)
+    mep, changes, date, failed = timetravel(mep)
     amendments = db.get("ams_by_mep", mep_id) or []
     activities = db.activities(mep_id) or {}
     acts = {'types':{}, 'dossiers':{}}
@@ -352,6 +352,8 @@ def mep(mep_id, mep_name):
         history_filter = [x for x in history_filter.split('.') if not x.isdigit()]
         mep['changes'] = filter_changes(mep['changes'], history_filter)
 
+    if mep['UserID'] in [124782, 124762]:
+        mep['Constituencies']=[]
     return render(
         'mep.html',
         mep=mep,
@@ -361,14 +363,15 @@ def mep(mep_id, mep_name):
         date=date,
         history_filters=history_filters,
         history_filter=None if not history_filter else change_path_str(history_filter),
-        exclude_from_json=('d', 'group_cutoff', 'history_filter', 'history_filters'),
+        tt_fail=failed,
+        exclude_from_json=('d', 'group_cutoff', 'history_filter', 'history_filters', 'tt_fail'),
     )
 
 @app.route('/activities/<int:mep_id>', defaults={'d_id':None, 't':None})
 @app.route('/activities/<int:mep_id>/type/<string:t>', defaults={'d_id':None})
 @app.route('/activities/<int:mep_id>/dossier/<path:d_id>', defaults={'t':None})
 @app.route('/activities/<int:mep_id>/<string:t>/<path:d_id>')
-@cache.cached(timeout=4*60*60)
+@cache.cached(timeout=4*60*60, query_string=True)
 def activities(mep_id, t, d_id):
     if mep_id not in mepnames:
         return render('errors/404.html'), 404
@@ -443,12 +446,12 @@ def dossiers():
     return render('dossiers.html', dossiers=ds, date=date)
 
 @app.route('/dossier/<path:d_id>')
-@cache.cached(timeout=4*60*60)
+@cache.cached(timeout=5*60*60, query_string=True)
 def dossier(d_id):
     d = db.dossier(d_id)
     if not d:
         return not_found_error(None)
-    d, changes, date = timetravel(d)
+    d, changes, date, failed = timetravel(d)
 
     clean_lb(d)
 
@@ -461,34 +464,6 @@ def dossier(d_id):
     if d_id in v1dossiers or 'activities' in d:
         template = "v1dossier.html"
         types = None
-        # todo add d['votes'] in v1 expected format
-        #votes = db.get('votes_by_dossier',d_id) or []
-        #for vote in votes:
-        #    groups=[x['group']
-        #            for new in ['For','Against','Abstain']
-        #            if new in vote
-        #            for x in vote[new]['groups']]
-        #    vote['groups']=sorted(set(groups))
-        #    t,r=vote.get('title'),vote.get('report')
-        #    if t and r:
-        #        i=t.index(r)
-        #        if i>=0:
-        #            tmp=r.replace('/','-').split('-')
-        #            rid='-'.join((tmp[0],tmp[2],tmp[1]))
-        #            if rid[0] == 'A':
-        #                type = 'REPORT'
-        #            elif rid[0] == 'B':
-        #                type = 'MOTION'
-        #            else:
-        #                print >>sys.stderr, '[$] unkown vote reference type:', r
-        #            vote['linkedtitle']='%s<a href="http://www.europarl.europa.eu/sides/getDoc.do?type=%s&amp;mode=XML&amp;reference=%s&amp;language=EN">%s</a>%s' \
-        #                                 % (t[:i], type, rid, r, t[i+len(r):])
-        #    for dec in [x for x in ['For','Against','Abstain'] if x in vote]:
-        #        for g in groups:
-        #            if g not in [x['group'] for x in vote[dec]['groups']]:
-        #                vote[dec]['groups'].append({'group':g, 'votes': []})
-        #        vote[dec]['groups'].sort(key=itemgetter('group'))
-        #d['votes']=votes
     else:
         template = "dossier.html"
         d['events'] = merge_events(d)
@@ -496,17 +471,32 @@ def dossier(d_id):
 
         # get activities by meps
         meps={}
+        # lookup to match shadow rapporteurs to committees
+        comap = {c['committee']: i for i, c in enumerate(d.get('committees', [])) if c['type'] not in ('Responsible Committee', 'Former Responsible Committee')}
         for act, type, mepid, mepname in (db.activities_by_dossier(d_id) or []):
             if type in ["REPORT", "REPORT-SHADOW", "COMPARL"]: continue
             if type == 'COMPARL-SHADOW':
+                if act['committee'] not in comap:
+                    continue
+                # merge shadow rapporteurs into d['committees']
+                mep = db.mep(mepid)
+                com = d['committees'][comap[act['committee']]]
+                if not 'shadows' in com:
+                    com['shadows']=[]
+                for g in mep['Groups']:
+                    start = g['start']
+                    end = datetime.now().isoformat() if g['end'] in ['9999-12-31T00:00:00', '31-12-9999T00:00:00'] else g['end']
+                    if start <= act['date'] <=end:
+                        com['shadows'].append({'name': mepname,
+                             'mepref': mepid,
+                              'group': g['Organization'],
+                               'abbr': g['groupid']}
+                               )
                 continue
-            #    pass # todo add this to the committee info
-            #else:
             if not mepid in meps: meps[mepid]={'name': mepname, 'types': {}}
             if not type in meps[mepid]['types']: meps[mepid]['types'][type]=[]
             if act.get('date','0') < date: # filter for timetravel
                 meps[mepid]['types'][type].append(act)
-        # todo sort meps by number of activities
         d['mep_activities']=sorted(meps.items(), key=lambda x: sum(len(y) for y in x[1]['types'].values()), reverse=True)
         types = {
             'CRE': 'Plenary Speeches',
@@ -549,14 +539,15 @@ def dossier(d_id):
         msg=ep_wtf_dossiers.get(d_id),
         history_filters=history_filters,
         history_filter=None if not history_filter else change_path_str(history_filter),
-        exclude_from_json=('now_date', 'url', 'd', 'progress', 'TYPES', 'history_filter', 'history_filters'),
+        tt_fail=failed,
+        exclude_from_json=('now_date', 'url', 'd', 'progress', 'TYPES', 'history_filter', 'history_filters', 'tt_fail'),
     )
 
 
 @app.route('/committees')
 def committees():
     s = db.committees()
-    s = dict(sorted(s.items(), key=lambda x: x[1]['active'], reverse=True))
+    s = dict(sorted(s.items(), key=lambda x: (not x[1]['active'], x[0])))
     return render('committees.html', committees=s)
 
 
@@ -691,8 +682,7 @@ def listdossiers(d):
             del d['activities'][d['activities'].index(act)]
     if 'legal_basis' in d.get('procedure', {}):
         clean_lb(d)
-    # TODO
-    #db = connect_db()
+    # TODO implement db.comagendas_by_dossier in db. useful for dashboard view in notifications
     #for item in db.ep_comagendas.find({'epdoc': d['procedure']['reference']}):
     #    if 'tabling_deadline' in item and item['tabling_deadline']>=datetime.now():
     #        d['activities'].insert(0,{'type': '(%s) Tabling Deadline' % item['committee'], 'body': 'EP', 'date': item['tabling_deadline']})
@@ -716,22 +706,37 @@ def notification_view_or_create(g_id):
         ids=[listdossiers(db.dossier(d.name)) for d in inactive_items if d.type=='dossier']
     if ds and request.headers.get('X-Requested-With'):
         return jsonify(count=len(ds), dossiers=ds)
+    committees = db.committees()
+    committees = dict(sorted([(k,v) for k,v in committees.items() if v['active']], key=lambda x: x[0]))
+    groups = db.active_groups()
+    grouped_items = {}
+    for i in group.items:
+        if i.activation_key:
+            continue
+        if i.type in grouped_items:
+            grouped_items[i.type].append(i.name)
+        else:
+            grouped_items[i.type] = [i.name]
     return render('view_notif_group.html',
-                           dossiers=ds,
-                           active_dossiers=len(ds),
-                           inactive_dossiers=len(ids),
-                           date=datetime.now(),
-                           group={
-                               'name': group.name,
-                               'id': group.id,
-                               'items': [{'name': i.name, 'type': i.type} for i in group.items if not i.activation_key],
-                               'subscribers': [{'email': s.email} for s in group.subscribers if not s.activation_key],
-                               'pending_subscribers': [{'email': s.email} for s in group.subscribers if s.activation_key],
-                               'inactive_items': [{'name': i.name, 'type': i.type} for i in group.items if i.activation_key],
-                           })
+                   dossiers=ds,
+                   active_dossiers=len(ds),
+                   inactive_dossiers=len(ids),
+                   committees=committees,
+                   groups=groups,
+                   grouped_items=grouped_items,
+                   deleted=request.args.get('deleted'),
+                   group={
+                       'name': group.name,
+                       'id': group.id,
+                       'items': [{'name': i.name, 'type': i.type} for i in group.items if not i.activation_key],
+                       'subscribers': [{'email': s.email} for s in group.subscribers if not s.activation_key],
+                       'pending_subscribers': [{'email': s.email} for s in group.subscribers if s.activation_key],
+                       'inactive_items': [{'name': i.name, 'type': i.type} for i in group.items if i.activation_key or i.deactivation_key],
+                   },
+                   exclude_from_json=('committees', 'groups'))
 
 
-@app.route('/notification/<string:g_id>/add/<any(dossiers, emails, subject):item>/<path:value>')
+@app.route('/notification/<string:g_id>/add/<any(dossiers, emails, subject, meps_by_country, meps_by_committee, meps_by_group):item>/<path:value>')
 def notification_add_detail(g_id, item, value):
     group = notif.session.query(notif.Group).filter(notif.Group.name==g_id).first()
     if not group:
@@ -748,13 +753,17 @@ def notification_add_detail(g_id, item, value):
         group.subscribers.append(i)
 
     elif item == 'dossiers':
+        if notif.session.query(notif.Item).filter(notif.Item.type=='dossier').filter(notif.Item.name==value).filter(notif.Item.group==group).all():
+            return 500
         d = db.dossier(value)
         if not d:
             return 'unknown dossier - '+value
         i = notif.Item(name=value, type='dossier', activation_key=gen_token())
         group.items.append(i)
-    elif item == 'subject':
-        i = notif.Item(name=value, type='subject', activation_key=gen_token())
+    else:
+        if notif.session.query(notif.Item).filter(notif.Item.type==item).filter(notif.Item.name==value).filter(notif.Item.group==group).all():
+            return 500
+        i = notif.Item(name=value, type=item, activation_key=gen_token())
         group.items.append(i)
     if not email:
         return 'unknown email', 500
@@ -764,13 +773,21 @@ def notification_add_detail(g_id, item, value):
 
     notif.session.add(i)
     notif.session.commit()
-    print("activation_key %s" % i.activation_key)
-    msg.body = "Your verification key is %sactivate?key=%s\nNotification group url: %snotification/%s" % (request.url_root, i.activation_key, request.url_root, g_id)
+    msg.body = '\n'.join(('Dear Parltrack user,',
+        '',
+        'Someone wants to add %s: "%s" to the notification subscription group "%s".' %(item, value, g_id),
+        "Please visit %sactivate?key=%s to activate this notification subscription." % (request.url_root, i.activation_key),
+        '',
+        'Important! Please bookmark this link so you can edit, add and delete the notifications in this group: %snotification/%s' % (request.url_root, g_id),
+        'This link can also be shared with your comrades. They can subscribe on this link to this group of watched objects.',
+        '',
+        'with data<3,',
+        'parltrack'))
     mail.send(msg)
-    return 'OK'
+    return jsonify({'status': 'OK'})
 
 
-@app.route('/notification/<string:g_id>/del/<any(dossiers, emails, subscribers):item>/<path:value>')
+@app.route('/notification/<string:g_id>/del/<any(dossiers, emails, subject, meps_by_country, meps_by_committee, meps_by_group):item>/<path:value>')
 def notification_del_detail(g_id, item, value):
     group = notif.session.query(notif.Group).filter(notif.Group.name==g_id).first()
     if not group:
@@ -789,45 +806,75 @@ def notification_del_detail(g_id, item, value):
                 break
         if not sub:
             return 'Cannot complete this action'
-        sub.activation_key = gen_token()
+        sub.deactivation_key = gen_token()
         notif.session.add(sub)
         notif.session.commit()
-        msg.body = "Your verification key is %sactivate?key=%s&?delete=1\nNotification group url: %snotification/%s" % (request.url_root, sub.activation_key, request.url_root, g_id)
+        msg.body = '\n'.join(('Dear Parltrack user,',
+            '',
+            'Someone wants to delete %s: "%s" from the notification subscription group "%s".' %(item, value, g_id),
+            "Please visit %sactivate?key=%s to remove this item from the notification subscription." % (request.url_root, sub.deactivation_key),
+            '',
+            'You can review and edit all items in this notifications group here: %snotification/%s' % (request.url_root, g_id),
+            '',
+            'with data<3,',
+            'parltrack'))
         mail.send(msg)
     else:
-        item = notif.session.query(notif.Item).filter(notif.Item.name==g_id).first()
-        if not item:
+        i = notif.session.query(notif.Item).filter(notif.Item.name==value).first()
+        if not i:
             return 'Cannot complete this action'
-        item.activation_key = gen_token()
-        notif.session.add(item)
+        i.deactivation_key = gen_token()
+        notif.session.add(i)
         notif.session.commit()
-        msg.body = "Your verification key is %sactivate?key=%s&?delete=1\nNotification group url: %snotification/%s" % (request.url_root, item.activation_key, request.url_root, g_id)
+        msg.body = '\n'.join(('Dear Parltrack user,',
+            '',
+            'Someone wants to delete %s: "%s" from the notification subscription group "%s".' %(item, value, g_id),
+            "Please visit %sactivate?key=%s to remove this item from the notification subscription." % (request.url_root, i.deactivation_key),
+            '',
+            'You can review and edit all items in this notifications group here: %snotification/%s' % (request.url_root, g_id),
+            '',
+            'with data<3,',
+            'parltrack'))
         mail.send(msg)
-    return 'OK'
+    return redirect('/notification/'+group.name+'?deleted=1')
 
 
 @app.route('/activate')
 def activate():
     k = request.args.get('key')
-    delete = True if request.args.get('delete') else False
+    #add
     if not k:
-        return 'Missing key'
+        return 'Missing key', 500
     i = notif.session.query(notif.Group).filter(notif.Group.activation_key==k).first()
     if not i:
         i = notif.session.query(notif.Subscriber).filter(notif.Subscriber.activation_key==k).first()
         if not i:
             i = notif.session.query(notif.Item).filter(notif.Item.activation_key==k).first()
-            if not i:
-                return 'invalid item'
-    if delete:
-        notif.session.delete(i)
+    if i:
+        i.activation_key = ''
         notif.session.commit()
-        return 'deactivated'
-    i.activation_key = ''
+        return redirect('/notification/'+i.group.name)
+
+    #delete
+    i = notif.session.query(notif.Subscriber).filter(notif.Subscriber.deactivation_key==k).first()
+    if not i:
+        i = notif.session.query(notif.Item).filter(notif.Item.deactivation_key==k).first()
+        if not i:
+            return 'invalid item', 500
+    group_name = i.group.name
+    notif.session.delete(i)
     notif.session.commit()
-    return 'activated'
+    return redirect('/notification/'+group_name)
 
-
+@app.route('/schemas/<string:schema>')
+def render_schema(schema):
+    if schema not in ['ep_amendments','ep_comagendas','ep_com_votes',
+                      'ep_dossiers','ep_dossiers_v1','ep_mep_activities',
+                      'ep_meps','ep_meps_v1','ep_votes']:
+        return render('errors/404.html'), 404
+    with open('templates/schemas/%s.html'%schema,'r') as fd:
+        body = fd.read()
+    return render('schema.html', body=body)
 
 # Error handlers.
 
@@ -859,19 +906,7 @@ def getDate():
 
 @app.template_filter()
 def printdict(d):
-    if type(d)==type(list()):
-        return u'<ul>%s</ul>' % '\n'.join(["<li>%s</li>" % printdict(v) for v in d])
-    if type(d)==type(datetime(2000,1,1)):
-        return "%s" % d.isoformat()[:10]
-    elif not type(d)==type(dict()):
-        return "%s" % unicode(d)
-    res=['']
-    for k,v in [(k,v) for k,v in d.items() if k not in ['mepref','comref']]:
-        if type(v) == type(dict()) or (type(v)==type(list()) and len(v)>1):
-            res.append(u"<dl><dt class='more'>%s</dt><dd class='hidden'>%s</dd></dl>" % (k,printdict(v)))
-        else:
-            res.append(u"<dl><dt>%s</dt><dd>%s</dd></dl>" % (k,printdict(v)))
-    return '%s' % u'\n'.join(res)
+    return format_dict(d)
 
 
 @app.template_filter()
@@ -1076,6 +1111,7 @@ def votematrices(votes):
 def timetravel(obj):
     date = getDate().isoformat()
     changes = []
+    failed_at = None
     for d,c in sorted(obj.get('changes', {}).items(), key=lambda x: x[0], reverse=True)[:-1]:
         if date > d:
             break
@@ -1087,10 +1123,11 @@ def timetravel(obj):
         try:
             obj = revert(obj, c)
         except:
+            failed_at = d
             print('failed to revert obj', d, c)
             break
         changes.append((d, ', '.join(set('.'.join([y for y in x['path'] if isinstance(y, str)]).replace(' ', '_') for x in c))))
-    return obj, changes, date
+    return obj, changes, date, failed_at
 
 def filter_changes(changes, filter):
     ret = {}
