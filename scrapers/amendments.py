@@ -115,8 +115,7 @@ def crawl(term, update=False, **kwargs):
 
 def scrape(all=False, **kwargs):
     if all:
-        # todo enable also 6th term
-        for term in range(7,CURRENT_TERM+1):
+        for term in range(6,CURRENT_TERM+1):
             crawl(term, update=False, **kwargs)
     else:
         crawl(CURRENT_TERM, update=True, **kwargs)
