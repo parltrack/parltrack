@@ -1,78 +1,158 @@
 {% extends "base.html" %}
 
 {% block content %}
-<input type="hidden" id="group_id" value="{{group.id}}" />
+<input type="hidden" id="group_id" value="{{group.name}}" />
 <div class="ui vertical segment">
   <div class="ui center aligned stackable grid container">
+     <div class="row">
+        <div class="center aligned column">
+         <h2 class="ui huge header">{{ group.name }} notification group</h2>
+        </div>
+     </div>
+     <div class="row">
+        <div class="column">
+           <div class="ui green message hidden" id="subscribe-message">
+              <div class="header">Successful subscription, verification mail sent.</div>
+           </div>
+           <div class="ui red message hidden" id="subscribe-error">
+              <div class="header">Failed to subscribe</div>
+           </div>
+           {% if deleted %}
+           <div class="ui green message">
+              <div class="header">Successful unsubscription, verification mail sent.</div>
+           </div>
+           {% endif %}
+        </div>
+     </div>
     <div class="row">
-      <div class="left aligned column">
-<h2>{{ group.name }} notification group</h2>
-<div id="tabs">
-<div id="general">
-<a class="ui red basic label" id="unsubscribe_link">unsubscribe</a>
-<h3>Information</h3>
+      <div class="left aligned ten wide column">
+<h3>Summary</h3>
 <ul>
  <li>Number of subscribers: {{ group.subscribers|length }}</li>
  <li>Pending subscribers: {{ group.pending_emails|length }}</li>
  <li>Number of dossiers: {{ active_dossiers }}</li>
- <li>Pending items: {{ inactive_items|length }}</li>
+ <li>Pending items: {{ group.inactive_items|length }}</li>
 </ul>
-{% if dossiers %}
-<h3>Tracked Dossiers</h3>
-<table border="1" id='sortedlist' class="tablesorter">
-    <thead>
-      <tr>
-        <th>Dossier</th>
-        <th>Forecasts</th>
-        <th>Stage Reached</th>
-        <th>Legal Basis</th>
-        <th>Name</th>
-        <th>Committee Dossier</th>
-        <th>Rapporteur</th>
-        <th>Commission Doc</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for dossier in dossiers %}
-      <tr>
-        <td><a href="/dossier/{{ dossier.procedure.reference }}">{{ dossier.procedure.reference }}</a></td>
-        <td class='forecasts'>{% for fc in dossier.activities|sort(attribute='date') if fc.date >= now_date %}
-           <div class="vevent"><abbr title="{{fc.date.isoformat()}}" class="dtstart">{{ fc.date|asdate }}</abbr> - <span class="summary">{{ fc.type }}</span></div>
-           {% if loop.first and loop.length>1 %}
-              <div class="more" >More..</div>
-              <div class="hidden">
-           {% endif %}
-           {% if loop.last and loop.length>1 %}
-              </div>
-           {% endif %}
-          {% endfor %}</td>
-        <td>{{ dossier.procedure.stage_reached }}</td>
-        <td>{% for sub in dossier.procedure.legal_basis %}{% if not loop.first %}, {% endif %}{{ sub }}{% endfor %}</td>
-        <td>{{ dossier.procedure.title }}</td>
-        <td>{% if dossier.procedure.dossier_of_the_committee %}
-           <ul>
-              {% if dossier.procedure.dossier_of_the_committee is not string %}
-                 {%for x in dossier.procedure.dossier_of_the_committee -%}
-                    <li><a href="http://www.europarl.europa.eu/committees/en/{{x.split('/')[0].lower()}}/search-in-documents.html?linkedDocument=true&ufolderComCode={{dossier.procedure.committee}}&ufolderLegId={{x.split('/')[1]}}&ufolderId={{x.split('/')[2]}}&urefProcYear=&urefProcNum=&urefProcCode=">{{x}}</a></li>
-                 {%-endfor-%}
-                 {%-else-%}
-                    <li><a href="http://www.europarl.europa.eu/committees/en/{{dossier.procedure.dossier_of_the_committee.split('/')[0].lower()}}/search-in-documents.html?linkedDocument=true&ufolderComCode={{dossier.procedure.committee}}&ufolderLegId={{dossier.procedure.dossier_of_the_committee.split('/')[1]}}&ufolderId={{dossier.procedure.dossier_of_the_committee.split('/')[2]}}&urefProcYear=&urefProcNum=&urefProcCode=">{{dossier.procedure.dossier_of_the_committee}}</a></li>
-                 {%-endif-%}
-           </ul>
-           {%endif%}
-        </td>
-        <td>{% for c in dossier.committees %}{% if c.responsible %}{% for r in c.rapporteur %}{% if not loop.first %}, {% endif %}<a href="/mep/{{r.name}}">{{ r.name }}</a> ({{r.group}}){% endfor %}{%endif%}{%endfor%}</td>
-        <td>{% if dossier.comdoc %}<a href="{{dossier.comdoc.url}}">{{ dossier.comdoc.title }}</a>{% endif %}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+{% if group.subscribers %}
+<a class="ui red basic label" id="unsubscribe_link">unsubscribe</a>
 {% endif %}
+{% for grp, items in grouped_items.items()%}
+   {%if grp in ["subject", "meps_by_country", "meps_by_committee","meps_by_group"] %}
+      <h3>Tracked {{grp.replace('_', ' ')}}</h3>
+      <ul>
+      {% for item in items %}
+         <li><a href="/notification/{{group.name}}/del/{{grp}}/{{item}}">
+                <i class="ui bordered circular red icon trash tooltipz">
+                   <div class="top">Delete {{item}} from {{group.name}} notification group</div>
+                </i>
+            </a>
+         {%if grp == 'subject'%}
+            <a href="/subject/{{item}}">{{item}}</a>
+         {%elif grp == 'meps_by_country'%}
+            <a href="/meps/{{countries[item]}}">{{item}}</a>
+         {%elif grp == 'meps_by_committee'%}
+            <a href="/committee/{{item}}#/members">{{item}}</a>
+         {%elif grp == 'meps_by_group'%}
+            <a href="/meps/{{item}}">{{item}}</a>
+         {%endif%}
+         </li>
+      {%endfor%}
+      </ul>
+   {%endif%}
+{%endfor%}
+   {% if dossiers %}
+   <h3>Tracked Dossiers</h3>
+          <ul>
+         {% for dossier in dossiers %}
+            <li>
+               <a href="/notification/{{group.name}}/del/dossiers/{{dossier.procedure.reference}}">
+                  <i class="ui bordered circular red icon trash tooltipz">
+                     <div class="top">Delete {{item}} from {{group.name}} notification group</div>
+                  </i>
+               </a>
+               <a href="/dossier/{{ dossier.procedure.reference }}">{{ dossier.procedure.reference }} - {{ dossier.procedure.title }}</a></li>
+         {% endfor %}
+          </ul>
+   {% endif %}
+   </div>
+      <div class="six wide left aligned column">
+			<h3>Subscribe</h3>
+         <div class="ui form">
+            <div class="field">
+               <label>Join this group</label>
+               <div class="two fields">
+                  <div class="field">
+                     <input type="text" id="subscribe-email" placeholder="E-mail address">
+                  </div>
+                  <div class="field">
+                     <button type="button" class="ui button" id="subscribe-email-button">Subscribe</button>
+                  </div>
+               </div>
+            </div>
+         </div>
+         {% if group.subscribers %}
+			<h3>Track</h3>
+         <div class="ui form">
+            <div class="field">
+               <label>MEPs by country</label>
+               <div class="two fields">
+                  <div class="field">
+                     <select class="ui fluid search selection dropdown" type="text" id="subscribe-meps-by-country">
+                        <option value="">select country</option>
+                        {% for c in countries|sort %}
+                        <option value="{{ c }}">{{ c }}</option>
+                        {% endfor %}
+                     </select>
+                  </div>
+                  <div class="field">
+                     <button type="button" class="ui button" id="subscribe-meps-by-country-button">Subscribe</button>
+                  </div>
+               </div>
+            </div>
+            <div class="field">
+               <label>MEPs by committee</label>
+               <div class="two fields">
+                  <div class="field">
+                     <select class="ui fluid search selection dropdown" type="text" id="subscribe-meps-by-committee">
+                        <option value="">select committee</option>
+                        {% for k,v in committees.items() %}
+                        <option value="{{ k }}">{{ v['organization'] }}</option>
+                        {% endfor %}
+                     </select>
+                  </div>
+                  <div class="field">
+                     <button type="button" class="ui button" id="subscribe-meps-by-committee-button">Subscribe</button>
+                  </div>
+               </div>
+            </div>
+            <div class="field">
+               <label>MEPs by group</label>
+               <div class="two fields">
+                  <div class="field">
+                     <select class="ui fluid search selection dropdown" type="text" id="subscribe-meps-by-group">
+                        <option value="">select group</option>
+                        {% for abbr,name in groups %}
+                        <option value="{{ abbr }}">{{ name }}</option>
+                        {% endfor %}
+                     </select>
+                  </div>
+                  <div class="field">
+                     <button type="button" class="ui button" id="subscribe-meps-by-group-button">Subscribe</button>
+                  </div>
+               </div>
+            </div>
+            <p>Track <a href="/subjects">subjects</a>.</p>
+            <p>To track a dossier, visit that dossier and click on subscribe.</p>
+			</div>
+         {% else %}
+         <p>Subscribe with at least one E-mail address to add dossiers or MEPs to this notification group.</p>
+         {% endif %}
+    </div>
 </div>
 </div>
 </div>
 </div>
+
 </div>
 <div class="ui modal form">
   <i class="close icon"></i>
@@ -80,34 +160,16 @@
     Unsubscribe
   </div>
   <div class="content">
-    <div class="description">
-     <div class="field">
-      <label>Notification group</label>
-      </div>
-      <input type="hidden" id="group_name" value="{{group.name}}">
-     <div class="field">
-      <label>Dossier</label>
-      <select id="dossier_name">
-         <option value=""></option>
-         {% for i in group['items'] %}
-         {% if i.type == 'dossier' %}<option value="{{ i.name }}">{{ i.name }}</option>{% endif %}
-         {% endfor %}
-      </select>
-      </div>
-     <div class="field">
-      <label>E-mail</label>
-       <input type="text" id="email_name" placeholder="Name..">
-      </div>
-     <div class="field">
-      <label>Subject</label>
-      <select id="subject_name">
-         <option value=""></option>
-         {% for i in group['items'] %}
-         {% if i.type == 'subject' %}<option value="{{ i.name }}">{{ i.name }}</option>{% endif %}
-         {% endfor %}
-      </select>
-      </div>
-    </div>
+     <div class="description">
+        <div class="field">
+           <label>Notification group {{group.name}}</label>
+        </div>
+        <input type="hidden" id="group_name" value="{{group.name}}">
+        <div class="field">
+           <label>E-mail</label>
+           <input type="text" id="email_name" placeholder="Name..">
+        </div>
+     </div>
   </div>
   <div class="actions">
     <input type="button" value="Unsubscribe" class="ui button" id="submit">
