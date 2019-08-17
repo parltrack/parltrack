@@ -396,6 +396,21 @@ def diff_prettyHtml(self, diffs):
         html.append("<span>%s</span>" % text)
     return "".join(html)
 
+def format_dict(d):
+    if type(d)==list:
+        return u'<ul>%s</ul>' % '\n'.join(["<li>%s</li>" % printdict(v) for v in d])
+    if type(d)==datetime:
+        return "%s" % d.isoformat()[:10]
+    elif not type(d)==dict:
+        return "%s" % unicode(d)
+    res=['']
+    for k,v in [(k,v) for k,v in d.items() if k not in ['mepref','comref']]:
+        if type(v) == dict or (type(v)==list and len(v)>1):
+            res.append(u"<dl><dt class='more'>%s</dt><dd class='hidden'>%s</dd></dl>" % (k,printdict(v)))
+        else:
+            res.append(u"<dl><dt>%s</dt><dd>%s</dd></dl>" % (k,printdict(v)))
+    return '%s' % u'\n'.join(res)
+
 
 if __name__ == "__main__":
     pass
