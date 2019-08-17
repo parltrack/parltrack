@@ -183,7 +183,7 @@ class RequestHandler(asyncore.dispatcher_with_send):
         try:
             data = loads(data)
         except:
-            self.send('Invalid json\n')
+            self.notify('Invalid json\n')
             return
         if 'command' not in data:
             self.notify('Missing "command" attribute', type='error')
