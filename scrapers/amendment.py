@@ -527,7 +527,6 @@ def parse_block(block, url, reference, date, committee, rapporteur, PE):
             #mid=len(block[i])/2
             #mid=40
             lsep=block[i].rfind('  ', 0, mid)
-            # todo calculate both, and use the one closer to the center
             rsep=block[i].find('  ', mid)
             sep=None
             if abs(lsep-mid)<abs(rsep-mid):
@@ -556,8 +555,9 @@ def parse_block(block, url, reference, date, committee, rapporteur, PE):
     else:
         if not 'Does not affect English version.' in block[i:]:
             log(2, "no table\n%s" % ('\n'.join(block[i:])))
-            am['content']=block[i:]
-            return am
+            return None
+            #am['content']=block[i:]
+            #return am
 
     i=0
     # find end of authors
@@ -676,7 +676,9 @@ def scrape(url, meps=None, **kwargs):
                 prolog=False
                 continue
 
-            if line == 'Draft motion for a resolution': motion = True
+            if line == 'Draft motion for a resolution': 
+                log(4,"document is a draft motion for resolution")
+                motion = True
 
             m = re.search(pere, line)
             if m:
@@ -733,4 +735,5 @@ def onfinished(daisy=True):
 if __name__ == "__main__":
     from utils.utils import jdump
     #print(jdump(scrape("http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+COMPARL+PE-609.623+01+DOC+PDF+V0//EN&language=EN", "Krišjānis Kariņš")))
-    print(jdump(scrape(sys.argv[1],"ANDERSSON Max")))
+    #print(jdump(scrape(sys.argv[1],"ANDERSSON Max")))
+    print(jdump(scrape(sys.argv[1],sys.argv[2])))
