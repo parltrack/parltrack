@@ -18,7 +18,7 @@
 
           <table class="ui table">
              <thead>
-             <tr><th>Table</th><th>Description</th><th>Dump</th><th>Size</th><th>Last Updated</th><th>Previous dumps</th></tr>
+                <tr><th>Table</th><th>Description</th><th>Dump</th><th>Size</th><th>Last Updated</th><th>Schema</th><th>Previous dumps</th></tr>
              </thead>
 
              <tr>
@@ -31,6 +31,8 @@
                 {%else%}
                    <td>The logfile seems to be missing.</td><td></td><td></td><td></td>
                 {%endif%}
+                <td>
+                </td>
                 <td>
                 {%if arch.scraper_logs%}
                       <ul>
@@ -52,6 +54,12 @@
                 {%else%}
                    <td>The ep_meps dump seems to be missing.</td><td></td><td></td><td></td>
                 {%endif%}
+                <td>
+                   <ul>
+                      <li><a href="/schemas/ep_meps">v2.0 schema</a></li>
+                      <li><a href="/schemas/ep_meps_v1">v1.0 schema</a></li>
+                   </ul>
+                </td>
                 <td>
                 {%if arch.ep_meps%}
                       <ul>
@@ -75,6 +83,12 @@
                    <td>The ep_dossiers dump seems to be missing.</td><td></td><td></td><td></td>
                 {%endif%}
                 <td>
+                   <ul>
+                      <li><a href="/schemas/ep_dossiers">v2.0 schema</a></li>
+                      <li><a href="/schemas/ep_dossiers_v1">v1.0 schema</a></li>
+                   </ul>
+                </td>
+                <td>
                 {%if arch.ep_dossiers%}
                    <ul>
                       {%for file,date in arch.ep_dossiers%}
@@ -95,6 +109,7 @@
                 {%else%}
                    <td>The ep_amendments dump seems to be missing.</td><td></td><td></td><td></td>
                 {%endif%}
+                <td><a href="/schemas/ep_amendments">schema</a></td>
                 <td>
                 {%if arch.ep_amendments%}
                    <ul>
@@ -116,6 +131,7 @@
                 {%else%}
                    <td>The ep_mep_activities dump seems to be missing.</td><td></td><td></td><td></td>
                 {%endif%}
+                <td><a href="/schemas/ep_mep_activities">schema</a></td>
                 <td>
                 {%if arch.ep_mep_activities%}
                    <ul>
@@ -137,6 +153,7 @@
                 {%else%}
                    <td>The ep_votes dump seems to be missing.</td><td></td><td></td><td></td>
                 {%endif%}
+                <td><a href="/schemas/ep_votes">schema</a></td>
                 <td>
                 {%if arch.ep_votes%}
                    <ul>
@@ -158,6 +175,7 @@
                 {%else%}
                    <td>The ep_comagendas dump seems to be missing.</td><td></td><td></td><td></td>
                 {%endif%}
+                <td><a href="/schemas/ep_comagendas">schema</a></td>
                 <td>
                 {%if arch.ep_comagendas%}
                    <ul>

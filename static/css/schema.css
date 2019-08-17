@@ -1,0 +1,10 @@
+ dt { display: inline; cursor: pointer; color: #288; }
+ dd { display: inline; margin-left: 0;}
+ dl { margin-top: .4em; border: 1px solid #c0c0c0; margin: 0; padding: 2px 4px; }
+ ul { list-style: none; margin: 0 !important; }
+ li {  margin-bottom: 2px !important; }
+ pre { display: inline; }
+ .schema { margin-top: 1em; }
+ .contents, .example { margin-left: 2em; background-color: white}
+ .type { font-style: italic }
+ .p { font-size: .8em }
