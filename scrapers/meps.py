@@ -42,7 +42,6 @@ def scrape(all=False, **kwargs):
         actives = {e['UserID'] for e in db.meps_by_activity(True)}
         inactives = {e['UserID'] for e in db.meps_by_activity(False)}
         meps = actives | inactives
-        # TODO also add any that are in the db but missing from this list and the full directory
         for unlisted in [ 1018, 26833, 1040, 1002, 2046, 23286, 28384, 1866, 28386,
                           1275, 2187, 34004, 28309, 1490, 28169, 28289, 28841, 1566,
                           2174, 4281, 28147, 28302, ]:

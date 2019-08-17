@@ -129,8 +129,6 @@ for line in sys.stdin:
             mep = msg[len('no mepid found for "'):-1]
             if mep not in nomep: nomep[mep]=0
             nomep[mep]+=1
-        #if msg.startswith("preserving deleted path ['other'] for obj id:"): # todo remove
-        #    continue
         if module in ['dossier','mep','pvote','amendment', 'comagenda', 'mep_activity'] and level==3 and msg.startswith("adding "):
             if module not in changes: changes[module]={'added':0, 'updated':0}
             changes[module]['added']+=1
