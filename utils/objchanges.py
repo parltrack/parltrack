@@ -46,7 +46,7 @@ def _diff(old, new, o, n, opath=[], npath=[]):
     if (([type(x) for x in [old, new]] == [ str, str ] and
            ''.join(old.split()).lower() != ''.join(new.split()).lower()) or
           old != new):
-        return [{'type': u'changed', 'path': npath, 'data': (getitem(o,opath), getitem(n,npath))}] # todo test if npath as 'path' is correct
+        return [{'type': u'changed', 'path': npath, 'data': (getitem(o,opath), getitem(n,npath))}]
     return []
 
 def difflist(old, new, o, n, opath, npath):
@@ -93,7 +93,7 @@ def difflist(old, new, o, n, opath, npath):
     oo = sorted([(oldorder[common], common) for common in oldset & newset])
     for (ni, ne), (oi, oe) in zip(no,oo):
         if ne == oe: continue
-        ret.append({'type': u'changed', 'path': npath + [ni], 'data': (oe, ne)}) # todo confirm that npath is correct here
+        ret.append({'type': u'changed', 'path': npath + [ni], 'data': (oe, ne)})
     return ret
 
 def naive_difflist(old, new, o, n, opath, npath):
@@ -132,7 +132,7 @@ def atomiclistdiff(o, oldset, oldorder, deleted, n, newset, neworder, added, opa
     oo = sorted([(oldorder[common], common) for common in oldset & newset])
     for (ni, ne), (oi, oe) in zip(no,oo):
         if ne == oe: continue
-        ret.append({'type': u'changed', 'path': npath + [ni], 'data': (oe, ne)}) # todo again is npath for 'path' correct here?
+        ret.append({'type': u'changed', 'path': npath + [ni], 'data': (oe, ne)})
     return ret
 
 class hashabledict(dict):
@@ -261,6 +261,30 @@ def revert(obj, changes):
     res = deepcopy(obj)
     #clen = len(changes)
     for l in sorted({len(x['path']) for x in changes}, reverse=True):
+        # handle changes
+        for change in changes:
+            if change['type']!='changed': continue
+            if len(change['path'])!=l: continue
+            obj=getitem(res,change['path'][:-1])
+            if obj is None:
+                if debug: print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
+                raise ValueError()
+                return
+            if isinstance(obj,dict) and change['path'][-1] not in obj:
+                if debug: print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
+                raise ValueError()
+                return
+            elif isinstance(obj,list) and change['path'][-1]>=len(obj):
+                if debug: print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
+                raise ValueError()
+                return
+            elif obj[change['path'][-1]]==change['data'][1]:
+                #print("\tchanging", change['path'])
+                obj[change['path'][-1]]=deepcopy(change['data'][0])
+            else:
+                if debug: print("wtf change: %s\nobj: %s" % (change, obj))
+                raise ValueError()
+
         # undo adds, they are indexed based on the new indexes
         for change in sorted(changes, key=functools.cmp_to_key(sortpaths)):
             if change['type']!='added': continue
@@ -302,31 +326,6 @@ def revert(obj, changes):
                 obj.insert(change['path'][-1],deepcopy(change['data']))
             else:
                 obj[change['path'][-1]]=deepcopy(change['data'])
-
-
-        # handle changes
-        for change in changes:
-            if change['type']!='changed': continue
-            if len(change['path'])!=l: continue
-            obj=getitem(res,change['path'][:-1])
-            if obj is None:
-                if debug: print("could not resolve path '%s', action: %s\ndata: %s" % (change['path'], change['type'], change['data']))
-                raise ValueError()
-                return
-            if isinstance(obj,dict) and change['path'][-1] not in obj:
-                if debug: print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
-                raise ValueError()
-                return
-            elif isinstance(obj,list) and change['path'][-1]>=len(obj):
-                if debug: print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
-                raise ValueError()
-                return
-            elif obj[change['path'][-1]]==change['data'][1]:
-                #print("\tchanging", change['path'])
-                obj[change['path'][-1]]=deepcopy(change['data'][0])
-            else:
-                if debug: print("wtf change: %s\nobj: %s" % (change, obj))
-                raise ValueError()
 
     #print(dumps(res))
     return res
