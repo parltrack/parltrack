@@ -297,6 +297,7 @@ def save(data):
     return data
 
 def onchanged(doc, diff):
+    if not 'epdoc' in doc: return
     id = doc['epdoc']
     dossiers = notif.session.query(notif.Item).filter(notif.Item.name==id).all()
     recipients = set()
@@ -329,7 +330,6 @@ def onchanged(doc, diff):
                      "%sdossier/%s" % (ROOT_URL, doc['epdoc']),
                     )))
     )
-    return
 
 from utils.process import publish_logs
 def onfinished(daisy=True):
