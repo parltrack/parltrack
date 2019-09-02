@@ -27,8 +27,8 @@
                      <div class="header"><a href="/dossier/{{ d.procedure.reference }}">{{ d.procedure.reference }}</a></div>
                       <div class="description">
                          {{ highlight(q, d.procedure.title)|safe }}
-                         {% for s in d.procedure.subject %}
-                         <p class="small">{{ highlight(q, s)|safe }}</p>
+                         {% for s,t in d.procedure.subject.items() %}
+                         <p class="small">{{s}} {{ highlight(q, t)|safe }}</p>
                          {% endfor %}
                       </div>
                   </div>
