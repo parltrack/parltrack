@@ -11,7 +11,7 @@ ROOT_URL = 'https://parltrack.org/'
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 # Debug
-DEBUG = True
+DEBUG = False
 DB_DEBUG = False
 
 # DB
