@@ -365,17 +365,20 @@ def onfinished(daisy=True):
 
 def onchanged(mep, diff):
     log(4, "calling onchanged for mep")
-    today = datetime.now().isoformat()
+    today = datetime.now()
 
     country = mep['Constituencies'][-1]['country']
     mep_items = notif.session.query(notif.Item).filter(notif.Item.type=='meps_by_country').filter(notif.Item.name==country).all()
 
+    #log(4, "type of today : %s" % (type(today)))
     for c in mep.get('Committees', []):
+        #log(4, "type of c.end: %s" % (type(c['end'])))
         if c['end'] > today:
             committee = c['abbr']
             mep_items.extend(notif.session.query(notif.Item).filter(notif.Item.type=='meps_by_committee').filter(notif.Item.name==committee).all())
 
     for g in mep.get('Groups', []):
+        #log(4, "type of g.end: %s" % (type(g['end'])))
         if g['end'] > today:
             group = g['groupid']
             mep_items.extend(notif.session.query(notif.Item).filter(notif.Item.type=='meps_by_group').filter(notif.Item.name==group).all())
