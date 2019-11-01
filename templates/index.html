@@ -58,17 +58,44 @@
       <div class="sixteen wide left aligned column">
         <h2>Sources</h2>
         <p>Parltrack currently monitors the European law-making using the data available from europarl.europa.eu. The data is being scraped from <a href="http://www.europarl.europa.eu/oeil/">OEIL</a>, <a href="http://www.europarl.europa.eu/activities/plenary/pv/calendar.do?language=EN&amp;LEG_ID=7">EP plenary minutes</a>, <a href="http://www.europarl.europa.eu/members/public/geoSearch.do?language=EN">online MEP profiles</a> and parliamentary <a href="http://www.europarl.europa.eu/activities/committees/committeesList.do?language=EN">committee agendas</a>.</p>
-        <h2>Copyright</h2>
+        <h2 id="copyright">Copyright</h2>
         <p>The EP releases this data under the <a href="http://www.europarl.europa.eu/portal/en/legal-notice">following terms</a>:</p>
         <blockquote><p>As a general rule, the reuse (reproduction or use) of textual data and multimedia items which are the property of the European Union (identified by the words '© European Union, [year(s)] – Source: European Parliament' or '© European Union, [year(s)] – EP' ) or of third parties (© External source, [year(s)]), and for which the European Union holds the rights of use, is authorised, for personal use or for further non-commercial or commercial dissemination, provided that the entire item is reproduced and the source is acknowledged.</p></blockquote>
         <p>As long as the European institutions do not provide everything as raw data in open machine-processable formats, there can always be some errors in the data being scraped, so all warranties for the fitness of this data are void.</p>
 
         <p>The <a href="/dumps">data available as JSON</a> from Parltrack is available under the <a href="http://www.opendatacommons.org/licenses/odbl/">Open Database License v1.0</a> (ODBL). Parltrack is <a href="https://github.com/parltrack/parltrack/">available</a> as free software under the <a href="https://www.gnu.org/licenses/agpl.html">Affero GPL v3+</a> license.</p>
 
-        <h2>Privacy</h2>
-        <p>Parltrack currently does not use cookies per default. The preferences of the users however are stored in cookies. These do not allow tracking, except setting your email address would - but we never do. The only private information stored are the email addresses of the users of the monitoring feature. These email addresses are used for the sole purpose of notifying users of changes. Web server access logs are stored for a maximum of one year for statistical purposes only.</p>
+        <h2 id="privacy">Privacy</h2>
+        <h3 id="users">Visitors and users</h3>
+        <p>Parltrack does not use cookies, neither does Parltrack log IP addresses in its web server access logs. The only private information Parltrack stores are the email addresses of the users of the monitoring feature. These email addresses are used for the sole purpose of notifying users of changes in tracked objects. We do however log HTTP user agents and referers, if you do not want these to be logged we warmly recommend you to install one of the many browser addons that mask these. If you want, you can also reach parltrack using a <a href="http://y2u2kktykfwba7offqeynxsthsbaiznnmysew2so34fxgh6moss5taqd.onion">tor hidden service</a>.</p>
+
+        <h3 id="privacy_public_interest">Public servants stored in the parltrack datasets</h3>
+        <ul>
+           <li>The goal of Parltrack is to improve public access to legislative processes in the European Union. This allows journalists, academia and the general public to analyse documents related to legislative proposals, both current and past.</li>
+           <li>For this purpose Parltrack scrapes and indexes documents published on the websites of the European Union institutions, including the European Parliament.</li>
+           <li>Given the historic value of this information, Parltrack stores these documents for an indefinite period.</li>
+           <li>As far as this data are personal data, the basis for processing is the legitimate interest of European citizens in the transparency of the legislative processes of the European Union.</li>
+           <li>Parltrack publishes this data and although it is hosted within the European Economic Area, there are no blockades for visitors from outside the European Economic Area.</li>
+           <li>Parltrack stores and processes the data of public servants (such as commissioners, MEPs and their assistants) and possibly persons being subject to legislative initiatives in the EP.</li>
+           <li>Parltrack stores and process this data in the public interest for journalistic, historical and academic research purposes.</li>
+        </ul>
+        <p>If your personal data is processed by Parltrack, you have a right to access, correction, erasure and objection under the GDPR. However, please note that these rights are severely curtailed by art. 17(3) GDPR as well as the Dutch implementing act of the GDPR, the Uitvoeringswet Algemene Verordening Gegevensbescherming (UAVG).</p>
+
+        <p>This act contains a provision in article 43(2) UAVG that provides a blanket exception from Chapter III GDPR (in which articles 17 and 21 GDPR both reside) for processing for purposes of journalism, historical and academic research. This is a derogation in national law as meant in article 89(2) GDPR.</p>
+
+        <p>As such, any of the rights granted to you by Chapter III GDPR only become enforcable as far as Parltrack's processing is outside the above purposes of an academic an journalistic nature.</p>
+
+        <p>You nonetheless have a right to complain, either with us, or with your own Data Protection Authority (DPA), or directly with the DPA competent over Parltrack.</p>
+        <p>Parltrack can be contacted under {{ 'parltrack@parltrack.org'|protect_email|safe }}</p>
+        <p>Parltrack does not have a Data Protection Officer (DPO). The DPA competent over Parltrack is the
+        <pre>Autoriteit Persoonsgegevens
+Postbus 93374
+2509 AJ  DEN HAAG
+The Netherlands</pre>
+        </p>
+
         <h2>Contact</h2>
-        {{ 'parltrack@ctrlc.hu'|protect_email|safe }}
+        {{ 'parltrack@parltrack.org'|protect_email|safe }}
       </div>
 	</div>
   </div>
