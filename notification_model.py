@@ -96,7 +96,7 @@ if __name__ == '__main__':
         print('Invalid action (init/migrate/cleanup)')
         exit(1)
 
-    if argv[1] == 'migrate':
+    if argv[1] == 'init':
         print("Creating database")
         try:
             Base.metadata.create_all(engine, checkfirst=True)
