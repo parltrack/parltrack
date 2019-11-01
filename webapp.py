@@ -185,6 +185,7 @@ group_positions={u'Chair': 10,
                  u'Co-President': 9,
                  u'Co-Chair': 8,
                  u'First Vice-Chair/Member of the Bureau': 8,
+                 u'First Vice-Chair': 8,
                  u'Vice-Chair': 6,
                  u"Vice-President": 6,
                  u'Deputy Chair': 5,
@@ -224,7 +225,9 @@ def meps(filter1=None, filter2=None):
     country_filter = None
     active = False if request.args.get('inactive') else True
     #print(repr(filter1),repr(filter2))
+    #print(repr(GROUPIDS))
     if filter1 is not None:
+        filter1 = filter1.replace("|","/")
         if filter1 in GROUPIDS:
             group_filter = filter1
         elif filter1 in COUNTRY_ABBRS:
@@ -232,6 +235,7 @@ def meps(filter1=None, filter2=None):
         else:
             return render('errors/404.html'), 404
     if filter2 is not None:
+        filter2 = filter2.replace("|","/")
         if country_filter is None and filter2 in COUNTRY_ABBRS:
             country_filter = filter2
         elif group_filter is None and filter2 in GROUPIDS:
@@ -472,7 +476,7 @@ def dossier(d_id):
         # get activities by meps
         meps={}
         # lookup to match shadow rapporteurs to committees
-        comap = {c['committee']: i for i, c in enumerate(d.get('committees', [])) if c['type'] not in ('Responsible Committee', 'Former Responsible Committee')}
+        comap = {c['committee']: i for i, c in enumerate(d.get('committees', [])) if c.get('type',c.get('responsible')) not in ('Responsible Committee', 'Former Responsible Committee', True, None)}
         for act, type, mepid, mepname in (db.activities_by_dossier(d_id) or []):
             if type in ["REPORT", "REPORT-SHADOW", "COMPARL"]: continue
             if type == 'COMPARL-SHADOW':
@@ -723,6 +727,7 @@ def notification_view_or_create(g_id):
                    inactive_dossiers=len(ids),
                    committees=committees,
                    groups=groups,
+                   sm = db.get('subject_map',None),
                    grouped_items=grouped_items,
                    deleted=request.args.get('deleted'),
                    group={
