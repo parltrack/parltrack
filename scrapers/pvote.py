@@ -113,7 +113,7 @@ def getXML(term, date):
     return None, None
 
 novotes={'2019-07-03','2019-07-17'}
-
+lost_meps={'4664': 4241,'3911': 1956, '7249': 5392, "6106": 96951, "6584": 124965, "1529": 1023, "3137": 234, "5263": 28133, "6204": 102931}
 def scrape(term, date, **kwargs):
     if date in novotes: return
     log(3,"scraping %d %s" % (term, date))
@@ -167,14 +167,22 @@ def scrape(term, date, **kwargs):
                     v['votes'][stype]['groups'][g]=[]
                 for tag in ['Member.Name', 'PoliticalGroup.Member.Name']:
                     for mep in group.xpath(tag):
-                        m = {#'_id': int(mep.get('MepId')),     # it's a totally useless and confusing id that is nowhere else used
-                             }
+                        m = {}
                         name = junws(mep)
                         mepid = db.getMep(name, v['ts'], abbr=g)
                         if mepid:
                             m['mepid']= mepid
+                            #if int(mep.get('MepId')) in ambiguous_meps:
+                            #    oid = int(mep.get('MepId'))
+                            #    ambiguous_meps.remove(oid)
+                            #    log(2,'found mepid for previously ambigous obscure_id: "%s": %s' % (oid, mepid))
                         else:
-                            m['name']= name
+                            mepid = lost_meps.get(mep.get('MepId'))
+                            if mepid:
+                                m['mepid']= mepid
+                            else:
+                                m['name']= name
+                                m['obscure_id']=int(mep.get('MepId'))  # it's a totally useless and confusing id that is nowhere else used
                         v['votes'][stype]['groups'][g].append(m)
         # save
         process(v, v['voteid'], db.vote, 'ep_votes', v['title'])
