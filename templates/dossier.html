@@ -59,7 +59,7 @@
       <p>{{ msg|safe }}</p>
    </div>
    {% endif %}
-   {% for fc in dossier.events if fc.date>now_date %}
+   {% for fc in dossier.events if fc.date is string and fc.date>now_date %}
       {% if loop.first %}
          Next event: {{fc.type}} <abbr title="{{fc.date}}">{{fc.date|asdate}}</abbr>
          {% if not loop.last %}
@@ -188,7 +188,13 @@
 		 <div class="content">
 			<div class="summary">
 			  <div class="date">
-              {{ act.date|asdate }}
+              {% if act.date is iterable and act.date is not string %}
+                 {% for d in act.date %}
+                    {{ d|asdate }}
+                 {% endfor %}
+              {% else %}
+                 {{ act.date|asdate }}
+              {% endif %}
 			  </div>&nbsp;&nbsp;
            {% if act.body %}{{ act.body }} - {% endif %}<span class="user">{{ act.type }}</span>
 			</div>
