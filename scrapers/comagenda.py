@@ -29,6 +29,8 @@ from db import db
 from flask_mail import Message
 from webapp import mail
 from config import ROOT_URL
+import notification_model as notif
+from utils.notif_mail import send_html_mail
 
 CONFIG = {
     'threads': 8,
@@ -313,7 +315,7 @@ def onchanged(doc, diff):
         subject="[PT-Com] %s: %s" % (doc['committee'],doc['title']),
         obj = doc,
         change=diff,
-        date=sorted(doc['changes'].keys())[-1],
+        date=(sorted(doc['changes'].keys()) or ['unknown'])[-1],
         url='%scommittee/%s' % (ROOT_URL, doc['committee']),
         text=''.join((u"Parltrack has detected %s%s on the schedule of %s \n"
                     u"\n  on %s"
@@ -321,12 +323,12 @@ def onchanged(doc, diff):
                     u"%s"
                     u"\nsee the details here: %s\n"
                     u"\nYour Parltrack team" %
-                    (u"a change on " if d else u'',
+                    (u"a change on " if diff else u'',
                      doc['epdoc'],
                      doc['committee'],
                      doc['date'] if 'date' in doc else 'unknown date',
                      ("\n  - %s" % u'\n  - '.join(doc['list'])) if 'list' in doc and len(doc['list'])>0 else u"",
-                     "\n %s" % (textdiff(d) if d else ''),
+                     "\n %s" % (textdiff(diff) if diff else ''),
                      "%sdossier/%s" % (ROOT_URL, doc['epdoc']),
                     )))
     )
