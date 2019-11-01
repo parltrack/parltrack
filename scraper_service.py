@@ -97,6 +97,9 @@ def consume(pool, scraper):
             for e in exceptions:
                 log(1, repr(e))
             pool.queue.clear()
+            scraper._lock.acquire()
+            scraper._queue.queue.clear()
+            scraper._lock.release()
             log(1, "---------------END OF EXCEPTIONS---------------")
 
         if job_count == 0 and scraper._queue.empty() and pool.empty():
