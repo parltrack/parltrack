@@ -47,6 +47,7 @@ def scrape(id, **kwargs):
     xml = fetch_raw(url) # we have to patch up the returned html...
     xml = xml.replace("</br>","<br/>") # ...it contains some bad tags..
     root = fromstring(xml) # ...which make the lxml soup parser drop some branches in the DOM
+    sidebar_check(root, url)
 
     body = root.xpath('//span[@id="mep-card-content"]/following-sibling::div')[0]
     mep = {
@@ -408,6 +409,60 @@ def makemsg(mep,diff):
              ROOT_URL,
              mep['UserID'],
              textdiff(diff)))
+
+known_sidebar = { "Home": [],
+                "Main parliamentary activities": [
+                    'Contributions to plenary debates',
+                    "Reports - as rapporteur",
+                    "Reports - as shadow rapporteur",
+                    "Opinions - as rapporteur",
+                    "Opinions - as shadow rapporteur",
+                    "Oral questions",
+                    "Motions for resolutions"],
+                "Other parliamentary activities": [
+                    "Questions for written answer (including answers)",
+                    "Individual motions for resolutions",
+                    "Written explanations of vote",
+                    ],
+                "Curriculum vitae": [],
+                "Declarations": [],
+                "Assistants": [],
+                "Meetings": [
+                    "Past meetings",
+                    "Future meetings",
+                    ],
+                "History of parliamentary service": [
+                    "9th parliamentary term",
+                    "8th parliamentary term",
+                    "7th parliamentary term",
+                    "6th parliamentary term",
+                    "5th parliamentary term",
+                    "4th parliamentary term",
+                    "3rd parliamentary term",
+                    "2nd parliamentary term",
+                    "1st parliamentary term",
+                    ]
+                }
+
+def sidebar_check(root,url):
+    sidebar = root.xpath('//aside[@class="ep_gridcolumn ep-layout_tableofcontent"]/div/nav/ol')
+    if len(sidebar)!=1: 
+        log(1,"sidebar has not 1 element: %s" % url)
+        raise ValueError
+    for li in sidebar[0].xpath('./li'):
+        title = li.xpath('.//div[@class="ep_menu-access ep_openaccess"]/a/span[@class="ep_name"]/text()') 
+        if len(title)!=1:
+            log(1,"title has not 1 element: %s" % url)
+            raise ValueError
+        title = unws(title[0])
+        if title not in known_sidebar:
+            log(2, '"%s" not in known_sidebar items, in %s' % (title,url))
+        subtitles = li.xpath('.//div/ul/li/a/span[@class="ep_name"]/text()')
+        for s in subtitles:
+            s=unws(s)
+            if s not in known_sidebar[title]:
+                log(2, '"%s" -> "%s" not in known_sidebar items, in %s' % (title,s,url))
+
 
 if __name__ == '__main__':
     #scrape(28390)
