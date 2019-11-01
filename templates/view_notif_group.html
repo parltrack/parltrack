@@ -47,7 +47,7 @@
                 </i>
             </a>
          {%if grp == 'subject'%}
-            <a href="/subject/{{item}}">{{item}}</a>
+            <a href="/subject/{{item}}">{{item}} {{sm[item]}}</a>
          {%elif grp == 'meps_by_country'%}
             <a href="/meps/{{countries[item]}}">{{item}}</a>
          {%elif grp == 'meps_by_committee'%}
