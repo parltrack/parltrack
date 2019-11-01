@@ -316,3 +316,6 @@ div [class*="left floated"] { float: left; margin-left: 0.25em; }
   border-bottom: 3px solid transparent;
   border-top: 3px solid #8F0808;
 }
+blockquote {
+   border-left: 3px solid gray;
+}
