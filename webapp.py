@@ -151,6 +151,7 @@ def dumps():
                 'size': file_size(s.st_size),
                 'updated': date.fromtimestamp(s.st_mtime).isoformat()
                 }
+        arch[table]=arch[table][:3]
     first=True
     for file in sorted(os.listdir('/var/www/parltrack/logs'), reverse=True):
         if not file.endswith(".log.lz"): continue
@@ -163,6 +164,7 @@ def dumps():
             first=False
             continue
         if not 'scraper_logs' in arch: arch['scraper_logs']=[]
+        if len(arch['scraper_logs'])>2: break
         arch['scraper_logs'].append((file, date.fromtimestamp(s.st_mtime).isoformat()))
     return render('dumps.html', stats=stats, arch=arch)
 
