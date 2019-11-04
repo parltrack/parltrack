@@ -6,6 +6,7 @@
     <div class="row">
       <div class="left aligned column">
           <h1>Subject "{{subject}} {{subjectmap[subject]}}"</h1>
+          <a class="ui purple horizontal basic label subscribe" href="#" data-name="{{subject}}">subscribe</a>
           {% if dossiers %}
           <h2>Dossiers ({{dossiers|length}})</h2>
           <div class="ui fluid divided items">
@@ -25,4 +26,30 @@
 	</div>
   </div>
 </div>
+<div class="ui modal form">
+  <i class="close icon"></i>
+  <div class="header">
+    Subscribe
+  </div>
+  <div class="content">
+    <div class="description">
+     <div class="field">
+      <label>Notification group</label>
+       <input type="text" id="group_name" placeholder="Name..">
+      </div>
+     <div class="field">
+      <label>Subject</label>
+       <input type="text" readonly="true" id="subject_name" placeholder="Name..">
+      </div>
+    </div>
+  </div>
+  <div class="actions">
+    <input type="button" value="Subscribe" class="ui button" id="subscribe_link">
+    <div class="ui black deny button" id="hide">
+      Cancel
+    </div>
+    </div>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/subjects.js') }}"></script>
 {% endblock %}
