@@ -27,6 +27,7 @@ PIDFILE='/tmp/db.pid'
 DBS = {}
 IDXs = {}
 
+END = datetime.strptime("31.12.9999", u"%d.%m.%Y")
 
 def normalize_name(t):
     return ''.join(unicodedata.normalize('NFKD', t.replace(u'ß','ss')).encode('ascii','ignore').decode('utf8').split()).lower()
