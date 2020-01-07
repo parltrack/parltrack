@@ -208,6 +208,7 @@ mansplits={u'Rodi Kratsa-Tsagaropoulou Mikael Gustafsson': [u'Rodi Kratsa-Tsagar
            u'Peter Skinner Sergio Gaetano Cofferati': [u'Peter Skinner', u'Sergio Gaetano Cofferati'],
            u'Roberto Gualtieri Marielle De Sarnez': [u'Roberto Gualtieri', 'Marielle De Sarnez'],
            u'Constance Le Grip Lívia Járóka': [u'Constance Le Grip', u'Lívia Járóka'],
+           u'Karima Delli Ernest Urtasun': ['Karima Delli', 'Ernest Urtasun'],
            }
 pere = r'PE(?:TXTNRPE)? ?[0-9]{3,4}\.?[0-9]{3}(?:v[0-9]{2}(?:[-./][0-9]{1,2})?)?'
 amdoc=r'AM\\[0-9]{4,7}(?:EN|XM|XT)?\.(?:doc|DOC|tmp)'
