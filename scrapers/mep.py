@@ -64,6 +64,8 @@ def scrape(id, **kwargs):
         'active'    : False,
     }
 
+    mep = addchangednames(mep)
+
     birthdate = root.xpath('//time[@id="birthDate"]/text()')
     if len(birthdate)>0:
         mep['Birth']={'date': datetime.strptime(birthdate[0], u"%d-%m-%Y")}
@@ -358,6 +360,20 @@ def parse_history(id, root, mep):
                                                          x['end'],
                                                          x.get('Organization',
                                                                x.get('party'))))]
+
+def addchangednames(mep):
+    mepid = mep['UserID']
+    m=db.get('ep_meps', mepid)
+    if not m: return
+    prevnames = [c['data'][0]
+                 for changes in m.get('changes',{}).values()
+                 for c in changes
+                 if c['path']==['Name','full']]
+    aliases = set(mep['Name']['aliases'])
+    for name in prevnames:
+        aliases |= set(mangleName(name,mepid)['aliases'])
+    mep['Name']['aliases'] = sorted([x for x in set(unws(n) for n in aliases) if x])
+    return mep
 
 def onfinished(daisy=True):
     if daisy:
