@@ -373,7 +373,7 @@ def splitNames(text):
     res=[mep if not mep.endswith('Shadow)') else mep[:mep.rfind(' (')]
          for mep in res
          if not mep.startswith('on behalf of')]
-    res=[y for x in res for y in mansplits.get(x,[x])]
+    res=[unws(y) for x in res for y in mansplits.get(x,[x])]
     return [mepmaps.get(x,x) for x in res]
 
 types=[u'Motion for a resolution',
