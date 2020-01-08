@@ -364,7 +364,7 @@ def parse_history(id, root, mep):
 def addchangednames(mep):
     mepid = mep['UserID']
     m=db.get('ep_meps', mepid)
-    if not m: return
+    if not m: return mep
     prevnames = [c['data'][0]
                  for changes in m.get('changes',{}).values()
                  for c in changes
