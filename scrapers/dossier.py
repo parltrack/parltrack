@@ -574,8 +574,12 @@ def scrape_extlinks(root):
     for row in root.xpath('//div[@id="external_links-data"]//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-row ")]'):
         cells = row.xpath('.//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-cell ")]')
         if len(cells) != 2:
-            log(1,"External links info table has not 2 columns")
-            raise ValueError("bad dossier html, ext links")
+            if len(cells) == 3:
+                if junws(cells[2])!='':
+                    log(3,'extlinks has 3 column with value: %s' % junws(cells[2])) 
+            else: 
+                log(1,"External links info table has not 2 or 3 columns")
+                raise ValueError("bad dossier html, ext links")
         # 1st cell contains name
         title = junws(cells[0])
         if title:
@@ -789,6 +793,7 @@ stage2inst={ 'Debate in Council': u'CSL',
              'Commission response to text adopted in plenary': u'EC',
              'Proposal withdrawn by Commission': u'EC',
 
+             "Preparatory document": "EP",
              'Indicative plenary sitting date, 1st reading/single reading': 'EP',
              'Results of vote in Parliament': u'EP',
              'Debate in Parliament': u'EP',
