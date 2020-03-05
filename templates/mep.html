@@ -56,6 +56,7 @@
     <div class="ui accordion">
       <div class="title"><i class="dropdown icon"></i>Show earlier Constituencies...</div>
       <div class="content">
+         <div class="ui container">
         <ul>
   {% endif %}
     <li>
@@ -63,7 +64,7 @@
     <img class="group_icon" alt="icon: {{countries[c.country]}}" src="/static/images/{{countries[c.country]|lower}}.gif" /> {{c.country}}
     {% if c.start and c.end%}{{c.start|asdate}} - {{c.end|asdate}}{% endif %}
     </li>
-    {% if loop.last %}</ul></div></div>{%endif%}
+    {% if loop.last %}</ul></div></div></div>{%endif%}
 {% endfor %}
 <h3>Groups</h3>
 {%for c in mep.Groups if not c.end or c.end>today %}
@@ -93,6 +94,7 @@
     <div class="ui accordion">
       <div class="title"><i class="dropdown icon"></i>Show earlier Groups...</div>
       <div class="content">
+         <div class="ui container">
         <ul>
    {%endif%}
    <li>
@@ -115,7 +117,7 @@
     {%if c.group%}{{c.group}}{%else%}{{c.Organization}}{%endif%}
     {% if c.start and c.end%}{{c.start|asdate}} - {{c.end|asdate}}{% endif %}
   </li>
-  {% if loop.last %}</ul></div></div>{%endif%}
+  {% if loop.last %}</ul></div></div></div>{%endif%}
 {% endfor %}
 
 {% if 'Staff' in mep %}
@@ -134,6 +136,7 @@
     <div class="ui accordion">
       <div class="title"><i class="dropdown icon"></i>Show earlier staff roles...</div>
       <div class="content">
+         <div class="ui container">
         <ul>
     {%endif%}
     <li>
@@ -141,7 +144,7 @@
         {{c.Organization}}
         {% if c.start and c.end%}{{c.start|asdate}} - {{c.end|asdate}}{% endif %}
      </li>
-  {% if loop.last %}</ul></div></div>{%endif%}
+  {% if loop.last %}</ul></div></div></div>{%endif%}
 {% endfor %}
 {% endif %}
 </div>
@@ -334,6 +337,35 @@
 
 <div id='activities' class="ui tab" data-tab="activities">
    <h3><a href="/activities/{{ mep.UserID }}">Activities</a></h3>
+   <h4>Stats</h4>
+   <div class="ui accordion">
+      <div class="title"><i class="dropdown icon"></i>Amendment Co-authors</div>
+      <div class="content">
+         <div class="ui container">
+         <table id='co-authors' class="ui table">
+            <thead>
+               <tr>
+                  <th>Name</th>
+                  {% if not group %}<th data-filter="ddl">Group</th>{% endif %}
+                  {% if not country %}<th data-filter="ddl">Country</th>{% endif %}
+                  <th>Ams</th>
+               </tr>
+            </thead>
+            <tbody>
+               {% for (name, group, country), ams in coauthors %}
+                     <tr>
+                        <td><a href="/mep/{{ name }}">{{ name }}</a></td>
+                        <td><img class="group_icon" alt="icon: {{group}}" src="/{{group|group_icon}}" /> {{group }}</td>
+                        <td><img class="group_icon" alt="icon: {{country}}" src="/static/images/{{countries[country]|lower}}.gif" /> {{country}}</td>
+                        <td>{{ams}}</td>
+                     </tr>
+               {% endfor %}
+            </tbody>
+         </table>
+         </div>
+      </div>
+   </div>
+
    <h4>By types</h4>
    {% for d,c in mep.activities.types.items() %}
       <a href="/activities/{{ mep.UserID }}/type/{{ d }}">{{ d|asactivity }} ({{ c }})</a><br />
