@@ -16,6 +16,8 @@ CONFIG = {
     'abort_on_error': True,
 }
 
+pere = re.compile(r'PE[0-9]{3,4}\.[0-9]{3}v0[1-9](?:v0[0-9](?:-[0-9]{1,2})?)?')
+
 def scrape(id, terms, mepname, **kwargs):
     activity_types=(('plenary-speeches', 'CRE'),
                     ('reports', "REPORT"),
@@ -29,13 +31,14 @@ def scrape(id, terms, mepname, **kwargs):
                     ('major-interpellations', 'MINT'),
                     ('written-questions', "WQ"),
                     ('motions-indiv', "IMOTION"),
-                    ('written-declarations', "WDECL"))
+                    ('written-declarations', "WDECL"),
+                    )
     activities={}
     for type, TYPE in activity_types:
         for term in terms:
-            start = 0
+            page = 0
             cnt = 20
-            url = "http://www.europarl.europa.eu/meps/en/%s/loadmore-activities/%s/%s/?from=%s&count=%s" % (id, type, term, start, cnt)
+            url = "http://www.europarl.europa.eu/meps/en/%s/loadmore-activities/%s/%s/?page=%s&count=%s" % (id, type, term, page, cnt)
             try:
                 root = fetch(url)
             except:
@@ -43,29 +46,35 @@ def scrape(id, terms, mepname, **kwargs):
                 raise ValueError
                 #continue
             #print(url, file=sys.stderr)
-            while(len(root.xpath('//article'))>0):
-                for node in root.xpath('//article'):
+            while(len(root.xpath('//div[@class="erpl_document"]'))>0):
+                for node in root.xpath('//div[@class="erpl_document"]'):
                     if type == 'written-explanations':
                         item = {
-                            'title': unws(''.join(node.xpath('.//div[@class="ep-p_text erpl-activity-title"]//text()'))),
-                            'date': datetime.strptime(node.xpath('.//time/@datetime')[0], u"%Y-%m-%dT%H:%M:%S"),
-                            'date-type': str(node.xpath('.//time/@itemprop')[0]),
-                            'text': unws(''.join(node.xpath('.//div[@class="ep-a_text"]//text()')))}
+                            'title': unws(''.join(node.xpath('./div/h3/span[@class="t-item"]//text()'))),
+                            'date': datetime.strptime(node.xpath('./div[1]/div[1]/span[1]/text()')[0], u"%d-%m-%Y"),
+                            'text': unws(''.join(node.xpath('./div[2]/div//text()')))}
                     elif type == 'written-declarations':
+                        if len(node.xpath('./div[1]/div'))!=3:
+                            log(2, "written decl item has not 3 divs but %d %s" % (len(node.xpath('./div[1]/div')), url))
+                            continue
+                        if len(node.xpath('./div[1]/div[1]/span'))!=3:
+                            log(2, "written decl item has not 3 but %d spans in the 1st div at %s" % (len(node.xpath('./div[1]/div[1]/span')), url))
+                            continue
+
                         item = {
-                            'title': unws(''.join(node.xpath('.//div[@class="ep-p_text erpl-activity-title"]//text()'))),
-                            'date': datetime.strptime(node.xpath('.//time/@datetime')[0], u"%Y-%m-%dT%H:%M:%S"),
-                            'date-type': str(node.xpath('.//time/@itemprop')[0]),
-                            'formats': [{'type': unws(fnode.xpath('./text()')[0]),
+                            'title': unws(''.join(node.xpath('./div/h3/span[@class="t-item"]//text()'))),
+                            'date': datetime.strptime(node.xpath('./div[1]/div[1]/span[1]/text()')[0], u"%d-%m-%Y"),
+                            'id': unws(''.join(node.xpath('./div[1]/div[1]/span[2]/text()')[0])),
+                            'status': unws(''.join(node.xpath('./div[1]/div[1]/span[3]/text()')[0])),
+                            'formats': [{'type': unws(fnode.xpath('./span/text()')[0]),
                                         'url': str(fnode.xpath('./@href')[0]),
-                                        'size': unws(fnode.xpath('./span/text()')[0])}
-                                        for fnode in node.xpath('.//div[@class="ep-a_links"]//a')],
-                            'authors': [{'name': name.strip(), "mepid": db.mepid_by_name(name.strip())} for name in unws(''.join(node.xpath('.//span[@class="ep_name erpl-biblio-authors"]//text()'))).split(',')],
+                                        'size': unws(fnode.xpath('./span/span/text()')[0])}
+                                        for fnode in node.xpath('./div[1]/div[2]/div[@class="d-inline"]/a')],
+                            'authors': [{'name': name.strip(), "mepid": db.mepid_by_name(name.strip())} for name in node.xpath('./div[1]/div[3]/span/text()')],
                         }
-                        for info in node.xpath('.//span[@class="erpl-biblio-addinfo"]'):
-                            label, value = info.xpath('.//span[@class="erpl-biblio-addinfo-label"]')
-                            label = unws(''.join(label.xpath('.//text()')))[:-2]
-                            value = unws(''.join(value.xpath('.//text()')))
+                        for info in node.xpath('./div[2]/div'):
+                            label = unws(''.join(info.xpath('./text()')))[:-2]
+                            value = unws(''.join(info.xpath('./span/text()')))
                             if 'date' in label.lower():
                                 value = datetime.strptime(value, u"%d-%m-%Y")
                             if label == 'Number of signatories':
@@ -74,41 +83,54 @@ def scrape(id, terms, mepname, **kwargs):
                                 item["No of sigs date"] = datetime.strptime(date, u"%d-%m-%Y")
                             item[label]=value
                     else:
+                        #from lxml.etree import tostring
+                        #print('\n'.join(tostring(e).decode() for e in node.xpath('./div/div[1]')))
                         # all other activities share the following scraper
-                        ref = unws(''.join(node.xpath('.//time/following-sibling::text()')))
+                        ref = unws(''.join(node.xpath('./div[1]/div[1]/span[2]/text()')))
+
                         if ref.startswith('- '):
                             ref = ref[2:]
                         if ref.endswith(' -'):
                             ref = ref[:-2]
 
-                        item = {
-                            'url': str(node.xpath('.//a/@href')[0]),
-                            'date': datetime.strptime(node.xpath('.//time/@datetime')[0], u"%Y-%m-%dT%H:%M:%S"),
-                            'date-type': str(node.xpath('.//time/@itemprop')[0]),
+                        item = {  
+                            'date': datetime.strptime(node.xpath('./div[1]/div[1]/span[1]/text()')[0], u"%d-%m-%Y"),
                             'reference': ref,
                         }
 
-                        if type in ['opinions-shadow', 'opinions']:
-                            item['title']=unws(''.join(node.xpath('.//div[@class="ep-p_text erpl-activity-title"]//text()')))
-                        else:
-                            item['title']=unws(''.join(node.xpath('.//a//text()')))
+                        if type not in ['written-questions','oral-questions']:
+                            ref = unws(''.join(node.xpath('./div[1]/div[1]/span[3]/text()')))
+                            if ref:
+                                if not pere.match(ref):
+                                    log(2,"pe, has not expected format: '%s'" % ref)
+                                else:
+                                    item['pe']=ref
 
-                        abbr = unws(''.join(node.xpath('.//abbr/text()')))
-                        if abbr:
-                            item['committee']=abbr
+                        # opinions don't have title urls... why would they?
+                        refurl=node.xpath('./div[1]/h3/a/@href')
+                        if refurl: item['url']= str(refurl[0])
+
+                        item['title']=unws(''.join(node.xpath('./div/h3//span[@class="t-item"]//text()')))
+
+                        abbr = node.xpath('./div[1]/div[1]/span/span[contains(concat(" ",normalize-space(@class)," ")," erpl_badge-committee ")]/text()')
+                        if len(abbr):
+                            item['committee']=[a for a in [unws(c) for c in abbr] if a]
 
                         formats = []
-                        for fnode in node.xpath('.//div[@class="ep-a_links"]//a'):
-                            elem = {'type': unws(fnode.xpath('./text()')[0]),
-                                    'url': fnode.xpath('./@href')[0]}
-                            tmp=fnode.xpath('./span/text()')
+                        for fnode in node.xpath('./div[1]/div[2]/div[@class="d-inline"]/a'):
+                            elem = {'type': unws(fnode.xpath('./span/text()')[0]),
+                                    'url': str(fnode.xpath('./@href')[0])}
+                            tmp=fnode.xpath('./span/span/text()')
                             if len(tmp) > 0:
                                 elem['size']=unws(tmp[0])
                             formats.append(elem)
                         if formats:
                             item['formats']=formats
 
-                        if type=='opinions-shadow':
+                        authors=[{'name': name.strip(), "mepid": db.mepid_by_name(name.strip())} for name in node.xpath('./div[1]/div[3]/span/text()')]
+                        if authors: item['authors']=authors
+
+                        if type in ['opinions-shadow', 'opinions']:
                             for f in item['formats']:
                                 if f['type'] == 'PDF':
                                     ref = pdf2ref(f['url'])
@@ -136,7 +158,10 @@ def scrape(id, terms, mepname, **kwargs):
                                                if fullurl[-7:-5]!='EN':
                                                    fullurl=fullurl[:-7]+'EN.html'
                                                log(4,'loading activity full text page %s' % fullurl)
-                                               refroot = fetch(fullurl)
+                                               if fullurl.startswith('/doceo'):
+                                                   fullurl='https://www.europarl.europa.eu'+fullurl
+                                               if fullurl != item['url']:
+                                                   refroot = fetch(fullurl)
                                        else:
                                            log(4,'no fulla for %s' % item['url'])
                                    anchor = refroot.xpath('//span[@class="contents" and text()="Procedure : " and not(ancestor::div[@style="display:none"])]')
@@ -153,10 +178,10 @@ def scrape(id, terms, mepname, **kwargs):
                     if TYPE not in activities:
                         activities[TYPE]=[]
                     activities[TYPE].append(item)
-                if len(root.xpath('//article')) < cnt:
+                if len(root.xpath('//div[@class="erpl_document"]')) < cnt:
                     break
-                start += cnt
-                url = "http://www.europarl.europa.eu/meps/en/%s/loadmore-activities/%s/%s/?from=%s&count=%s" % (id, type, term, start, cnt)
+                page += 1
+                url = "http://www.europarl.europa.eu/meps/en/%s/loadmore-activities/%s/%s/?page=%s&count=%s" % (id, type, term, page, cnt)
                 try:
                     root = fetch(url)
                 except:
@@ -200,5 +225,16 @@ if __name__ == '__main__':
     #scrape(1393) # 1-3rd term
     #scrape(96992)
     #scrape(1275)
-    import sys
-    print(jdump(scrape(int(sys.argv[1]))))
+    # test written decl:
+    #print(jdump(scrape(28266, [8], "some MEP")))
+    # test written expl:
+    #print(jdump(scrape(197682, [9], "some MEP")))
+    # test plen spch
+    #print(jdump(scrape(28266, [9], "some MEP")))
+    # test report-shadow with double committee
+    #print(jdump(scrape(28266, [7,8,9], "some MEP")))
+    # major interpellations:
+    print(jdump(scrape(131749, [7,8,9], "some MEP")))
+
+    #import sys
+    #print(jdump(scrape(int(sys.argv[1]), [9], "some MEP")))
