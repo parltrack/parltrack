@@ -17,6 +17,7 @@ from datetime import datetime, date, timedelta
 from random import randrange
 from tempfile import mkstemp
 from threading import Thread
+from collections import Counter
 from utils.log import log, set_logfile
 from utils.mappings import COMMITTEE_MAP
 from utils.utils import dateJSONhandler, create_search_regex, dossier_search, mep_search, end_of_term
@@ -148,6 +149,9 @@ class Client:
 
     def amendment(self,id):
         return self.get('ep_amendments', id)
+
+    def coauthors(self, mep_id):
+        return self.send_req({"cmd": "coauthors", "params": {"mepid": mep_id}})
 
     def dossiers_by_activity(self,key=True):
         return self.get('active_dossiers', "active" if key else "inactive")
@@ -516,6 +520,20 @@ def active_groups():
             res.add(groups[-1])
     return list(map(list, res))
 
+def coauthors(mepid):
+    # get amendment coauthors
+    coauthors = Counter()
+    for am in DBS['ep_amendments'].values():
+        if not mepid in am.get('meps',[]): continue
+        for _mepid in am.get('meps',[]):
+            if not _mepid or _mepid==mepid: continue
+            mep = DBS['ep_meps'][_mepid]
+            if not mep: continue
+            coauthors[(mep['Name']['full'],
+                 matchInterval(mep['Groups'], am['date']).get('groupid','???'),
+                 matchInterval(mep['Constituencies'], am['date']).get('country','???'))] += 1
+    return sorted(coauthors.items(),key=lambda x: x[1], reverse=True)
+
 
 ######  indexes ######
 
@@ -820,6 +838,7 @@ function_map = {
     'activities': activities,
     'dossier_titles': dossier_titles_by_refs,
     "active_groups": active_groups,
+    "coauthors": coauthors,
 }
 
 if __name__ == '__main__':
