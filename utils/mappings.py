@@ -794,7 +794,7 @@ MEPS_ALIASES={
     2148: ["AF UGGLAS Margaretha"],
     2202: ["D'ABOVILLE Gérard"],
     1474: ["DESAMA Claude J.-M.J."],
-    125006: ['Francesc GAMBÚS', 'Gambús', 'GAMBÚS Francesc'],
+    125006: ['Francesc GAMBÚS', 'Gambús', 'GAMBÚS Francesc','GAMBUS MILLET Francisco de Paula'],
     1251: ["HERMANS Anna (An) M.A."],
     4548: ["MACCORMICK Professor Sir Neil"],
     4749: ["NISTICÒ Giuseppe"],
@@ -845,6 +845,9 @@ MEPS_ALIASES={
     111496: ['maría auxiliadora correa'],
     117477: ['marc demesmaeker'],
     96901: ['krišjānis kariħš'],
+    188718: ["LETARD-LECHEVALIER Christelle"],
+    197681: ['REGO Sira'],
+    24942: ['MIRANDA PAZ Ana Maria'],
     }
 
 TITLES=[u'Sir',
@@ -1086,6 +1089,11 @@ stage2percent = {
     "Committee decision to open interinstitutional negotiations at 2nd reading": 75,
     'Commission response to text adopted in plenary': 75,
 
+    "Committee decision to enter into interinstitutional negotiations announced in plenary (Rule 72)": 76,
+    "Committee decision to enter into interinstitutional negotiations announced in plenary (Rule 71)": 76,
+    "Committee decision to enter into interinstitutional negotiations confirmed by plenary (Rule 71)": 77,
+    "Committee decision to enter into interinstitutional negotiations confirmed by plenary (Rule 71 - vote)": 77,
+    "Committee decision to enter into interinstitutional negotiations rejected by plenary (Rule 71); file to be put on the agenda of the following part-session": 77,
     'Interinstitutional negotiations opened - proposal for mandate approved': 77,
 
     "Approval in committee of the text agreed at 1st reading interinstitutional negotiations": 80,
