@@ -49,17 +49,16 @@ def scrape(id, **kwargs):
     root = fromstring(xml) # ...which make the lxml soup parser drop some branches in the DOM
     sidebar_check(root, url)
 
-    body = root.xpath('//span[@id="mep-card-content"]/following-sibling::div')[0]
     mep = {
         'UserID'    : id,
-        'Name'      : mangleName(unws(' '.join(root.xpath('//*[@id="name-mep"]//text()'))), id),
+        'Name'      : mangleName(unws(' '.join(root.xpath('//div[@class="erpl_title-h1 mt-1"]/text()'))), id),
         'Photo'     : "https://www.europarl.europa.eu/mepphoto/%s.jpg" % id,
         'meta'      : {'url': url},
-        'Twitter'   : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@class="ep_share"]//a[@title="Twitter"]/@href')],
-        'Homepage'  : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@class="ep_share"]//a[@title="Website"]/@href')],
-        'Facebook'  : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@class="ep_share"]//a[@title="Facebook"]/@href')],
-        'Instagram' : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@class="ep_share"]//a[@title="Instagram"]/@href')],
-        'Mail'      : [deobfus_mail(x) for x in root.xpath('//div[@class="ep_share"]//a[@title="E-mail"]/@href')],
+        'Twitter'   : [unws(x.replace("http:// ","")) for x in root.xpath('//section[@id="presentationmep"]//a[@data-original-title="Twitter"]/@href')],
+        'Homepage'  : [unws(x.replace("http:// ","")) for x in root.xpath('//section[@id="presentationmep"]//a[@data-original-title="Website"]/@href')],
+        'Facebook'  : [unws(x.replace("http:// ","")) for x in root.xpath('//section[@id="presentationmep"]//a[@data-original-title="Facebook"]/@href')],
+        'Instagram' : [unws(x.replace("http:// ","")) for x in root.xpath('//section[@id="presentationmep"]//a[@data-original-title="Instagram"]/@href')],
+        'Mail'      : [deobfus_mail(x) for x in root.xpath('//section[@id="presentationmep"]//a[@data-original-title="E-mail"]/@href')],
         'Addresses' : parse_addr(root),
         'active'    : False,
     }
@@ -68,31 +67,34 @@ def scrape(id, **kwargs):
 
     birthdate = root.xpath('//time[@id="birthDate"]/text()')
     if len(birthdate)>0:
-        mep['Birth']={'date': datetime.strptime(birthdate[0], u"%d-%m-%Y")}
-        place=root.xpath('//span[@id="birthPlace"]/text()')
+        mep['Birth']={'date': datetime.strptime(unws(birthdate[0]), u"%d-%m-%Y")}
+        place=root.xpath('//time[@id="birthDate"]/following-sibling::text()')
         if len(place)>0:
-            mep['Birth']['place']=str(place[0])
+            mep['Birth']['place']=unws(' '.join(place))
 
     death = root.xpath('//time[@id="deathDate"]/text()')
     if death:
         mep['Death'] = datetime.strptime(unws(death[0]), u"%d-%m-%Y")
 
-    if body.xpath('//span[@class="ep_name" and text()="Curriculum vitae "]'):
-        if not body.xpath('//span[@id="no_cv_available"]'):
-            mep['CV']= {'updated': datetime.strptime(root.xpath('//span[starts-with(text(),"Updated: ")]/text()')[0], u"Updated: %d/%m/%Y")}
+    body = root.xpath('//span[@id="detailedcardmep"]/following-sibling::section')[0]
+
+    if body.xpath('.//h1[text()="Curriculum vitae "]'):
+        if not body.xpath('.//h3[@id="no_cv_available"]'):
+            mep['CV']= {'updated': datetime.strptime(unws(body.xpath('.//p[@class="small"]/strong[contains(text(),"Updated: ")]/text()')[0]), u"Updated: %d/%m/%Y")}
             mep['CV'].update({unws(''.join(title.xpath(".//text()"))): [unws(''.join(item.xpath(".//text()"))).replace("-...", "- ...")
-                                                                        for item in title.xpath("../../../article//li")]
-                            for title in body.xpath('.//h3')
-                            if not unws(''.join(title.xpath(".//text()"))).startswith("Original version : ")})
+                                                                        for item in title.xpath("following-sibling::ul/li")]
+                            for title in body.xpath('.//h4')
+                            #if not unws(''.join(title.xpath(".//text()"))).startswith("Original version : ")
+                            })
 
     # assistants
     url = "http://www.europarl.europa.eu/meps/en/%s/name/assistants" % id
     root = fetch(url)
-    body = root.xpath('//span[@id="mep-card-content"]/following-sibling::div')[0]
-    if unws(' '.join(body.xpath(".//h1/div/div/span[@class='ep_name']/text()"))) == "Assistants":
-        for h3 in body.xpath('.//h3'):
-            title = unws(''.join(h3.xpath(".//text()")))
-            assistants = [unws(''.join(item.xpath(".//text()"))) for item in h3.xpath("../../../article//li")]
+    body = root.xpath('//span[@id="detailedcardmep"]/following-sibling::section')[0]
+    if unws(' '.join(body.xpath(".//h1/text()"))) == "Assistants":
+        for h4 in body.xpath('.//h4'):
+            title = unws(''.join(h4.xpath(".//text()")))
+            assistants = [unws(''.join(item.xpath(".//text()"))) for item in h4.xpath("../div//span")]
             if title in ['Accredited assistants', 'Local assistants']:
                 if not 'assistants' in mep: mep['assistants']={}
                 title = title.lower().split()[0]
@@ -109,16 +111,15 @@ def scrape(id, **kwargs):
 
     # declarations
     root = fetch("http://www.europarl.europa.eu/meps/en/%s/name/declarations" % id)
-    body = root.xpath('//span[@id="mep-card-content"]/following-sibling::div')[0]
-    if unws(' '.join(body.xpath(".//h1/div/div/span[@class='ep_name']/text()"))) == "Declarations":
-        for title in body.xpath('.//h3'):
+    body = root.xpath('//span[@id="detailedcardmep"]/following-sibling::section')[0]
+    if unws(' '.join(body.xpath(".//h1/text()"))) == "Declarations":
+        for title in body.xpath('.//h4'):
             key = unws(''.join(title.xpath('.//text()')))
             if key == 'Declaration of financial interests':
                 key = 'Financial Declarations'
                 mep[key] = []
-                for pdf in title.xpath('../../following-sibling::div//li//a'):
+                for pdf in title.xpath('./following-sibling::ul/li/a'):
                     url = pdf.xpath('./@href')[0]
-                    #scraper_service.add_job('findecl', payload={'id':id, 'url': url})
                     try:
                         mep[key].append(findecl.scrape(url))
                     except:
@@ -126,13 +127,13 @@ def scrape(id, **kwargs):
             elif key == 'Declarations of participation by Members in events organised by third parties':
                 key = 'Declarations of Participation'
                 mep[key] = []
-                for pdf in title.xpath('../../following-sibling::div//li//a')[::-1]: # reversed order, otherwise newer ones get prepended and mess up the diff
+                for pdf in title.xpath('./following-sibling::ul/li/a')[::-1]: # reversed order, otherwise newer ones get prepended and mess up the diff
                     url = pdf.xpath('./@href')[0]
                     name = unws(''.join(pdf.xpath('.//text()')))
                     mep[key].append({'title': name, 'url': url})
             elif key == 'Declaration of good conduct':
                 mep[key] = []
-                for pdf in title.xpath('../../following-sibling::div//li//a')[::-1]: # reversed order, otherwise newer ones get prepended and mess up the diff
+                for pdf in title.xpath('./following-sibling::ul/li/a')[::-1]: # reversed order, otherwise newer ones get prepended and mess up the diff
                     url = pdf.xpath('./@href')[0]
                     name = unws(''.join(pdf.xpath('.//text()')))
                     mep[key].append({'title': name, 'url': url})
@@ -156,18 +157,18 @@ def deobfus_mail(txt):
 def parse_addr(root):
     # addresses
     addrs = {}
-    for li in root.xpath('//div[@class="ep-a_contacts"]/ul/li'):
-        key = unws(''.join(li.xpath('.//h3//text()')))
+    for li in root.xpath('//section[@id="contacts"]//div[@class="card-body"]'):
+        key = unws(''.join(li.xpath('./div[1]//text()')))
         if key == 'Bruxelles': key = 'Brussels'
         addrs[key]={}
         if key in ['Brussels', 'Strasbourg']:
-            phone = li.xpath('.//li[@class="ep_phone"]/a/@href')
+            phone = li.xpath('.//li/i[@class="erpl_icon erpl_icon-phone"]/../a/@href')
             if phone:
                 addrs[key]['Phone']=phone[0][4:].replace("+33(0)388","+333 88").replace("+32(0)228","+322 28")
-            fax = li.xpath('.//li[@class="ep_fax"]/a/@href')
+            fax = li.xpath('.//li/i[@class="erpl_icon erpl_icon-fax"]/../a/@href')
             if fax:
                 addrs[key]['Fax']=fax[0][4:].replace("+33(0)388","+333 88").replace("+32(0)228","+322 28")
-        tmp=[unws(x) for x in li.xpath('.//div[@class="ep_information"]//text()') if len(unws(x))]
+        tmp=[unws(x) for x in li.xpath('.//li[1]//text()') if len(unws(x))]
         if key=='Strasbourg':
             addrs[key][u'Address']=dict(zip([u'Organization',u'Building', u'Office', u'Street',u'Zip1', u'Zip2'],tmp))
             addrs[key][u'Address']['City']=addrs[key]['Address']['Zip2'].split()[1]
@@ -249,22 +250,22 @@ def isabbr(token):
     return True
 
 def parse_history(id, root, mep):
-    for term in root.xpath('//nav[@class="ep_tableofcontent-menu table-of-contents-menu"]//span[text()="History of parliamentary service"]/../../..//li//span[@class="ep_name"]//text()'):
+    for term in root.xpath('//div[@id="sectionsNavPositionInitial"]//div[@class="erpl_side-navigation"]/div/ul/li//span[text()="History of parliamentary service"]/../following-sibling::div//ul/li//a/span[@class="t-x"]/text()'):
         if not term.endswith("parliamentary term"):
             log(2, 'history menu item does not end as expected with "parliamentary term": %s http://www.europarl.europa.eu/meps/en/%s/name/declarations' % (term, id))
             raise ValueError
             #continue
         term = int(term[0])
         root = fetch("http://www.europarl.europa.eu/meps/en/%s/name/history/%s" % (id, term))
-        body = root.xpath('//span[@id="mep-card-content"]/following-sibling::div')[0]
-        for title in body.xpath('.//div[@class="ep_gridrow ep-o_productlist"]//h3'):
+        body = root.xpath('//div[@id="status"]')[0]
+        for title in body.xpath('.//h4'):
             key = unws(''.join(title.xpath('.//text()')))
             if key in [None,'']:
                 log(2, "empty history section http://www.europarl.europa.eu/meps/en/%s/name/history/%s" % (id,term))
                 raise ValueError
                 #continue
             #mep[key] = []
-            for item in title.xpath('../../following-sibling::article//li'):
+            for item in title.xpath('./following-sibling::ul/li'):
                 interval = unws(''.join(item.xpath('./strong/text()')))
                 post = item.xpath('./strong/following-sibling::text()')[0][3:]
                 if key in ["National parties", "Constituencies"]:
@@ -461,19 +462,19 @@ known_sidebar = { "Home": [],
                 }
 
 def sidebar_check(root,url):
-    sidebar = root.xpath('//aside[@class="ep_gridcolumn ep-layout_tableofcontent"]/div/nav/ol')
+    sidebar = root.xpath('//div[@id="sectionsNavPositionInitial"]//div[@class="erpl_side-navigation"]/div/ul')
     if len(sidebar)!=1: 
         log(1,"sidebar has not 1 element: %s" % url)
         raise ValueError
     for li in sidebar[0].xpath('./li'):
-        title = li.xpath('.//div[@class="ep_menu-access ep_openaccess"]/a/span[@class="ep_name"]/text()') 
+        title = li.xpath('./a/span[@class="t-x"]/text()') 
         if len(title)!=1:
             log(1,"title has not 1 element: %s" % url)
             raise ValueError
         title = unws(title[0])
         if title not in known_sidebar:
             log(2, '"%s" not in known_sidebar items, in %s' % (title,url))
-        subtitles = li.xpath('.//div/ul/li/a/span[@class="ep_name"]/text()')
+        subtitles = li.xpath('.//div/ul/li/a/span[@class="t-x"]/text()')
         for s in subtitles:
             s=unws(s)
             if s not in known_sidebar[title]:
