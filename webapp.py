@@ -360,6 +360,7 @@ def mep(mep_id, mep_name):
 
     if mep['UserID'] in [124782, 124762]:
         mep['Constituencies']=[]
+
     return render(
         'mep.html',
         mep=mep,
@@ -370,6 +371,7 @@ def mep(mep_id, mep_name):
         history_filters=history_filters,
         history_filter=None if not history_filter else change_path_str(history_filter),
         tt_fail=failed,
+	coauthors=db.coauthors(mep_id),
         exclude_from_json=('d', 'group_cutoff', 'history_filter', 'history_filters', 'tt_fail'),
     )
 
