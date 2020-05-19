@@ -50,12 +50,12 @@ def crawl(term, test=[], **kwargs):
         while True:
             log(3, "crawling comagenda search page %s for %s term %s" % (i, com, term))
             tmp=[]
-            for a in root.xpath('//a[@class="erpl_document-subtitle-pdf"]'):
+            for a in root.xpath('//div[@class="erpl_document-header"]/h3/a'):
                 u=a.get('href','')
                 if (len(u)<=13):
                     log(2,'url is too short, skipping: "%s"' % u)
                     continue
-                if u in seen or (not u.endswith('EN') and not u.endswith('_EN.pdf')):
+                if u in seen:
                     log(3,"skipping url: %s" % repr(u))
                     continue
                 seen.add(u)
@@ -69,7 +69,7 @@ def crawl(term, test=[], **kwargs):
                     else:
                         add_job('comagenda', payload=payload)
                 except:
-                    print(u, r)
+                    print(u)
 
             if not tmp or prev==tmp or len(tmp) < itemsPerPage:
                 break
