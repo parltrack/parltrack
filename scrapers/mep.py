@@ -70,7 +70,9 @@ def scrape(id, **kwargs):
         mep['Birth']={'date': datetime.strptime(unws(birthdate[0]), u"%d-%m-%Y")}
         place=root.xpath('//time[@id="birthDate"]/following-sibling::text()')
         if len(place)>0:
-            mep['Birth']['place']=unws(' '.join(place))
+            tmp = unws(' '.join(place))
+            if tmp.startswith(", "): tmp=tmp[2:]
+            mep['Birth']['place']=tmp
 
     death = root.xpath('//time[@id="deathDate"]/text()')
     if death:
@@ -131,7 +133,7 @@ def scrape(id, **kwargs):
                     url = pdf.xpath('./@href')[0]
                     name = unws(''.join(pdf.xpath('.//text()')))
                     mep[key].append({'title': name, 'url': url})
-            elif key == 'Declaration of good conduct':
+            elif key in ['Declaration of good conduct', 'Voluntary confirmation on the use of the General Expenditure Allowance']:
                 mep[key] = []
                 for pdf in title.xpath('./following-sibling::ul/li/a')[::-1]: # reversed order, otherwise newer ones get prepended and mess up the diff
                     url = pdf.xpath('./@href')[0]
@@ -256,6 +258,7 @@ def parse_history(id, root, mep):
             raise ValueError
             #continue
         term = int(term[0])
+        if (id,term) in {(124870,9),(129141,9)}: continue # jeppe kofod, and frans timmermanns never really got started.
         root = fetch("http://www.europarl.europa.eu/meps/en/%s/name/history/%s" % (id, term))
         body = root.xpath('//div[@id="status"]')[0]
         for title in body.xpath('.//h4'):
