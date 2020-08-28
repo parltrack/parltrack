@@ -37,7 +37,8 @@ CONFIG = {
     'table': 'ep_votes',
 }
 
-docre=re.compile(u'((?:[AB]|RC)[678]\s*-\s*[0-9]{3,4}\/[0-9]{4})')
+docre=re.compile(u'((?:[AB]|RC)[6789]\s*-\s*[0-9]{3,4}\/[0-9]{4})')
+refre=re.compile(r'((?:20|19)[0-9]{2}/[0-9]{4}[A-Z]?\((?:ACI|APP|AVC|BUD|CNS|COD|COS|DCE|DEA|DEC|IMM|INI|INL|INS|NLE|REG|RPS|RSO|RSP|SYN)\))')
 ignoredox = ['B6-0023/2004', 'B6-0043/2007', 'B6-0155/2004', 'B6-0161/2006', 'B6-0209/2007', 'B6-0223/2005', 'B6-0318/2005',
              'B6-0338/2008', 'B6-0507/2006', 'B6-0521/2006', 'B6-0526/2006', 'B6-0642/2005', 'B7-0045/2012', 'B7-0089/2010',
              'B7-0135/2010', 'B7-0150/2010', 'B8-0138/2019', 'B8-0216/2019', 'B8-0217/2019', 'B8-0218/2019', 'B8-0221/2019',
@@ -63,13 +64,17 @@ def votemeta(line, date):
                 res['epref']=[VOTE_DOX_RE[doc]]
             elif doc not in ignoredox:
                 log(2,'%s despite matching regex could not associate dossier with vote in "%s"' % (doc,line))
-    else:
-        for k,v in VOTE_DOX.items():
-            if k in line:
-                res['epref']=[v]
-                break
-        else:
-            log(4,'no associated dossier for: "%s"' % line)
+        return res
+
+    m=refre.search(line)
+    if m and db.get('ep_dossiers',m.group(1)):
+        res['epref']=m.group(1)
+        return res
+    for k,v in VOTE_DOX.items():
+        if k in line:
+            res['epref']=[v]
+            return res
+    log(4,'no associated dossier for: "%s"' % line)
     return res
 
 def getXML(term, date):
