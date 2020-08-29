@@ -68,7 +68,7 @@ def votemeta(line, date):
 
     m=refre.search(line)
     if m and db.get('ep_dossiers',m.group(1)):
-        res['epref']=m.group(1)
+        res['epref']=[m.group(1)]
         return res
     for k,v in VOTE_DOX.items():
         if k in line:
