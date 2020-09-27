@@ -345,6 +345,8 @@ def parse_history(id, root, mep):
                         raise ValueError
                         #continue
                     if not u'Groups' in mep: mep[u'Groups']=[]
+                    if not org in GROUP_MAP:
+                        log(5, "no groupid found for group: %s" % org)
                     mep[u'Groups'].append(
                         {u'role':        role,
                         u'Organization': org,
@@ -395,12 +397,14 @@ def onchanged(mep, diff):
     for c in mep.get('Committees', []):
         #log(4, "type of c.end: %s" % (type(c['end'])))
         if c['end'] > today:
+            if not 'abbr' in c: continue
             committee = c['abbr']
             mep_items.extend(notif.session.query(notif.Item).filter(notif.Item.type=='meps_by_committee').filter(notif.Item.name==committee).all())
 
     for g in mep.get('Groups', []):
         #log(4, "type of g.end: %s" % (type(g['end'])))
         if g['end'] > today:
+            if not 'groupid' in g: continue
             group = g['groupid']
             mep_items.extend(notif.session.query(notif.Item).filter(notif.Item.type=='meps_by_group').filter(notif.Item.name==group).all())
 
