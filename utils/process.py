@@ -5,6 +5,7 @@ from utils.log import log
 from utils.utils import jdump
 from utils.objchanges import diff, patch
 from datetime import datetime
+import json
 
 def process(obj, id, getter, table, name, nopreserve=None, nodiff=False, nostore=False, onchanged=None):
     if nopreserve is None: nopreserve=[]
@@ -47,7 +48,7 @@ def process(obj, id, getter, table, name, nopreserve=None, nodiff=False, nostore
 
     if d:
         # attempt to recreate current version by applying d to prev
-        o2 = patch(prev or {}, d)
+        o2 = patch(prev or {}, json.loads(jdump(d)))
         if not o2:
             log(1,"failed to recreate {} record by patching previous version with diff".format(id))
             raise ValueError
