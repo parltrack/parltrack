@@ -236,9 +236,13 @@ def init(data_dir):
     DBDIR = data_dir
 
     # load json dumps int global DBS dict
-    for table in TABLES.keys():
+    for table in tuple(TABLES.keys()):
         if not os.path.exists(f"{data_dir}/{table}.json"):
+            hilite = "\033[48;5;196m\033[38;5;255m"
+            reset = "\033[0m"
+            print(f"{hilite}table {table}.json not found in {data_dir}. continuing anyway.{reset}")
             log(2,f"table not found {table}")
+            del TABLES[table]
             continue
         with open(f"{data_dir}/{table}.json", 'rt') as fd:
             log(3,"loading table {}".format(table))
