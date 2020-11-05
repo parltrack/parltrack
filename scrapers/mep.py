@@ -442,6 +442,7 @@ known_sidebar = { "Home": [],
                     "Opinions - as rapporteur",
                     "Opinions - as shadow rapporteur",
                     "Oral questions",
+                    "Major interpellations",
                     "Motions for resolutions"],
                 "Other parliamentary activities": [
                     "Questions for written answer (including answers)",
