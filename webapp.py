@@ -484,22 +484,24 @@ def dossier(d_id):
         for act, type, mepid, mepname in (db.activities_by_dossier(d_id) or []):
             if type in ["REPORT", "REPORT-SHADOW", "COMPARL"]: continue
             if type == 'COMPARL-SHADOW':
-                if act['committee'] not in comap:
-                    continue
-                # merge shadow rapporteurs into d['committees']
-                mep = db.mep(mepid)
-                com = d['committees'][comap[act['committee']]]
-                if not 'shadows' in com:
-                    com['shadows']=[]
-                for g in mep['Groups']:
-                    start = g['start']
-                    end = datetime.now().isoformat() if g['end'] in ['9999-12-31T00:00:00', '31-12-9999T00:00:00'] else g['end']
-                    if start <= act['date'] <=end:
-                        com['shadows'].append({'name': mepname,
-                             'mepref': mepid,
-                              'group': g['Organization'],
-                               'abbr': g['groupid']}
-                               )
+                comlst = [act['committee']] if isinstance(act['committee'],str) else act['committee']
+                for srcom in comlst:
+                    if srcom not in comap:
+                        continue
+                    # merge shadow rapporteurs into d['committees']
+                    mep = db.mep(mepid)
+                    com = d['committees'][comap[srcom]]
+                    if not 'shadows' in com:
+                        com['shadows']=[]
+                    for g in mep['Groups']:
+                        start = g['start']
+                        end = datetime.now().isoformat() if g['end'] in ['9999-12-31T00:00:00', '31-12-9999T00:00:00'] else g['end']
+                        if start <= act['date'] <=end:
+                            com['shadows'].append({'name': mepname,
+                                 'mepref': mepid,
+                                  'group': g['Organization'],
+                                   'abbr': g['groupid']}
+                                   )
                 continue
             if not mepid in meps: meps[mepid]={'name': mepname, 'types': {}}
             if not type in meps[mepid]['types']: meps[mepid]['types'][type]=[]
