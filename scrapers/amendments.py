@@ -15,7 +15,7 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with parltrack.  If not, see <http://www.gnu.org/licenses/>.
 
-# (C) 2012,2019 by Stefan Marsiske, <parltrack@ctrlc.hu>
+# (C) 2012,2019, 20 by Stefan Marsiske, <parltrack@ctrlc.hu>
 
 from utils.utils import fetch, junws
 from utils.log import log
@@ -62,7 +62,6 @@ def crawl(term, update=False, test=[], **kwargs):
         while True:
             log(3, "crawling amendments search page %s for %s term %s" % (i, com, term))
             tmp=[]
-            #for a in root.xpath('//a[@title="open this PDF in a new window"]'):
             for a in root.xpath('//a[@class="erpl_document-subtitle-pdf"]'):
                 u=a.get('href','')
                 if (len(u)<=13):
