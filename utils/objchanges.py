@@ -49,6 +49,11 @@ def _diff(old, new, o, n, opath=[], npath=[]):
         return [{'type': u'changed', 'path': npath, 'data': (getitem(o,opath), getitem(n,npath))}]
     return []
 
+def isprefix(a, b):
+    if len(b) < len(a):
+        return False
+    return all(a[i] == b[i] for i in range(len(a)))
+
 def difflist(old, new, o, n, opath, npath):
     oldset,oldorder=normalize_list(old)
     newset,neworder=normalize_list(new)
@@ -78,6 +83,14 @@ def difflist(old, new, o, n, opath, npath):
         if len(candidates) and (len(candidates[0][2])*3<=(len(candidates[0][1]) if isinstance(candidates[0][1], tuple) else 3)):
             if oldorder[oe] != neworder[candidates[0][1]]:
                 oldobj = getitem(o, opath + [oldorder[oe]])
+                patches = []
+                for p in candidates[0][2]:
+                    nopath = (opath+[oldorder[oe]])
+                    if isprefix(nopath,p['path']) and nopath!=p['path']:
+                        tmp=deepcopy(p)
+                        tmp['path']=p['path'][len(nopath):]
+                        patches.append(tmp)
+                oldobj=patch(oldobj, patches)
                 ret.append({'type': u'deleted', 'path': opath + [oldorder[oe]], 'data': oldobj})
                 ret.append({'type': u'added', 'path': npath + [neworder[candidates[0][1]]], 'data': oldobj})
             ret.extend(candidates[0][2])
@@ -189,7 +202,7 @@ def sortpaths(a,b):
 
 def patch(obj, changes):
     res = deepcopy(obj)
-    for l in sorted({len(x['path']) for x in changes}):
+    for l in sorted({len(x['path']) for x in changes}, reverse = True):
         # first handle deletes, they are indexed based on the old indexes
         #for change in sorted(changes, key=lambda x: x['path'], reverse=True):
         for change in sorted(changes, key=functools.cmp_to_key(sortpaths)):
@@ -216,6 +229,7 @@ def patch(obj, changes):
                 if debug: print("wtf deleted: %s\nobj: %s" % (change, obj))
                 raise ValueError()
 
+    for l in sorted({len(x['path']) for x in changes}):
         # handle adds
         for change in sorted(changes, key=lambda x: x['path']):
             if change['type']!='added': continue
@@ -271,11 +285,11 @@ def revert(obj, changes):
                 raise ValueError()
                 return
             if isinstance(obj,dict) and change['path'][-1] not in obj:
-                if debug: print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
+                if debug: print("cannot change path: %s what is not there in %s" % (change['path'][-1], change['data']))
                 raise ValueError()
                 return
             elif isinstance(obj,list) and change['path'][-1]>=len(obj):
-                if debug: print("cannot delete %s what is not there in %s" % (change['path'][-1], change['data']))
+                if debug: print("cannot change path: %s what is not there in %s" % (change['path'][-1], change['data']))
                 raise ValueError()
                 return
             elif obj[change['path'][-1]]==change['data'][1]:
