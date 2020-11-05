@@ -237,7 +237,10 @@ def init(data_dir):
 
     # load json dumps int global DBS dict
     for table in TABLES.keys():
-        with open("{}/{}.json".format(data_dir, table), 'rt') as fd:
+        if not os.path.exists(f"{data_dir}/{table}.json"):
+            log(2,f"table not found {table}")
+            continue
+        with open(f"{data_dir}/{table}.json", 'rt') as fd:
             log(3,"loading table {}".format(table))
             DBS[table]={TABLES[table]['key'](item): item for item in json.load(fd)}
 
