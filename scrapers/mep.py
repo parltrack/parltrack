@@ -421,7 +421,7 @@ def onchanged(mep, diff):
         subject="%s %s" % (mep['UserID'],mep['Name']['full']),
         obj=mep,
         change=diff,
-        date=sorted(mep['changes'].keys())[-1],
+        date=today,
         url='%smep/%s' % (ROOT_URL, mep['UserID']),
         text=makemsg(mep, diff)
     )
