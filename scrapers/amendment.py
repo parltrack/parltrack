@@ -585,13 +585,22 @@ def parse_block(block, url, reference, date, committee, rapporteur, PE):
             strip(block)
         elif rapporteur:
             am['authors']=rapporteur
-            for text in filter(None,splitNames(rapporteur)):
-                mepid=db.getMep(text,date)
-                if mepid:
-                    try: am['meps'].append(mepid)
-                    except KeyError: am['meps']=[mepid]
-                else:
-                    log(3, "fix %s" % text)
+            if isinstance(rapporteur,list):
+                for text in rapporteur:
+                    mepid=db.getMep(text,date)
+                    if mepid:
+                        try: am['meps'].append(mepid)
+                        except KeyError: am['meps']=[mepid]
+                    else:
+                        log(3, "fix %s" % text)
+            else:
+                for text in filter(None,splitNames(rapporteur)):
+                    mepid=db.getMep(text,date)
+                    if mepid:
+                        try: am['meps'].append(mepid)
+                        except KeyError: am['meps']=[mepid]
+                    else:
+                        log(3, "fix %s" % text)
         else:
             log(3, "no authors in Amendment %s %s" % (am['seq'], url))
     else:
@@ -735,6 +744,7 @@ def onfinished(daisy=True):
 
 if __name__ == "__main__":
     from utils.utils import jdump
+    #print(jdump(scrape('https://www.europarl.europa.eu/doceo/document/INTA-AM-658734_EN.pdf', ['Enikő GYŐRI'])))
     #print(jdump(scrape("http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+COMPARL+PE-609.623+01+DOC+PDF+V0//EN&language=EN", "Krišjānis Kariņš")))
     #print(jdump(scrape(sys.argv[1],"ANDERSSON Max")))
     print(jdump(scrape(sys.argv[1],sys.argv[2])))
