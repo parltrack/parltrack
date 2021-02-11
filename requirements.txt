@@ -10,3 +10,4 @@ sqlalchemy
 cachecontrol[filecache]
 ipython
 python-dateutil
+flask_caching
