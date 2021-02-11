@@ -121,7 +121,7 @@ class Client:
             # make the sock a file object
             fd = sock.makefile(mode = 'rb', buffering = 65535)
             # unmarshall response
-            res = msgpack.load(fd, raw = False)
+            res = msgpack.load(fd, raw = False, strict_map_key=False)
             fd.close()
         except:
             log(1, "error during processing request {}".format(cmd))
@@ -219,7 +219,7 @@ def reindex(table):
         IDXs[idx['name']]=idx['fn']()
 
 def reindex_all():
-    for table in TABLES.keys():
+    for table in DBS.keys():
         reindex(table)
 
 def genkey(table):
@@ -242,7 +242,6 @@ def init(data_dir):
             reset = "\033[0m"
             print(f"{hilite}table {table}.json not found in {data_dir}. continuing anyway.{reset}")
             log(2,f"table not found {table}")
-            del TABLES[table]
             continue
         with open(f"{data_dir}/{table}.json", 'rt') as fd:
             log(3,"loading table {}".format(table))
@@ -268,7 +267,7 @@ def read_req(sock):
         size -= rsize
     res = b''.join(res)
     #log(4,"size received {}".format(len(res)))
-    req = msgpack.loads(res, raw = False)
+    req = msgpack.loads(res, raw = False, strict_map_key=False)
     log(4, 'received ({}B) {}'.format(len(req),repr(req)[:120]))
     return req
 
@@ -460,7 +459,7 @@ def countries_for_meps(mepids,date):
     res = {}
     for mepid in mepids:
         mep = DBS['ep_meps'][mepid]
-        constituency = matchInterval(mep['Constituencies'], date)
+        constituency = matchInterval(mep.get('Constituencies',[]), date)
         if constituency:
             res[mepid]=constituency
     return res
