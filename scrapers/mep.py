@@ -51,7 +51,7 @@ def scrape(id, **kwargs):
 
     mep = {
         'UserID'    : id,
-        'Name'      : mangleName(unws(' '.join(root.xpath('//div[@class="erpl_title-h1 mt-1"]/text()'))), id),
+        'Name'      : mangleName(unws(' '.join(root.xpath('//span[@class="sln-member-name"]/text()'))), id),
         'Photo'     : "https://www.europarl.europa.eu/mepphoto/%s.jpg" % id,
         'meta'      : {'url': url},
         'Twitter'   : [unws(x.replace("http:// ","")) for x in root.xpath('//section[@id="presentationmep"]//a[@data-original-title="Twitter"]/@href')],
