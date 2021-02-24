@@ -18,7 +18,7 @@ CONFIG = {
 
 pere = re.compile(r'PE[0-9]{3,4}\.[0-9]{3}v0[1-9](?:v0[0-9](?:-[0-9]{1,2})?)?')
 
-def scrape(id, terms, mepname, **kwargs):
+def scrape(id, terms, mepname, save=True, **kwargs):
     activity_types=(('plenary-speeches', 'CRE'),
                     ('reports', "REPORT"),
                     ('reports-shadow', "REPORT-SHADOW"),
@@ -32,6 +32,7 @@ def scrape(id, terms, mepname, **kwargs):
                     ('written-questions', "WQ"),
                     ('motions-indiv', "IMOTION"),
                     ('written-declarations', "WDECL"),
+                    ('prunact', 'PRUNACT'),
                     )
     activities={}
     for type, TYPE in activity_types:
@@ -130,6 +131,7 @@ def scrape(id, terms, mepname, **kwargs):
                         authors=[{'name': name.strip(), "mepid": db.mepid_by_name(name.strip())} for name in node.xpath('./div[1]/div[3]/span/text()')]
                         if authors: item['authors']=authors
 
+                        print(item)
                         if type in ['opinions-shadow', 'opinions']:
                             for f in item['formats']:
                                 if f['type'] == 'PDF':
@@ -142,7 +144,7 @@ def scrape(id, terms, mepname, **kwargs):
                            dossiers = db.get('dossiers_by_doc', item['reference']) or []
                            if len(dossiers)>0:
                                item['dossiers']=[d['procedure']['reference'] for d in dossiers]
-                           elif not '+DOC+PDF+' in item['url']:
+                           elif 'url' in item and not '+DOC+PDF+' in item['url']:
                                # try to figure out the associated dossier by making an (expensive) http request to the ep
                                log(4, "fetching primary activity page %s" % item['url'])
                                try:
@@ -193,7 +195,7 @@ def scrape(id, terms, mepname, **kwargs):
             activities[TYPE]=sorted(activities[TYPE],key=lambda x: x['date'])
     activities['mep_id']=id
     if len(activities.keys())>1:
-        process(activities, id, db.activities, 'ep_mep_activities', mepname, nodiff=True)
+        process(activities, id, db.activities, 'ep_mep_activities', mepname, nostore=not save, nodiff=True)
         return activities
     return {}
 
@@ -234,7 +236,10 @@ if __name__ == '__main__':
     # test report-shadow with double committee
     #print(jdump(scrape(28266, [7,8,9], "some MEP")))
     # major interpellations:
-    print(jdump(scrape(131749, [7,8,9], "some MEP")))
+    #print(jdump(scrape(131749, [7,8,9], "some MEP")))
+    #print(jdump(scrape(205452, [9], 'Chris MACMANUS')))
+    #print(jdump(scrape(204400, [9], 'Adrián VÁZQUEZ LÁZARA', save=False)))
+    print(jdump(scrape(197767, [9], 'Eugen JURZYCA', save=False)))
 
     #import sys
     #print(jdump(scrape(int(sys.argv[1]), [9], "some MEP")))
