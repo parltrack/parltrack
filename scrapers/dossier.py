@@ -168,12 +168,16 @@ def scrape_ep_key_players(root):
             tmp = [junws(x) for x in cells]
             if tmp == ['Committee responsible', 'Rapporteur', 'Appointed']:
                 type="Responsible Committee"
+            elif tmp == ['Joint Committee Responsible', 'Rapporteur', 'Appointed']:
+                type="Joint Responsible Committee"
             elif tmp == ['Committee for opinion', 'Rapporteur for opinion', 'Appointed']:
                 type="Committee Opinion"
             elif tmp == ['Committee for opinion on the legal basis', 'Rapporteur for opinion', 'Appointed']:
                 type="Committee Legal Basis Opinion"
             elif tmp ==['Former committee responsible', 'Former rapporteur','Appointed']:
                 type="Former Responsible Committee"
+            elif tmp ==['Former Joint Committee Responsible', 'Former rapporteur', 'Appointed']:
+                type='Former Joint Committee Responsible'
             elif tmp == ['Former committee for opinion', 'Former rapporteur for opinion', 'Appointed']:
                 type="Former Committee Opinion"
             elif tmp == ['Former committee for opinion on the legal basis', 'Rapporteur for opinion', 'Appointed']:
@@ -199,7 +203,7 @@ def scrape_ep_key_players(root):
         # first cell contains committee
         tmp = cells[0].xpath('.//a/@title')
         associated = False
-        if len(tmp) == 0:
+        if len(tmp) == 0 and type not in ("Joint Responsible Committee", 'Former Joint Committee Responsible'):
             tmp = junws(cells[0])
             abbr, name = tmp.split(" ",1)
             name = unicodedata.normalize('NFKD', name).encode('ascii','ignore').decode('utf8')
@@ -222,6 +226,15 @@ def scrape_ep_key_players(root):
             name = tmp
             tmp = junws(cells[0])
             abbr = tmp[:4]
+        elif type in ("Joint Responsible Committee", 'Former Joint Committee Responsible'):
+            name = []
+            for abbr in cells[0].xpath(".//span/abbr/@title"):
+                abbr=unws(abbr)
+                if abbr not in COMMITTEE_MAP:
+                    log(1, 'unknown committee in EP Joint Committee listing key players: "%s"' % abbr)
+                    raise ValueError("bad html in key players EP section, joint committee name")
+                name.append(COMMITTEE_MAP[abbr])
+            abbr=[unws(a) for a in cells[0].xpath(".//span/abbr/@title")]
         else:
             log(1, 'committee has not one <a> tag: "%s"' % tmp)
             raise ValueError("bad html in key players EP section, committee href")
@@ -643,6 +656,8 @@ def scrape_forecasts(root):
         forecast['title']=title
     return res
 
+
+MAP_GROUP = {v: k for k, v in GROUP_MAP.items()}
 def toGroup(txt):
     txt = unws(txt)
     if txt in GROUP_MAP:
@@ -654,10 +669,12 @@ def toGroup(txt):
     try:
         _, group = txt.split(' - ', 1)
     except:
-        print(repr(txt))
-        raise
+        raise ValueError(repr(txt))
     group=unws(group)
-    return GROUP_MAP[group], group
+    if group in MAP_GROUP:
+        return MAP_GROUP[group], group
+    log(1, "no group mapping found for group %s" % repr(txt))
+    return "Unknown Group", "???"
 
 def toText(node):
     if node is None: return ''
@@ -980,7 +997,7 @@ if __name__ == '__main__':
 
     from utils.utils import jdump
     import sys
-    print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=%s&l=en" % sys.argv[1])))
+    print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=%s&l=en" % sys.argv[1], save=False)))
 
     #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2012/2039(INI)&l=en")))
     #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=1992/0449B(COD)&l=en")))
