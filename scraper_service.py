@@ -104,8 +104,8 @@ def consume(pool, scraper):
             while not pool.empty():
                 pool.get()
             scraper._lock.acquire()
-            while not scraper._queue.queue.empty():
-                scraper._queue.queue.get()
+            while not scraper._queue.empty():
+                scraper._queue.get()
             scraper._lock.release()
             log(1, "---------------END OF EXCEPTIONS---------------")
 
