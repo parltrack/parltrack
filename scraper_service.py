@@ -33,6 +33,10 @@ def add_job(scraper_name, payload):
     scraper = scrapers.get(scraper_name)
     if not scraper:
         raise Exception("Unknown scraper")
+    if scraper._queue.empty():
+        scraper._lock.acquire()
+        scraper._error_queue = [False for _ in range(ERROR_WINDOW)]
+        scraper._lock.release()
     scraper._queue.put(payload)
     log(3, '{0} added to {1} queue'.format(payload, scraper._name))
 
@@ -44,7 +48,8 @@ def run_scraper(scraper):
         Thread(target=consume, args=(pool, scraper), name=scraper._name + str(i)).start()
 
     while True:
-        pool.put(scraper._queue.get(True), True)
+        job = scraper._queue.get(True)
+        pool.put(job, True)
 
 
 def consume(pool, scraper):
@@ -96,7 +101,8 @@ def consume(pool, scraper):
             log(1, "exceptions:".format(scraper._name))
             for e in exceptions:
                 log(1, repr(e))
-            pool.queue.clear()
+            while not pool.empty():
+                pool.get()
             scraper._lock.acquire()
             scraper._queue.queue.clear()
             scraper._lock.release()
