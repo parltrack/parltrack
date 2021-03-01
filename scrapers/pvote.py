@@ -18,7 +18,7 @@
 # (C) 2014, 2019 Stefan Marsiske
 
 from db import db
-from utils.utils import fetch_raw, jdump, junws
+from utils.utils import fetch_raw, jdump, junws, unws
 from utils.log import log
 from utils.mappings import VOTE_URL_TEMPLATES, VOTE_DOX, VOTE_DOX_RE
 from utils.process import process
@@ -85,10 +85,26 @@ def getXML(term, date):
     url_templates={
         'vn': 'http://www.europarl.europa.eu/RegData/seance_pleniere/proces_verbal/%s/votes_nominaux/xml/P%s_PV%s(RCV)_XC.xml',
         'lp': 'http://www.europarl.europa.eu/RegData/seance_pleniere/proces_verbal/%s/liste_presence/P%s_PV%s(RCV)_XC.xml',
+        'v3': 'https://www.europarl.europa.eu/doceo/document/PV-%s-%s-RCV_FR.xml',
         None: None
     }
-    def _get(template, term, _date):
+    def _get(template, term, _date, ):
         url = template % (_date.strftime("%Y/%m-%d"), term, _date.strftime("(%Y)%m-%d"))
+        try:
+            raw = fetch_raw(url,binary=True)
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 404: return None, None
+            log(1, "failed to fetch xml from url: %s" % url)
+            raise
+        try:
+            xml = fromstring(raw)
+        except:
+            log(1, "failed to parse xml from url: %s" % url)
+            raise
+        return url, xml
+
+    if date >= "2020-10-19":
+        url = url_templates['v3'] % (term, date)
         try:
             raw = fetch_raw(url,binary=True)
         except requests.exceptions.HTTPError as e:
@@ -158,6 +174,10 @@ def scrape(term, date, **kwargs):
            u"title": title,
            'votes':{}}
         v.update(votemeta(v['title'], v['ts']))
+        if 'epref' not in v:
+            ref = vote.xpath("RollCallVote.Description.Text/a/text()")
+            if ref:
+                v['epref']=unws(ref[0])
         for type, stype in [('Result.For','+'), ('Result.Against','-'), ('Result.Abstention','0')]:
             type = vote.xpath(type)
             if not type: continue
@@ -174,7 +194,11 @@ def scrape(term, date, **kwargs):
                     for mep in group.xpath(tag):
                         m = {}
                         name = junws(mep)
-                        mepid = db.getMep(name, v['ts'], abbr=g)
+                        mepid = mep.get("PersId")
+                        if mepid:
+                            mepid = int(mepid)
+                        else:
+                            mepid = db.getMep(name, v['ts'], abbr=g)
                         if mepid:
                             m['mepid']= mepid
                             #if int(mep.get('MepId')) in ambiguous_meps:
