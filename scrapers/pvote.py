@@ -20,7 +20,7 @@
 from db import db
 from utils.utils import fetch_raw, jdump, junws, unws
 from utils.log import log
-from utils.mappings import VOTE_URL_TEMPLATES, VOTE_DOX, VOTE_DOX_RE
+from utils.mappings import VOTE_DOX, VOTE_DOX_RE
 from utils.process import process
 
 from datetime import datetime
@@ -77,70 +77,24 @@ def votemeta(line, date):
     log(4,'no associated dossier for: "%s"' % line)
     return res
 
-def getXML(term, date):
-    """
-    sadly we need this because the EP is a mess.
-    """
-    _date = datetime.strptime(date.strip(), "%Y-%m-%d")
-    url_templates={
-        'vn': 'http://www.europarl.europa.eu/RegData/seance_pleniere/proces_verbal/%s/votes_nominaux/xml/P%s_PV%s(RCV)_XC.xml',
-        'lp': 'http://www.europarl.europa.eu/RegData/seance_pleniere/proces_verbal/%s/liste_presence/P%s_PV%s(RCV)_XC.xml',
-        'v3': 'https://www.europarl.europa.eu/doceo/document/PV-%s-%s-RCV_FR.xml',
-        None: None
-    }
-    def _get(template, term, _date, ):
-        url = template % (_date.strftime("%Y/%m-%d"), term, _date.strftime("(%Y)%m-%d"))
-        try:
-            raw = fetch_raw(url,binary=True)
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 404: return None, None
-            log(1, "failed to fetch xml from url: %s" % url)
-            raise
-        try:
-            xml = fromstring(raw)
-        except:
-            log(1, "failed to parse xml from url: %s" % url)
-            raise
-        return url, xml
+def getXML(url):
+    try:
+        raw = fetch_raw(url,binary=True)
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 404: return None
+        log(1, "failed to fetch xml from url: %s" % url)
+        raise
+    try:
+        return fromstring(raw)
+    except:
+        log(1, "failed to parse xml from url: %s" % url)
+        raise
 
-    if date >= "2020-10-19":
-        url = url_templates['v3'] % (term, date)
-        try:
-            raw = fetch_raw(url,binary=True)
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 404: return None, None
-            log(1, "failed to fetch xml from url: %s" % url)
-            raise
-        try:
-            xml = fromstring(raw)
-        except:
-            log(1, "failed to parse xml from url: %s" % url)
-            raise
-        return url, xml
-
-    template = VOTE_URL_TEMPLATES.get((term,date))
-    if template: # we have known good template, lets use it
-        return _get(url_templates[template], term,_date)
-    # dang EP is a mess, let's try both templates, maybe one of them magically starts working
-    res = _get(url_templates['lp'], term,_date)
-    if res != (None,None):
-        if  date < "2019-07-02":
-            log(3, 'Holy astringent plum-like fruit! Batman, a previously missing plenary vote xml suddenly reappered, from now on use the "lp" url template for (%d, %s)' % (term,date))
-        return res
-    res = _get(url_templates['vn'], term,_date)
-    if res != (None,None):
-        log(3, 'Holy Hole in a Doughnut! Batman, a previously lost plenary vote xml suddenly reappered, from now on use the "vn" url template for (%d, %s)' % (term,date))
-        return res
-    return None, None
-
-novotes={'2019-07-03','2019-07-17'}
-lost_meps={'4664': 4241,'3911': 1956, '7249': 5392, "6106": 96951, "6584": 124965, "1529": 1023, "3137": 234, "5263": 28133, "6204": 102931}
-def scrape(term, date, **kwargs):
-    if date in novotes: return
-    log(3,"scraping %d %s" % (term, date))
-    url, root = getXML(term, date)
-    if (url, root) == (None, None):
-        log(1,"could not get votes for %d %s" %(term, date))
+def scrape(url, **kwargs):
+    log(3,"scraping %s" % (url))
+    root = getXML(url)
+    if root is None:
+        log(1,"could not get votes for", url)
         return # angrily o/
     log(3, "processing plenary votes xml from %s" % url)
     # root is:
@@ -148,11 +102,11 @@ def scrape(term, date, **kwargs):
     votes=[]
     for vote in root.xpath('//RollCallVote.Result'):
         # hrmpf, some EP seriously used the braindead Y-d-m format sometimes in vote timestamps :/
-        time = vote.get('Date').split()
-        if len(time) == 2:
-            ts = datetime.strptime(date+' '+time[1], "%Y-%m-%d %H:%M:%S")
+        time = vote.get('Date')
+        if len(time.split()) == 2:
+            ts = datetime.strptime(time, "%Y-%m-%d %H:%M:%S")
         else:
-            ts = datetime.strptime(date, "%Y-%m-%d")
+            ts = datetime.strptime(time, "%Y-%m-%d")
         tmp=vote.get('Identifier')
         if tmp:
             voteid = int(tmp)
@@ -224,6 +178,5 @@ def onfinished(daisy=True):
 
 if __name__ == '__main__':
     import sys
-    term = int(sys.argv[1])
-    date = sys.argv[2]
-    print(jdump(scrape(term, date)))
+    url = sys.argv[1]
+    print(jdump(scrape(url)))

@@ -18,7 +18,7 @@
 # (C) 2014,2019 Stefan Marsiske
 
 from datetime import datetime
-from utils.utils import fetch, jdump
+from utils.utils import fetch_raw, jdump
 from utils.log import log
 import sys
 
@@ -29,28 +29,27 @@ CONFIG = {
     'error_handler': None,
 }
 
-# 'http://www.europarl.europa.eu/plenary/en/minutes.html?clean=false&leg=7&refSittingDateStart=01/01/2011&refSittingDateEnd=31/12/2011&miType=title&miText=Roll-call+votes&tabActif=tabResult&startValue=10'
+seen = set()
+
 def crawl(year, term, **kwargs):
-    listurl = 'http://www.europarl.europa.eu/plenary/en/minutes.html'
-    PARAMS = '?clean=false&leg=%s&refSittingDateStart=01/01/%s&refSittingDateEnd=31/12/%s&miType=title&miText=Roll-call+votes&tabActif=tabResult'
-    params = PARAMS % (term, year, year)
-    root=fetch(listurl+params)
-    prevdates=None
-    dates=root.xpath('//span[@class="date"]/text()')
-    i=0
-    while dates and dates!=prevdates:
-        for date in dates:
-            if not date.strip(): continue
-            #print(term, date.strip())
-            date = datetime.strptime(date.strip(), "%d-%m-%Y").strftime("%Y-%m-%d")
+    url = 'https://www.europarl.europa.eu/RegistreWeb/services/search'
+    params = {"references":[],"authors":[],"typesDoc":["PPVD"],"eurovoc":None,"codeAuthor":None,"fulltext":None,"searchLanguages":["EN"],"relations":[],"allAuthorities":[],"dateCriteria":{"field":"DATE_DOCU","startDate":None,"endDate":None},"sortAndOrder":"DATE_DOCU_ASC"}
+    params['year']=str(year)
+    params['leg']=str(term)
+    params["currentPage"]=1
+    params["nbRows"]=10
+
+    res=fetch_raw(url, json=params, res=True).json()
+    while(len(res.get('documents',[]))>0):
+        for d in res.get('documents'):
+            if d.get("fragDocu")!="RCV": continue
+            if d['filename'] in seen: continue
+            seen.add(d['filename'])
             payload = dict(kwargs)
-            payload['term'] = term
-            payload['date'] = date
+            payload['url'] = d['filename']
             add_job('pvote', payload=payload)
-        i+=1
-        root=fetch("%s%s&action=%s" % (listurl,params,i))
-        prevdates=dates
-        dates=root.xpath('//span[@class="date"]/text()')
+        params["currentPage"]+=1
+        res=fetch_raw(url, json=params, res=True).json()
 
 def getterms(year):
     if year < 2004:
@@ -65,7 +64,7 @@ def getterms(year):
                 6+(year-2004)//5]
 
 def scrape(year=None, **kwargs):
-    if year==None: # only scrape current year
+    if year is None: # only scrape current year
         years = [datetime.now().year]
     elif year == "all":
         years = range(2004,datetime.now().year+1)
