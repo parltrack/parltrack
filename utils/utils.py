@@ -27,10 +27,9 @@ try:
 except:
     from itertools import zip_longest as izip_longest
 from operator import itemgetter
-from config import ROOT_URL
+from config import ROOT_URL, USER_AGENT, CACHE_DIR
 from utils.log import log
 from utils.objchanges import hashabledict
-from config import USER_AGENT
 
 if sys.version[0] == '3':
     unicode = str
@@ -232,12 +231,12 @@ from cachecontrol import CacheControl
 from cachecontrol.caches.file_cache import FileCache
 
 HEADERS =  { 'User-agent': USER_AGENT }
-sess = CacheControl(requests.Session(), cache=FileCache('/data/cache', forever=True))
+sess = CacheControl(requests.Session(), cache=FileCache(CACHE_DIR, forever=True))
 
-def fetch_raw(url, retries=5, ignore=[], params=None, binary=False):
+def fetch_raw(url, retries=5, ignore=[], params=None, json=None, binary=False, res=False):
     try:
-        if params:
-            r=sess.post(url, params=params, headers=HEADERS)
+        if params or json:
+            r=sess.post(url, params=params, json=json, headers=HEADERS)
         else:
             r=sess.get(url, headers=HEADERS)
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
@@ -245,16 +244,17 @@ def fetch_raw(url, retries=5, ignore=[], params=None, binary=False):
             retries = min(retries, 1)
         if retries>0:
             time.sleep(4*(6-retries))
-            return fetch_raw(url, retries-1, ignore=ignore, params=params, binary=binary)
+            return fetch_raw(url, retries-1, ignore=ignore, params=params, json=json, binary=binary)
         else:
             raise ValueError("failed to fetch %s" % url)
     if r.status_code >= 400 and r.status_code not in [504, 502]+ignore:
         r.raise_for_status()
+    if res: return r
     if binary: return r.content
     return r.text
 
 def fetch(url, retries=5, ignore=[], params=None, prune_xml=False):
-    xml = fetch_raw(url, retries, ignore, params)
+    xml = fetch_raw(url, retries, ignore, params, json)
     # cut <?xml [..] ?> part
     if prune_xml:
         xml = xml[xml.find('?>')+2:]
