@@ -131,7 +131,7 @@ def scrape(id, terms, mepname, save=True, **kwargs):
                         authors=[{'name': name.strip(), "mepid": db.mepid_by_name(name.strip())} for name in node.xpath('./div[1]/div[3]/span/text()')]
                         if authors: item['authors']=authors
 
-                        print(item)
+                        #print(item)
                         if type in ['opinions-shadow', 'opinions']:
                             for f in item['formats']:
                                 if f['type'] == 'PDF':
