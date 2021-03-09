@@ -333,8 +333,10 @@ def scrape_council_players(root):
         # middle cell is meeting
         tmp = cells[1].xpath('./div/a')
         if len(tmp)!=1:
-            log(1, "council meeting has not one <a> tag")
-            raise ValueError("bad html in key players Council section, council config href")
+            tmp = cells[1].xpath('./div/span[@class="ep_name"]')
+            if len(tmp)!=1:
+                log(1, "council meeting has not one <a> tag")
+                raise ValueError("bad html in key players Council section, council config href")
         tmp=tmp[0]
         player['meeting_id']=junws(tmp)
         player['url']=str(tmp.get('href'))
@@ -673,7 +675,9 @@ def toGroup(txt):
     group=unws(group)
     if group in MAP_GROUP:
         return MAP_GROUP[group], group
-    log(1, "no group mapping found for group %s" % repr(txt))
+    if group in GROUP_MAP:
+        return GROUP_MAP[group], group
+    log(1, "no group mapping found for group %s | %s" % (repr(txt), repr(group)))
     return "Unknown Group", "???"
 
 def toText(node):
