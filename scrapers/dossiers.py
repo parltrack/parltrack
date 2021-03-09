@@ -41,7 +41,7 @@ handlers=[ProxyHandler({'http': PROXY})]
 BASE_URL = 'https://oeil.secure.europarl.europa.eu'
 
 def get_new_dossiers(**kwargs):
-    f = feedparser.parse('https://oeil.secure.europarl.europa.eu/oeil/search/result.rss?s1&all&limit=250&lang=en', handlers=handlers)
+    f = feedparser.parse('https://oeil.secure.europarl.europa.eu/oeil/search/result.rss?s1&all&limit=100&lang=en', handlers=handlers)
     if not f:
         return
     refs = set(db.dossier_refs())
