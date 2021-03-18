@@ -396,6 +396,8 @@ ORGMAPS=[('Committee o', 'Committees'),
         ('Quaestors', 'Staff'),]
 
 GROUP_MAP={ u"Confederal Group of the European United Left - Nordic Green Left": u'GUE/NGL',
+            u"Group of the European United Left - Nordic Green Left": 'GUE/NGL',
+            u'The Left group in the European Parliament - GUE/NGL': 'GUE/NGL',
             u"The Left group in the European Parliament": u"GUE/NGL",
             u"European United Left - Nordic Green Left": u'GUE/NGL',
             u'European United Left - Nordic\xa0Green\xa0Left': u"GUE/NGL",
