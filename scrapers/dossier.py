@@ -207,6 +207,7 @@ def scrape_ep_key_players(root):
             tmp = junws(cells[0])
             abbr, name = tmp.split(" ",1)
             if abbr == 'CJ29' and name.startswith('Joint committee procedure'): 
+                type="Joint Responsible Committee"
                 _, coms = name.split('-')
                 name = []
                 abbr = []
@@ -1022,7 +1023,7 @@ if __name__ == '__main__':
 
     from utils.utils import jdump
     import sys
-    print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=%s&l=en" % sys.argv[1], save=False)))
+    print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=%s&l=en" % sys.argv[1], save=True)))
 
     #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2012/2039(INI)&l=en")))
     #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=1992/0449B(COD)&l=en")))
