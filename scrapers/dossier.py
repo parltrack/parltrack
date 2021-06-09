@@ -206,13 +206,25 @@ def scrape_ep_key_players(root):
         if len(tmp) == 0 and type not in ("Joint Responsible Committee", 'Former Joint Committee Responsible'):
             tmp = junws(cells[0])
             abbr, name = tmp.split(" ",1)
-            name = unicodedata.normalize('NFKD', name).encode('ascii','ignore').decode('utf8')
-            if name.endswith(" (Associated committee)"):
-                associated=True
-                name=name[:-23]
-            if not (abbr in COMMITTEE_MAP and name in COMMITTEE_MAP):
-                log(1, 'unknown linkless committee in EP key players: "%s" -> u"%s": u"%s"' % (tmp, name, abbr))
-                raise ValueError("bad html in key players EP section, linkless committee name")
+            if abbr == 'CJ29' and name.startswith('Joint committee procedure'): 
+                _, coms = name.split('-')
+                name = []
+                abbr = []
+                for c in coms.split(" and "):
+                    c=unws(c)
+                    if c not in COMMITTEE_MAP:
+                        log(1, 'unknown committee in EP Joint Committee listing key players: "%s"' % c)
+                        raise ValueError("bad html in key players EP section, joint committee name")
+                    name.append(COMMITTEE_MAP[c])
+                    abbr.append(c)
+            else:
+                name = unicodedata.normalize('NFKD', name).encode('ascii','ignore').decode('utf8')
+                if name.endswith(" (Associated committee)"):
+                    associated=True
+                    name=name[:-23]
+                if not (abbr in COMMITTEE_MAP and name in COMMITTEE_MAP):
+                    log(1, 'unknown linkless committee in EP key players: "%s" -> u"%s": u"%s"' % (tmp, name, abbr))
+                    raise ValueError("bad html in key players EP section, linkless committee name")
             player['associated']=associated
         elif len(tmp) == 1:
             tmp=unws(tmp[0])
