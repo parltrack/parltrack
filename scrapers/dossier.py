@@ -207,7 +207,7 @@ def scrape_ep_key_players(root):
             tmp = junws(cells[0])
             abbr, name = tmp.split(" ",1)
             if abbr == 'CJ29' and name.startswith('Joint committee procedure'): 
-                type="Joint Responsible Committee"
+                player['type']="Joint Responsible Committee"
                 _, coms = name.split('-')
                 name = []
                 abbr = []
