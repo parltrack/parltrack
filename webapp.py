@@ -480,7 +480,10 @@ def dossier(d_id):
         # get activities by meps
         meps={}
         # lookup to match shadow rapporteurs to committees
-        comap = {c['committee']: i for i, c in enumerate(d.get('committees', [])) if c.get('type',c.get('responsible')) not in ('Responsible Committee', 'Former Responsible Committee', True, None)}
+        comap = {c0: i
+                for i, c in enumerate(d.get('committees', []))
+                if c.get('type',c.get('responsible')) not in ('Responsible Committee', 'Former Responsible Committee', True, None)
+                for c0 in ([c['committee']] if isinstance(c['committee'], str) else c['committee'])}
         for act, type, mepid, mepname in (db.activities_by_dossier(d_id) or []):
             if type in ["REPORT", "REPORT-SHADOW", "COMPARL"]: continue
             if type == 'COMPARL-SHADOW':
