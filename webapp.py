@@ -178,7 +178,7 @@ def logs(ldate=None):
     if ('%s.html' % ldate) not in lf:
         print(ldate, lf)
         return render('errors/404.html'), 404
-    with open('/var/www/parltrack/logs/%s.html' % ldate, 'r') as f:
+    with open('/var/www/parltrack/logs/%s.html' % ldate, 'r',  encoding="utf-8") as f:
         log = f.read()
     return render('log_summary.html', date=ldate, log=log)
 
