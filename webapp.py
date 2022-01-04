@@ -295,6 +295,7 @@ def meps(filter1=None, filter2=None):
         rankedMeps.append((score,sorted(ranks, reverse=True),mep))
     return render('meps.html',
                   date=date,
+                  groupids=GROUPIDS,
                   group=group_filter,
                   country=country_filter,
                   meps=[x for x in sorted(rankedMeps,key=lambda x: x[0], reverse=True)])
@@ -615,6 +616,7 @@ def committee(c_id):
     return render(
         'committee.html',
         committee=c,
+        groupids=GROUPIDS,
         now_date=date.today().strftime("%Y-%m-%d"),
         exclude_from_json=('now_date',)
     )
