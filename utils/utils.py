@@ -233,10 +233,10 @@ from cachecontrol.caches.file_cache import FileCache
 HEADERS =  { 'User-agent': USER_AGENT }
 sess = CacheControl(requests.Session(), cache=FileCache(CACHE_DIR, forever=True))
 
-def fetch_raw(url, retries=5, ignore=[], params=None, json=None, binary=False, res=False):
+def fetch_raw(url, retries=5, ignore=[], params=None, asjson=None, binary=False, res=False):
     try:
-        if params or json:
-            r=sess.post(url, params=params, json=json, headers=HEADERS)
+        if params or asjson:
+            r=sess.post(url, params=params, json=asjson, headers=HEADERS)
         else:
             r=sess.get(url, headers=HEADERS)
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
@@ -244,7 +244,7 @@ def fetch_raw(url, retries=5, ignore=[], params=None, json=None, binary=False, r
             retries = min(retries, 1)
         if retries>0:
             time.sleep(4*(6-retries))
-            return fetch_raw(url, retries-1, ignore=ignore, params=params, json=json, binary=binary)
+            return fetch_raw(url, retries-1, ignore=ignore, params=params, asjson=asjson, binary=binary)
         else:
             raise ValueError("failed to fetch %s" % url)
     if r.status_code >= 400 and r.status_code not in [504, 502]+ignore:
@@ -254,7 +254,7 @@ def fetch_raw(url, retries=5, ignore=[], params=None, json=None, binary=False, r
     return r.text
 
 def fetch(url, retries=5, ignore=[], params=None, prune_xml=False):
-    xml = fetch_raw(url, retries, ignore, params, json)
+    xml = fetch_raw(url, retries, ignore, params)
     # cut <?xml [..] ?> part
     if prune_xml:
         xml = xml[xml.find('?>')+2:]
