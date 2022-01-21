@@ -1051,6 +1051,7 @@ def votematrices(votes):
             continue
         matrix = { 'title': vote['title'],
                    'time': vote['ts'],
+                   '_id': vote['voteid'],
                    'totals': dict(sorted([(c,vote['votes'][c]['total']) for c in ['+','0','-'] if c in vote['votes']],key=lambda x: x[1], reverse=True)),
                    'max': 0,
                    'countries': {},

@@ -303,7 +303,7 @@
 <div id="votes" class="ui tab" data-tab="votes">
 <h3>Votes</h3>
 {%for vote in dossier.vmatrix|sort(attribute='time')%}
-<h4>{{vote.title|safe}}</h4>
+<h4>{{vote.title|safe}} <a class="anchorLink" name="vote-{{vote._id}}" href="#vote-{{vote._id}}">#</a></h4>
   <div>{{vote.time|asdate}} Outcome: {% for c,r in vote.totals.items()%}{{c}}: {{r}}{% if not loop.last%}, {%endif%}{%endfor%}</div>
   <table class="ui definition table celled collapsing compact small voteheatmaptable">
      <thead>
