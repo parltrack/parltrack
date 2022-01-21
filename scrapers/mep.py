@@ -170,7 +170,8 @@ def parse_addr(root):
             fax = li.xpath('.//li/i[@class="erpl_icon erpl_icon-fax"]/../a/@href')
             if fax:
                 addrs[key]['Fax']=fax[0][4:].replace("+33(0)388","+333 88").replace("+32(0)228","+322 28")
-        tmp=[unws(x) for x in li.xpath('.//li[1]//text()') if len(unws(x))]
+        #tmp=[unws(x) for x in li.xpath('.//li[1]//text()') if len(unws(x))]
+        tmp=[unws(x) for x in li.xpath('.//div[@class="erpl_contact-card-list"]/span/text()') if len(unws(x))]
         if key=='Strasbourg':
             addrs[key][u'Address']=dict(zip([u'Organization',u'Building', u'Office', u'Street',u'Zip1', u'Zip2'],tmp))
             addrs[key][u'Address']['City']=addrs[key]['Address']['Zip2'].split()[1]
