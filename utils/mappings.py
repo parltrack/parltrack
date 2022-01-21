@@ -942,6 +942,8 @@ stage2percent = {
 
     'Commission draft budget published': 5,
     'Council draft budget published': 5,
+    'Committee referral announced in Parliament': 5,
+    'Committee referral announced in Parliament, 1st reading': 5,
     'Committee referral announced in Parliament, 1st reading/single reading': 5,
     'Committee referral announced in Parliament, 2nd reading': 5,
     'Referral to joint committee announced in Parliament': 5,
@@ -954,6 +956,8 @@ stage2percent = {
     'Formal reconsultation of Parliament': 20,
 
     'Vote in committee, 1st reading/single reading': 25,
+    "Vote in committee, 1st reading": 25,
+    "Vote in committee": 25,
     'Vote in committee, 2nd reading': 25,
     'Vote scheduled in committee, 1st reading/single reading': 25,
     'Awaiting approval of interim report': 25,
@@ -963,9 +967,12 @@ stage2percent = {
     'Start of budgetary conciliation (Parliament and Council)': 30,
 
     'Committee report tabled for plenary, single reading': 40,
+    "Committee report tabled for plenary": 40,
+    "Committee report tabled for plenary, 1st reading": 40,
     'Committee report tabled for plenary, 1st reading/single reading': 40,
     "Preparatory budgetary report tabled for plenary": 40,
     'Budgetary report tabled for plenary, 1st reading': 40,
+    "Budgetary report tabled for plenary": 40,
     'Budgetary report tabled for plenary, 2nd reading': 40,
     'Budgetary conciliation report tabled for plenary': 40,
     'Decision by committee, without report': 40,
@@ -985,6 +992,8 @@ stage2percent = {
     'Vote in plenary scheduled': 60,
     'Vote scheduled': 60,
 
+    "Decision by Parliament": 65,
+    "Decision by Parliament, 1st reading": 65,
     'Decision by Parliament, 1st reading/single reading': 65,
     'Decision by Parliament, 2nd reading': 65,
     'Decision by Parliament, 3rd reading': 65,
