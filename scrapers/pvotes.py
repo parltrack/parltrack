@@ -39,17 +39,20 @@ def crawl(year, term, **kwargs):
     params["currentPage"]=1
     params["nbRows"]=10
 
-    res=fetch_raw(url, json=params, res=True).json()
+    res=fetch_raw(url, asjson=params, res=True).json()
     while(len(res.get('documents',[]))>0):
         for d in res.get('documents'):
             if d.get("fragDocu")!="RCV": continue
-            if d['filename'] in seen: continue
-            seen.add(d['filename'])
-            payload = dict(kwargs)
-            payload['url'] = d['filename']
-            add_job('pvote', payload=payload)
+            for f in d.get('formatDocs',[]):
+                if f.get('typeDoc','') != 'text/xml': continue
+                if f['url'] in seen: continue
+                seen.add(f['url'])
+                payload = dict(kwargs)
+                payload['url'] = f['url']
+                #print(payload)
+                add_job('pvote', payload=payload)
         params["currentPage"]+=1
-        res=fetch_raw(url, json=params, res=True).json()
+        res=fetch_raw(url, asjson=params, res=True).json()
 
 def getterms(year):
     if year < 2004:
