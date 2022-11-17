@@ -1,11 +1,11 @@
-import asyncore
+import asyncio
 import os
 import socket
 import sys
 import traceback
 
 from db import Client
-from imp import load_source
+from importlib.machinery import SourceFileLoader
 from json import loads, dumps
 from queue import Queue
 from threading import Thread, RLock
@@ -150,7 +150,7 @@ def load_scrapers():
             import_path = 'scrapers.'+name
             if import_path in sys.modules:
                 del sys.modules[import_path]
-            s = load_source(import_path, 'scrapers/' + scraper)
+            s = SourceFileLoader(import_path, 'scrapers/' + scraper).load_module()
         except:
             log(1, "failed to load scraper" % scraper)
             traceback.print_exc()
@@ -178,73 +178,66 @@ def load_scrapers():
 scrapers = load_scrapers()
 
 
-class RequestHandler(asyncore.dispatcher_with_send):
+async def notify(writer, msg, **kwargs):
+    log(3, "%s %s" % (msg, repr(kwargs)))
+    message = {'message': msg}
+    message.update(kwargs)
+    writer.write(dumps(message).encode('utf-8')+b'\n')
+    await writer.drain()
 
-    def __init__(self, sock, queues):
-        self.scrapers = queues
-        super().__init__(sock)
 
-
-    def handle_read(self):
-        data = self.recv(8192)
-        #print(data)
-        if not data:
-            return
+async def handle_client(reader, writer):
+    try:
+        cli_addr = reader._transport._sock.getpeername()
+        log(3, 'Incoming connection from {0}:{1}'.format(*cli_addr))
         try:
+            data = (await reader.read(255)).decode('utf8')
             data = loads(data)
         except:
-            self.notify('Invalid json\n')
+            await notify(writer, 'Invalid json')
+            writer.close()
             return
+
         if 'command' not in data:
-            self.notify('Missing "command" attribute', type='error')
+            await notify(writer, 'Missing "command" attribute', type='error')
+            writer.close()
             return
+
         if data['command'] in ['l', 'ls', 'list']:
-            self.notify('scraper queue list', **get_all_jobs())
+            await notify(writer, 'scraper queue list', **get_all_jobs())
 
         if data['command'] in ['c', 'call']:
-            if data.get('scraper') not in self.scrapers:
-                self.notify('Missing or invalid scraper ' + data.get('scraper'))
-            payload = data.get('payload', {})
-            add_job(data['scraper'], payload)
+            if data.get('scraper') not in scrapers:
+                await notify(writer, 'Missing or invalid scraper ' + data.get('scraper'))
+            else:
+                payload = data.get('payload', {})
+                add_job(data['scraper'], payload)
 
         if data['command'] in ['log', 'setlog', 'setlogfile']:
             set_logfile(data.get('path'))
             log(3, 'Changing logfile to {0}'.format(data.get('path')))
 
         log(3, '# Command `{0}` processed'.format(data['command']))
-
-    def notify(self, msg, **kwargs):
-        log(3, "%s %s" % (msg, repr(kwargs)))
-        message = {'message': msg}
-        message.update(kwargs)
-        self.send(dumps(message).encode('utf-8')+b'\n')
-
-    def handle_close(self):
-        self.close()
+        writer.close()
         log(3, 'Client disconnected')
+    except Exception as e:
+        print(f"Exception caught: {e}")
+        try:
+            writer.close()
+        except:
+            pass
 
 
-class ScraperServer(asyncore.dispatcher):
-
-    def __init__(self, host, port, scrapers):
-        asyncore.dispatcher.__init__(self)
-        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.set_reuse_addr()
-        self.bind((host, port))
-        self.listen(5)
-        self.scrapers = scrapers
-
-    def handle_accept(self):
-        pair = self.accept()
-        if pair is not None:
-            sock, addr = pair
-            log(3, 'Incoming connection from {0}'.format(repr(addr)))
-            handler = RequestHandler(sock, self.scrapers)
+async def run_server(host, port):
+    server = await asyncio.start_server(handle_client, host, port)
+    log(3, 'listening on {0}:{1}'.format(host, port))
+    async with server:
+        await server.serve_forever()
 
 
 if __name__ == '__main__':
+    host = 'localhost'
+    port = 7676
     if len(sys.argv) > 1:
-        server = ScraperServer('localhost', int(sys.argv[1]), scrapers)
-    else:
-        server = ScraperServer('localhost', 7676, scrapers)
-    asyncore.loop()
+        port = int(sys.argv[1])
+    asyncio.run(run_server(host, port))
