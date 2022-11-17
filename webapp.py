@@ -17,7 +17,10 @@ from flask.json import jsonify
 from flask_mail import Message, Mail
 from flask_caching import Cache
 from hashlib import sha1
-from jinja2 import escape
+try:
+    from jinja2 import escape
+except:
+    from markupsafe import escape
 from logging import Formatter, FileHandler
 from pprint import pprint
 from random import shuffle, randrange, randint, choice
