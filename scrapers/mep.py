@@ -54,11 +54,12 @@ def scrape(id, **kwargs):
         'Name'      : mangleName(unws(' '.join(root.xpath('//span[@class="sln-member-name"]/text()'))), id),
         'Photo'     : "https://www.europarl.europa.eu/mepphoto/%s.jpg" % id,
         'meta'      : {'url': url},
-        'Twitter'   : [unws(x.replace("http:// ","")) for x in root.xpath('//section[@id="presentationmep"]//a[@data-original-title="Twitter"]/@href')],
-        'Homepage'  : [unws(x.replace("http:// ","")) for x in root.xpath('//section[@id="presentationmep"]//a[@data-original-title="Website"]/@href')],
-        'Facebook'  : [unws(x.replace("http:// ","")) for x in root.xpath('//section[@id="presentationmep"]//a[@data-original-title="Facebook"]/@href')],
-        'Instagram' : [unws(x.replace("http:// ","")) for x in root.xpath('//section[@id="presentationmep"]//a[@data-original-title="Instagram"]/@href')],
-        'Mail'      : [deobfus_mail(x) for x in root.xpath('//section[@id="presentationmep"]//a[@data-original-title="E-mail"]/@href')],
+        'Twitter'   : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="Twitter"]/@href')],
+        'Homepage'  : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="Website"]/@href')],
+        'Facebook'  : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="Facebook"]/@href')],
+        'Instagram' : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="Instagram"]/@href')],
+        'Youtube'   : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="Youtube"]/@href')],
+        'Mail'      : [deobfus_mail(x) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="E-mail"]/@href')],
         'Addresses' : parse_addr(root),
         'active'    : False,
     }
@@ -133,7 +134,7 @@ def scrape(id, **kwargs):
                     url = pdf.xpath('./@href')[0]
                     name = unws(''.join(pdf.xpath('.//text()')))
                     mep[key].append({'title': name, 'url': url})
-            elif key in ['Declaration of good conduct', 'Voluntary confirmation on the use of the General Expenditure Allowance']:
+            elif key in ['Declaration of good conduct', 'Voluntary confirmation on the use of the General Expenditure Allowance', 'Declaration on appropriate behaviour']:
                 mep[key] = []
                 for pdf in title.xpath('./following-sibling::ul/li/a')[::-1]: # reversed order, otherwise newer ones get prepended and mess up the diff
                     url = pdf.xpath('./@href')[0]
@@ -164,14 +165,14 @@ def parse_addr(root):
         if key == 'Bruxelles': key = 'Brussels'
         addrs[key]={}
         if key in ['Brussels', 'Strasbourg']:
-            phone = li.xpath('.//li/i[@class="erpl_icon erpl_icon-phone"]/../a/@href')
+            phone = li.xpath('.//li/svg[@class="es_icon es_icon-phone"]/../a/@href')
             if phone:
                 addrs[key]['Phone']=phone[0][4:].replace("+33(0)388","+333 88").replace("+32(0)228","+322 28")
-            fax = li.xpath('.//li/i[@class="erpl_icon erpl_icon-fax"]/../a/@href')
+            fax = li.xpath('.//li/svg[@class="es_icon es_icon-fax"]/../a/@href')
             if fax:
                 addrs[key]['Fax']=fax[0][4:].replace("+33(0)388","+333 88").replace("+32(0)228","+322 28")
         #tmp=[unws(x) for x in li.xpath('.//li[1]//text()') if len(unws(x))]
-        tmp=[unws(x) for x in li.xpath('.//div[@class="erpl_contact-card-list"]/span/text()') if len(unws(x))]
+        tmp=[unws(x) for x in li.xpath('.//div[@class="erpl_contact-card-list"]/span//text()') if len(unws(x))]
         if key=='Strasbourg':
             addrs[key][u'Address']=dict(zip([u'Organization',u'Building', u'Office', u'Street',u'Zip1', u'Zip2'],tmp))
             addrs[key][u'Address']['City']=addrs[key]['Address']['Zip2'].split()[1]
