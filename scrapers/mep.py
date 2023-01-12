@@ -66,10 +66,10 @@ def scrape(id, **kwargs):
 
     mep = addchangednames(mep)
 
-    birthdate = root.xpath('//time[@id="birthDate"]/text()')
+    birthdate = root.xpath('//time[@class="sln-birth-date"]/text()')
     if len(birthdate)>0:
         mep['Birth']={'date': datetime.strptime(unws(birthdate[0]), u"%d-%m-%Y")}
-        place=root.xpath('//time[@id="birthDate"]/following-sibling::text()')
+        place=root.xpath('//time[@class="sln-birth-date"]/following-sibling::span/text()')
         if len(place)>0:
             tmp = unws(' '.join(place))
             if tmp.startswith(", "): tmp=tmp[2:]
@@ -217,11 +217,11 @@ def mangleName(name, id):
     sur=u' '.join(sur)
     family=u' '.join(family)
     for t in TITLES:
-        if sur.endswith(t):
-            sur=sur[:-len(t)]
+        if sur.endswith(' '+t):
+            sur=sur[:-len(t)+1]
             title=t
             break
-        if sur.startswith(t):
+        if sur.startswith(t+' '):
             sur=sur[len(t)+1:]
             title=t
             break
