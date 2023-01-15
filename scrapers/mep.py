@@ -206,7 +206,7 @@ def mangleName(name, id):
     tmp=name.split(' ')
     title=None
     for i,token in enumerate(tmp):
-        if ((token.isupper() and not isabbr(token)) or
+        if ((token.replace("ß", "ẞ").isupper() and not isabbr(token)) or
             token in ['de', 'van', 'von', 'del'] or
             (token == 'in' and tmp[i+1]=="'t" ) or
             (token[:2]=='Mc' and token[2:].isupper())):
