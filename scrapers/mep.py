@@ -17,7 +17,8 @@
 
 # (C) 2019 by Stefan Marsiske, <parltrack@ctrlc.hu>
 
-import re,sys
+import sys
+import re
 import notification_model as notif
 from utils.utils import fetch, fetch_raw, unws, jdump, getpdf, textdiff
 from utils.process import process
@@ -154,8 +155,8 @@ def scrape(id, **kwargs):
     del mep
 
 def deobfus_mail(txt):
-    x = txt.replace('[at]','@').replace('[dot]','.')
-    return ''.join(x[len('mailto:'):][::-1])
+    x = re.sub(r'^mailto:', '', txt).replace('[at]', '@').replace('[dot]', '.')
+    return ''.join(x[::-1])
 
 def parse_addr(root):
     # addresses
