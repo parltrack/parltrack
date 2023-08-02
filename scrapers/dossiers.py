@@ -56,8 +56,10 @@ def get_new_dossiers(**kwargs):
         add_job('dossier', payload=payload)
 
 def get_all_dossiers(**kwargs):
+    urltemplate = 'https://oeil.secure.europarl.europa.eu/oeil/search/result.do?page={page}&sort=d&:year={year}'
     for year in range(datetime.date.today().year, 1971, -1):
-        tree=fetch('https://oeil.secure.europarl.europa.eu/oeil/widgets/resultwidget.do?lang=en&noHeader=false&q=objectReferenceN:N-%s/*\(*\)' % (year))
+        page = 1
+        tree=fetch(urltemplate.format(**locals()))
         tmp = tree.xpath('//span[@class="ep_name" and (starts-with(normalize-space(),"Results found :") or starts-with(normalize-space(),"Result found :"))]/text()')
         if not tmp:
             log(1, "no dossiers found for %d" % year)
@@ -65,21 +67,20 @@ def get_all_dossiers(**kwargs):
         tmp = unws(tmp[0])
         count = int(tmp[tmp.index(":")+1:])
         log(4,"year %d, count %d" % (year, count))
-        #tree=fetch('https://oeil.secure.europarl.europa.eu/oeil/popups/printresultlist.xml?q=objectReferenceN:N-%s/????\(*\)&lang=en&s1&all&limit=%s&lang=en'
-        #           % (year, count), prune_xml=True)
-        tree=fromstring(fetch_raw('https://oeil.secure.europarl.europa.eu/oeil/popups/printresultlist.xml?q=objectReferenceN:N-%s/*\(*\)&lang=en&s1&all&limit=%s&lang=en' % (year, count)).encode("utf8"))
-        items=tree.xpath('//item')
-        i = 0
-        for item in items:
-            url = html.unescape(urljoin(BASE_URL,str(item.xpath('./link/text()')[0])))
-            ref = unws(item.xpath('./reference/text()')[0])
-            if '*' in ref: ref = ref[:ref.index('*')]
-            log(4,'adding dossier scraping job %s' % url)
-            payload = dict(kwargs)
-            payload['url'] = url
-            add_job('dossier', payload=payload)
-            i+=1
-        if i!=count: log(1,"total %d, expected %d" % (i, count))
+        items = tree.xpath('//a[@class="reference rssEntry_id rssEntry_title rssEntry_updated"]')
+        cnt=0
+        while len(items)>0:
+           for item in items:
+               url=html.unescape(urljoin(BASE_URL, urlunsplit(('','')+urlsplit(item.get('href'))[2:])))
+               log(4,'adding dossier scraping job %s' % url)
+               payload = dict(kwargs)
+               payload['url'] = url
+               add_job('dossier', payload=payload)
+               cnt+=1
+           page+=1 
+           tree=fetch(urltemplate.format(**locals()))
+           items = tree.xpath('//a[@class="reference rssEntry_id rssEntry_title rssEntry_updated"]')
+        log(4,"year %d, found %d" % (year, cnt))
 
 def get_active_dossiers(**kwargs):
     i=0
