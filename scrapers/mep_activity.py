@@ -38,7 +38,7 @@ def scrape(id, terms, mepname, save=True, **kwargs):
     for type, TYPE in activity_types:
         for term in terms:
             page = 0
-            cnt = 20
+            cnt = 10
             url = "http://www.europarl.europa.eu/meps/en/%s/loadmore-activities/%s/%s/?page=%s&count=%s" % (id, type, term, page, cnt)
             try:
                 root = fetch(url)
