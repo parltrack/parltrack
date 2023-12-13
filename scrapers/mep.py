@@ -135,7 +135,7 @@ def scrape(id, **kwargs):
                     url = pdf.xpath('./@href')[0]
                     name = unws(''.join(pdf.xpath('.//text()')))
                     mep[key].append({'title': name, 'url': url})
-            elif key in ['Declaration of good conduct', 'Voluntary confirmation on the use of the General Expenditure Allowance', 'Declaration on appropriate behaviour','Declaration of private interests']:
+            elif key in ['Declaration of good conduct', 'Voluntary confirmation on the use of the General Expenditure Allowance', 'Declaration on appropriate behaviour','Declaration of private interests', '"Declaration on awareness of conflicts of interest"']:
                 mep[key] = []
                 for pdf in title.xpath('./following-sibling::ul/li/a')[::-1]: # reversed order, otherwise newer ones get prepended and mess up the diff
                     url = pdf.xpath('./@href')[0]
