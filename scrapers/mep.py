@@ -135,7 +135,7 @@ def scrape(id, **kwargs):
                     url = pdf.xpath('./@href')[0]
                     name = unws(''.join(pdf.xpath('.//text()')))
                     mep[key].append({'title': name, 'url': url})
-            elif key in ['Declaration of good conduct', 'Voluntary confirmation on the use of the General Expenditure Allowance', 'Declaration on appropriate behaviour']:
+            elif key in ['Declaration of good conduct', 'Voluntary confirmation on the use of the General Expenditure Allowance', 'Declaration on appropriate behaviour','Declaration of private interests']:
                 mep[key] = []
                 for pdf in title.xpath('./following-sibling::ul/li/a')[::-1]: # reversed order, otherwise newer ones get prepended and mess up the diff
                     url = pdf.xpath('./@href')[0]
@@ -326,6 +326,8 @@ def parse_history(id, root, mep):
                             if not field in mep: mep[field]=[]
                             mep[field].append(item)
                             break
+                    if end == datetime.strptime("31.12.9999", u"%d.%m.%Y"):
+                        mep['active']=True
                 elif key == u'Political groups':
                     try:
                         start, end = parse_hist_date(interval)
@@ -358,6 +360,8 @@ def parse_history(id, root, mep):
                         u'start':        start,
                         u'end':          end,
                         })
+                    if end == datetime.strptime("31.12.9999", u"%d.%m.%Y"):
+                        mep['active']=True
                 else:
                     log(2, '[!] unknown field "%s" http://www.europarl.europa.eu/meps/en/%s/name/history/%s' % (key, id,term))
                     raise ValueError
