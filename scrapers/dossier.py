@@ -163,8 +163,7 @@ def scrape_ep_key_players(root):
         cells = row.xpath('.//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-cell ")]')
         if len(cells) != 3:
             if [junws(x) for x in cells] == ['Pending final decision on the referral']:
-               return {"type": 'Pending final decision on the referral',
-                       'body':'EP'}
+               continue
             log(1,'EP key players table has not 3 columns: %s' % repr([junws(x) for x in cells]))
             raise ValueError("bad dossier html")
         if 'ep-table-heading-row' in row.get('class'):
