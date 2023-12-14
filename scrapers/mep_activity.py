@@ -47,8 +47,8 @@ def scrape(id, terms, mepname, save=True, **kwargs):
                 raise ValueError
                 #continue
             #print(url, file=sys.stderr)
-            while(len(root.xpath('//div[@class="erpl_document"]'))>0):
-                for node in root.xpath('//div[@class="erpl_document"]'):
+            while(len(root.xpath('//div[@class="erpl_document "]'))>0):
+                for node in root.xpath('//div[@class="erpl_document "]'):
                     if type == 'written-explanations':
                         item = {
                             'title': unws(''.join(node.xpath('./div/h3/span[@class="t-item"]//text()'))),
@@ -180,7 +180,7 @@ def scrape(id, terms, mepname, save=True, **kwargs):
                     if TYPE not in activities:
                         activities[TYPE]=[]
                     activities[TYPE].append(item)
-                if len(root.xpath('//div[@class="erpl_document"]')) < cnt:
+                if len(root.xpath('//div[@class="erpl_document "]')) < cnt:
                     break
                 page += 1
                 url = "http://www.europarl.europa.eu/meps/en/%s/loadmore-activities/%s/%s/?page=%s&count=%s" % (id, type, term, page, cnt)
