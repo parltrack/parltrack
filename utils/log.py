@@ -32,6 +32,8 @@ def log(level, msg):
         scraper = '???'
 
     if level <= loglevel:
+        #stack = ' '.join(f"{frame.filename}:{frame.lineno}" for frame in inspect.stack()[1:])
+        #logfile.write("{ts} {scraper} {level} {stack} {size} {msg}\n".format(ts=datetime.isoformat(datetime.now()), level=LEVELS[level], scraper=scraper, msg=msg, stack=stack, size=len(msg)))
         logfile.write("{ts} {scraper} {level} {msg}\n".format(ts=datetime.isoformat(datetime.now()), level=LEVELS[level], scraper=scraper, msg=msg))
 
 def set_level(l):
