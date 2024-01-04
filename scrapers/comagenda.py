@@ -266,7 +266,7 @@ def scrape(url, committee, **kwargs):
             item.update(tmp)
             continue
         # fall-through line
-        log(4, "(falltrough) %s %s" % (line.tag, txt.encode('utf8')))
+        log(4, "(falltrough) %s %s" % (line.tag, txt))
     if item: res.append(item)
     save(res)
     return res
@@ -277,7 +277,7 @@ def getMEPRef(name):
     if mep:
         return mep['UserID']
     else:
-        log(2, '[!] lookup oops %s' % name.encode('utf8'))
+        log(2, '[!] lookup oops %s' % name)
 
 def save(data):
     for item in data:
