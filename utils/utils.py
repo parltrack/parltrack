@@ -247,6 +247,11 @@ def fetch_raw(url, retries=5, ignore=[], params=None, asjson=None, binary=False,
             return fetch_raw(url, retries-1, ignore=ignore, params=params, asjson=asjson, binary=binary)
         else:
             raise ValueError("failed to fetch %s" % url)
+    if r.status_code == 429:
+        retries = min(retries, 1)
+        if retries>0:
+            time.sleep(5*(6-retries))
+            return fetch_raw(url, retries-1, ignore=ignore, params=params, asjson=asjson, binary=binary)
     if r.status_code >= 400 and r.status_code not in [504, 502]+ignore:
         r.raise_for_status()
     if res: return r
