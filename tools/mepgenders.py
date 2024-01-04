@@ -23,7 +23,9 @@ import requests
 
 
 if __name__ == "__main__":
-    csv = requests.get('https://github.com/TechToThePeople/mep/raw/production/data/meps.nogender.csv').text
+    #csv = requests.get('https://github.com/TechToThePeople/mep/raw/production/data/meps.nogender.csv').text
+    csv = requests.get('https://github.com/TechToThePeople/mep/raw/production/data/static/meps.nogender.csv').text
+                        
     genders = [l.split(',')[:2] for l in csv.split('\n')][1:-1]
     try:
         for mepid, gender in genders:
