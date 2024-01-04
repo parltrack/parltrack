@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 from db import db
-from utils.log import log
+from utils.log import log, set_logfile
 from utils.utils import jdump
 from utils.objchanges import diff, patch
 from datetime import datetime
-import json
+import json, sys
 
 def process(obj, id, getter, table, name, nopreserve=None, nodiff=False, nostore=False, onchanged=None):
     if nopreserve is None: nopreserve=[]
@@ -89,4 +89,5 @@ def publish_logs(get_all_jobs):
     log(4,"publish_logs, jobs: %s" % jobs)
     log(4, "publish_logs conds: %s %s %s" % (not any(jobs['queues'].values()),  not any(jobs['job_counts'].values()), not any(jobs['queues'].values()) and not any(jobs['job_counts'].values())))
     if not any(jobs['queues'].values()) and not any(jobs['job_counts'].values()):
+        set_logfile(sys.stdout)
         Popen(['/bin/sh','./bin/publish-log.sh'])
