@@ -4,7 +4,7 @@
 from utils.log import log
 from utils.utils import fetch_raw, jdump
 from tempfile import mkstemp
-from sh import pdftotext
+from sh import pdftotext#, strace
 import sys, os, re
 
 if sys.version[0] == '3':
@@ -169,15 +169,22 @@ def parse_table_f(rows, threshold=2):
 
 def getraw(pdf):
     log(5, "fetching url: %s" % pdf)
-    (fd, fname)=mkstemp()
-    fd=os.fdopen(fd, 'wb')
-    fd.write(fetch_raw(pdf, binary=True))
-    fd.close()
+    #(fd, fname)=mkstemp()
+    #log(2, "store pdf into: %s" % fname)
+    #fd=os.fdopen(fd, 'wb')
+    #fd.write(fetch_raw(pdf, binary=True))
+    #fd.close()
     text=pdftotext('-nopgbrk',
-                   '-layout',
-                   fname,
-                   '-')
-    os.unlink(fname)
+    #text=strace('-fo', fname+".log", 'pdftotext',
+    #            '-nopgbrk',
+                '-layout',
+                fname,
+                '-')
+    if not text:
+        log(2, "failed to pdftotext: %s %s" % (fname, pdf))
+        raise ValueError("failed to pdftotext: %s %s" % (fname, pdf))
+    #os.unlink(fname+".log")
+    #os.unlink(fname)
     return text
 
 def issectionhead(decl, text,ptr,curstate,state, ids):
