@@ -487,6 +487,7 @@ def committees(key=None):
 
     for d in DBS['ep_dossiers'].values():
         for c in d.get('committees', []):
+            # todo fixme also handle joint committees
             if c.get('type') != "Responsible Committee": continue
             if not c['committee'] in res:
                 res[c['committee']] = {'active': False, 'organization': COMMITTEE_MAP[c['committee']]}
