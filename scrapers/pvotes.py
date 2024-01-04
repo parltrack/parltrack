@@ -33,24 +33,25 @@ seen = set()
 
 def crawl(year, term, **kwargs):
     url = 'https://www.europarl.europa.eu/RegistreWeb/services/search'
-    params = {"references":[],"authors":[],"typesDoc":["PPVD"],"eurovoc":None,"codeAuthor":None,"fulltext":None,"searchLanguages":["EN"],"relations":[],"allAuthorities":[],"dateCriteria":{"field":"DATE_DOCU","startDate":None,"endDate":None},"sortAndOrder":"DATE_DOCU_ASC"}
-    params['year']=str(year)
-    params['leg']=str(term)
-    params["currentPage"]=1
-    params["nbRows"]=10
+    params = {"dateCriteria":{"field":"DATE_DOCU","startDate":None,"endDate":None},"accesses":[],"types":["PPVD"],"authorCodes":[],"fragments":[],"geographicalAreas":[],"eurovocs":[],"directoryCodes":[],"subjectHeadings":[],"policyAreas":[],"institutions":[],"authorAuthorities":[],"recipientAuthorities":[],"authorOrRecipientAuthorities":[],"nbRows":10,"references":[],"relations":[],"authors":[],"currentPage":1,"sortAndOrder":"DATE_DOCU_DESC","excludesEmptyReferences":False,"fulltext":None,"title":None,"summary":None}
+
+    params['years']=[year]
+    params['terms']=[term]
 
     res=fetch_raw(url, asjson=params, res=True).json()
-    while(len(res.get('documents',[]))>0):
-        for d in res.get('documents'):
-            if d.get("fragDocu")!="RCV": continue
-            for f in d.get('formatDocs',[]):
-                if f.get('typeDoc','') != 'text/xml': continue
-                if f['url'] in seen: continue
-                seen.add(f['url'])
-                payload = dict(kwargs)
-                payload['url'] = f['url']
-                #print(payload)
-                add_job('pvote', payload=payload)
+    while(len(res.get('references',[]))>0):
+        for r in res['references']:
+            for x in r['fragments']:
+                if x.get('value') != 'RCV': continue
+                for v in x['versions']:
+                    for f in v.get('fileInfos',[]):
+                        if f['typeDoc']!='text/xml': continue
+                        if f['url'] in seen: continue
+                        seen.add(f['url'])
+                        payload = dict(kwargs)
+                        payload['url'] = f['url']
+                        #print(payload)
+                        add_job('pvote', payload=payload)
         params["currentPage"]+=1
         res=fetch_raw(url, asjson=params, res=True).json()
 
