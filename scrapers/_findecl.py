@@ -342,7 +342,7 @@ def scrape(decl, **kwargs):
                 ptr+=1
                 if ptr>=len(text):
                     log(1, '[meh] fail find end in I')
-                    log(5, 'meh\n>>>%s' % '\n>>>'.join(text[istart:istart+14]).encode('utf8'))
+                    log(5, 'meh\n>>>%s' % '\n>>>'.join(text[istart:istart+14]))
                     raise IndexError
             state+=1
             log(5, state)
