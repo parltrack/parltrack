@@ -683,6 +683,16 @@ def idx_com_votes_by_committee():
         res[committee].append(vote)
     return res
 
+def idx_com_votes_by_pdf_url():
+    res = {}
+    for vote in DBS['ep_com_votes'].values():
+        url = vote.get('meta', {}).get('url')
+        if not committee:
+            log(1,"com_vote has no PDF URL {}".format(vote))
+        if not url in res: res[url] = []
+        res[url].append(vote)
+    return res
+
 def idx_votes_by_dossier():
     res = {}
     for vote in DBS['ep_votes'].values():
@@ -802,7 +812,8 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
                             'key': lambda x: x.get('id')},
 
           'ep_com_votes': {'indexes': [{"fn": idx_com_votes_by_dossier, "name": "com_votes_by_dossier"},
-                                       {"fn": idx_com_votes_by_committee, "name": "com_votes_by_committee"}],
+                                       {"fn": idx_com_votes_by_committee, "name": "com_votes_by_committee"},
+                                       {"fn": idx_com_votes_by_pdf_url, "name": "com_votes_by_pdf_url"}],
                            'key': lambda x: x.get('_id')},
 
           'ep_dossiers': {'indexes': [{"fn": idx_active_dossiers, "name": "active_dossiers"},
