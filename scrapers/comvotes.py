@@ -19,7 +19,7 @@
 
 from db import db
 from utils.log import log
-from utils.utils import fetch
+from utils.utils import fetch, junws
 
 from requests.exceptions import HTTPError
 
@@ -39,11 +39,14 @@ url_filters = {
 }
 
 
-def scrape(active=True, dry=False, **kwargs):
-    if not active:
-        committees = filter(None, db.committees().keys())
+def scrape(active=True, dry=False, committee=None, **kwargs):
+    if committee:
+        committees = [committee]
     else:
-        committees = [x for (x,y) in db.committees().items() if y['active'] and x]
+        if not active:
+            committees = filter(None, db.committees().keys())
+        else:
+            committees = [x for (x,y) in db.committees().items() if y['active'] and x]
 
     log(4, 'Collecting com vote PDFs for the following committees: ' + ', '.join(sorted(committees)))
 
@@ -67,31 +70,41 @@ def scrape(active=True, dry=False, **kwargs):
         pdf_count = 0
 
         # TODO parse dates
-        for href in dom.xpath('//div[@class="erpl_product"]//div[@class="erpl_links-list mb-2"]//ul/li/a/@href'):
-            if not href.endswith('.pdf'):
-                continue
-            if c in url_filters and not url_filters[c](href):
-                continue
+        #for href in dom.xpath('//div[@class="erpl_product"]//div[@class="erpl_links-list mb-2"]//ul/li/a/@href'):
+        for elem in dom.xpath('//div[@class="erpl_product"]'):
+            title = junws(elem.xpath('.//div[@class="erpl_product-header mb-2"]')[0])
+            for link in elem.xpath('.//div[@class="erpl_links-list mb-2"]//ul/li/a'):
+                link_text = junws(link)
+                href = link.get('href')
 
-            pdf_count += 1
+                if not href.endswith('.pdf'):
+                    continue
+                if c in url_filters and not url_filters[c](href):
+                    continue
 
-            if db.get('com_votes_by_pdf_url', href):
-                continue
+                pdf_count += 1
 
-            job_args = dict(kwargs)
-            job_args['url'] = href
-            job_args['committee'] = c
-            job_args['date'] = 'YYYY.MM.DD'
+                if db.get('com_votes_by_pdf_url', href):
+                    continue
 
-            if dry:
-                print(job_args)
-                continue
+                job_args = dict(kwargs)
+                job_args['url'] = href
+                job_args['committee'] = c
+                job_args['date'] = 'YYYY.MM.DD'
 
-            add_job('comvote', payload=job_args)
+                if dry:
+                    print(job_args)
+                    continue
+
+                add_job('comvote', payload=job_args)
 
         if not pdf_count:
             log(1, "No PDF found for committee '{0}'".format(c))
 
 
 if __name__ == '__main__':
-    scrape(dry=True, active=True)
+    from sys import argv
+    if len(argv) > 1:
+        scrape(dry=True, active=True, committee=argv[1])
+    else:
+        scrape(dry=True, active=True)
