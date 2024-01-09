@@ -686,7 +686,7 @@ def idx_com_votes_by_committee():
 def idx_com_votes_by_pdf_url():
     res = {}
     for vote in DBS['ep_com_votes'].values():
-        url = vote.get('meta', {}).get('url')
+        url = vote.get('url')
         if not committee:
             log(1,"com_vote has no PDF URL {}".format(vote))
         if not url in res: res[url] = []
