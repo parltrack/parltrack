@@ -243,14 +243,17 @@ def parse_pech_details(text, date):
         rapporteur_name = title_parts[-2]
         dossier_id = title_parts[-1]
 
-    return {
+    ret = {
         'reference': dossier_id,
         'dossier_title': dossier_title,
-        'rapporteur_name': rapporteur_name,
-        'rapporteur_mep_id': db.mepid_by_name(rapporteur_name, date=date),
-        'vote_type': vote_type,
+        'rapporteur': {
+            'name': rapporteur_name,
+            'mep_id': db.mepid_by_name(rapporteur_name, date=date),
+        },
+        'type': vote_type,
         'date': date
     }
+    return ret
 
 
 COMM_DETAIL_PARSERS = {
