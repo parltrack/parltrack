@@ -66,6 +66,7 @@ def scrape(active=True, dry=False, **kwargs):
 
         pdf_count = 0
 
+        # TODO parse dates
         for href in dom.xpath('//div[@class="erpl_product"]//div[@class="erpl_links-list mb-2"]//ul/li/a/@href'):
             if not href.endswith('.pdf'):
                 continue
@@ -80,6 +81,7 @@ def scrape(active=True, dry=False, **kwargs):
             job_args = dict(kwargs)
             job_args['url'] = href
             job_args['committee'] = c
+            job_args['date'] = 'YYYY.MM.DD'
 
             if dry:
                 print(job_args)
