@@ -42,6 +42,11 @@ CONFIG = {
     'abort_on_error': True,
 }
 
+DOSSIER_ID_TYPOS = {
+    '2023/0079(C0D)': '2023/0079(COD)',
+    '2021/ 0136 (COD)': '2021/0136(COD)',
+}
+
 
 def scrape(committee, url, **kwargs):
     committee = committee.upper()
@@ -73,7 +78,16 @@ def scrape(committee, url, **kwargs):
             #t_res = parse_table_with_corrections(tables)
 
         text = pdfdata[i-1]
-        vote.update(**get_vote_details(committee, text))
+        vote_details = get_vote_details(committee, text)
+
+        # means that this is part of multiple votes about the same subject
+        # we need the additional data from the previous vote
+        if len(vote_details) == 1 and 'type' in vote_details and len(res):
+            vote_details['reference'] = res[-1]['reference']
+            if 'rapporteur' in res[-1]:
+                vote_details['rapporteur'] = res[-1]['rapporteur']
+
+        vote.update(**vote_details)
 
         if 'rapporteur' in vote:
             fix_rapporteur_data(vote)
@@ -81,7 +95,10 @@ def scrape(committee, url, **kwargs):
             log(2, f'Unable to identify rapporteur {vote["rapporteur"]["name"]} in {url}')
 
         if not db.dossier(vote['reference']):
-            raise(Exception(f'Invalid dossier ID {vote["reference"]} in {url}'))
+            if vote['reference'] in DOSSIER_ID_TYPOS:
+                vote['reference'] = DOSSIER_ID_TYPOS[vote['reference']]
+            else:
+                raise(Exception(f'Invalid dossier ID "{vote["reference"]}" in {url}. If it is only a typo add it to DOSSIER_ID_TYPOS.'))
 
         if 'type' not in vote or not vote['type']:
             log(2, f'Unable to vote type {vote["rapporteur"]["name"]} in {url}')
@@ -179,16 +196,19 @@ def parse_table_section(table):
 
     for row in table[1:]:
         if len(row) == 2:
-            group = row[0]
+            group = resolve_group_name(row[0])
             ret['groups'][group] = meps_by_name(row[1].replace('\n', ' '), group)
         else:
-            row1 = ''.join(filter(None, set(row[:4])))
+            row_split_idx = 4
+            if len(row) == 4:
+                row_split_idx = 2
+            row1 = ''.join(filter(None, set(row[:row_split_idx])))
             if row1:
                 if members.strip():
                     ret['groups'][group] = meps_by_name(members, group)
-                group = row1
+                group = resolve_group_name(row1)
                 members = ''
-            members += ' ' + ' '.join(filter(None, set(row[4:])))
+            members += ' ' + ' '.join(filter(None, set(row[row_split_idx:])))
 
     if members.strip():
         ret['groups'][group] = meps_by_name(members, group)
@@ -211,12 +231,17 @@ def meps_by_name(mep_names, group):
 def fix_rapporteur_data(vote):
     vote['rapporteur']['mep_id'] = db.mepid_by_name(vote['rapporteur']['name'], group=vote['rapporteur'].get('group'))
     if 'group' in vote['rapporteur']:
-        g = vote['rapporteur']['group']
-        if not g in GABBRS:
-            if g in GROUP_MAP:
-                vote['rapporteur']['group'] = GROUP_MAP[g]
-            else:
-                raise(Exception(f'Cannot identify rapporteur group "{g}". Please resolve it manually and add it to utils/mappings.py:GROUP_MAP'))
+        vote['rapporteur']['group'] = resolve_group_name(vote['rapporteur']['group'])
+
+
+def resolve_group_name(g):
+    if g in GABBRS:
+        return g
+
+    if g in GROUP_MAP:
+        return GROUP_MAP[g]
+
+    raise(Exception(f'Cannot identify group "{g}". Please resolve it manually and add it to utils/mappings.py:GROUP_MAP'))
 
 
 #import re
@@ -357,8 +382,28 @@ def parse_inta_details(text):
     return ret
 
 
+def parse_itre_details(text):
+    chunks = list(x.replace('\n', ' ') for x in filter(None, text.split('\n\n')))
+    title = chunks[-1]
+    title_split = [x.strip() for x in title.split('-')]
+    try:
+        rname, rgroup = parse_rapporteur_with_group(title_split[2], 'Rapporteur: ')
+    except:
+        return {'type': title_split[0]}
+    ret = {
+        'reference': title_split[1],
+        'rapporteur': {
+            'name': rname,
+            'group': rgroup,
+        },
+        'type': title_split[-1],
+    }
+    return ret
+
+
 COMM_DETAIL_PARSERS = {
     'AFET': parse_afet_details,
+    'ITRE': parse_itre_details,
     'INTA': parse_inta_details,
     'PECH': parse_pech_details,
     'CULT': parse_cult_details,
