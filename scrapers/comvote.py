@@ -20,13 +20,18 @@
 from db import db
 from utils.log import log
 from utils.utils import fetch_raw
+from utils.mappings import GROUP_MAP
 
 from os import remove
 from os.path import isfile
 from subprocess import run
 from tempfile import NamedTemporaryFile
 
+
 import pdfplumber
+
+
+GABBRS = set(GROUP_MAP.values())
 
 CONFIG = {
     'threads': 8,
@@ -64,19 +69,19 @@ def scrape(committee, url, **kwargs):
             #pprint(t_res)
         else:
             print(tables)
-            raise("TODO")
+            raise(Exception("TODO"))
             #t_res = parse_table_with_corrections(tables)
 
         text = pdfdata[i-1]
         vote.update(**get_vote_details(committee, text))
 
         if 'rapporteur' in vote:
-            vote['rapporteur']['mep_id'] = db.mepid_by_name(vote['rapporteur']['name'], group=vote['rapporteur'].get('group'))
+            fix_rapporteur_data(vote)
         else:
             log(2, f'Unable to identify rapporteur {vote["rapporteur"]["name"]} in {url}')
 
         if not db.dossier(vote['reference']):
-            raise(f'Invalid dossier ID {vote["reference"]} in {url}')
+            raise(Exception(f'Invalid dossier ID {vote["reference"]} in {url}'))
 
         if 'type' not in vote or not vote['type']:
             log(2, f'Unable to vote type {vote["rapporteur"]["name"]} in {url}')
@@ -193,7 +198,7 @@ def parse_table_section(table):
     if ret['total'] != mepcount:
         msg = f"Vote mep count mismatch: total {ret['total']}, count {mepcount}"
         log(1, msg)
-        raise(msg)
+        raise(Exception(msg))
 
     return ret
 
@@ -201,6 +206,17 @@ def parse_table_section(table):
 def meps_by_name(mep_names, group):
     # TODO collect dates as well for better identification (nice to have)
     return [db.mepid_by_name(x, group=group) for x in map(str.strip, mep_names.split(','))]
+
+
+def fix_rapporteur_data(vote):
+    vote['rapporteur']['mep_id'] = db.mepid_by_name(vote['rapporteur']['name'], group=vote['rapporteur'].get('group'))
+    if 'group' in vote['rapporteur']:
+        g = vote['rapporteur']['group']
+        if not g in GABBRS:
+            if g in GROUP_MAP:
+                vote['rapporteur']['group'] = GROUP_MAP[g]
+            else:
+                raise(Exception(f'Cannot identify rapporteur group "{g}". Please resolve it manually and add it to utils/mappings.py:GROUP_MAP'))
 
 
 #import re
@@ -243,7 +259,8 @@ def save(data):
 def parse_rapporteur_with_group(text, replace_string):
     rdata = text.replace(replace_string, '')
     rname, rgroup = rdata.split(' (')
-    rgroup = rgroup[:-1]
+    while rgroup and not rgroup[-1].isalpha():
+        rgroup = rgroup[:-1]
     return rname, rgroup
 
 
@@ -301,7 +318,7 @@ def parse_pech_details(text):
     lines = text.split('\n')
     vote_type = ' '.join(lines[-1].split()[1:])
     if len(lines) < 3:
-        raise("Too few lines in a PECH pdf")
+        raise(Exception("Too few lines in a PECH pdf"))
 
     last_newline = [i for i,x in enumerate(lines[:-2]) if not x][-1]
     title = ' '.join(lines[last_newline:-2])[3:].strip()
