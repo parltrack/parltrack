@@ -73,7 +73,10 @@ def scrape(committee, url, **kwargs):
         if 'rapporteur' in vote:
             vote['rapporteur']['mep_id'] = db.mepid_by_name(vote['rapporteur']['name'], group=vote['rapporteur'].get('group'))
         else:
-            log(2, f'Unable to identify rapporteur in {url}')
+            log(2, f'Unable to identify rapporteur {vote["rapporteur"]["name"]} in {url}')
+
+        if not db.dossier(vote['reference']):
+            raise(f'Invalid dossier ID {vote["reference"]} in {url}')
 
         res.append(vote)
 
@@ -167,13 +170,17 @@ def parse_table_section(table):
     ret['total'] = int(list(filter(None, table[0]))[0])
 
     for row in table[1:]:
-        row1 = ''.join(filter(None, set(row[:4])))
-        if row1:
-            if members.strip():
-                ret['groups'][group] = meps_by_name(members, group)
-            group = row1
-            members = ''
-        members += ' ' + ' '.join(filter(None, set(row[4:])))
+        if len(row) == 2:
+            group = row[0]
+            ret['groups'][group] = meps_by_name(row[1].replace('\n', ' '), group)
+        else:
+            row1 = ''.join(filter(None, set(row[:4])))
+            if row1:
+                if members.strip():
+                    ret['groups'][group] = meps_by_name(members, group)
+                group = row1
+                members = ''
+            members += ' ' + ' '.join(filter(None, set(row[4:])))
 
     if members.strip():
         ret['groups'][group] = meps_by_name(members, group)
@@ -231,6 +238,32 @@ def save(data):
     return data
 
 
+def parse_cult_details(text):
+    parts = [x.replace('\n', ' ') for x in text.split('\n\n')]
+
+    rdata = parts[-1].replace('Rapporteur: ', '')
+    rname, rgroup = rdata.split(' (')
+    rgroup = rgroup[:-1]
+
+    ref = parts[-2].strip()
+    if ref.startswith('('):
+        ref = ref[1:]
+    if ref.endswith('))'):
+        ref = ref[:-1]
+
+    vtype = parts[-3].split(':')[0]
+
+    ret = {
+        'reference': ref,
+        'type': vtype,
+        'rapporteur': {
+            'name': rname,
+            'group': rgroup,
+        },
+    }
+    return ret
+
+
 def parse_pech_details(text):
     lines = text.split('\n')
     vote_type = ' '.join(lines[-1].split()[1:])
@@ -251,7 +284,6 @@ def parse_pech_details(text):
 
     ret = {
         'reference': dossier_id,
-        'dossier_title': dossier_title,
         'rapporteur': {
             'name': rapporteur_name,
         },
@@ -262,8 +294,8 @@ def parse_pech_details(text):
 
 COMM_DETAIL_PARSERS = {
     'PECH': parse_pech_details,
+    'CULT': parse_cult_details,
 }
-
 
 if __name__ == "__main__":
     from utils.utils import jdump
