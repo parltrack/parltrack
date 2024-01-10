@@ -78,6 +78,9 @@ def scrape(committee, url, **kwargs):
         if not db.dossier(vote['reference']):
             raise(f'Invalid dossier ID {vote["reference"]} in {url}')
 
+        if 'type' not in vote or not vote['type']:
+            log(2, f'Unable to vote type {vote["rapporteur"]["name"]} in {url}')
+
         res.append(vote)
 
     #from IPython import embed; embed()
@@ -237,13 +240,17 @@ def save(data):
     print("SAVING", data)
     return data
 
+def parse_rapporteur_with_group(text, replace_string):
+    rdata = text.replace(replace_string, '')
+    rname, rgroup = rdata.split(' (')
+    rgroup = rgroup[:-1]
+    return rname, rgroup
+
 
 def parse_afet_details(text):
     lines = text.split('\n')
 
-    rdata = lines[-1].replace('Rapporteur: ', '')
-    rname, rgroup = rdata.split(' (')
-    rgroup = rgroup[:-1]
+    rname, rgroup = parse_rapporteur_with_group(lines[-1], 'Rapporteur: ')
 
     ref = lines[-2].strip()
 
@@ -269,9 +276,7 @@ def parse_afet_details(text):
 def parse_cult_details(text):
     parts = [x.replace('\n', ' ') for x in text.split('\n\n')]
 
-    rdata = parts[-1].replace('Rapporteur: ', '')
-    rname, rgroup = rdata.split(' (')
-    rgroup = rgroup[:-1]
+    rname, rgroup = parse_rapporteur_with_group(lines[-1], 'Rapporteur: ')
 
     ref = parts[-2].strip()
     if ref.startswith('('):
@@ -320,8 +325,24 @@ def parse_pech_details(text):
     return ret
 
 
+def parse_inta_details(text):
+    chunks = list(x.replace('\n', ' ') for x in filter(None, text.split('\n\n')))
+    title_split = [x.strip() for x in chunks[-3].split('–')]
+    rname, rgroup = parse_rapporteur_with_group(title_split[2], 'rapporteur: ')
+    ret = {
+        'reference': title_split[1],
+        'rapporteur': {
+            'name': rname,
+            'group': rgroup,
+        },
+        'type': chunks[-1],
+    }
+    return ret
+
+
 COMM_DETAIL_PARSERS = {
     'AFET': parse_afet_details,
+    'INTA': parse_inta_details,
     'PECH': parse_pech_details,
     'CULT': parse_cult_details,
 }
