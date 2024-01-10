@@ -238,6 +238,34 @@ def save(data):
     return data
 
 
+def parse_afet_details(text):
+    lines = text.split('\n')
+
+    rdata = lines[-1].replace('Rapporteur: ', '')
+    rname, rgroup = rdata.split(' (')
+    rgroup = rgroup[:-1]
+
+    ref = lines[-2].strip()
+
+    for i, l in enumerate(reversed(lines)):
+        # trying to find the first empty line above the dossier title
+        if not l and i > 2:
+            typeidx = i
+            break
+
+    vtype = lines[-(typeidx+2)]
+
+    ret = {
+        'reference': ref,
+        'type': vtype,
+        'rapporteur': {
+            'name': rname,
+            'group': rgroup,
+        },
+    }
+    return ret
+
+
 def parse_cult_details(text):
     parts = [x.replace('\n', ' ') for x in text.split('\n\n')]
 
@@ -293,6 +321,7 @@ def parse_pech_details(text):
 
 
 COMM_DETAIL_PARSERS = {
+    'AFET': parse_afet_details,
     'PECH': parse_pech_details,
     'CULT': parse_cult_details,
 }
