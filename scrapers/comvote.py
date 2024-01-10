@@ -38,7 +38,7 @@ CONFIG = {
 }
 
 
-def scrape(committee, date, url, **kwargs):
+def scrape(committee, url, **kwargs):
     committee = committee.upper()
     pdf_doc = fetch_raw(url, binary=True)
     res = []
@@ -68,7 +68,7 @@ def scrape(committee, date, url, **kwargs):
             #t_res = parse_table_with_corrections(tables)
 
         text = pdfdata[i-1]
-        vote.update(**get_vote_details(committee, text, date))
+        vote.update(**get_vote_details(committee, text))
 
         if 'rapporteur' in vote:
             vote['rapporteur']['mep_id'] = db.mepid_by_name(vote['rapporteur']['name'], group=vote['rapporteur'].get('group'))
@@ -133,8 +133,8 @@ def extract_pdf(pdf):
     return pdfdata
 
 
-def get_vote_details(committee, text, date):
-    return COMM_DETAIL_PARSERS[committee](text, date)
+def get_vote_details(committee, text):
+    return COMM_DETAIL_PARSERS[committee](text)
 
 
 def get_text_from_page(page, starts_from=None, ends_at=None):
@@ -231,7 +231,7 @@ def save(data):
     return data
 
 
-def parse_pech_details(text, date):
+def parse_pech_details(text):
     lines = text.split('\n')
     vote_type = ' '.join(lines[-1].split()[1:])
     if len(lines) < 3:
@@ -269,7 +269,7 @@ if __name__ == "__main__":
     from utils.utils import jdump
     from sys import argv
 
-    if len(argv) == 4:
-        print(jdump(scrape(argv[1], argv[2], argv[3])))
+    if len(argv) == 3:
+        print(jdump(scrape(argv[1].upper(), argv[2])))
     else:
-        print("Test scraper with the following arguments: [COMMITTEE] [DATE] [PDFURL]")
+        print("Test scraper with the following arguments: [COMMITTEE] [PDFURL]")
