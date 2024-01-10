@@ -400,6 +400,7 @@ ORGMAPS=[('Committee o', 'Committees'),
 GROUP_MAP={ u"Confederal Group of the European United Left - Nordic Green Left": u'GUE/NGL',
             u"Group of the European United Left - Nordic Green Left": 'GUE/NGL',
             u'The Left group in the European Parliament - GUE/NGL': 'GUE/NGL',
+            u'The Left': 'GUE/NGL',
             u"The Left group in the European Parliament": u"GUE/NGL",
             u"European United Left - Nordic Green Left": u'GUE/NGL',
             u'European United Left - Nordic\xa0Green\xa0Left': u"GUE/NGL",
@@ -462,6 +463,7 @@ GROUP_MAP={ u"Confederal Group of the European United Left - Nordic Green Left":
             u'Non-attached': 'NA',
             'Renew Europe Group': "RE",
             'Renew Europe': "RE",
+            'Renew': "RE",
             u'Identity, Tradition and Sovereignty Group': u'ITS',
             u"Group of the European People's Party (Christian Democrats) and European Democrats": u'PPE-DE',
             u"European People's Party (Christian Democrats) and European Democrats": u"PPE-DE",
@@ -1031,7 +1033,7 @@ stage2percent = {
     'Awaiting Council decision on budgetary joint text': 87,
     'Awaiting Council decision on delegated act': 87,
     'Awaiting Council decision, 2nd reading': 87,
- 
+
     'Political agreement in Council on its 1st reading position': 90,
     'Budgetary joint text published': 90, # ?
     "Parliament's amendments rejected by Council": 90,
