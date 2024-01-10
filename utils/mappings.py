@@ -533,6 +533,7 @@ GROUP_MAP={ u"Confederal Group of the European United Left - Nordic Green Left":
             u'Group of European Progressive Democrats': u'DEP',
             u'Europe of Nations and Freedom Group': u'ENF',
             u'Europe of Nations and Freedom': u"ENF",
+            u'Non-Inscrits': 'NI',
             }
 GROUPIDS=[]
 for item in GROUP_MAP.values():
