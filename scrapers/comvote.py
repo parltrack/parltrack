@@ -69,6 +69,12 @@ def scrape(committee, date, url, **kwargs):
 
         text = pdfdata[i-1]
         vote.update(**get_vote_details(committee, text, date))
+
+        if 'rapporteur' in vote:
+            vote['rapporteur']['mep_id'] = db.mepid_by_name(vote['rapporteur']['name'], group=vote['rapporteur'].get('group'))
+        else:
+            log(2, f'Unable to identify rapporteur in {url}')
+
         res.append(vote)
 
     #from IPython import embed; embed()
@@ -248,10 +254,8 @@ def parse_pech_details(text, date):
         'dossier_title': dossier_title,
         'rapporteur': {
             'name': rapporteur_name,
-            'mep_id': db.mepid_by_name(rapporteur_name, date=date),
         },
         'type': vote_type,
-        'date': date
     }
     return ret
 
