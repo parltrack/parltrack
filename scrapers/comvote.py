@@ -589,6 +589,17 @@ def parse_regi_details(text):
     return ret
 
 
+def parse_sede_details(text):
+    # TODO collect more data: we only have 1 published pdf
+    lines = text.splitlines()
+    dossier_id = lines[-1].strip()
+    ret = {
+        'reference': dossier_id,
+        'type': 'FINAL VOTE BY ROLL CALL IN COMMITTEE RESPONSIBLE',
+    }
+    return ret
+
+
 afco_dossier_re = re.compile('\d{4}/\d{4}\([A-Z]{3}\)')
 
 
@@ -631,6 +642,7 @@ COMM_DETAIL_PARSERS = {
     'CULT': parse_cult_details,
     'REGI': parse_regi_details,
     'AFCO': parse_afco_details,
+    'SEDE': parse_sede_details,
 }
 
 HEADER_CUTTERS = {
