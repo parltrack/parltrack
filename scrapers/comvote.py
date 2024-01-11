@@ -19,7 +19,7 @@
 
 from db import db
 from utils.log import log
-from utils.utils import fetch_raw
+from utils.utils import fetch_raw, unws
 from utils.mappings import GROUP_MAP
 
 from os import remove
@@ -56,7 +56,7 @@ def scrape(committee, url, **kwargs):
         tmp.write(pdf_doc)
 
         with pdfplumber.open(tmp.name) as pdf:
-            pdfdata = extract_pdf(pdf)
+            pdfdata = extract_pdf(pdf, committee)
 
     for i, data in enumerate(pdfdata):
         if not type(data) == list:
@@ -74,7 +74,7 @@ def scrape(committee, url, **kwargs):
             #pprint(t_res)
         else:
             print(tables)
-            raise(Exception("TODO"))
+            raise(Exception("TODO" + str(len(tables))))
             #t_res = parse_table_with_corrections(tables)
 
         text = pdfdata[i-1]
@@ -98,10 +98,10 @@ def scrape(committee, url, **kwargs):
             if vote['reference'] in DOSSIER_ID_TYPOS:
                 vote['reference'] = DOSSIER_ID_TYPOS[vote['reference']]
             else:
-                raise(Exception(f'Invalid dossier ID "{vote["reference"]}" in {url}. If it is only a typo add it to DOSSIER_ID_TYPOS.'))
+                raise(Exception('Invalid dossier ID "{0}" in {1}. If it is only a typo add it to DOSSIER_ID_TYPOS.'.format(vote["reference"], url)))
 
         if 'type' not in vote or not vote['type']:
-            log(2, f'Unable to vote type {vote["rapporteur"]["name"]} in {url}')
+            log(2, f'Unable to identify vote type {vote["rapporteur"]["name"]} in {url}')
 
         res.append(vote)
 
@@ -111,70 +111,188 @@ def scrape(committee, url, **kwargs):
     return
 
 
-def extract_pdf(pdf):
+def extract_pdf(pdf, committee):
     extract_settings = {
         'vertical_strategy': 'lines',
         'horizontal_strategy': 'lines',
     }
     pdfdata = []
-    prev_tables = None
-    for i, page in enumerate(pdf.pages):
-        #im = page.to_image()
-        #im.debug_tablefinder(extract_settings)
-        #im.save("static/t/debug%d.png" % i)
-        tables = page.find_tables(table_settings=extract_settings)
-        if not tables:
-            continue
+    prev_table = None
+    #detect_footer(pdf.pages)
+    #exit()
+    for page in pdf.pages:
+        first_text_of_page = True
+        for table in page.find_tables(table_settings=extract_settings):
+            pageno = prev_pageno = page.page_number - 1
+            start_pos = 0
+            end_pos = table.bbox[1]
+            if prev_table:
+                prev_pageno = prev_table.page.page_number - 1
+                start_pos = prev_table.bbox[3]
+            else:
+                prev_pageno = 0
 
-        start_pageno = 0
-        # warning: page number is off by one -> pages[0].pageno is 1
-        pageno = page.page_number - 1
-        text = []
+            t = get_text_from_pages(
+                pdf.pages,
+                start_pageno=prev_pageno,
+                end_pageno=pageno,
+                start_pos=start_pos,
+                end_pos=end_pos,
+                committee=committee
+            ).strip()
+            if t:
+                pdfdata.append(t)
+            pdfdata.append(table)
+            prev_table = table
 
-        # get text from below the previous table
-        if prev_tables:
-            text.append(get_text_from_page(prev_tables[0].page, starts_from=prev_tables[-1].bbox[3]))
-            start_pageno = prev_tables[0].page.page_number
+    # add texts below the last table
+    t = get_text_from_pages(
+        pdf.pages,
+        start_pageno=page.page_number-1,
+        end_pageno=pdf.pages[-1].page_number-1,
+        start_pos=table.bbox[3],
+        end_pos=pdf.pages[-1].height,
+        committee=committee
+    ).strip()
+    if t:
+        pdfdata.append(t)
 
-        # get text from the in between pages
-        if start_pageno < pageno:
-            for i in range(start_pageno, pageno):
-                text.append(get_text_from_page(pdf.pages[i]))
-
-        # get text from above the current page
-        text.append(get_text_from_page(page, ends_at=tables[0].bbox[1]))
-
-        #text = '\n\n[NEWPAGE]\n\n'.join(text)
-        text = '\n\n'.join(text)
-
-        if pdfdata and type(pdfdata[-1]) == type(text):
-            pdfdata[-1] += '\n\n' + text
+    merged_data = []
+    prev_d = None
+    for d in pdfdata:
+        if type(prev_d) == type(d) == str:
+            merged_data[-1] += d
+        elif type(d) == pdfplumber.table.Table:
+            if type(prev_d) == list:
+                prev_d.append(d)
+            else:
+                merged_data.append([d])
         else:
-            pdfdata.append(text)
+            merged_data.append(d)
+        prev_d = merged_data[-1]
+    pdfdata = merged_data
+    # prev_tables = None
+    # for i, page in enumerate(pdf.pages):
+    #     #im = page.to_image()
+    #     #im.debug_tablefinder(extract_settings)
+    #     #im.save("static/t/debug%d.png" % i)
+    #     tables = page.find_tables(table_settings=extract_settings)
+    #     if not tables:
+    #         continue
 
-        if pdfdata and type(pdfdata[-1]) == list:
-            pdfdata[-1].extend(tables)
-        else:
-            pdfdata.append(tables)
+    #     start_pageno = 0
+    #     # warning: page number is off by one -> pages[0].pageno is 1
+    #     pageno = page.page_number - 1
+    #     text = []
 
-        prev_tables = tables
+    #     # get text from below the previous table
+    #     if prev_tables:
+    #         text.append(get_text_from_page(prev_tables[0].page, starts_from=prev_tables[-1].bbox[3]))
+    #         start_pageno = prev_tables[0].page.page_number
+
+    #     # get text from the in between pages
+    #     if start_pageno < pageno:
+    #         for i in range(start_pageno, pageno):
+    #             text.append(get_text_from_page(pdf.pages[i]))
+
+    #     # get text from above the current page
+    #     text.append(get_text_from_page(page, ends_at=tables[0].bbox[1]))
+
+    #     #text = '\n\n[NEWPAGE]\n\n'.join(text)
+    #     text = '\n\n'.join(text)
+
+    #     if pdfdata and type(pdfdata[-1]) == type(text):
+    #         pdfdata[-1] += '\n\n' + text
+    #     else:
+    #         pdfdata.append(text)
+
+    #     if pdfdata and type(pdfdata[-1]) == list:
+    #         pdfdata[-1].extend(tables)
+    #     else:
+    #         pdfdata.append(tables)
+
+    #     prev_tables = tables
+
+    #from pprint import pprint; pprint(pdfdata); exit(0)
     return pdfdata
+
+
+#def is_same_without_pageno(strings):
+#    for i, chars in enumerate(zip(*strings)):
+#        print(chars)
+#        if 1 != len(set(chars)):
+#            if not strings[0][i].isdigit():
+#                return False
+#            new_strings = []
+#            for string in strings:
+#                end = i
+#                while string[end].isdigit() :
+#                    end += 1
+#                new_strings.append(string[:i]+string[end:])
+#            if len(set(new_strings)) == 1:
+#                return True
+#            return False
+#    return True
+#
+#
+#def detect_footer(pages, start=1):
+#    page_texts = [[line for line in p.extract_text(layout=True).split('\n') if unws(line)] for p in pages[start:]]
+#    header = []
+#    footer = []
+#    from difflib import ndiff
+#    for i in range(5, 0, -1):
+#        cand = [unws(''.join(p[-i:])) for pageno,p in enumerate(page_texts)]
+#        if(is_same_without_pageno(cand)):
+#            return i
+#    return 0
 
 
 def get_vote_details(committee, text):
     return COMM_DETAIL_PARSERS[committee](text)
 
 
-def get_text_from_page(page, starts_from=None, ends_at=None):
-    if starts_from is None:
-        starts_from = 0
-    if ends_at is None:
-        ends_at = page.height
+def get_text_from_page(page, start_pos=None, end_pos=None):
+    if start_pos is None:
+        start_pos = 0
+    if end_pos is None:
+        end_pos = page.height
 
-    text = page.crop((0, starts_from, page.width, ends_at)).extract_text(layout=True)
+    text = page.crop((0, start_pos, page.width, end_pos)).extract_text(layout=True)
     text = '\n'.join(map(str.strip, text.split('\n'))).strip()
 
     return text
+
+
+def get_text_from_pages(pages, start_pageno, end_pageno, start_pos, end_pos, committee):
+    cut_header = HEADER_CUTTERS.get(committee, lambda x:x)
+    cut_footer = FOOTER_CUTTERS.get(committee, lambda x:x)
+
+    if start_pageno == end_pageno:
+        t = get_text_from_page(pages[start_pageno], start_pos, end_pos)
+        if start_pos == 0:
+            t = cut_header(t)
+        if end_pos == pages[start_pageno].height:
+            t = cut_footer(t)
+        return t
+
+    text = []
+    # first page
+    t = cut_footer(get_text_from_page(pages[start_pageno], start_pos=start_pos))
+    if start_pos == 0:
+        text.append(cut_header(t))
+    else:
+        text.append(t)
+    # middle pages
+    text.extend([cut_footer(cut_header(get_text_from_page(pages[start_pageno+i+1]))) for i in range(end_pageno - start_pageno - 1)])
+
+    # last page
+    t = get_text_from_page(pages[end_pageno], end_pos=end_pos)
+    if end_pos == pages[end_pageno].height:
+        text.append(cut_footer(t))
+    else:
+        text.append(t)
+
+    return '\n\n'.join(filter(None, text))
 
 
 def parse_simple_table(tables):
@@ -229,9 +347,12 @@ def meps_by_name(mep_names, group):
 
 
 def fix_rapporteur_data(vote):
-    vote['rapporteur']['mep_id'] = db.mepid_by_name(vote['rapporteur']['name'], group=vote['rapporteur'].get('group'))
     if 'group' in vote['rapporteur']:
-        vote['rapporteur']['group'] = resolve_group_name(vote['rapporteur']['group'])
+        try:
+            vote['rapporteur']['group'] = resolve_group_name(vote['rapporteur']['group'])
+        except Exception as e:
+            log(1, e)
+    vote['rapporteur']['mep_id'] = db.mepid_by_name(vote['rapporteur']['name'], group=vote['rapporteur'].get('group'))
 
 
 def resolve_group_name(g):
@@ -241,7 +362,7 @@ def resolve_group_name(g):
     if g in GROUP_MAP:
         return GROUP_MAP[g]
 
-    raise(Exception(f'Cannot identify group "{g}". Please resolve it manually and add it to utils/mappings.py:GROUP_MAP'))
+    raise(Exception('Cannot identify group "{0}". Please resolve it manually and add it to utils/mappings.py:GROUP_MAP'.format(g)))
 
 
 #import re
@@ -286,7 +407,7 @@ def parse_rapporteur_with_group(text, replace_string):
     rname, rgroup = rdata.split(' (')
     while rgroup and not rgroup[-1].isalpha():
         rgroup = rgroup[:-1]
-    return rname, rgroup
+    return rname, rgroup.split()[0]
 
 
 def parse_afet_details(text):
@@ -401,12 +522,44 @@ def parse_itre_details(text):
     return ret
 
 
+def parse_imco_details(text):
+    chunks = list(x.replace('\n', ' ') for x in filter(None, text.split('\n\n')))
+    vtype = ' '.join(chunks[-1].split()[1:])
+    title = chunks[-2]
+    title_split = [x.strip() for x in title.split('–')]
+    try:
+        rname, rgroup = parse_rapporteur_with_group(title_split[2], '')
+    except:
+        return {'type': vtype}
+    ret = {
+        'reference': title_split[1],
+        'rapporteur': {
+            'name': rname,
+            'group': rgroup,
+        },
+        'type': vtype,
+    }
+    return ret
+
+
+def cut_imco_footer(text):
+    return '\n'.join(text.splitlines()[:-3]).strip()
+
+
 COMM_DETAIL_PARSERS = {
     'AFET': parse_afet_details,
     'ITRE': parse_itre_details,
+    'IMCO': parse_imco_details,
     'INTA': parse_inta_details,
     'PECH': parse_pech_details,
     'CULT': parse_cult_details,
+}
+
+HEADER_CUTTERS = {
+}
+
+FOOTER_CUTTERS = {
+    'IMCO': cut_imco_footer,
 }
 
 if __name__ == "__main__":
