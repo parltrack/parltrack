@@ -68,14 +68,12 @@ def scrape(committee, url, **kwargs):
             'url': url,
         }
 
-        if len(tables) == 3:
-            vote['votes'] = parse_simple_table(tables)
-            #from pprint import pprint
-            #pprint(t_res)
-        else:
-            print(tables)
-            raise(Exception("TODO" + str(len(tables))))
-            #t_res = parse_table_with_corrections(tables)
+        if len(tables) < 3:
+            raise(Exception('Less than 3 tables belong to a vote in {0}'.format(url)))
+        if len(tables) > 3:
+            tables = repair_tables(tables)
+
+        vote['votes'] = parse_simple_table(tables)
 
         text = pdfdata[i-1]
         vote_details = get_vote_details(committee, text)
@@ -92,7 +90,7 @@ def scrape(committee, url, **kwargs):
         if 'rapporteur' in vote:
             fix_rapporteur_data(vote)
         else:
-            log(2, f'Unable to identify rapporteur {vote["rapporteur"]["name"]} in {url}')
+            log(2, f'Unable to identify rapporteur in {url}')
 
         if not db.dossier(vote['reference']):
             if vote['reference'] in DOSSIER_ID_TYPOS:
@@ -306,6 +304,20 @@ def parse_simple_table(tables):
     return results
 
 
+def repair_tables(tables):
+    fixed_tables = []
+    for table in tables:
+        if not any(x in table[0] for x in ['+', '-', '0']):
+            if not fixed_tables:
+                raise Exception('Cannot repair table - missing header')
+            fixed_tables[-1].extend(table)
+        else:
+            fixed_tables.append(table)
+    if len(fixed_tables) != 3:
+        raise Exception('Cannot repair table - unknown error')
+    return fixed_tables
+
+
 def parse_table_section(table):
     ret = {'total': 0, 'groups': {}}
     group = ''
@@ -356,6 +368,9 @@ def fix_rapporteur_data(vote):
 
 
 def resolve_group_name(g):
+    if g == 'unknown':
+        return g
+
     if g in GABBRS:
         return g
 
@@ -542,8 +557,34 @@ def parse_imco_details(text):
     return ret
 
 
+def parse_regi_details(text):
+    lines = text.splitlines()
+    vtype = ' '.join(lines[-1].split()[1:])
+    chunks = list(x.replace('\n', ' ') for x in filter(None, '\n'.join(lines[:-1]).split('\n\n')))
+    title = chunks[-1]
+    title_split = [x.strip() for x in title.split(',')]
+    try:
+        rname = title_split[-1]
+        dossier_id = title_split[-2]
+    except:
+        return {'type': vtype}
+    ret = {
+        'reference': dossier_id,
+        'rapporteur': {
+            'name': rname,
+            'group': 'unknown',
+        },
+        'type': vtype,
+    }
+    return ret
+
+
 def cut_imco_footer(text):
     return '\n'.join(text.splitlines()[:-3]).strip()
+
+
+def cut_regi_footer(text):
+    return '\n'.join(text.splitlines()[:-1]).strip()
 
 
 COMM_DETAIL_PARSERS = {
@@ -553,6 +594,7 @@ COMM_DETAIL_PARSERS = {
     'INTA': parse_inta_details,
     'PECH': parse_pech_details,
     'CULT': parse_cult_details,
+    'REGI': parse_regi_details,
 }
 
 HEADER_CUTTERS = {
@@ -560,6 +602,7 @@ HEADER_CUTTERS = {
 
 FOOTER_CUTTERS = {
     'IMCO': cut_imco_footer,
+    'REGI': cut_regi_footer,
 }
 
 if __name__ == "__main__":
