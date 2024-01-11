@@ -43,6 +43,8 @@ CONFIG = {
     'abort_on_error': True,
 }
 
+DOSSIER_RE = re.compile('\d{4}/\d{4}\([A-Z]{3}\)')
+
 DOSSIER_ID_TYPOS = {
     '2023/0079(C0D)': '2023/0079(COD)',
     '2021/ 0136 (COD)': '2021/0136(COD)',
@@ -513,6 +515,21 @@ def parse_pech_details(text):
     return ret
 
 
+def parse_deve_details(text):
+    chunks = list(x.replace('\n', ' ') for x in filter(None, text.split('\n\n')))
+    rname, rgroup = parse_rapporteur_with_group(chunks[-2], 'Rapporteur: ')
+    dossier_id = DOSSIER_RE.findall(chunks[-3])[-1]
+    ret = {
+        'reference': dossier_id,
+        'rapporteur': {
+            'name': rname,
+            'group': rgroup,
+        },
+        'type': chunks[-1],
+    }
+    return ret
+
+
 def parse_inta_details(text):
     chunks = list(x.replace('\n', ' ') for x in filter(None, text.split('\n\n')))
     title_split = [x.strip() for x in chunks[-3].split('–')]
@@ -600,9 +617,6 @@ def parse_sede_details(text):
     return ret
 
 
-afco_dossier_re = re.compile('\d{4}/\d{4}\([A-Z]{3}\)')
-
-
 def parse_afco_details(text):
     lines = text.splitlines()
     chunks = list(x.replace('\n', ' ') for x in filter(None, text.split('\n\n')))
@@ -613,7 +627,7 @@ def parse_afco_details(text):
     title = ' '.join(lines[max(idx for idx,l in enumerate(lines) if not l):])
     title_split = [x.strip() for x in title.split(',')]
     rname, rgroup = parse_rapporteur_with_group(title_split[-1], 'Rapporteur: ')
-    dossier_id = afco_dossier_re.findall(title_split[-2])[-1]
+    dossier_id = DOSSIER_RE.findall(title_split[-2])[-1]
     ret = {
         'reference': dossier_id,
         'rapporteur': {
@@ -643,6 +657,7 @@ COMM_DETAIL_PARSERS = {
     'REGI': parse_regi_details,
     'AFCO': parse_afco_details,
     'SEDE': parse_sede_details,
+    'DEVE': parse_deve_details,
 }
 
 HEADER_CUTTERS = {
