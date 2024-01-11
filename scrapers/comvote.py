@@ -24,6 +24,7 @@ from utils.mappings import GROUP_MAP
 
 from os import remove
 from os.path import isfile
+import re
 from subprocess import run
 from tempfile import NamedTemporaryFile
 
@@ -345,10 +346,13 @@ def parse_table_section(table):
 
     mepcount = len(list(x for y in ret['groups'].keys() for x in ret['groups'][y]))
 
-    if ret['total'] != mepcount:
+    if (ret['total'] == 0 and mepcount != 0) or (ret['total'] != 0 and mepcount == 0):
         msg = f"Vote mep count mismatch: total {ret['total']}, count {mepcount}"
         log(1, msg)
         raise(Exception(msg))
+
+    if ret['total'] != mepcount:
+        log(2, f"Vote mep count mismatch: total {ret['total']}, count {mepcount}")
 
     return ret
 
@@ -364,6 +368,7 @@ def fix_rapporteur_data(vote):
             vote['rapporteur']['group'] = resolve_group_name(vote['rapporteur']['group'])
         except Exception as e:
             log(1, e)
+    # TODO try to find missing group information (date required)
     vote['rapporteur']['mep_id'] = db.mepid_by_name(vote['rapporteur']['name'], group=vote['rapporteur'].get('group'))
 
 
@@ -417,12 +422,17 @@ def save(data):
     print("SAVING", data)
     return data
 
+
 def parse_rapporteur_with_group(text, replace_string):
     rdata = text.replace(replace_string, '')
-    rname, rgroup = rdata.split(' (')
+    splits = rdata.split(' (')
+    if len(splits) == 1:
+        return splits[0], ''
+
+    rname, rgroup = splits
     while rgroup and not rgroup[-1].isalpha():
         rgroup = rgroup[:-1]
-    return rname, rgroup.split()[0]
+    return rname, rgroup.split()[0] if rgroup else ''
 
 
 def parse_afet_details(text):
@@ -572,7 +582,32 @@ def parse_regi_details(text):
         'reference': dossier_id,
         'rapporteur': {
             'name': rname,
-            'group': 'unknown',
+            'group': '',
+        },
+        'type': vtype,
+    }
+    return ret
+
+
+afco_dossier_re = re.compile('\d{4}/\d{4}\([A-Z]{3}\)')
+
+
+def parse_afco_details(text):
+    lines = text.splitlines()
+    chunks = list(x.replace('\n', ' ') for x in filter(None, text.split('\n\n')))
+    vtype = lines[-1]
+    lines.pop()
+    while not lines[-1]:
+        lines.pop()
+    title = ' '.join(lines[max(idx for idx,l in enumerate(lines) if not l):])
+    title_split = [x.strip() for x in title.split(',')]
+    rname, rgroup = parse_rapporteur_with_group(title_split[-1], 'Rapporteur: ')
+    dossier_id = afco_dossier_re.findall(title_split[-2])[-1]
+    ret = {
+        'reference': dossier_id,
+        'rapporteur': {
+            'name': rname,
+            'group': rgroup,
         },
         'type': vtype,
     }
@@ -595,6 +630,7 @@ COMM_DETAIL_PARSERS = {
     'PECH': parse_pech_details,
     'CULT': parse_cult_details,
     'REGI': parse_regi_details,
+    'AFCO': parse_afco_details,
 }
 
 HEADER_CUTTERS = {
