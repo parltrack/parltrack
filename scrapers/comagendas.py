@@ -17,11 +17,13 @@
 
 # (C) 2011, 2019, 2020 by Stefan Marsiske, <parltrack@ctrlc.hu>, Asciimoo
 
-from utils.utils import fetch, unws
+from utils.utils import fetch_raw, jdump
 from utils.log import log
 from utils.mappings import COMMITTEE_MAP
 from config import CURRENT_TERM
-import requests
+import datetime, json, requests
+# todo remove
+import comagenda
 
 CONFIG = {
     'threads': 8,
@@ -30,68 +32,60 @@ CONFIG = {
     'error_handler': None,
 }
 
-itemsPerPage=30
+seen=set()
+def topayload(com, year, month, **kwargs):
+    url_tpl="https://emeeting.europarl.europa.eu/emeeting/ecomback/ws/EMeetingRESTService/events?" \
+            "language=EN&year={year}&month={month}&organ={committee}"
+    url = url_tpl.format(committee=com, year=year, month=month)
+    if url in seen: return
+    seen.add(url)
+    log(3,'fetching %s, month: %s %s %s' % (com, year, month, url))
+    try:
+        meetings=fetch_raw(url, res=True).json()
+    except requests.exceptions.HTTPError as e:
+        #if e.response.status_code == 500:
+        log(3, "failed to get list of draft agendas for %s, month: %s %s, http error code: %s, %s" %
+            (com, year, month, e.response.status_code, url))
+        return []
+    res = []
+    for meeting in meetings:
+       payload = dict(kwargs)
+       payload['url'] = "https://emeeting.europarl.europa.eu/emeeting/ecomback/ws/EMeetingRESTService/oj?" \
+                        "language=en&reference=%s&securedContext=false" % meeting["meetingReference"]
+       payload['committee']= com
+       payload['meeting']=meeting
+       res.append(payload)
+    return res
 
-
-def crawl(term, test=[], **kwargs):
-    seen = set()
-    url="https://www.europarl.europa.eu/committees/en/documents/search?committeeMnemoCode=%s&textualSearchMode=TITLE&textualSearch=&documentTypeCode=AGEN&reporterPersId=&procedureYear=&procedureNum=&procedureCodeType=&peNumber=&aNumber=&aNumberYear=&documentDateFrom=&documentDateTo=&meetingDateFrom=&meetingDateTo=&performSearch=true&term=%s&page=%s&pageSize={}".format(itemsPerPage)
+def scrape(months, **kwargs):
     jobs = []
-    for com in (k for k in test or COMMITTEE_MAP.keys() if len(k)==4):
-        i=0
-        log(3,'crawling %s, term: %s' % (com, term))
-        try:
-            root=fetch(url % (com, term, i))
-        except requests.exceptions.HTTPError as e:
-            #if e.response.status_code == 500:
-            log(3, "failed to get list of draft agendas for %s in term %d, http error code: %s" % (com, term, e.response.status_code))
-            continue
-        prev=[]
-        while True:
-            log(3, "crawling comagenda search page %s for %s term %s" % (i, com, term))
-            tmp=[]
-            for a in root.xpath('//div[@class="erpl_document-header"]/h3/a'):
-                u=a.get('href','')
-                if (len(u)<=13):
-                    log(2,'url is too short, skipping: "%s"' % u)
-                    continue
-                if u in seen:
-                    log(3,"skipping url: %s" % repr(u))
-                    continue
-                seen.add(u)
-                tmp.append(u)
-                try:
-                    payload = dict(kwargs)
-                    payload['url'] = u
-                    payload['committee']= com
-                    if test:
-                        print(payload)
-                    else:
-                        add_job('comagenda', payload=payload)
-                except:
-                    print(u)
+    for com in (k for k in COMMITTEE_MAP.keys() if len(k)==4):
+        for year, month in months:
+            for payload in topayload(com,year,month):
+                comagenda.scrape(payload)
+                #print(jdump(payload))
+                #add_job('comagenda', payload=payload)
 
-            if not tmp or prev==tmp or len(tmp) < itemsPerPage:
-                break
-            prev=tmp
-            i+=1
-            try:
-                root=fetch(url % (com, term, i))
-            except requests.exceptions.HTTPError as e:
-                if e.response.status_code == 500:
-                    log(3, "failed to page %s of draft agendas for %s in term %d" % (i, com, term))
-                break
+def crawl(all=False, **kwargs):
+    curyear = datetime.datetime.now().year
+    endyear = curyear
+    curmonth = datetime.datetime.now().month
+    end = (curmonth % 12) + 1
+    if end < curmonth:
+        endyear = curyear + 1
 
-def scrape(all=False, **kwargs):
     if all:
-        for term in range(7,CURRENT_TERM+1):
-            crawl(term)
+        months = [(2016,12)]
+        months.extend([(y,m) for y in range(2017, curyear) for m in range(1,13)])
+        months.extend([(curyear, m) for m in range(1,curmonth+1)])
     else:
-        crawl(CURRENT_TERM)
+        months = [(curyear, curmonth)]
+    months.append((endyear, end))
+    scrape(months)
 
 if __name__ == "__main__":
     import sys
     if len(sys.argv) == 2:
-        crawl(9, test=[sys.argv[1]])
+        crawl(all=True)
     else:
-        scrape(all=True)
+        crawl(all=False)

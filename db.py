@@ -91,6 +91,10 @@ class Client:
         cmd = {"cmd": "get", "params": {"source": "ep_comagendas", "key": id}}
         return self.send_req(cmd)
 
+    def comagenda2(self, id):
+        cmd = {"cmd": "get", "params": {"source": "ep_comagendas2", "key": id}}
+        return self.send_req(cmd)
+
     def activities(self,mep_id,type=None,d_id=None):
         cmd = {"cmd": "activities", "params": {"mep_id": mep_id, "type": type, "d_id": d_id}}
         return self.send_req(cmd)
@@ -803,12 +807,47 @@ def idx_comagenda_by_committee():
         res[k].append(a)
     return res
 
+def idx_comagenda2_by_committee():
+    res = {}
+    for a in DBS['ep_comagendas2'].values():
+        k = a['committee']
+        if k not in res:
+            res[k] = []
+        res[k].append(a)
+    return res
+
+def idx_comagenda2_by_committee_dossier():
+    res = {}
+    for a in DBS['ep_comagendas2'].values():
+        k = a['committee']
+        for d in a['dossiers'].keys():
+            if (k,d) not in res:
+                res[(k,d)] = []
+            res[(k,d)].append(a)
+    return res
+
+def idx_comagenda2_by_committee_dossier_voted():
+    res = {}
+    for a in DBS['ep_comagendas2'].values():
+        k = a['committee']
+        for d, v in a['dossiers'].items():
+            if not v['RCV']: continue
+            if (k,d) not in res:
+                res[(k,d)] = []
+            res[(k,d)].append(a)
+    return res
 
 TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_by_dossier"},
                                         {"fn": idx_ams_by_mep, "name": "ams_by_mep"}],
                             'key': lambda x: x.get('id')},
 
           'ep_comagendas': {"indexes": [{"fn": idx_comagenda_by_committee, "name": "comagenda_by_committee"}],
+                            'key': lambda x: x.get('id')},
+
+          'ep_comagendas2': {"indexes": [{"fn": idx_comagenda2_by_committee, "name": "comagenda2_by_committee"},
+                                         {"fn": idx_comagenda2_by_committee_dossier, "name": "comagenda2_by_committee_dossier"},
+                                         {"fn": idx_comagenda2_by_committee_dossier_voted, "name": "comagenda2_by_committee_dossier_voted"},
+                                         ],
                             'key': lambda x: x.get('id')},
 
           'ep_com_votes': {'indexes': [{"fn": idx_com_votes_by_dossier, "name": "com_votes_by_dossier"},
