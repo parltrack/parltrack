@@ -50,6 +50,11 @@ DOSSIER_ID_TYPOS = {
     '2021/ 0136 (COD)': '2021/0136(COD)',
 }
 
+VOTE_TYPE_MAP = {
+    'final vote by roll call in committee asked for opinion': 'final vote',
+    'final vote': 'final vote',
+}
+
 
 def scrape(committee, url, **kwargs):
     committee = committee.upper()
@@ -101,9 +106,10 @@ def scrape(committee, url, **kwargs):
             else:
                 raise(Exception('Invalid dossier ID "{0}" in {1}. If it is only a typo add it to DOSSIER_ID_TYPOS.'.format(vote["reference"], url)))
 
-        if 'type' not in vote or not vote['type']:
-            log(2, f'Unable to identify vote type {vote["rapporteur"]["name"]} in {url}')
-
+        if 'type' not in vote or not vote['type'] or vote['type'].lower() not in VOTE_TYPE_MAP:
+            log(2, f'Unable to identify vote type "{vote["type"]}" in {url}')
+        else:
+            vote['type'] = VOTE_TYPE_MAP[vote['type'].lower()]
         res.append(vote)
 
     #from IPython import embed; embed()
