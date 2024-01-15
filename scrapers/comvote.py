@@ -576,14 +576,14 @@ def parse_itre_details(text):
 def parse_imco_details(text):
     chunks = list(x.replace('\n', ' ') for x in filter(None, text.split('\n\n')))
     vtype = ' '.join(chunks[-1].split()[1:])
-    title = chunks[-2]
-    title_split = [x.strip() for x in title.split('–')]
     try:
-        rname, rgroup = parse_rapporteur_with_group(title_split[2], '')
+        title = chunks[-2]
+        title_split = [x.strip() for x in title.split('–')]
+        rname, rgroup = parse_rapporteur_with_group(title_split[-1], '')
     except:
         return {'type': vtype}
     ret = {
-        'reference': title_split[1],
+        'reference': title_split[-2],
         'rapporteur': {
             'name': rname,
             'group': rgroup,
