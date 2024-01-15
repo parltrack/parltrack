@@ -52,6 +52,9 @@ DOSSIER_ID_TYPOS = {
 
 VOTE_TYPE_MAP = {
     'final vote by roll call in committee asked for opinion': 'final vote',
+    'final vote by roll call in committee for opinion': 'final vote',
+    'final vote by roll call in committee responsible': 'final vote',
+    'final vote onthe draft report': 'final vote',
     'final vote': 'final vote',
 }
 
@@ -433,14 +436,14 @@ def save(data):
 
 def parse_rapporteur_with_group(text, replace_string):
     rdata = text.replace(replace_string, '')
-    splits = rdata.split(' (')
+    splits = rdata.split('(')
     if len(splits) == 1:
-        return splits[0], ''
+        return splits[0].strip(), ''
 
     rname, rgroup = splits
     while rgroup and not rgroup[-1].isalpha():
         rgroup = rgroup[:-1]
-    return rname, rgroup.split()[0] if rgroup else ''
+    return rname.strip(), rgroup.split()[0].strip() if rgroup else ''
 
 
 def parse_afet_details(text):
@@ -623,12 +626,31 @@ def parse_sede_details(text):
     return ret
 
 
+def parse_droi_details(text):
+    chunks = list(x.replace('\n', ' ').strip() for x in filter(None, text.split('\n\n')))
+    for i, d in enumerate(chunks):
+        if d.startswith('Table of Contents'):
+            break
+    dossier_id = chunks[i+1].split('-')[-1]
+    rapp_and_type = chunks[i+2].split('-')
+    vtype = rapp_and_type[-1].split('...')[0].strip()
+    rname, rgroup = parse_rapporteur_with_group('-'.join(rapp_and_type[:-1]), 'Rapporteur:')
+    ret = {
+        'reference': dossier_id,
+        'rapporteur': {
+            'name': rname,
+            'group': rgroup,
+        },
+        'type': vtype,
+    }
+    return ret
+
+
 def parse_afco_details(text):
     lines = text.splitlines()
-    chunks = list(x.replace('\n', ' ') for x in filter(None, text.split('\n\n')))
     vtype = lines[-1]
     lines.pop()
-    while not lines[-1]:
+    while lines and not lines[-1]:
         lines.pop()
     title = ' '.join(lines[max(idx for idx,l in enumerate(lines) if not l):])
     title_split = [x.strip() for x in title.split(',')]
@@ -664,6 +686,7 @@ COMM_DETAIL_PARSERS = {
     'AFCO': parse_afco_details,
     'SEDE': parse_sede_details,
     'DEVE': parse_deve_details,
+    'DROI': parse_droi_details,
 }
 
 HEADER_CUTTERS = {
