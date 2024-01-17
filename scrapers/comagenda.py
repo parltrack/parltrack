@@ -76,6 +76,15 @@ def getdocs(line):
         issue[u'otherdoc']=m.group(5)
     return issue
 
+def clean(obj):
+    if isinstance(obj, dict):
+        return {k: clean(v) for k,v  in obj.items() if v and k != "documentLinks"}
+    if isinstance(obj, list):
+        return [clean(x) for x in obj]
+    return obj
+
+    {k:v if not isinstance(v, dict) else {K:V for K,V in v.items() if V} for k,v  in elem.items() if v}
+
 def scrape(payload, save=True, **kwargs):
     url=f"https://emeeting.europarl.europa.eu/emeeting/ecomback/ws/EMeetingRESTService/oj?language=en&reference={payload['meeting']['meetingReference']}&securedContext=false"
     if url in seen: return
@@ -94,25 +103,30 @@ def scrape(payload, save=True, **kwargs):
         log(1, f"error in fetching json from '{payload['meeting']['meetingReference']}' {url}")
         raise
     meeting={'committee': payload['committee'],
-            'committee_full': COMMITTEE_MAP[payload['committee']],
-            'src': url,
-            'id' : payload['meeting']["meetingReference"],
-            'time': { 'date': datetime.fromtimestamp(payload['meeting']['start'] // 1000),
+             'committee_full': COMMITTEE_MAP[payload['committee']],
+             'src': url,
+             'id' : payload['meeting']["meetingReference"],
+             'time': { 'date': datetime.fromtimestamp(payload['meeting']['start'] // 1000),
                        'end': datetime.fromtimestamp(payload['meeting']['end'] // 1000) },
-            'title': payload['meeting']["title"],
-            'city': payload['meeting']["venue"],
-            'room': payload['meeting']["roomName"],
+             'title': payload['meeting']["title"],
+             'city': payload['meeting']["venue"],
+             'room': payload['meeting']["roomName"],
+             'items': [],
             }
     if payload['meeting']["meetingCategory"] is not None:
         meeting['type']=payload['meeting']["meetingCategory"]
     items = {}
     electronic_vote = False
     for elem in agenda_items['items']:
+        meeting['items'].append(clean(elem))
         if unws(elem['title']) in ['* * *', '***']:
             if electronic_vote:
                 electronic_vote=False
             continue # skip end of schedule block
-        if unws(elem['title']) == '*** Electronic vote ***':
+        #todo also handle these, see
+        # https://emeeting.europarl.europa.eu/emeeting/ecomback/ws/EMeetingRESTService/oj?language=en&reference=CONT(2023)1214_1&securedContext=false
+        # https://emeeting.europarl.europa.eu/emeeting/committee/en/agenda/202312/CONT?meeting=CONT-2023-1214_1&session=12-14-08-30
+        if unws(elem['title']) in {'*** Electronic vote ***', "*** Voting time ***"}:
             if electronic_vote:
                 if payload['meeting']['meetingReference'] in {'AFET(2017)0130_1'}:
                    electronic_vote = False
@@ -121,7 +135,7 @@ def scrape(payload, save=True, **kwargs):
             else:
                 electronic_vote = True
                 continue
-        if unws(elem['title']) == "*** End of electronic vote ***":
+        if unws(elem['title']) in {"*** End of electronic vote ***", "*** End of vote ***"}:
             if not electronic_vote:
                 log(1,"scraper is not in electronic vote state in %s" % url)
             else:
@@ -133,10 +147,11 @@ def scrape(payload, save=True, **kwargs):
 
         #print(jdump({k:v if not isinstance(v, dict) else {K:V for K,V in v.items() if V} for k,v  in elem.items() if v}))
 
-        item={'title': elem['title'],
-              'start' : datetime.fromtimestamp(elem['start'] // 1000),
-              'RCV'   : electronic_vote,
-              }
+        item = {
+            'uid': elem['uid'],
+            'start': datetime.fromtimestamp(elem['start'] // 1000),
+            'RCV': electronic_vote,
+        }
         if elem['end'] is not None:
             item['end']= datetime.fromtimestamp(elem['end'] // 1000)
 
@@ -201,13 +216,17 @@ def scrape(payload, save=True, **kwargs):
 
         #print(jdump(item))
         items[item['epdoc']] = item
+
     if len(items):
         meeting['dossiers'] = items
-        id = meeting['id']
-        if save:
-            process(meeting, id, db.comagenda2, 'ep_comagendas2', id+' - '+item['title'], onchanged=onchanged)
-        return meeting
-    log(2,f"meeting {payload['meeting']['meetingReference']} has no dossiers, check at {payload['url']}")
+    else:
+        log(2,f"meeting {payload['meeting']['meetingReference']} has no dossiers, check at {payload['url']}")
+    id = meeting['id']
+    if save:
+        print(id,' - ', payload['meeting']["title"])
+        print(payload['meeting'])
+        process(meeting, id, db.comagenda2, 'ep_comagendas2', id+' - '+(payload['meeting']["title"] or "unnamed meeting"), onchanged=onchanged)
+    return meeting
 
 def onchanged(doc, diff):
     if not 'epdoc' in doc: return
@@ -269,7 +288,6 @@ if __name__ == "__main__":
                   ('TRAN', 12, 2023, 'TRAN(2023)1207_1'),
                   ('IMCO', 12, 2023, 'IMCO(2023)1204_1'),
                   ('EMPL', 11, 2023, 'CJ21(2023)1107_1'),
-                  ('EMPL', 11, 2023, 'EMPL(2023)1107_1'),
                   ]);
         #elif sys.argv[1]=='url' and len(sys.argv)==4:
         #    print(jdump(scrape(sys.argv[2], sys.argv[3])))
