@@ -54,9 +54,11 @@ VOTE_TYPE_MAP = {
     'final vote by roll call in committee responsible': 'final vote',
     'final vote onthe draft report': 'final vote',
     'final vote': 'final vote',
+    'single vote': 'single vote',
 }
 
 COMMITTEES_WITHOUT_DOSSIER_IDS = (
+    'AGRI',
     'ENVI',
 )
 
@@ -86,16 +88,10 @@ def scrape(committee, url, **kwargs):
             'url': url,
         }
 
-        if len(tables) == 3:
-            tables = repair_tables(tables)
-        elif len(tables) == 2:
-            tables = repair_tables(tables)
-        elif len(tables) == 1:
+        if len(tables) == 1 and committee == 'AGRI':
+            pdfdata[i+1] = '\n'.join(' '.join(x for x in t if x) for t in tables[0]) + pdfdata[i+1]
             continue
-        else:
-            raise(Exception('Unexpected table count: {0} in {1}'.format(len(tables), url)))
-
-        vote['votes'] = parse_simple_table(tables)
+        vote['votes'] = parse_table(tables)
 
         text = pdfdata[i-1]
         vote_details = get_vote_details(committee, text)
@@ -114,11 +110,13 @@ def scrape(committee, url, **kwargs):
         else:
             log(2, f'Unable to identify rapporteur in {url}')
 
-        if committee not in COMMITTEES_WITHOUT_DOSSIER_IDS and not db.dossier(vote['reference']):
-            if vote['reference'] in DOSSIER_ID_TYPOS:
-                vote['reference'] = DOSSIER_ID_TYPOS[vote['reference']]
-            else:
-                raise(Exception('Invalid dossier ID "{0}" in {1}. If it is only a typo add it to DOSSIER_ID_TYPOS.'.format(vote["reference"], url)))
+        if committee not in COMMITTEES_WITHOUT_DOSSIER_IDS:
+            d = db.dossier(vote['reference'])
+            if not d:
+                if vote['reference'] in DOSSIER_ID_TYPOS:
+                    vote['reference'] = DOSSIER_ID_TYPOS[vote['reference']]
+                else:
+                    raise(Exception('Invalid dossier ID "{0}" in {1}. If it is only a typo add it to DOSSIER_ID_TYPOS.'.format(vote["reference"], url)))
 
         if 'type' not in vote or not vote['type'] or vote['type'].lower() not in VOTE_TYPE_MAP:
             log(2, f'Unable to identify vote type "{vote["type"]}" in {url}')
@@ -316,38 +314,37 @@ def get_text_from_pages(pages, start_pageno, end_pageno, start_pos, end_pos, com
     return '\n\n'.join(filter(None, text))
 
 
-def parse_simple_table(tables):
+def parse_table(tables):
+    tables = repair_tables(tables)
+    if len(tables) == 3:
+        return parse_simple_table(tables,['for', 'against', 'abstain'])
+    if len(tables) == 2:
+        return parse_simple_table(tables,['for', 'against'])
+    raise(Exception('Unexpected table count: {0}'.format(len(tables))))
+
+
+def parse_simple_table(tables, headers):
     results = {
         'for': {'total': 0, 'groups': {}},
         'against': {'total': 0, 'groups': {}},
         'abstain': {'total': 0, 'groups': {}}
     }
-    for i, table in zip(['for', 'against', 'abstain'], tables):
+    for i, table in zip(headers, tables):
         results[i] = parse_table_section(table)
     return results
 
 
-def parse_simple_table_without_abstain(tables):
-    results = {
-        'for': {'total': 0, 'groups': {}},
-        'against': {'total': 0, 'groups': {}},
-    }
-    for i, table in zip(['for', 'against'], tables):
-        results[i] = parse_table_section(table)
-    return results
-
-
-def repair_tables(tables):
+def repair_tables(tables, table_count=3):
     fixed_tables = []
     for table in tables:
+        while not any(table[0]):
+            table.pop(0)
         if not any(x in table[0] for x in ['+', '-', '0']):
             if not fixed_tables:
                 raise Exception('Cannot repair table - missing header')
             fixed_tables[-1].extend(table)
         else:
             fixed_tables.append(table)
-    if len(fixed_tables) != 3:
-        raise Exception('Cannot repair table - unknown error')
     return fixed_tables
 
 
@@ -362,7 +359,8 @@ def parse_table_section(table):
 
     for row in table[(header_idx+1):]:
         if len(row) == 2:
-            group = resolve_group_name(row[0])
+            if(row[0]):
+                group = resolve_group_name(row[0])
             ret['groups'][group] = meps_by_name(row[1].replace('\n', ' '), group)
         else:
             row_split_idx = 4
@@ -695,39 +693,40 @@ def parse_afco_details(text):
 
 def parse_envi_details(text):
     lines = text.splitlines()
-    vtype = lines[-1].replace('', '').strip()
+    vtype = NUMBERED_LIST_RE.sub( '', lines[-1].replace('', '')).strip()
     line_idx = 2
     while not NUMBERED_LIST_RE.match(lines[-line_idx]) and line_idx < len(lines):
         line_idx += 1
     title_line = NUMBERED_LIST_RE.sub( '', ' '.join(lines[-line_idx:-1]), 1).strip()
-    rapp = PAREN_LINE_ENDING_RE.search(title_line)
-    if rapp:
-        try:
-            rname, rgroup = map(str.strip, DASH_RE.split(rapp.group(1)))
-        except:
-            rname, rgroup = parse_rapporteur_with_group(rapp.group(1), 'Rapporteur: ')
-
-    title = title_line[:rapp.start()].strip()
+    if 'Rapporteur:' in title_line or 'Co-rapporteurs' in title_line:
+        title = ' '.join(DASH_RE.split(title_line)[:-1])
+    else:
+        rapp = PAREN_LINE_ENDING_RE.search(title_line)
+        if rapp:
+            title = title_line[:rapp.start()].strip()
+        else:
+            title = title_line
     ret = {
-        'reference': title,
-        'rapporteur': {
-            'name': rname,
-            'group': rgroup,
-        },
+        'reference': '',
+        'title': title,
         'type': vtype,
     }
     return ret
 
 
 def parse_agri_details(text):
-    print(text)
-    exit()
+    chunks = list(x.replace('\n', ' ').strip() for x in filter(None, text.split('\n\n')))
+    vtype = DASH_RE.split(chunks.pop())[-1]
+    title = chunks[1].split('Rapporteur')[0].strip()
+    dossier_ids = DOSSIER_RE.findall(title)
+    if dossier_ids:
+        ref = dossier_ids[-1]
+        title = title.replace(dossier_ids[-1], '').strip()
+    else:
+        ref = ''
     ret = {
-        'reference': title,
-        'rapporteur': {
-            'name': rname,
-            'group': rgroup,
-        },
+        'reference': ref,
+        'title': title,
         'type': vtype,
     }
     return ret
@@ -754,7 +753,7 @@ COMM_DETAIL_PARSERS = {
     'DEVE': parse_deve_details,
     'DROI': parse_droi_details,
     'ENVI': parse_envi_details,
-    'AGRI': parse_envi_details,
+    'AGRI': parse_agri_details,
 }
 
 HEADER_CUTTERS = {
