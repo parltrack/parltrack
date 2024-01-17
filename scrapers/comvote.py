@@ -43,8 +43,6 @@ CONFIG = {
     'abort_on_error': True,
 }
 
-DOSSIER_RE = re.compile('\d{4}/\d{4}\([A-Z]{3}\)')
-
 DOSSIER_ID_TYPOS = {
     '2023/0079(C0D)': '2023/0079(COD)',
     '2021/ 0136 (COD)': '2021/0136(COD)',
@@ -57,6 +55,15 @@ VOTE_TYPE_MAP = {
     'final vote onthe draft report': 'final vote',
     'final vote': 'final vote',
 }
+
+COMMITTEES_WITHOUT_DOSSIER_IDS = (
+    'ENVI',
+)
+
+DOSSIER_RE = re.compile('\d{4}/\d{4}\([A-Z]{3}\)')
+PAREN_LINE_ENDING_RE = re.compile('\(([^)]+)\)\W*$')
+NUMBERED_LIST_RE = re.compile('^(\d+\.)+\W*')
+DASH_RE = re.compile('\W*[\-–]\W*')
 
 
 def scrape(committee, url, **kwargs):
@@ -79,10 +86,14 @@ def scrape(committee, url, **kwargs):
             'url': url,
         }
 
-        if len(tables) < 3:
-            raise(Exception('Less than 3 tables belong to a vote in {0}'.format(url)))
-        if len(tables) > 3:
+        if len(tables) == 3:
             tables = repair_tables(tables)
+        elif len(tables) == 2:
+            tables = repair_tables(tables)
+        elif len(tables) == 1:
+            continue
+        else:
+            raise(Exception('Unexpected table count: {0} in {1}'.format(len(tables), url)))
 
         vote['votes'] = parse_simple_table(tables)
 
@@ -103,7 +114,7 @@ def scrape(committee, url, **kwargs):
         else:
             log(2, f'Unable to identify rapporteur in {url}')
 
-        if not db.dossier(vote['reference']):
+        if committee not in COMMITTEES_WITHOUT_DOSSIER_IDS and not db.dossier(vote['reference']):
             if vote['reference'] in DOSSIER_ID_TYPOS:
                 vote['reference'] = DOSSIER_ID_TYPOS[vote['reference']]
             else:
@@ -316,6 +327,16 @@ def parse_simple_table(tables):
     return results
 
 
+def parse_simple_table_without_abstain(tables):
+    results = {
+        'for': {'total': 0, 'groups': {}},
+        'against': {'total': 0, 'groups': {}},
+    }
+    for i, table in zip(['for', 'against'], tables):
+        results[i] = parse_table_section(table)
+    return results
+
+
 def repair_tables(tables):
     fixed_tables = []
     for table in tables:
@@ -331,12 +352,15 @@ def repair_tables(tables):
 
 
 def parse_table_section(table):
+    header_idx = 0
     ret = {'total': 0, 'groups': {}}
     group = ''
     members = ''
-    ret['total'] = int(list(filter(None, table[0]))[0])
+    while len([x for x in table[header_idx] if x]) == 0:
+        header_idx += 1
+    ret['total'] = int(list(filter(None, table[header_idx]))[0])
 
-    for row in table[1:]:
+    for row in table[(header_idx+1):]:
         if len(row) == 2:
             group = resolve_group_name(row[0])
             ret['groups'][group] = meps_by_name(row[1].replace('\n', ' '), group)
@@ -344,6 +368,8 @@ def parse_table_section(table):
             row_split_idx = 4
             if len(row) == 4:
                 row_split_idx = 2
+            if len(row) == 6:
+                row_split_idx = 3
             row1 = ''.join(filter(None, set(row[:row_split_idx])))
             if row1:
                 if members.strip():
@@ -667,6 +693,46 @@ def parse_afco_details(text):
     return ret
 
 
+def parse_envi_details(text):
+    lines = text.splitlines()
+    vtype = lines[-1].replace('', '').strip()
+    line_idx = 2
+    while not NUMBERED_LIST_RE.match(lines[-line_idx]) and line_idx < len(lines):
+        line_idx += 1
+    title_line = NUMBERED_LIST_RE.sub( '', ' '.join(lines[-line_idx:-1]), 1).strip()
+    rapp = PAREN_LINE_ENDING_RE.search(title_line)
+    if rapp:
+        try:
+            rname, rgroup = map(str.strip, DASH_RE.split(rapp.group(1)))
+        except:
+            rname, rgroup = parse_rapporteur_with_group(rapp.group(1), 'Rapporteur: ')
+
+    title = title_line[:rapp.start()].strip()
+    ret = {
+        'reference': title,
+        'rapporteur': {
+            'name': rname,
+            'group': rgroup,
+        },
+        'type': vtype,
+    }
+    return ret
+
+
+def parse_agri_details(text):
+    print(text)
+    exit()
+    ret = {
+        'reference': title,
+        'rapporteur': {
+            'name': rname,
+            'group': rgroup,
+        },
+        'type': vtype,
+    }
+    return ret
+
+
 def cut_imco_footer(text):
     return '\n'.join(text.splitlines()[:-3]).strip()
 
@@ -687,6 +753,8 @@ COMM_DETAIL_PARSERS = {
     'SEDE': parse_sede_details,
     'DEVE': parse_deve_details,
     'DROI': parse_droi_details,
+    'ENVI': parse_envi_details,
+    'AGRI': parse_envi_details,
 }
 
 HEADER_CUTTERS = {
