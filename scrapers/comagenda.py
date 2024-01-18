@@ -76,11 +76,13 @@ def getdocs(line):
         issue[u'otherdoc']=m.group(5)
     return issue
 
-def clean(obj):
+def clean(obj, key=None):
     if isinstance(obj, dict):
-        return {k: clean(v) for k,v  in obj.items() if v and k != "documentLinks"}
+        return {k: clean(v,k) for k,v  in obj.items() if v and k != "documentLinks"}
     if isinstance(obj, list):
         return [clean(x) for x in obj]
+    if key in ['date','start','end','time'] and isinstance(obj, int):
+        return datetime.fromtimestamp(obj // 1000)
     return obj
 
     {k:v if not isinstance(v, dict) else {K:V for K,V in v.items() if V} for k,v  in elem.items() if v}
@@ -103,12 +105,11 @@ def scrape(payload, save=True, **kwargs):
         log(1, f"error in fetching json from '{payload['meeting']['meetingReference']}' {url}")
         raise
     meeting={'committee': payload['committee'],
-             'committee_full': COMMITTEE_MAP[payload['committee']],
              'src': url,
              'id' : payload['meeting']["meetingReference"],
              'time': { 'date': datetime.fromtimestamp(payload['meeting']['start'] // 1000),
                        'end': datetime.fromtimestamp(payload['meeting']['end'] // 1000) },
-             'title': payload['meeting']["title"],
+             'type': payload['meeting']["title"],
              'city': payload['meeting']["venue"],
              'room': payload['meeting']["roomName"],
              'items': [],
@@ -147,13 +148,8 @@ def scrape(payload, save=True, **kwargs):
 
         #print(jdump({k:v if not isinstance(v, dict) else {K:V for K,V in v.items() if V} for k,v  in elem.items() if v}))
 
-        item = {
-            'uid': elem['uid'],
-            'start': datetime.fromtimestamp(elem['start'] // 1000),
-            'RCV': electronic_vote,
-        }
-        if elem['end'] is not None:
-            item['end']= datetime.fromtimestamp(elem['end'] // 1000)
+        item = meeting['items'][-1]
+        item['RCV']= electronic_vote
 
         # dossier references
         tmp = getdocs(elem['procedure']['reference'])
@@ -177,55 +173,11 @@ def scrape(payload, save=True, **kwargs):
             else:
                 item["activity"]=act['description']
 
-        # associated documents, rapporteurs, drafts, amendments
-        for docset in elem['documentSets'] or []:
-            actors = []
-            for act in docset['actors'] or []:
-                tmp = act['name'].split("\t")
-                actor = {'name': tmp[-1],
-                         'type': tmp[0][:-1],
-                         'mepref': act["codictPersonId"],
-                         }
-                if tmp[0]=="Opinion:":
-                    actor['committee']=tmp[1]
-                actors.append(actor)
-            if len(actors)>0:
-                item['actors']=actors
-
-            docs = []
-            for docelem in docset['documents'] or []:
-                if docelem["meetingDate"]:
-                    log(3,f"{elem['uid']} has meetingDate in docelem: {docelem['meetingDate']}, {docelem['geproCodeDescription']}, {docelem['title']}")
-                doc = { "title": docelem['title'],
-                        'code': docelem["geproCode"],
-                        'codeDescription': docelem["geproCodeDescription"],
-                        'reference': docelem["reference"],
-                       }
-                # todo add one document link, preferably english
-                if docelem['documentLinks'] is None:
-                    log(2,f"{elem['uid']} from {payload['url']} has no document links")
-                else:
-                    if len(docelem['documentLinks'])!=1:
-                        log(2,f"{elem['uid']} from {payload['url']} has {len(docelem['documentLinks'])} document links")
-                    doc["file-type"]=docelem["documentLinks"][0]['type']
-
-            if 'epdoc' not in item:
-                log(1, f"{elem['uid']} has no epdoc: {elem}")
-            if len(docs)>0:
-                item['docs']=docs
-
-        #print(jdump(item))
-        items[item['epdoc']] = item
-
-    if len(items):
-        meeting['dossiers'] = items
-    else:
-        log(2,f"meeting {payload['meeting']['meetingReference']} has no dossiers, check at {payload['url']}")
     id = meeting['id']
     if save:
         print(id,' - ', payload['meeting']["title"])
         print(payload['meeting'])
-        process(meeting, id, db.comagenda2, 'ep_comagendas2', id+' - '+(payload['meeting']["title"] or "unnamed meeting"), onchanged=onchanged)
+        process(meeting, id, db.comagenda, 'ep_comagendas', id+' - '+(payload['meeting']["title"] or "unnamed meeting"), onchanged=onchanged)
     return meeting
 
 def onchanged(doc, diff):
@@ -271,7 +223,7 @@ def test(meetids):
     from comagendas import topayload
     for com, month, year, id in meetids:
         payload = [m for m in topayload(com, year, month) if m['meeting']['meetingReference']==id][0]
-        print(jdump(scrape(payload)))
+        print(jdump(scrape(payload, save=False)))
 
 if __name__ == "__main__":
     if len(sys.argv)>1:

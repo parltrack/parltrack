@@ -1,28 +1,12 @@
 {% extends "base.html" %}
 {% block title %}{{committee.shortname}} | {% endblock %}
-{% block rss %}
-<link rel="alternate" type="application/atom+xml" title="Changes for {{ Committee }} feed" href="{{url}}/atom" />
-{% endblock %}
-{% block content %}
-<div class="ui vertical segment">
-  <div class="ui center aligned stackable grid container">
-    <div class="row">
-      <div class="left aligned column">
-<h2>{{committee.name}} ({{committee.shortname}})</h2>
-<div id="tabs"  class="ui top attached tabular menu">
-    {%if committee.agendas %}<a href="#meetings" data-tab="meetings" class="active item">Meetings</a>{%endif%}
-    {%if committee.dossiers %}<a href="#dossiers" data-tab="dossiers" class="item">Dossiers ({{committee.dossiers|length}})</a>{%endif%}
-    {% if committee.meps %}<a href="#members" data-tab="members" class="item">Members</a>{% endif %}
-</div>
-<div class="ui tab" id="meetings" data-tab="meetings">
-{%for group in committee.agendas|groupby("date")|sort(reverse=True) if group.grouper >= today %}
-    <div>{{group.grouper|asdate}} {% if group.end %} - {{group.end|asdate}}{% endif %}</div>
-    <table class="ui table">
+
+{% macro agenda_item(meeting) %}
        <thead><tr><th>Committee Dossier</th><th>Title</th><th>Dossier</th><th>Deadline</th><th>Notes</th></tr></thead>
        <tbody>
-    {% for meet in group.list %}
+    {% for meet in meeting['items'] %}
       <tr>
-        <td><a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{meet.comdossier}}&amp;body={{meet.committee}}&amp;language=EN">{{meet.comdossier}}</a></td>
+        <td>{{meet['dossierReference']}}</td>
         <td>{{meet.title}}</td>
         <td>{%if meet.epdoc %}<a href="/dossier/{{meet.epdoc}}">{{meet.epdoc}}</a>{%else%}{{meet.comdoc}}{%endif%}</td>
         <td>{%if meet.tabling_deadline %}<div><strong>Tabling Deadline</strong> {{meet.tabling_deadline|asdate}}</div>{%endif%}</td>
@@ -33,33 +17,22 @@
         {%endfor%}</td>
       </tr>
     {%endfor%}
-    </tbody></table>
-{%endfor%}
-<h3>Earlier meetings</h3>
-{%for group in committee.agendas|groupby("date")|sort(reverse=True) if group.grouper < today %}
-    <div class="ui accordion">
-      <div class="title"><i class="dropdown icon"></i>{{group.grouper|asdate}} {% if group.end %} - {{group.end|asdate}}{% endif %}</div>
-      <div class="content">
-          <table border="1" class="ui table hidden">
-             <thead><tr><th>Committee Dossier</th><th>Title</th><th>Dossier</th><th>Deadline</th><th>Notes</th></tr></thead>
-             <tbody>
-          {% for meet in group.list|sort(attribute="seq_no") %}
-            <tr>
-              <td><a href="http://www.europarl.europa.eu/activities/committees/workingDocsCom/comparlDossier.do?dossier={{meet.comdossier}}&amp;body={{meet.committee}}&amp;language=EN">{{meet.comdossier}}</a></td>
-              <td>{{meet.title}}</td>
-              <td>{%if meet.epdoc %}<a href="/dossier/{{meet.epdoc}}">{{meet.epdoc}}</a>{%else%}{{meet.comdoc}}{%endif%}</td>
-              <td>{%if meet.tabling_deadline %}<div><strong>Tabling Deadline</strong> {{meet.tabling_deadline|asdate}}</div>{%endif%}</td>
-              <td>{%for line in meet.list if not line.startswith("Deadline for tabling amendments") %}
-                 {%if loop.first %}<ul>{%endif%}
-                 <li>{{line}}</li>
-                 {%if loop.last %}</ul>{%endif%}
-              {%endfor%}</td>
-            </tr>
-          {%endfor%}
-          </tbody></table>
-      </div>
-    </div>
-{%endfor%}
+    </tbody>
+{% endmacro %}
+
+{% block rss %}
+<link rel="alternate" type="application/atom+xml" title="Changes for {{ Committee }} feed" href="{{url}}/atom" />
+{% endblock %}
+{% block content %}
+<div class="ui vertical segment">
+  <div class="ui center aligned stackable grid container">
+    <div class="row">
+      <div class="left aligned column">
+<h2>{{committee.name}} ({{committee.shortname}})</h2>
+<div id="tabs"  class="ui top attached tabular menu">
+    {%if committee.dossiers %}<a href="#dossiers" data-tab="dossiers" class="item">Dossiers ({{committee.dossiers|length}})</a>{%endif%}
+    {% if committee.meps %}<a href="#members" data-tab="members" class="item">Members</a>{% endif %}
+    {%if committee.agendas %}<a href="#meetings" data-tab="meetings" class="active item">Meetings</a>{%endif%}
 </div>
 {%if committee.dossiers %}
 <div class="ui tab" id="dossiers" data-tab="dossiers">
@@ -158,6 +131,25 @@
 </table>
 </div>
 {% endif %}
+<div class="ui tab" id="meetings" data-tab="meetings">
+{%for group in committee.agendas|groupby("date")|sort(reverse=True) if group.grouper >= today %}
+    <div>{{group.grouper|asdate}} {% if group.end %} - {{group.end|asdate}}{% endif %}</div>
+    <table class="ui table">
+      {{ agenda_item(group) }}
+    </table>
+{%endfor%}
+<!--<h3>Earlier meetings</h3>-->
+{%for meeting in committee.agendas|reverse if meeting.time.date < today %}
+    <div class="ui accordion">
+      <div class="title"><i class="dropdown icon"></i>{{meeting.time.date|asdate}} {% if meeting.time.end %} - {{meeting.time.end|asdate}}{% endif %}</div>
+      <div class="content">
+          <table border="1" class="ui table hidden">
+            {{ agenda_item(meeting) }}
+          </table>
+      </div>
+    </div>
+{%endfor%}
+</div>
 </div>
 </div>
 </div>
