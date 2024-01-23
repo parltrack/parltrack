@@ -49,12 +49,13 @@ DOSSIER_ID_TYPOS = {
 }
 
 VOTE_TYPE_MAP = {
-    'final vote by roll call in committee asked for opinion': 'final vote',
-    'final vote by roll call in committee for opinion': 'final vote',
-    'final vote by roll call in committee responsible': 'final vote',
-    'final vote onthe draft report': 'final vote',
+    'final vote by roll call in committee asked for opinion': 'opinion final vote',
+    'final vote by roll call in committee for opinion': 'opinion final vote',
+    'final vote by roll call in committee responsible': 'responsible final vote',
+    'final vote onthe draft report': 'draft final vote',
     'final vote': 'final vote',
     'single vote': 'single vote',
+    'vote on the decision to enter into interinstitutional negotiations': 'enter into interinstitutional negotiations',
 }
 
 COMMITTEES_WITHOUT_DOSSIER_IDS = (
@@ -116,6 +117,17 @@ def scrape(committee, url, **kwargs):
                     vote['reference'] = DOSSIER_ID_TYPOS[vote['reference']]
                 else:
                     raise(Exception('Invalid dossier ID "{0}" in {1}. If it is only a typo add it to DOSSIER_ID_TYPOS.'.format(vote["reference"], url)))
+
+        if 'reference' in vote and vote['reference']:
+            agendas = db.get('comagenda_by_committee_dossier_voted', committee + vote['reference'])
+            if not agendas:
+                log(2, f'Unable to find agendas for {vote["reference"]} in {url}')
+            else:
+                for item in agendas[-1]['items']:
+                    if item.get('RCV') and item.get('docref') == vote['reference']:
+                        vote['time'] = item['start']
+            if not 'time' in vote:
+                log(2, f'Unable to date for {vote["reference"]} in {url}')
 
         if 'type' not in vote or not vote['type'] or vote['type'].lower() not in VOTE_TYPE_MAP:
             log(2, f'Unable to identify vote type "{vote["type"]}" in {url}')
