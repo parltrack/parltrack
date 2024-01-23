@@ -210,8 +210,8 @@ mansplits={u'Rodi Kratsa-Tsagaropoulou Mikael Gustafsson': [u'Rodi Kratsa-Tsagar
            u'Constance Le Grip Lívia Járóka': [u'Constance Le Grip', u'Lívia Járóka'],
            u'Karima Delli Ernest Urtasun': ['Karima Delli', 'Ernest Urtasun'],
            }
-pere = r'PE(?:TXTNRPE)? ?[0-9]{3,4}\.?[0-9]{3}(?:v[0-9]{2}(?:[-./][0-9]{1,2})?)?'
-amdoc=r'AM\\[0-9]{4,7}(?:EN|XM|XT)?\.(?:doc|DOC|tmp)'
+pere = r'(?P<PE>PE(?:TXTNRPE)? ?[0-9]{3,4}\.?[0-9]{3}(?:v[0-9]{2}(?:[-./][0-9]{1,2})?)?)'
+amdoc=r'AM\\[0-9]{4,7}(?:EN|XM|XT)?\.(?:doc|DOC|tmp|docx)'
 pagere=r'(?:[0-9]{1,3}/[0-9]{1,3})'
 oddre = re.compile(r'\s*'+pere+'\s+'+pagere+r'\s+'+amdoc)
 evenre = re.compile(r'\s*'+amdoc+r'\s+'+pagere+r'\s+'+pere)
@@ -403,7 +403,7 @@ locstarts=['After', 'Annex', 'Article', 'Chapter', 'Citation', 'Guideline',
            'Heading', 'Index', 'New', 'Paragraph', 'Part', 'Pecital', 'Point',
            #'Proposal', 'Recital', 'Recommendation', 'Rejection', 'Rule',
            'Recital', 'Recommendation', 'Rejection', 'Rule',
-           'Section', 'Subheading', 'Subtitle', 'Title', u'Considérant', 'Indent',
+           'Section', 'Subheading', 'Subtitle', 'Title', u'Considérant', 'Indent', 'indent'
            'Paragraphe', '-', u'–', 'last', 'Amendment', 'Artikel', 'Annexes',
            'Column', 'Annexe', 'Sub-heading', 'ANNEX', 'Anexo', 'Articles', 'paragraph',
            'Paragraphs', 'Subh.', 'Subheading.', 'Short', 'Single', 'First', 'Articolo',
@@ -426,12 +426,13 @@ def strip(block):
     while len(block) and not unws(block[-1]):
         del block[-1]
 
-def parse_block(block, url, reference, date, committee, rapporteur, PE):
+def parse_block(block, url, reference, date, rapporteur, PE, committee=None, parse_dossier=None):
     am={u'src': url,
         u'peid': PE,
         u'reference': reference,
-        u'date': date,
-        u'committee': committee}
+        u'date': date}
+    if committee is not None:
+        am['committee']=committee
 
     #logger.info(block)
     # get title
@@ -570,7 +571,7 @@ def parse_block(block, url, reference, date, committee, rapporteur, PE):
     if i<len(block):
         if i>0:
             names=' '.join(block[:i])
-            am['authors']=names
+            am['authors']=unws(names)
             #logger.info("names \n%s" % names)
 
             # convert to pt mep _ids
@@ -617,15 +618,18 @@ def parse_block(block, url, reference, date, committee, rapporteur, PE):
            not unws(block[i]).split()[0] in locstarts): i+=1
     if i<len(block) and i>0:
         if [unws(x) for x in block[:i]]!=["Draft proposal for a recommendation"]:
-            am['compromise']=block[:i]
+           if parse_dossier is not None:
+              am['dossier'] = parse_dossier(block[:i], date)
+           else:
+              am['compromise']=block[:i]
         del block[:i]
         strip(block)
 
     i=0
     while (i<len(block) and unws(block[i])):
         if unws(block[i]).split()[0] in locstarts:
-            try: am['location'].append((' '.join(block[:i]),unws(block[i])))
-            except KeyError: am['location']=[(' '.join(block[:i]),unws(block[i]))]
+            try: am['location'].append((unws(' '.join(block[:i])),unws(block[i])))
+            except KeyError: am['location']=[(unws(' '.join(block[:i])),unws(block[i]))]
             del block[:i+1]
             i=0
         else:
@@ -723,7 +727,7 @@ def scrape(url, meps=None, **kwargs):
 
         if amstart.match(line):
             # parse block
-            am=parse_block(block, url, reference, date, committee, meps, PE)
+            am=parse_block(block, url, reference, date, meps, PE, committee)
             if am is not None:
                 process(am, am['id'], db.amendment, 'ep_amendments', am['reference']+' '+am['id'], nodiff=True)
                 res.append(am)
@@ -731,7 +735,7 @@ def scrape(url, meps=None, **kwargs):
             continue
         block.append(line)
     if block and filter(None,block):
-        am = parse_block(block, url, reference, date, committee, meps, PE)
+        am = parse_block(block, url, reference, date, meps, PE, committee)
         if am is not None:
             process(am, am['id'], db.amendment, 'ep_amendments', am['reference']+' '+am['id'], nodiff=True)
             res.append(am)
