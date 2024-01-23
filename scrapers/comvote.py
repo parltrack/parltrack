@@ -19,7 +19,7 @@
 
 from db import db
 from utils.log import log
-from utils.utils import fetch_raw, unws
+from utils.utils import fetch_raw, unws, DOSSIERID_RE
 from utils.mappings import GROUP_MAP
 
 from os import remove
@@ -62,7 +62,6 @@ COMMITTEES_WITHOUT_DOSSIER_IDS = (
     'ENVI',
 )
 
-DOSSIER_RE = re.compile('\d{4}/\d{4}\([A-Z]{3}\)')
 PAREN_LINE_ENDING_RE = re.compile('\(([^)]+)\)\W*$')
 NUMBERED_LIST_RE = re.compile('^(\d+\.)+\W*')
 DASH_RE = re.compile('\W*[\-–]\W*')
@@ -551,7 +550,7 @@ def parse_pech_details(text):
 def parse_deve_details(text):
     chunks = list(x.replace('\n', ' ') for x in filter(None, text.split('\n\n')))
     rname, rgroup = parse_rapporteur_with_group(chunks[-2], 'Rapporteur: ')
-    dossier_id = DOSSIER_RE.findall(chunks[-3])[-1]
+    dossier_id = DOSSIERID_RE.findall(chunks[-3])[-1]
     ret = {
         'reference': dossier_id,
         'rapporteur': {
@@ -679,7 +678,7 @@ def parse_afco_details(text):
     title = ' '.join(lines[max(idx for idx,l in enumerate(lines) if not l):])
     title_split = [x.strip() for x in title.split(',')]
     rname, rgroup = parse_rapporteur_with_group(title_split[-1], 'Rapporteur: ')
-    dossier_id = DOSSIER_RE.findall(title_split[-2])[-1]
+    dossier_id = DOSSIERID_RE.findall(title_split[-2])[-1]
     ret = {
         'reference': dossier_id,
         'rapporteur': {
@@ -718,7 +717,7 @@ def parse_agri_details(text):
     chunks = list(x.replace('\n', ' ').strip() for x in filter(None, text.split('\n\n')))
     vtype = DASH_RE.split(chunks.pop())[-1]
     title = chunks[1].split('Rapporteur')[0].strip()
-    dossier_ids = DOSSIER_RE.findall(title)
+    dossier_ids = DOSSIERID_RE.findall(title)
     if dossier_ids:
         ref = dossier_ids[-1]
         title = title.replace(dossier_ids[-1], '').strip()
