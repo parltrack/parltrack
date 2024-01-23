@@ -56,6 +56,7 @@ VOTE_TYPE_MAP = {
     'final vote': 'final vote',
     'single vote': 'single vote',
     'vote on the decision to enter into interinstitutional negotiations': 'enter into interinstitutional negotiations',
+    'roll call': 'roll call',
 }
 
 COMMITTEES_WITHOUT_DOSSIER_IDS = (
@@ -106,7 +107,10 @@ def scrape(committee, url, **kwargs):
         vote.update(**vote_details)
 
         if 'rapporteur' in vote:
-            fix_rapporteur_data(vote)
+            try:
+                fix_rapporteur_data(vote)
+            except Exception as e:
+                log(1, f'{e} ({url})')
         else:
             log(2, f'Unable to identify rapporteur in {url}')
 
@@ -127,7 +131,7 @@ def scrape(committee, url, **kwargs):
                     if item.get('RCV') and item.get('docref') == vote['reference']:
                         vote['time'] = item['start']
             if not 'time' in vote:
-                log(2, f'Unable to date for {vote["reference"]} in {url}')
+                log(2, f'Unable to find date for {vote["reference"]} in {url}')
 
         if 'type' not in vote or not vote['type'] or vote['type'].lower() not in VOTE_TYPE_MAP:
             log(2, f'Unable to identify vote type "{vote["type"]}" in {url}')
@@ -410,10 +414,7 @@ def meps_by_name(mep_names, group):
 
 def fix_rapporteur_data(vote):
     if 'group' in vote['rapporteur']:
-        try:
-            vote['rapporteur']['group'] = resolve_group_name(vote['rapporteur']['group'])
-        except Exception as e:
-            log(1, e)
+        vote['rapporteur']['group'] = resolve_group_name(vote['rapporteur']['group'])
     # TODO try to find missing group information (date required)
     vote['rapporteur']['mep_id'] = db.mepid_by_name(vote['rapporteur']['name'], group=vote['rapporteur'].get('group'))
 
@@ -478,7 +479,7 @@ def parse_rapporteur_with_group(text, replace_string):
     rname, rgroup = splits
     while rgroup and not rgroup[-1].isalpha():
         rgroup = rgroup[:-1]
-    return rname.strip(), rgroup.split()[0].strip() if rgroup else ''
+    return rname.strip(), rgroup.strip() if rgroup else ''
 
 
 def parse_afet_details(text):
@@ -508,17 +509,20 @@ def parse_afet_details(text):
 
 
 def parse_cult_details(text):
-    parts = [x.replace('\n', ' ') for x in text.split('\n\n')]
+    parts = [x.replace('\n', ' ') for x in text.split('\n\n') if x.strip()]
 
-    rname, rgroup = parse_rapporteur_with_group(lines[-1], 'Rapporteur: ')
+    if 'ROLL CALL' in parts[-1]:
+        vtype = parts[-1]
+        parts.pop()
+    else:
+        vtype = parts[-3].split(':')[0]
 
-    ref = parts[-2].strip()
-    if ref.startswith('('):
-        ref = ref[1:]
-    if ref.endswith('))'):
-        ref = ref[:-1]
+    rname, rgroup = parse_rapporteur_with_group(parts[-1], 'Rapporteur: ')
 
-    vtype = parts[-3].split(':')[0]
+    ref = ''
+    refs = DOSSIERID_RE.findall(parts[-2].strip())
+    if refs:
+        ref = refs[-1]
 
     ret = {
         'reference': ref,
