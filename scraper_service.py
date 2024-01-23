@@ -152,7 +152,7 @@ def load_scrapers():
                 del sys.modules[import_path]
             s = SourceFileLoader(import_path, 'scrapers/' + scraper).load_module()
         except:
-            log(1, "failed to load scraper" % scraper)
+            log(1, f"failed to load scraper {scraper}")
             traceback.print_exc()
             continue
         s._queue = Queue()
