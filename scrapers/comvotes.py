@@ -18,6 +18,7 @@
 # (C) 2024 by Stefan Marsiske, <stefan.marsiske@gmail.com>, asciimoo
 
 from db import db
+from scrapers import comvote
 from utils.log import log
 from utils.utils import fetch, junws
 
@@ -94,7 +95,10 @@ def scrape(active=True, dry=False, committee=None, **kwargs):
                     print(job_args)
                     continue
 
-                add_job('comvote', payload=job_args)
+                try:
+                    add_job('comvote', payload=job_args)
+                except:
+                    comvote.scrape(**job_args)
 
         if not pdf_count:
             log(1, "No PDF found for committee '{0}'".format(c))
@@ -102,7 +106,8 @@ def scrape(active=True, dry=False, committee=None, **kwargs):
 
 if __name__ == '__main__':
     from sys import argv
+    dry = False
     if len(argv) > 1:
-        scrape(dry=True, active=True, committee=argv[1])
+        scrape(dry=dry, active=True, committee=argv[1])
     else:
-        scrape(dry=True, active=True)
+        scrape(dry=dry, active=True)
