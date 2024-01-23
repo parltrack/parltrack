@@ -491,6 +491,7 @@ GROUP_MAP={ u"Confederal Group of the European United Left - Nordic Green Left":
             u'The Green Group in the European Parliament': u'Verts/ALE',
             u'Green Group in the European Parliament': u"Verts/ALE",
             u'Greens/EFA': u'Verts/ALE',
+            u'the Greens': u'Verts/ALE',
             u'Verts/ALE': u'Verts/ALE',
             u'VERTS/ALE': u'Verts/ALE',
             u'Christian Democratic Group': u'CD',
