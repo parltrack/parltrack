@@ -49,7 +49,7 @@ def getdocs(line):
     issue={}
     m=instdocre.search(unws(line))
     if m.group(1):
-        issue[u'procedure']=m.group(1)
+        issue[u'procedure_type']=m.group(1)
     if m.group(2):
         issue[u'reading']=m.group(2)
     if m.group(3):
