@@ -49,14 +49,17 @@ DOSSIER_ID_TYPOS = {
 }
 
 VOTE_TYPE_MAP = {
-    'final vote by roll call in committee asked for opinion': 'opinion final vote',
-    'final vote by roll call in committee for opinion': 'opinion final vote',
-    'final vote by roll call in committee responsible': 'responsible final vote',
-    'final vote onthe draft report': 'draft final vote',
-    'final vote': 'final vote',
-    'single vote': 'single vote',
+    'final vote by roll call in committee asked for opinion': 'opinion final',
+    'final vote by roll call in committee for opinion': 'opinion final',
+    'final vote by roll call in committee responsible': 'responsible final',
+    'final vote onthe draft report': 'draft final',
+    'final vote': 'final',
+    'single vote': 'single',
     'vote on the decision to enter into interinstitutional negotiations': 'enter into interinstitutional negotiations',
     'roll call': 'roll call',
+    'vote on the draft opinion': 'draft opinion',
+    'vote on the draft report': 'draft report',
+    'vote on mandate': 'mandate'
 }
 
 COMMITTEES_WITHOUT_DOSSIER_IDS = (
@@ -66,7 +69,7 @@ COMMITTEES_WITHOUT_DOSSIER_IDS = (
 
 PAREN_LINE_ENDING_RE = re.compile('\(([^)]+)\)\W*$')
 NUMBERED_LIST_RE = re.compile('^(\d+\.)+\W*')
-DASH_RE = re.compile('\W*[\-–]\W*')
+DASH_RE = re.compile('\s*[\-–]\s*')
 
 
 def scrape(committee, url, **kwargs):
@@ -77,11 +80,17 @@ def scrape(committee, url, **kwargs):
         tmp.write(pdf_doc)
 
         with pdfplumber.open(tmp.name) as pdf:
-            pdfdata = extract_pdf(pdf, committee)
+            try:
+                pdfdata = extract_pdf(pdf, committee)
+            except:
+                log(1, f'Failed to extract data from pdf {url}')
+                return
 
+    voteno = 0
     for i, data in enumerate(pdfdata):
         if not type(data) == list:
             continue
+        voteno += 1
         tables = [x.extract() for x in data]
 
         vote = {
@@ -92,17 +101,28 @@ def scrape(committee, url, **kwargs):
         if len(tables) == 1 and committee == 'AGRI':
             pdfdata[i+1] = '\n'.join(' '.join(x for x in t if x) for t in tables[0]) + pdfdata[i+1]
             continue
-        vote['votes'] = parse_table(tables)
+
+        try:
+            vote['votes'] = parse_table(tables)
+        except:
+            raise(Exception(f'Failed to parse vote table in {url}'))
 
         text = pdfdata[i-1]
-        vote_details = get_vote_details(committee, text)
+
+        try:
+            vote_details = get_vote_details(committee, text)
+        except:
+            raise(Exception(f'Failed to parse vote details in {url}'))
 
         # means that this is part of multiple votes about the same subject
         # we need the additional data from the previous vote
         if len(vote_details) == 1 and 'type' in vote_details and len(res):
-            vote_details['reference'] = res[-1]['reference']
+            if 'reference' in res[-1]:
+                vote_details['reference'] = res[-1]['reference']
             if 'rapporteur' in res[-1]:
                 vote_details['rapporteur'] = res[-1]['rapporteur']
+            if 'amendments' in res[-1]:
+                vote_details['amendments'] = res[-1]['amendments']
 
         vote.update(**vote_details)
 
@@ -114,15 +134,15 @@ def scrape(committee, url, **kwargs):
         else:
             log(2, f'Unable to identify rapporteur in {url}')
 
-        if committee not in COMMITTEES_WITHOUT_DOSSIER_IDS:
-            d = db.dossier(vote['reference'])
-            if not d:
-                if vote['reference'] in DOSSIER_ID_TYPOS:
-                    vote['reference'] = DOSSIER_ID_TYPOS[vote['reference']]
-                else:
-                    raise(Exception('Invalid dossier ID "{0}" in {1}. If it is only a typo add it to DOSSIER_ID_TYPOS.'.format(vote["reference"], url)))
 
         if 'reference' in vote and vote['reference']:
+            if committee not in COMMITTEES_WITHOUT_DOSSIER_IDS:
+                d = db.dossier(vote['reference'])
+                if not d:
+                    if vote['reference'] in DOSSIER_ID_TYPOS:
+                        vote['reference'] = DOSSIER_ID_TYPOS[vote['reference']]
+                    else:
+                        raise(Exception('Invalid dossier ID "{0}" in {1}. If it is only a typo add it to DOSSIER_ID_TYPOS.'.format(vote["reference"], url)))
             agendas = db.get('comagenda_by_committee_dossier_voted', committee + vote['reference'])
             if not agendas:
                 log(2, f'Unable to find agendas for {vote["reference"]} in {url}')
@@ -132,9 +152,12 @@ def scrape(committee, url, **kwargs):
                         vote['time'] = item['start']
             if not 'time' in vote:
                 log(2, f'Unable to find date for {vote["reference"]} in {url}')
+        else:
+            log(2, f'Unable to dossier ID for vote {voteno} in {url}')
 
         if 'type' not in vote or not vote['type'] or vote['type'].lower() not in VOTE_TYPE_MAP:
-            log(2, f'Unable to identify vote type "{vote["type"]}" in {url}')
+            if not vote.get('amendments'):
+                log(2, f'Unable to identify vote type "{vote["type"]}" in {url}')
         else:
             vote['type'] = VOTE_TYPE_MAP[vote['type'].lower()]
         res.append(vote)
@@ -331,10 +354,12 @@ def get_text_from_pages(pages, start_pageno, end_pageno, start_pos, end_pos, com
 
 def parse_table(tables):
     tables = repair_tables(tables)
+    if len(tables) == 4:
+        return parse_correction_table(tables)
     if len(tables) == 3:
-        return parse_simple_table(tables,['for', 'against', 'abstain'])
+        return parse_simple_table(tables, ['for', 'against', 'abstain'])
     if len(tables) == 2:
-        return parse_simple_table(tables,['for', 'against'])
+        return parse_simple_table(tables, ['for', 'against'])
     raise(Exception('Unexpected table count: {0}'.format(len(tables))))
 
 
@@ -344,17 +369,40 @@ def parse_simple_table(tables, headers):
         'against': {'total': 0, 'groups': {}},
         'abstain': {'total': 0, 'groups': {}}
     }
-    for i, table in zip(headers, tables):
-        results[i] = parse_table_section(table)
+    for k, table in zip(headers, tables):
+        results[k] = parse_table_section(table)
+    return results
+
+
+def parse_correction_table(tables):
+    results = parse_simple_table(tables[:3], ['for', 'against', 'abstain'])
+    results['corrections'] = parse_table_section(tables[3], corrections=True)
+    # correct votes by corrections:
+    #for vheader, cmepids in corrections['groups'].items():
+    #    for cmepid in cmepids:
+    #        group_name = ''
+    #        for votes in results.values():
+    #            for gname, gmepids in votes['groups'].items():
+    #                if cmepid in gmepids:
+    #                    gmepids.remove(cmepid)
+    #                    group_name = gname
+    #                    break
+    #        res = results[vote_val_map[vheader]]
+    #        if group_name in res:
+    #            res[group_name].append(cmepid)
+    #        else:
+    #            res[group_name] = [cmepid]
     return results
 
 
 def repair_tables(tables, table_count=3):
     fixed_tables = []
     for table in tables:
-        while not any(table[0]):
+        while table and not any(table[0]):
             table.pop(0)
-        if not any(x in table[0] for x in ['+', '-', '0']):
+        if not table:
+            continue
+        if not any(x in table[0] for x in ['+', '-', '0']) and 'correction' not in ' '.join(filter(None, table[0])).lower():
             if not fixed_tables:
                 raise Exception('Cannot repair table - missing header')
             fixed_tables[-1].extend(table)
@@ -363,14 +411,16 @@ def repair_tables(tables, table_count=3):
     return fixed_tables
 
 
-def parse_table_section(table):
+def parse_table_section(table, corrections=False):
     header_idx = 0
     ret = {'total': 0, 'groups': {}}
     group = ''
     members = ''
     while len([x for x in table[header_idx] if x]) == 0:
         header_idx += 1
-    ret['total'] = int(list(filter(None, table[header_idx]))[0])
+
+    if not corrections:
+        ret['total'] = int(list(filter(None, table[header_idx]))[0])
 
     for row in table[(header_idx+1):]:
         if len(row) == 2:
@@ -387,7 +437,10 @@ def parse_table_section(table):
             if row1:
                 if members.strip():
                     ret['groups'][group] = meps_by_name(members, group)
-                group = resolve_group_name(row1)
+                if corrections:
+                    group = row1
+                else:
+                    group = resolve_group_name(row1)
                 members = ''
             members += ' ' + ' '.join(filter(None, set(row[row_split_idx:])))
 
@@ -396,13 +449,14 @@ def parse_table_section(table):
 
     mepcount = len(list(x for y in ret['groups'].keys() for x in ret['groups'][y]))
 
-    if (ret['total'] == 0 and mepcount != 0) or (ret['total'] != 0 and mepcount == 0):
-        msg = f"Vote mep count mismatch: total {ret['total']}, count {mepcount}"
-        log(1, msg)
-        raise(Exception(msg))
+    if not corrections:
+        if (ret['total'] == 0 and mepcount != 0) or (ret['total'] != 0 and mepcount == 0):
+            msg = f"Vote mep count mismatch: total {ret['total']}, count {mepcount}"
+            log(1, msg)
+            raise(Exception(msg))
 
-    if ret['total'] != mepcount:
-        log(2, f"Vote mep count mismatch: total {ret['total']}, count {mepcount}")
+        if ret['total'] != mepcount:
+            log(2, f"Vote mep count mismatch: total {ret['total']}, count {mepcount}")
 
     return ret
 
@@ -536,22 +590,52 @@ def parse_cult_details(text):
 
 
 def parse_pech_details(text):
-    lines = text.split('\n')
-    vote_type = ' '.join(lines[-1].split()[1:])
-    if len(lines) < 3:
-        raise(Exception("Too few lines in a PECH pdf"))
+    chunks = list(x.strip() for x in filter(None, text.split('\n\n')))
+    if len(chunks) == 1:
+        return {'type': ' '.join(chunks[0].split()[1:])}
 
-    last_newline = [i for i,x in enumerate(lines[:-2]) if not x][-1]
-    title = ' '.join(lines[last_newline:-2])[3:].strip()
-    title_parts = list(map(str.strip, title.split('-')))
+    if chunks[-1].count('\n') > 0:
+        last_newline = chunks[-1].rfind('\n')
+        chunks = [chunks[-1][:last_newline].replace('\n', ' ').strip(), chunks[0][:last_newline].strip()]
+    else:
+        chunks = [x.replace('\n', ' ') for x in chunks]
+
+    vote_type = ' '.join(chunks[-1].split()[1:])
+
+    title_idx = -2
+    amendments = False
+
+    if 'amendments' in chunks[-2]:
+        amendments = True
+
+    if all(x.isupper() for x in vote_type if x.isalpha()) or 'amendments' in chunks[-2]:
+        title_idx = -3
+    title = chunks[title_idx]
+
+    if len(title.split()) < 4:
+        if len(chunks) > -1*title_idx:
+            title += chunks[title_idx-1]
+        else:
+            return {'type': ' '.join(chunks[title_idx].split()[1:])}
+
+    title_parts = DASH_RE.split(title)
+
     if len(title_parts) == 3:
         dossier_title = title_parts[0]
         rapporteur_name = title_parts[1]
         dossier_id = title_parts[2]
     else:
         dossier_title = '-'.join(title_parts[0:len(title_parts)-3])
-        rapporteur_name = title_parts[-2]
+        try:
+            rapporteur_name = title_parts[-2]
+        except:
+            rapporteur_name = ''
         dossier_id = title_parts[-1]
+
+    if not db.dossier(dossier_id):
+        dossier_id, rapporteur_name = rapporteur_name, dossier_id
+        if not db.dossier(dossier_id):
+            return {'type': vote_type}
 
     ret = {
         'reference': dossier_id,
@@ -560,6 +644,13 @@ def parse_pech_details(text):
         },
         'type': vote_type,
     }
+
+    if not ret['rapporteur']['name']:
+        del(ret['rapporteur'])
+
+    if amendments:
+        ret['amendments'] = True
+
     return ret
 
 
@@ -754,6 +845,11 @@ def cut_imco_footer(text):
 def cut_regi_footer(text):
     return '\n'.join(text.splitlines()[:-1]).strip()
 
+def cut_pech_footer(text):
+    if text.split('\n')[-1].strip().isnumeric():
+        return '\n'.join(text.splitlines()[:-1]).strip()
+    return text
+
 
 COMM_DETAIL_PARSERS = {
     'AFET': parse_afet_details,
@@ -777,6 +873,7 @@ HEADER_CUTTERS = {
 FOOTER_CUTTERS = {
     'IMCO': cut_imco_footer,
     'REGI': cut_regi_footer,
+    'PECH': cut_pech_footer,
 }
 
 if __name__ == "__main__":
