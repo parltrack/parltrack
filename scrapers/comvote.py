@@ -21,7 +21,9 @@ from db import db
 from utils.log import log
 from utils.utils import fetch_raw, unws, DOSSIERID_RE
 from utils.mappings import GROUP_MAP
+from utils.process import process
 
+from hashlib import sha256
 from os import remove
 from os.path import isfile
 import re
@@ -46,6 +48,7 @@ CONFIG = {
 DOSSIER_ID_TYPOS = {
     '2023/0079(C0D)': '2023/0079(COD)',
     '2021/ 0136 (COD)': '2021/0136(COD)',
+    '2023/2829(RSP) (question for oral answer)': '2023/2829(RSP)',
 }
 
 VOTE_TYPE_MAP = {
@@ -59,7 +62,9 @@ VOTE_TYPE_MAP = {
     'roll call': 'roll call',
     'vote on the draft opinion': 'draft opinion',
     'vote on the draft report': 'draft report',
-    'vote on mandate': 'mandate'
+    'vote on mandate': 'mandate',
+    'adoption of draft opinion': 'adoption of draft opinion',
+    'final vote by roll call in committee': 'final',
 }
 
 COMMITTEES_WITHOUT_DOSSIER_IDS = (
@@ -82,10 +87,12 @@ def scrape(committee, url, **kwargs):
         with pdfplumber.open(tmp.name) as pdf:
             try:
                 pdfdata = extract_pdf(pdf, committee)
-            except:
+            except Exception as e:
                 log(1, f'Failed to extract data from pdf {url}')
+                print(e)
                 return
 
+    url_hash = sha256(url.encode('utf-8')).hexdigest()
     voteno = 0
     for i, data in enumerate(pdfdata):
         if not type(data) == list:
@@ -96,6 +103,7 @@ def scrape(committee, url, **kwargs):
         vote = {
             'committee': committee,
             'url': url,
+            'id': f'{url_hash}-{voteno}'
         }
 
         if len(tables) == 1 and committee == 'AGRI':
@@ -160,6 +168,15 @@ def scrape(committee, url, **kwargs):
                 log(2, f'Unable to identify vote type "{vote["type"]}" in {url}')
         else:
             vote['type'] = VOTE_TYPE_MAP[vote['type'].lower()]
+
+        process(
+            vote,
+            vote['id'],
+            db.com_vote,
+            'ep_com_votes',
+            vote['id'],
+            nodiff=True,
+        )
         res.append(vote)
 
     #from IPython import embed; embed()
@@ -420,22 +437,33 @@ def parse_table_section(table, corrections=False):
         header_idx += 1
 
     if not corrections:
-        ret['total'] = int(list(filter(None, table[header_idx]))[0])
+        h_parts = list(filter(None, table[header_idx]))
+        if len(h_parts) > 1:
+            ret['total'] = int(h_parts[0])
+        else:
+            header_idx += 1
+            ret['total'] = int(list(filter(None, table[header_idx]))[0])
 
     for row in table[(header_idx+1):]:
+        if not any(row):
+            continue
         if len(row) == 2:
             if(row[0]):
                 group = resolve_group_name(row[0])
-            ret['groups'][group] = meps_by_name(row[1].replace('\n', ' '), group)
+            if group:
+                ret['groups'][group] = meps_by_name(row[1].replace('\n', ' '), group)
         else:
             row_split_idx = 4
             if len(row) == 4:
-                row_split_idx = 2
+                if row[0]:
+                    row_split_idx = 1
+                else:
+                    row_split_idx = 2
             if len(row) == 6:
                 row_split_idx = 3
             row1 = ''.join(filter(None, set(row[:row_split_idx])))
             if row1:
-                if members.strip():
+                if members.strip() and group:
                     ret['groups'][group] = meps_by_name(members, group)
                 if corrections:
                     group = row1
@@ -444,7 +472,7 @@ def parse_table_section(table, corrections=False):
                 members = ''
             members += ' ' + ' '.join(filter(None, set(row[row_split_idx:])))
 
-    if members.strip():
+    if members.strip() and group:
         ret['groups'][group] = meps_by_name(members, group)
 
     mepcount = len(list(x for y in ret['groups'].keys() for x in ret['groups'][y]))
@@ -671,15 +699,18 @@ def parse_deve_details(text):
 
 def parse_inta_details(text):
     chunks = list(x.replace('\n', ' ') for x in filter(None, text.split('\n\n')))
-    title_split = [x.strip() for x in chunks[-3].split('–')]
-    rname, rgroup = parse_rapporteur_with_group(title_split[2], 'rapporteur: ')
+    try:
+        title_split = [x.strip() for x in chunks[-3].split('–')]
+        rname, rgroup = parse_rapporteur_with_group(title_split[2], 'rapporteur: ')
+    except:
+        return {'type': ' '.join(chunks[-1].split()[1:]), 'amendments': True}
     ret = {
-        'reference': title_split[1],
+        'reference': DOSSIERID_RE.findall(title_split[1])[-1],
         'rapporteur': {
             'name': rname,
             'group': rgroup,
         },
-        'type': chunks[-1],
+        'type': chunks[-1].strip(),
     }
     return ret
 
@@ -693,7 +724,7 @@ def parse_itre_details(text):
     except:
         return {'type': title_split[0]}
     ret = {
-        'reference': title_split[1],
+        'reference': DOSSIERID_RE.findall(title_split[1])[-1],
         'rapporteur': {
             'name': rname,
             'group': rgroup,
@@ -838,6 +869,11 @@ def parse_agri_details(text):
     return ret
 
 
+def cut_inta_footer(text):
+    text = '\n'.join(text.splitlines()[:-3]).strip()
+    return text
+
+
 def cut_imco_footer(text):
     return '\n'.join(text.splitlines()[:-3]).strip()
 
@@ -872,6 +908,7 @@ HEADER_CUTTERS = {
 
 FOOTER_CUTTERS = {
     'IMCO': cut_imco_footer,
+    'INTA': cut_inta_footer,
     'REGI': cut_regi_footer,
     'PECH': cut_pech_footer,
 }
