@@ -159,6 +159,9 @@ class Client:
     def dossier_refs(self):
         return self.keys('ep_dossiers', None)
 
+    def com_vote(self,id):
+        return self.get('ep_com_votes', id)
+
     def active_groups(self):
         cmd = {"cmd": "active_groups", "params": {}}
         return self.send_req(cmd)
@@ -844,7 +847,7 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
           'ep_com_votes': {'indexes': [{"fn": idx_com_votes_by_dossier, "name": "com_votes_by_dossier"},
                                        {"fn": idx_com_votes_by_committee, "name": "com_votes_by_committee"},
                                        {"fn": idx_com_votes_by_pdf_url, "name": "com_votes_by_pdf_url"}],
-                           'key': lambda x: x.get('_id')},
+                           'key': lambda x: x.get('id')},
 
           'ep_dossiers': {'indexes': [{"fn": idx_active_dossiers, "name": "active_dossiers"},
                                       {"fn": idx_dossiers_by_doc, "name": "dossiers_by_doc"},
