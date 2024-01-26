@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from config import DEBUG, DB_DEBUG
+
 from datetime import datetime
 import inspect
 import sys
@@ -11,30 +13,36 @@ LEVELS = ('quiet', 'error', 'warning', 'info', 'debug')
 
 def log(level, msg):
     if not logfile: return
-    scraper = '??? '
+    module = '??? '
     for frame in inspect.stack():
-        fp=frame.filename.split('/')
-        if len(fp)>1 and fp[-2]=='scrapers':
-            scraper = fp[-1].split('.')[0]
+        try:
+            fp=frame.filename.split('/')
+        except:
+            continue
+        if len(fp)>1 and fp[-2]=='modules':
+            module = fp[-1].split('.')[0]
             break
         if fp[-1]=='db.py':
-            scraper='db'
+            module='db'
             break
-        if fp[-1]=='scraper_service.py':
-            scraper='mgr'
+        if fp[-1]=='module_service.py':
+            module='mgr'
             break
         if fp[-1]=='webapp.py':
-            scraper='webapp'
+            module='webapp'
             break
     else:
         if level <= loglevel:
-            logfile.write("{ts} log error unknown module: {stack}\n".format(ts=datetime.isoformat(datetime.now()), stack=inspect.stack()))
-        scraper = '???'
+            logfile.write("{ts} log error unknown module: {stack}\n".format(ts=datetime.isoformat(datetime.now()), stack=inspect.stack()[1].filename))
+        module = '???'
+
+    if module == 'db' and LEVELS[level] == 'debug' and not DB_DEBUG:
+        return
 
     if level <= loglevel:
         #stack = ' '.join(f"{frame.filename}:{frame.lineno}" for frame in inspect.stack()[1:])
-        #logfile.write("{ts} {scraper} {level} {stack} {size} {msg}\n".format(ts=datetime.isoformat(datetime.now()), level=LEVELS[level], scraper=scraper, msg=msg, stack=stack, size=len(msg)))
-        logfile.write("{ts} {scraper} {level} {msg}\n".format(ts=datetime.isoformat(datetime.now()), level=LEVELS[level], scraper=scraper, msg=msg))
+        #logfile.write("{ts} {module} {level} {stack} {size} {msg}\n".format(ts=datetime.isoformat(datetime.now()), level=LEVELS[level], module=module, msg=msg, stack=stack, size=len(msg)))
+        logfile.write("{ts} {module} {level} {msg}\n".format(ts=datetime.isoformat(datetime.now()), level=LEVELS[level], module=module, msg=msg))
 
 def set_level(l):
     global loglevel
