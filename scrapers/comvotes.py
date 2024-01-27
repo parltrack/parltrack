@@ -40,7 +40,7 @@ url_filters = {
 }
 
 
-def scrape(active=True, dry=False, committee=None, **kwargs):
+def scrape(active=True, dry=False, committee=None, json_dump=False, **kwargs):
     if committee:
         committees = [committee]
     else:
@@ -90,6 +90,11 @@ def scrape(active=True, dry=False, committee=None, **kwargs):
                 job_args = dict(kwargs)
                 job_args['url'] = href
                 job_args['committee'] = c
+                job_args['link_text'] = link_text
+                job_args['title'] = title
+                job_args['json_dump'] = False
+                if json_dump:
+                    job_args['json_dump'] = True
 
                 if dry:
                     print(job_args)
@@ -108,6 +113,9 @@ if __name__ == '__main__':
     from sys import argv
     dry = False
     if len(argv) > 1:
-        scrape(dry=dry, active=True, committee=argv[1])
+        if argv[1] == 'json_dump':
+            scrape(dry=dry, active=True, json_dump=True)
+        else:
+            scrape(dry=dry, active=True, committee=argv[1])
     else:
         scrape(dry=dry, active=True)

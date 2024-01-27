@@ -24,6 +24,7 @@ from utils.mappings import GROUP_MAP
 from utils.process import process
 
 from hashlib import sha256
+from json import dumps
 from os import remove
 from os.path import isfile
 import re
@@ -79,8 +80,13 @@ DASH_RE = re.compile('\s*[\-–]\s*')
 
 def scrape(committee, url, **kwargs):
     committee = committee.upper()
-    pdf_doc = fetch_raw(url, binary=True)
+    try:
+        pdf_doc = fetch_raw(url, binary=True)
+    except:
+        log(1, f'Failed to download pdf from {url} ({committee})')
+        return
     res = []
+    url_hash = sha256(url.encode('utf-8')).hexdigest()
     with NamedTemporaryFile() as tmp:
         tmp.write(pdf_doc)
 
@@ -88,11 +94,32 @@ def scrape(committee, url, **kwargs):
             try:
                 pdfdata = extract_pdf(pdf, committee)
             except Exception as e:
-                log(1, f'Failed to extract data from pdf {url}')
+                log(1, f'Failed to extract data from pdf {url} ({committee})')
                 print(e)
                 return
+            if kwargs.get('json_dump'):
+                kwargs['committee'] = committee
+                kwargs['url'] = url
+                for i, data in enumerate(pdfdata):
+                    if not type(data) == list:
+                        continue
+                    try:
+                        tables = [x.extract() for x in data]
+                        pdfdata[i] = parse_table(tables, url)
+                    except:
+                        log(1, f'Failed to extract tables from {url} ({committee})')
+                        return
 
-    url_hash = sha256(url.encode('utf-8')).hexdigest()
+                kwargs['pdfdata'] = pdfdata
+                try:
+                    data = dumps(kwargs)
+                except:
+                    log(1, f'Failed to JSON serialize pdfdata from {url} ({committee})')
+                    return
+                with open(f'comvotes_jsons/{committee}_{url_hash}.json', 'w') as outfile:
+                    outfile.write(data)
+                return
+
     voteno = 0
     for i, data in enumerate(pdfdata):
         if not type(data) == list:
@@ -111,7 +138,7 @@ def scrape(committee, url, **kwargs):
             continue
 
         try:
-            vote['votes'] = parse_table(tables)
+            vote['votes'] = parse_table(tables, url)
         except:
             raise(Exception(f'Failed to parse vote table in {url}'))
 
@@ -161,7 +188,7 @@ def scrape(committee, url, **kwargs):
             if not 'time' in vote:
                 log(2, f'Unable to find date for {vote["reference"]} in {url}')
         else:
-            log(2, f'Unable to dossier ID for vote {voteno} in {url}')
+            log(2, f'Unable to identify dossier ID for vote {voteno} in {url}')
 
         if 'type' not in vote or not vote['type'] or vote['type'].lower() not in VOTE_TYPE_MAP:
             if not vote.get('amendments'):
@@ -369,29 +396,29 @@ def get_text_from_pages(pages, start_pageno, end_pageno, start_pos, end_pos, com
     return '\n\n'.join(filter(None, text))
 
 
-def parse_table(tables):
+def parse_table(tables, url):
     tables = repair_tables(tables)
     if len(tables) == 4:
-        return parse_correction_table(tables)
+        return parse_correction_table(tables, url)
     if len(tables) == 3:
-        return parse_simple_table(tables, ['for', 'against', 'abstain'])
+        return parse_simple_table(tables, ['for', 'against', 'abstain'], url)
     if len(tables) == 2:
-        return parse_simple_table(tables, ['for', 'against'])
+        return parse_simple_table(tables, ['for', 'against'], url)
     raise(Exception('Unexpected table count: {0}'.format(len(tables))))
 
 
-def parse_simple_table(tables, headers):
+def parse_simple_table(tables, headers, url):
     results = {
         'for': {'total': 0, 'groups': {}},
         'against': {'total': 0, 'groups': {}},
         'abstain': {'total': 0, 'groups': {}}
     }
     for k, table in zip(headers, tables):
-        results[k] = parse_table_section(table)
+        results[k] = parse_table_section(table, url)
     return results
 
 
-def parse_correction_table(tables):
+def parse_correction_table(tables, url):
     results = parse_simple_table(tables[:3], ['for', 'against', 'abstain'])
     results['corrections'] = parse_table_section(tables[3], corrections=True)
     # correct votes by corrections:
@@ -428,7 +455,7 @@ def repair_tables(tables, table_count=3):
     return fixed_tables
 
 
-def parse_table_section(table, corrections=False):
+def parse_table_section(table, corrections=False, url=''):
     header_idx = 0
     ret = {'total': 0, 'groups': {}}
     group = ''
@@ -479,12 +506,12 @@ def parse_table_section(table, corrections=False):
 
     if not corrections:
         if (ret['total'] == 0 and mepcount != 0) or (ret['total'] != 0 and mepcount == 0):
-            msg = f"Vote mep count mismatch: total {ret['total']}, count {mepcount}"
+            msg = f"Vote mep count mismatch: total {ret['total']}, count {mepcount} in {url}"
             log(1, msg)
             raise(Exception(msg))
 
         if ret['total'] != mepcount:
-            log(2, f"Vote mep count mismatch: total {ret['total']}, count {mepcount}")
+            log(2, f"Vote mep count mismatch: total {ret['total']}, count {mepcount} in {url}")
 
     return ret
 
