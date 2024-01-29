@@ -76,6 +76,7 @@ COMMITTEES_WITHOUT_DOSSIER_IDS = (
 PAREN_LINE_ENDING_RE = re.compile('\(([^)]+)\)\W*$')
 NUMBERED_LIST_RE = re.compile('^(\d+\.)+\W*')
 DASH_RE = re.compile('\s*[\-–]\s*')
+PAGENO_RE = re.compile('^([Pp]age\s*)?\d+\.?((\s*of)?\s*\d+\.?)?$')
 
 
 def scrape(committee, url, **kwargs):
@@ -94,8 +95,7 @@ def scrape(committee, url, **kwargs):
             try:
                 pdfdata = extract_pdf(pdf, committee)
             except Exception as e:
-                log(1, f'Failed to extract data from pdf {url} ({committee})')
-                print(e)
+                log(1, f'Failed to extract data from pdf {url} ({committee}): {e}')
                 return
             if kwargs.get('json_dump'):
                 kwargs['committee'] = committee
@@ -103,12 +103,13 @@ def scrape(committee, url, **kwargs):
                 for i, data in enumerate(pdfdata):
                     if not type(data) == list:
                         continue
+                    tables = [x.extract() for x in data]
                     try:
-                        tables = [x.extract() for x in data]
                         pdfdata[i] = parse_table(tables, url)
                     except:
-                        log(1, f'Failed to extract tables from {url} ({committee})')
-                        return
+                        log(2, f'Failed to extract table #{i} from {url} ({committee})')
+                        pdfdata[i] = tables
+                        continue
 
                 kwargs['pdfdata'] = pdfdata
                 try:
@@ -139,8 +140,9 @@ def scrape(committee, url, **kwargs):
 
         try:
             vote['votes'] = parse_table(tables, url)
-        except:
-            raise(Exception(f'Failed to parse vote table in {url}'))
+        except Exception as e:
+            log(1, f'Failed to parse vote table: {e}')
+            continue
 
         text = pdfdata[i-1]
 
@@ -188,7 +190,7 @@ def scrape(committee, url, **kwargs):
             if not 'time' in vote:
                 log(2, f'Unable to find date for {vote["reference"]} in {url}')
         else:
-            log(2, f'Unable to identify dossier ID for vote {voteno} in {url}')
+            log(2, f'Unable to identify dossier ID for vote #{voteno} in {url}')
 
         if 'type' not in vote or not vote['type'] or vote['type'].lower() not in VOTE_TYPE_MAP:
             if not vote.get('amendments'):
@@ -216,6 +218,8 @@ def extract_pdf(pdf, committee):
     extract_settings = {
         'vertical_strategy': 'lines',
         'horizontal_strategy': 'lines',
+        'snap_x_tolerance': 10,
+        'snap_y_tolerance': 5,
     }
     pdfdata = []
     prev_table = None
@@ -366,7 +370,7 @@ def get_text_from_page(page, start_pos=None, end_pos=None):
 
 def get_text_from_pages(pages, start_pageno, end_pageno, start_pos, end_pos, committee):
     cut_header = HEADER_CUTTERS.get(committee, lambda x:x)
-    cut_footer = FOOTER_CUTTERS.get(committee, lambda x:x)
+    cut_footer = FOOTER_CUTTERS.get(committee, default_footer_cutter)
 
     if start_pageno == end_pageno:
         t = get_text_from_page(pages[start_pageno], start_pos, end_pos)
@@ -396,50 +400,50 @@ def get_text_from_pages(pages, start_pageno, end_pageno, start_pos, end_pos, com
     return '\n\n'.join(filter(None, text))
 
 
+#def parse_table(tables, url):
+#    tables = repair_tables(tables)
+#    if len(tables) == 4:
+#        return parse_correction_table(tables, url)
+#    if len(tables) == 3:
+#        return parse_simple_table(tables, url)
+#    if len(tables) == 2:
+#        return parse_simple_table(tables, url)
+#    raise(Exception('Unexpected table count: {0}'.format(len(tables))))
+
+
 def parse_table(tables, url):
-    tables = repair_tables(tables)
-    if len(tables) == 4:
-        return parse_correction_table(tables, url)
-    if len(tables) == 3:
-        return parse_simple_table(tables, ['for', 'against', 'abstain'], url)
-    if len(tables) == 2:
-        return parse_simple_table(tables, ['for', 'against'], url)
-    raise(Exception('Unexpected table count: {0}'.format(len(tables))))
-
-
-def parse_simple_table(tables, headers, url):
-    results = {
-        'for': {'total': 0, 'groups': {}},
-        'against': {'total': 0, 'groups': {}},
-        'abstain': {'total': 0, 'groups': {}}
-    }
-    for k, table in zip(headers, tables):
-        results[k] = parse_table_section(table, url)
+    results = {}
+    tables = repair_tables(tables, url)
+    for table in tables:
+        if not all(len(row) == 2 for row in table):
+            raise(f'Invalid table {repr(table)} in {url}')
+        t, ret = parse_table_section(table, url)
+        results[t] = ret
     return results
 
 
-def parse_correction_table(tables, url):
-    results = parse_simple_table(tables[:3], ['for', 'against', 'abstain'])
-    results['corrections'] = parse_table_section(tables[3], corrections=True)
-    # correct votes by corrections:
-    #for vheader, cmepids in corrections['groups'].items():
-    #    for cmepid in cmepids:
-    #        group_name = ''
-    #        for votes in results.values():
-    #            for gname, gmepids in votes['groups'].items():
-    #                if cmepid in gmepids:
-    #                    gmepids.remove(cmepid)
-    #                    group_name = gname
-    #                    break
-    #        res = results[vote_val_map[vheader]]
-    #        if group_name in res:
-    #            res[group_name].append(cmepid)
-    #        else:
-    #            res[group_name] = [cmepid]
-    return results
+#def parse_correction_table(tables, url):
+#    results = parse_simple_table(tables[:3])
+#    results['corrections'] = parse_table_section(tables[3], corrections=True)
+#    # correct votes by corrections:
+#    #for vheader, cmepids in corrections['groups'].items():
+#    #    for cmepid in cmepids:
+#    #        group_name = ''
+#    #        for votes in results.values():
+#    #            for gname, gmepids in votes['groups'].items():
+#    #                if cmepid in gmepids:
+#    #                    gmepids.remove(cmepid)
+#    #                    group_name = gname
+#    #                    break
+#    #        res = results[vote_val_map[vheader]]
+#    #        if group_name in res:
+#    #            res[group_name].append(cmepid)
+#    #        else:
+#    #            res[group_name] = [cmepid]
+#    return results
 
 
-def repair_tables(tables, table_count=3):
+def repair_tables(tables, url):
     fixed_tables = []
     for table in tables:
         while table and not any(table[0]):
@@ -448,77 +452,128 @@ def repair_tables(tables, table_count=3):
             continue
         if not any(x in table[0] for x in ['+', '-', '0']) and 'correction' not in ' '.join(filter(None, table[0])).lower():
             if not fixed_tables:
-                raise Exception('Cannot repair table - missing header')
-            fixed_tables[-1].extend(table)
+                print(tables)
+                raise Exception(f'Cannot repair table - missing header in {url}')
+            for row in table:
+                if not row[0].strip():
+                    fixed_tables[-1][-1][1] += '\n' + row[1]
+                else:
+                    fixed_tables[-1].append(row)
         else:
             fixed_tables.append(table)
     return fixed_tables
 
 
-def parse_table_section(table, corrections=False, url=''):
+def parse_table_section(table, url=''):
     header_idx = 0
     ret = {'total': 0, 'groups': {}}
     group = ''
     members = ''
-    while len([x for x in table[header_idx] if x]) == 0:
-        header_idx += 1
+    ret['total'], voteType = table[0]
+    correction = False
+    if 'correction' in voteType.lower():
+        correction = True
+        voteType = 'corrections'
+    else:
+        try:
+            ret['total'] = int(ret['total'])
+        except:
+            log(2, 'Failed to convert vote total number to integer ({ret["total"]})')
 
-    if not corrections:
-        h_parts = list(filter(None, table[header_idx]))
-        if len(h_parts) > 1:
-            ret['total'] = int(h_parts[0])
-        else:
-            header_idx += 1
-            ret['total'] = int(list(filter(None, table[header_idx]))[0])
+    if not ret['total'] and not correction:
+        return ret
 
-    for row in table[(header_idx+1):]:
-        if not any(row):
-            continue
-        if len(row) == 2:
-            if(row[0]):
+    prev_group = ''
+    for row in table[1:]:
+        if not correction:
+            try:
                 group = resolve_group_name(row[0])
-            if group:
-                ret['groups'][group] = meps_by_name(row[1].replace('\n', ' '), group)
+            except Exception as e:
+                log(2, e)
+                group = row[0]
         else:
-            row_split_idx = 4
-            if len(row) == 4:
-                if row[0]:
-                    row_split_idx = 1
-                else:
-                    row_split_idx = 2
-            if len(row) == 6:
-                row_split_idx = 3
-            row1 = ''.join(filter(None, set(row[:row_split_idx])))
-            if row1:
-                if members.strip() and group:
-                    ret['groups'][group] = meps_by_name(members, group)
-                if corrections:
-                    group = row1
-                else:
-                    group = resolve_group_name(row1)
-                members = ''
-            members += ' ' + ' '.join(filter(None, set(row[row_split_idx:])))
-
-    if members.strip() and group:
-        ret['groups'][group] = meps_by_name(members, group)
+            group = row[0]
+        if group:
+            ret['groups'][group] = meps_by_name(row[1].replace('\n', ' '), group)
+            prev_group = group
+        else:
+            ret['groups'][prev_group].extend(meps_by_name(row[1].replace('\n', ' '), prev_group))
 
     mepcount = len(list(x for y in ret['groups'].keys() for x in ret['groups'][y]))
-
-    if not corrections:
-        if (ret['total'] == 0 and mepcount != 0) or (ret['total'] != 0 and mepcount == 0):
-            msg = f"Vote mep count mismatch: total {ret['total']}, count {mepcount} in {url}"
-            log(1, msg)
-            raise(Exception(msg))
-
+    if not correction and type(ret['total']) == int:
         if ret['total'] != mepcount:
             log(2, f"Vote mep count mismatch: total {ret['total']}, count {mepcount} in {url}")
+    else:
+        ret.update(**ret['groups'])
+        del(ret['groups'])
+        del(ret['total'])
+    return voteType, ret
 
-    return ret
+
+#def parse_table_section(table, corrections=False, url=''):
+#    header_idx = 0
+#    ret = {'total': 0, 'groups': {}}
+#    group = ''
+#    members = ''
+#    while len([x for x in table[header_idx] if x]) == 0:
+#        header_idx += 1
+#
+#    if not corrections:
+#        h_parts = list(filter(None, table[header_idx]))
+#        if len(h_parts) > 1:
+#            ret['total'] = int(h_parts[0])
+#        else:
+#            header_idx += 1
+#            ret['total'] = int(list(filter(None, table[header_idx]))[0])
+#
+#    for row in table[(header_idx+1):]:
+#        if not any(row):
+#            continue
+#        if len(row) == 2:
+#            if(row[0]):
+#                group = resolve_group_name(row[0])
+#            if group:
+#                ret['groups'][group] = meps_by_name(row[1].replace('\n', ' '), group)
+#        else:
+#            row_split_idx = 4
+#            if len(row) == 4:
+#                if row[0]:
+#                    row_split_idx = 1
+#                else:
+#                    row_split_idx = 2
+#            if len(row) == 6:
+#                row_split_idx = 3
+#            row1 = ''.join(filter(None, set(row[:row_split_idx])))
+#            if row1:
+#                if members.strip() and group:
+#                    ret['groups'][group] = meps_by_name(members, group)
+#                if corrections:
+#                    group = row1
+#                else:
+#                    group = resolve_group_name(row1)
+#                members = ''
+#            members += ' ' + ' '.join(filter(None, set(row[row_split_idx:])))
+#
+#    if members.strip() and group:
+#        ret['groups'][group] = meps_by_name(members, group)
+#
+#    mepcount = len(list(x for y in ret['groups'].keys() for x in ret['groups'][y]))
+#
+#    if not corrections:
+#        if (ret['total'] == 0 and mepcount != 0) or (ret['total'] != 0 and mepcount == 0):
+#            msg = f"Vote mep count mismatch: total {ret['total']}, count {mepcount} in {url}"
+#            log(1, msg)
+#            raise(Exception(msg))
+#
+#        if ret['total'] != mepcount:
+#            log(2, f"Vote mep count mismatch: total {ret['total']}, count {mepcount} in {url}")
+#
+#    return ret
 
 
 def meps_by_name(mep_names, group):
     # TODO collect dates as well for better identification (nice to have)
-    return [db.mepid_by_name(x, group=group) for x in map(str.strip, mep_names.split(','))]
+    return [db.mepid_by_name(x, group=group) for x in map(str.strip, mep_names.split(',')) if x]
 
 
 def fix_rapporteur_data(vote):
@@ -908,9 +963,13 @@ def cut_imco_footer(text):
 def cut_regi_footer(text):
     return '\n'.join(text.splitlines()[:-1]).strip()
 
-def cut_pech_footer(text):
-    if text.split('\n')[-1].strip().isnumeric():
-        return '\n'.join(text.splitlines()[:-1]).strip()
+
+def default_footer_cutter(text):
+    lines = [x.strip() for x in text.splitlines()]
+    if not lines:
+        return ''
+    if PAGENO_RE.match(lines[-1]):
+        return '\n'.join(lines[:-1]).strip()
     return text
 
 
@@ -937,7 +996,6 @@ FOOTER_CUTTERS = {
     'IMCO': cut_imco_footer,
     'INTA': cut_inta_footer,
     'REGI': cut_regi_footer,
-    'PECH': cut_pech_footer,
 }
 
 if __name__ == "__main__":

@@ -114,6 +114,7 @@ if __name__ == '__main__':
     dry = False
     if len(argv) > 1:
         if argv[1] == 'json_dump':
+            #scrape(dry=dry, active=True, json_dump=True, committee='PECH')
             scrape(dry=dry, active=True, json_dump=True)
         else:
             scrape(dry=dry, active=True, committee=argv[1])
