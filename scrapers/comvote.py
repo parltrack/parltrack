@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env pythonhttps://www.europarl.europa.eu/cmsdata/264944/CJ39_RCVs.pdf
 # -*- coding: utf-8 -*-
 #    This file is part of parltrack
 
@@ -35,7 +35,8 @@ from tempfile import NamedTemporaryFile
 import pdfplumber
 
 
-GABBRS = set(GROUP_MAP.values())
+GM = {''.join(k.lower().split()):v for k,v in GROUP_MAP.items()}
+GABBRS = set(''.join(v.lower().split()) for v in GM.values())
 
 CONFIG = {
     'threads': 8,
@@ -106,8 +107,8 @@ def scrape(committee, url, **kwargs):
                     tables = [x.extract() for x in data]
                     try:
                         pdfdata[i] = parse_table(tables, url)
-                    except:
-                        log(2, f'Failed to extract table #{i} from {url} ({committee})')
+                    except Exception as e:
+                        log(2, f'Failed to extract table #{i} from {url} ({committee}): {e} - {repr(tables)}')
                         pdfdata[i] = tables
                         continue
 
@@ -222,7 +223,7 @@ def extract_pdf(pdf, committee):
         'snap_y_tolerance': 5,
     }
     pdfdata = []
-    prev_table = None
+    prev_table = table = None
     #detect_footer(pdf.pages)
     #exit()
     for page in pdf.pages:
@@ -251,16 +252,17 @@ def extract_pdf(pdf, committee):
             prev_table = table
 
     # add texts below the last table
-    t = get_text_from_pages(
-        pdf.pages,
-        start_pageno=page.page_number-1,
-        end_pageno=pdf.pages[-1].page_number-1,
-        start_pos=table.bbox[3],
-        end_pos=pdf.pages[-1].height,
-        committee=committee
-    ).strip()
-    if t:
-        pdfdata.append(t)
+    if table:
+        t = get_text_from_pages(
+            pdf.pages,
+            start_pageno=page.page_number-1,
+            end_pageno=pdf.pages[-1].page_number-1,
+            start_pos=table.bbox[3],
+            end_pos=pdf.pages[-1].height,
+            committee=committee
+        ).strip()
+        if t:
+            pdfdata.append(t)
 
     merged_data = []
     prev_d = None
@@ -416,7 +418,7 @@ def parse_table(tables, url):
     tables = repair_tables(tables, url)
     for table in tables:
         if not all(len(row) == 2 for row in table):
-            raise(f'Invalid table {repr(table)} in {url}')
+            raise(Exception(f'Invalid table - too many columns - {repr(table)} in {url}'))
         t, ret = parse_table_section(table, url)
         results[t] = ret
     return results
@@ -450,9 +452,10 @@ def repair_tables(tables, url):
             table.pop(0)
         if not table:
             continue
+        if len(table[0]) != 2:
+            raise Exception(f'Cannot repair table - too many columns in {url}')
         if not any(x in table[0] for x in ['+', '-', '0']) and 'correction' not in ' '.join(filter(None, table[0])).lower():
             if not fixed_tables:
-                print(tables)
                 raise Exception(f'Cannot repair table - missing header in {url}')
             for row in table:
                 if not row[0].strip():
@@ -460,7 +463,11 @@ def repair_tables(tables, url):
                 else:
                     fixed_tables[-1].append(row)
         else:
-            fixed_tables.append(table)
+            for row in table:
+                if row[1] in ['+', '-', '0'] or 'correction' in row[1].lower():
+                    fixed_tables.append([row])
+                else:
+                    fixed_tables[-1].append(row)
     return fixed_tables
 
 
@@ -489,7 +496,7 @@ def parse_table_section(table, url=''):
             try:
                 group = resolve_group_name(row[0])
             except Exception as e:
-                log(2, e)
+                log(2, f'{e} - {row[0]} - {url}')
                 group = row[0]
         else:
             group = row[0]
@@ -587,11 +594,13 @@ def resolve_group_name(g):
     if g == 'unknown':
         return g
 
-    if g in GABBRS:
+    norm_g = ''.join(g.lower().split())
+
+    if norm_g in GABBRS:
         return g
 
-    if g in GROUP_MAP:
-        return GROUP_MAP[g]
+    if norm_g in GM:
+        return GM[norm_g]
 
     raise(Exception('Cannot identify group "{0}". Please resolve it manually and add it to utils/mappings.py:GROUP_MAP'.format(g)))
 
