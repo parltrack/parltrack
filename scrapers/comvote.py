@@ -77,7 +77,7 @@ COMMITTEES_WITHOUT_DOSSIER_IDS = (
 PAREN_LINE_ENDING_RE = re.compile('\(([^)]+)\)\W*$')
 NUMBERED_LIST_RE = re.compile('^(\d+\.)+\W*')
 DASH_RE = re.compile('\s*[\-–]\s*')
-PAGENO_RE = re.compile('^([Pp]age\s*)?\d+\.?((\s*of)?\s*\d+\.?)?$')
+PAGENO_RE = re.compile('^([Pp]age\s*)?\d+\.?((\s*of)?\s*\d+\.?)?(\d{2}/\d{2}/\d{4}/)?$')
 
 
 def scrape(committee, url, **kwargs):
@@ -108,7 +108,7 @@ def scrape(committee, url, **kwargs):
                 try:
                     pdfdata[i] = parse_table(tables, url)
                 except Exception as e:
-                    log(2, f'Failed to extract table #{i} from {url} ({committee}): {e} - {repr(tables)}')
+                    log(2, f'Failed to extract table #{i} from {url} ({committee}): {e} - {repr(tables[0])}')
                     pdfdata[i] = tables
                     continue
 
@@ -149,8 +149,8 @@ def scrape(committee, url, **kwargs):
 
         try:
             vote_details = get_vote_details(committee, text)
-        except:
-            raise(Exception(f'Failed to parse vote details in {url}'))
+        except Exception as e:
+            log(1, f'Failed to parse vote details in {url} - {e}')
 
         # means that this is part of multiple votes about the same subject
         # we need the additional data from the previous vote
@@ -506,7 +506,7 @@ def parse_table_section(table, url=''):
         if group:
             ret['groups'][group] = meps_by_name(row[1].replace('\n', ' '), group)
             prev_group = group
-        else:
+        elif row[1]:
             ret['groups'][prev_group].extend(meps_by_name(row[1].replace('\n', ' '), prev_group))
 
     mepcount = len(list(x for y in ret['groups'].keys() for x in ret['groups'][y]))
