@@ -98,29 +98,29 @@ def scrape(committee, url, **kwargs):
             except Exception as e:
                 log(1, f'Failed to extract data from pdf {url} ({committee}): {e}')
                 return
-            if kwargs.get('json_dump'):
-                kwargs['committee'] = committee
-                kwargs['url'] = url
-                for i, data in enumerate(pdfdata):
-                    if not type(data) == list:
-                        continue
-                    tables = [x.extract() for x in data]
-                    try:
-                        pdfdata[i] = parse_table(tables, url)
-                    except Exception as e:
-                        log(2, f'Failed to extract table #{i} from {url} ({committee}): {e} - {repr(tables)}')
-                        pdfdata[i] = tables
-                        continue
-
-                kwargs['pdfdata'] = pdfdata
+        if kwargs.get('json_dump'):
+            kwargs['committee'] = committee
+            kwargs['url'] = url
+            for i, data in enumerate(pdfdata):
+                if not type(data) == list:
+                    continue
+                tables = [x.extract() for x in data]
                 try:
-                    data = dumps(kwargs)
-                except:
-                    log(1, f'Failed to JSON serialize pdfdata from {url} ({committee})')
-                    return
-                with open(f'comvotes_jsons/{committee}_{url_hash}.json', 'w') as outfile:
-                    outfile.write(data)
+                    pdfdata[i] = parse_table(tables, url)
+                except Exception as e:
+                    log(2, f'Failed to extract table #{i} from {url} ({committee}): {e} - {repr(tables)}')
+                    pdfdata[i] = tables
+                    continue
+
+            kwargs['pdfdata'] = pdfdata
+            try:
+                data = dumps(kwargs)
+            except:
+                log(1, f'Failed to JSON serialize pdfdata from {url} ({committee})')
                 return
+            with open(f'comvotes_jsons/{committee}_{url_hash}.json', 'w') as outfile:
+                outfile.write(data)
+            return
 
     voteno = 0
     for i, data in enumerate(pdfdata):
@@ -453,7 +453,7 @@ def repair_tables(tables, url):
         if not table:
             continue
         if len(table[0]) != 2:
-            raise Exception(f'Cannot repair table - too many columns in {url}')
+            raise Exception(f'Cannot repair table - too many columns in {url} - {table[0]}')
         if not any(x in table[0] for x in ['+', '-', '0']) and 'correction' not in ' '.join(filter(None, table[0])).lower():
             if not fixed_tables:
                 raise Exception(f'Cannot repair table - missing header in {url}')
@@ -461,7 +461,10 @@ def repair_tables(tables, url):
                 if not row[0].strip():
                     fixed_tables[-1][-1][1] += '\n' + row[1]
                 else:
-                    fixed_tables[-1].append(row)
+                    if row[1] in ['+', '-', '0'] or 'correction' in row[1].lower():
+                        fixed_tables.append([row])
+                    else:
+                        fixed_tables[-1].append(row)
         else:
             for row in table:
                 if row[1] in ['+', '-', '0'] or 'correction' in row[1].lower():
