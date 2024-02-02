@@ -67,7 +67,7 @@ def getdocs(line):
     if m.group(4):
         if not 'docref' in issue:
             dossiers=db.get('dossiers_by_doc', m.group(4)) or []
-            if len(dossier)==1:
+            if dossier and len(dossier)==1:
                 issue[u'docref']=dossier[0]['procedure']['reference']
         issue[u'comdoc']=m.group(4)
     if m.group(5):
