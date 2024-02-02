@@ -173,8 +173,8 @@ def scrape(payload, save=True, **kwargs):
 
     id = meeting['id']
     if save:
-        print(id,' - ', payload['meeting']["title"])
-        print(payload['meeting'])
+        log(4, f'{id} - {payload["meeting"]["title"]}')
+        log(4, payload['meeting'])
         process(meeting, id, db.comagenda, 'ep_comagendas', id+' - '+(payload['meeting']["title"] or "unnamed meeting"), onchanged=onchanged)
     return meeting
 
