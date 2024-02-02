@@ -65,13 +65,11 @@ def getdocs(line):
                 if indb:
                     issue['epdoc'] = frag
     if m.group(4):
-        dossiers=db.get('dossiers_by_doc', m.group(4)) or []
-        dossier = None if not dossiers else dossiers[0]
-        if dossier:
-            issue[u'docref']=dossier['procedure']['reference']
-            issue[u'comdoc']=m.group(4)
-        else:
-            issue[u'comdoc']=m.group(4)
+        if not 'docref' in issue:
+            dossiers=db.get('dossiers_by_doc', m.group(4)) or []
+            if len(dossier)==1:
+                issue[u'docref']=dossier[0]['procedure']['reference']
+        issue[u'comdoc']=m.group(4)
     if m.group(5):
         issue[u'otherdoc']=m.group(5)
     return issue
