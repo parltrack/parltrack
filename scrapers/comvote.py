@@ -22,6 +22,7 @@ from utils.log import log
 from utils.utils import fetch_raw, unws, DOSSIERID_RE
 from utils.mappings import GROUP_MAP
 from utils.process import process
+from utils.comvote_heuristics import extract_dossiers, extract_dates, extract_dossiers_from_metadata
 
 from hashlib import sha256
 from json import dumps
@@ -30,6 +31,7 @@ from os.path import isfile
 import re
 from subprocess import run
 from tempfile import NamedTemporaryFile
+from urllib.parse import unquote
 
 
 import pdfplumber
@@ -89,6 +91,9 @@ def scrape(committee, url, **kwargs):
         return
     res = []
     url_hash = sha256(url.encode('utf-8')).hexdigest()
+    kwargs['committee'] = committee
+    kwargs['url'] = url
+    kwargs['url_fname'] = unquote(kwargs["url"]).split('/')[-1]
     with NamedTemporaryFile() as tmp:
         tmp.write(pdf_doc)
 
@@ -98,9 +103,8 @@ def scrape(committee, url, **kwargs):
             except Exception as e:
                 log(1, f'Failed to extract data from pdf {url} ({committee}): {e}')
                 return
+        kwargs['pdfdata'] = pdfdata
         if kwargs.get('json_dump'):
-            kwargs['committee'] = committee
-            kwargs['url'] = url
             for i, data in enumerate(pdfdata):
                 if not type(data) == list:
                     continue
@@ -112,7 +116,6 @@ def scrape(committee, url, **kwargs):
                     pdfdata[i] = tables
                     continue
 
-            kwargs['pdfdata'] = pdfdata
             try:
                 data = dumps(kwargs)
             except:
@@ -123,6 +126,11 @@ def scrape(committee, url, **kwargs):
             return
 
     voteno = 0
+    date_candidates = extract_dates(kwargs)
+    meta_dossiers = {}
+    if len(pdfdata) < 4:
+        meta_dossiers = extract_dossiers_from_metadata(kwargs, date_candidates)
+
     for i, data in enumerate(pdfdata):
         if not type(data) == list:
             continue
@@ -172,6 +180,13 @@ def scrape(committee, url, **kwargs):
         else:
             log(2, f'Unable to identify rapporteur in {url}')
 
+        if not vote.get('reference'):
+            if meta_dossiers:
+                vote['reference'], confidence = get_best_dossier(meta_dossiers)
+            else:
+                vote['reference'], confidence = get_best_dossier(extract_dossiers(text, i, committee, date_candidates))
+                #print("YOOOO", i, confidence, ' '.join(text.split()))
+                #print(extract_dossiers(text, i, committee, date_candidates))
 
         if 'reference' in vote and vote['reference']:
             if committee not in COMMITTEES_WITHOUT_DOSSIER_IDS:
@@ -181,21 +196,21 @@ def scrape(committee, url, **kwargs):
                         vote['reference'] = DOSSIER_ID_TYPOS[vote['reference']]
                     else:
                         raise(Exception('Invalid dossier ID "{0}" in {1}. If it is only a typo add it to DOSSIER_ID_TYPOS.'.format(vote["reference"], url)))
-            agendas = db.get('comagenda_by_committee_dossier_voted', committee + vote['reference'])
-            if not agendas:
-                log(2, f'Unable to find agendas for {vote["reference"]} in {url}')
-            else:
-                for item in agendas[-1]['items']:
-                    if item.get('RCV') and item.get('docref') == vote['reference']:
-                        vote['time'] = item['start']
-            if not 'time' in vote:
-                log(2, f'Unable to find date for {vote["reference"]} in {url}')
+            #agendas = db.get('comagenda_by_committee_dossier_voted', committee + vote['reference'])
+            #if not agendas:
+            #    log(2, f'Unable to find agendas for {vote["reference"]} in {url}')
+            #else:
+            #    for item in agendas[-1]['items']:
+            #        if item.get('RCV') and item.get('docref') == vote['reference']:
+            #            vote['time'] = item['start']
+            #if not 'time' in vote:
+            #    log(2, f'Unable to find date for {vote["reference"]} in {url}')
         else:
             log(2, f'Unable to identify dossier ID for vote #{voteno} in {url}')
 
         if 'type' not in vote or not vote['type'] or vote['type'].lower() not in VOTE_TYPE_MAP:
             if not vote.get('amendments'):
-                log(2, f'Unable to identify vote type "{vote["type"]}" in {url}')
+                log(2, f'Unable to identify vote type "{vote.get("type")}" in {url}')
         else:
             vote['type'] = VOTE_TYPE_MAP[vote['type'].lower()]
 
@@ -213,6 +228,13 @@ def scrape(committee, url, **kwargs):
     from pprint import pprint
     pprint(res)
     return
+
+
+def get_best_dossier(dossiers):
+    if dossiers:
+        return list(sorted([(k,v['conf']) for k,v in dossiers.items()], key=lambda x: x[1]))[0]
+    else:
+        '', 0
 
 
 def extract_pdf(pdf, committee):
@@ -355,7 +377,10 @@ def extract_pdf(pdf, committee):
 
 
 def get_vote_details(committee, text):
-    return COMM_DETAIL_PARSERS[committee](text)
+    if committee in COMM_DETAIL_PARSERS:
+        return COMM_DETAIL_PARSERS[committee](text)
+    else:
+        return {}
 
 
 def get_text_from_page(page, start_pos=None, end_pos=None):
@@ -1013,8 +1038,8 @@ FOOTER_CUTTERS = {
 if __name__ == "__main__":
     from utils.utils import jdump
     from sys import argv
-
+    kwargs = {'title': '', 'link_text': ''}
     if len(argv) == 3:
-        print(jdump(scrape(argv[1].upper(), argv[2])))
+        print(jdump(scrape(argv[1].upper(), argv[2], **kwargs)))
     else:
         print("Test scraper with the following arguments: [COMMITTEE] [PDFURL]")
