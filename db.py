@@ -153,6 +153,9 @@ class Client:
     def coauthors(self, mep_id):
         return self.send_req({"cmd": "coauthors", "params": {"mepid": mep_id}})
 
+    def committee_votes_by_date(self, com):
+        return self.send_req({"cmd": "committee_votes_by_date", "params": {"com": com}})
+
     def dossiers_by_activity(self,key=True):
         return self.get('active_dossiers', "active" if key else "inactive")
 
@@ -544,6 +547,29 @@ def coauthors(mepid):
                  matchInterval(mep['Constituencies'], am['date']).get('country','???'))] += 1
     return sorted(coauthors.items(),key=lambda x: x[1], reverse=True)
 
+def committee_votes_by_date(com):
+   dates = {}
+   for meeting in IDXs['comagenda_by_committee'][com]:
+      for item in meeting['items']:
+          if not 'docref' in item: continue
+          if not 'title' in item: continue
+          mapping = {'docref': item['docref'],
+                     'item': item,
+                     'meeting': {k:v for k,v in meeting.items() if k != 'items' and v} }
+
+          date = meeting['time']['date'][:10]
+          items = dates.get(date)
+          if not items: items = []
+          items.append(mapping)
+          dates[date]=items
+
+          if not 'start' in item: continue
+          date = item['start'][:10]
+          items = dates.get(date)
+          if not items: items = []
+          items.append(mapping)
+          dates[date]=items
+   return dates
 
 ######  indexes ######
 
@@ -890,6 +916,7 @@ function_map = {
     'dossier_titles': dossier_titles_by_refs,
     "active_groups": active_groups,
     "coauthors": coauthors,
+    'committee_votes_by_date': committee_votes_by_date,
 }
 
 if __name__ == '__main__':

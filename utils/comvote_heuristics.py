@@ -82,7 +82,7 @@ def extract_dates(doc, debug=True):
 
    # sanity check dates
    dominators = set()
-   com_dates = get_com(doc['committee'], 'dates')
+   com_dates = db.committee_votes_by_date(doc['committee'])
    for date, meta in dates.items():
        for field in ['title','link_text', 'url_fname']:
            if field in meta['matches'].keys():
@@ -122,55 +122,6 @@ def extract_dates(doc, debug=True):
 
    return dates
 
-def load_com(com):
-   #titles = {}
-   dates = {}
-   for meeting in db.get('comagenda_by_committee',com):
-      for item in meeting['items']:
-          if not 'docref' in item: continue
-          if not 'title' in item: continue
-          rec = {'docref': item['docref'],
-                 'item': item,
-                 'meeting': {k:v for k,v in meeting.items() if k != 'items' and v} }
-
-          #items = titles.get(item['title'])
-          #if not items: items = []
-          #items.append(rec)
-          #titles[item['title']]=items
-          ##dtitle=db.dossier(item['docref'])['procedure']['title']
-          ##if dtitle != item['title']:
-          ##    titles[dtitle]=items
-
-          mapping = {'docref': item['docref'],
-                     'item': item,
-                     'meeting': {k:v for k,v in meeting.items() if k != 'items' and v} }
-
-          date = meeting['time']['date'][:10]
-          items = dates.get(date)
-          if not items: items = []
-          items.append(mapping)
-          dates[date]=items
-
-          if not 'start' in item: continue
-          date = item['start'][:10]
-          items = dates.get(date)
-          if not items: items = []
-          items.append(mapping)
-          dates[date]=items
-
-   #return titles, dates
-   return dates
-
-com_cache = {
-    #'titles': {},
-    'dates': {}}
-
-def get_com(com, type):
-    if com not in com_cache[type]:
-        #com_cache['titles'][com], com_cache['dates'][com] = load_com(com)
-        com_cache['dates'][com] = load_com(com)
-    return com_cache[type][com]
-
 #delchars = ''.join(c for c in map(chr, range(1114111)) if not c.isalnum())
 delchars = ''.join(c for c in map(chr, range(128)) if not c.isalnum())
 del_map = str.maketrans('', '', delchars)
@@ -178,7 +129,7 @@ def normalize(txt):
     return unicodedata.normalize('NFKD', txt).encode('ascii','ignore').decode('utf8').translate(del_map).lower()
 
 def match_titles(com, dates, frag, label):
-   com_dates = get_com(com, 'dates')
+   com_dates = db.committee_votes_by_date(com)
    #print("title matching", unws(frag))
    #if normalize('European Semester for economic policy coordination') in normalize(frag):
    #    print("asdf", doc['committee'])
@@ -322,7 +273,7 @@ def process(debug):
           print(f"{dossier}\tconf: {meta['conf']},\tmatches: {meta['matches']}")
           total_dossiers+=1
 
-      com_dates = get_com(doc['committee'], 'dates')
+      com_dates = db.committee_votes_by_date(doc['committee'])
       expected = {item['docref'] for d in dates.keys() for item in com_dates.get(d.isoformat()[:10], [])}
       missing = expected - set(dossiers.keys())
       if missing == set():
