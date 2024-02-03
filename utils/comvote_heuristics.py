@@ -203,6 +203,10 @@ def update_dossiers(dossiers, match, type):
 
       dossier['conf']+=match[0]
       dossier['matches'][type]=match[2]
+      if len(match)==4:
+          dates=dossier.get('dates',[])
+          dates.append(match[3])
+          dossier['dates']=dates
       dossiers[match[1]]=dossier
    return dossiers
 
@@ -251,7 +255,7 @@ def txt_extract(dossiers, dates, txt, label, com, debug = True):
              print("not matched", com, f"{label:<14}", unws(txt))
          break
       found=True
-      dossiers = update_dossiers(dossiers, (11, m[0], m[1]), label)
+      dossiers = update_dossiers(dossiers, (11, m[0], m[1], m[2]['item']['start']), label)
       frag=frag.replace(normalize(m[1]), '')
 
 refre=re.compile(r'([0-9]{4}/[0-9]{4}[A-Z]? ?\((?:ACI|APP|AVC|BUD|CNS|COD|COS|DCE|DEA|DEC|IMM|INI|INL|INS|NLE|REG|RPS|RSO|RSP|SYN)\))')
