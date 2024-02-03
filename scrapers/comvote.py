@@ -126,10 +126,11 @@ def scrape(committee, url, **kwargs):
             return
 
     voteno = 0
-    date_candidates = extract_dates(kwargs)
+    com_dates = db.committee_votes_by_date(committee)
+    date_candidates = extract_dates(kwargs, com_dates)
     meta_dossiers = {}
     if len(pdfdata) < 4:
-        meta_dossiers = extract_dossiers_from_metadata(kwargs, date_candidates)
+        meta_dossiers = extract_dossiers_from_metadata(kwargs, com_dates, date_candidates)
 
     for i, data in enumerate(pdfdata):
         if not type(data) == list:
@@ -184,7 +185,7 @@ def scrape(committee, url, **kwargs):
             if meta_dossiers:
                 vote['reference'], confidence = get_best_dossier(meta_dossiers)
             else:
-                vote['reference'], confidence = get_best_dossier(extract_dossiers(text, i, committee, date_candidates))
+                vote['reference'], confidence = get_best_dossier(extract_dossiers(text, i, committee, com_dates, date_candidates))
                 #print("YOOOO", i, confidence, ' '.join(text.split()))
                 #print(extract_dossiers(text, i, committee, date_candidates))
 

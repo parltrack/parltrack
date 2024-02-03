@@ -51,7 +51,7 @@ def update_s(dates, match, type):
       dates[match[1]]=date
    return dates
 
-def extract_dates(doc, debug=True):
+def extract_dates(doc, com_dates, debug=True):
    dates = {}
    year = None
    date_t=find_date(doc['title'], year)
@@ -82,7 +82,6 @@ def extract_dates(doc, debug=True):
 
    # sanity check dates
    dominators = set()
-   com_dates = db.committee_votes_by_date(doc['committee'])
    for date, meta in dates.items():
        for field in ['title','link_text', 'url_fname']:
            if field in meta['matches'].keys():
@@ -128,8 +127,7 @@ del_map = str.maketrans('', '', delchars)
 def normalize(txt):
     return unicodedata.normalize('NFKD', txt).encode('ascii','ignore').decode('utf8').translate(del_map).lower()
 
-def match_titles(com, dates, frag, label):
-   com_dates = db.committee_votes_by_date(com)
+def match_titles(com, dates, frag, label, com_dates):
    #print("title matching", unws(frag))
    #if normalize('European Semester for economic policy coordination') in normalize(frag):
    #    print("asdf", doc['committee'])
@@ -172,7 +170,7 @@ types = {normalize('Vote on the decision to enter into interinstitutional negoti
 		 normalize('Vote on the text as amended'),
 		 normalize('FINAL VOTE BY ROLL CALL IN COMMITTEE ASKED FOR OPINION'),
 		 normalize('FINAL VOTE BY ROLL CALL IN COMMITTEE RESPONSIBLE')}
-def txt_extract(dossiers, dates, txt, label, com, debug = True):
+def txt_extract(dossiers, dates, txt, label, com, com_dates, debug = True):
    txt = unws(txt)
    for legend in ['Key: + : in favour - : against 0 : abstentions',
                   'Key to symbols: + : in favour - : against 0 : abstention',
@@ -200,7 +198,7 @@ def txt_extract(dossiers, dates, txt, label, com, debug = True):
 
    frag = normalize(txt)
    while ''.join(txt.split()):
-      m = match_titles(com, dates, frag, label)
+      m = match_titles(com, dates, frag, label, com_dates)
       if not m:
          if not found and frag not in types and debug:
              print("not matched", com, f"{label:<14}", unws(txt))
@@ -210,34 +208,34 @@ def txt_extract(dossiers, dates, txt, label, com, debug = True):
       frag=frag.replace(normalize(m[1]), '')
 
 refre=re.compile(r'([0-9]{4}/[0-9]{4}[A-Z]? ?\((?:ACI|APP|AVC|BUD|CNS|COD|COS|DCE|DEA|DEC|IMM|INI|INL|INS|NLE|REG|RPS|RSO|RSP|SYN)\))')
-def doc_extract(doc, dates=None, debug=True):
+def doc_extract(doc, com_dates, dates=None, debug=True):
    dossiers = {}
    if dates is None: dates = {}
 
    for field in ['title', 'link_text', 'subtitle', 'url_fname']:
        if field not in  doc: continue
-       txt_extract(dossiers, dates, doc[field], field, doc['committee'], False)
+       txt_extract(dossiers, dates, doc[field], field, doc['committee'], com_dates, False)
 
    i = 0
    for frag in doc['pdfdata']:
       if isinstance(frag, dict) or isinstance(frag, list): continue
-      txt_extract(dossiers, dates, frag, f"frag {i}", doc['committee'])
+      txt_extract(dossiers, dates, frag, f"frag {i}", doc['committee'], com_dates)
       i+=1
    return dossiers
 
-def extract_dossiers(frag, fragno, committee, dates=None):
+def extract_dossiers(frag, fragno, committee, com_dates, dates=None):
     ret = {}
-    txt_extract(ret, dates, frag, f"frag {fragno}", committee)
+    txt_extract(ret, dates, frag, f"frag {fragno}", committee, com_dates)
     return ret
 
-def extract_dossiers_from_metadata(doc, dates=None, debug=True):
+def extract_dossiers_from_metadata(doc, com_dates, dates=None, debug=True):
     dossiers = {}
     if dates is None: dates = {}
 
     for field in ['title', 'link_text', 'subtitle', 'url_fname']:
         if field not in doc:
             continue
-        txt_extract(dossiers, dates, doc[field], field, doc['committee'], False)
+        txt_extract(dossiers, dates, doc[field], field, doc['committee'], com_dates, False)
     return dossiers
 
 def process(debug):
@@ -258,7 +256,8 @@ def process(debug):
    unexpecteds = 0
    for fname, doc in docs.items():
       doc['url_fname']=unquote(doc["url"]).split('/')[-1]
-      dates = extract_dates(doc, debug)
+      com_dates = db.committee_votes_by_date(doc['committee'])
+      dates = extract_dates(doc, com_dates, debug)
       for date, meta in dates.items():
           print(f"{date.strftime('%Y-%m-%d')}\tconf: {meta['conf']},\tmatches: {meta['matches']}")
           total_dates+=1
@@ -268,12 +267,12 @@ def process(debug):
           print('l', doc["link_text"])
           print('u', doc["url"])
           print(doc['url'])
-      dossiers = doc_extract(doc, dates)
+
+      dossiers = doc_extract(doc, com_dates, dates)
       for dossier, meta in dossiers.items():
           print(f"{dossier}\tconf: {meta['conf']},\tmatches: {meta['matches']}")
           total_dossiers+=1
 
-      com_dates = db.committee_votes_by_date(doc['committee'])
       expected = {item['docref'] for d in dates.keys() for item in com_dates.get(d.isoformat()[:10], [])}
       missing = expected - set(dossiers.keys())
       if missing == set():
