@@ -209,6 +209,8 @@ def txt_extract(dossiers, dates, txt, label, com, com_dates, debug = True):
 
 refre=re.compile(r'([0-9]{4}/[0-9]{4}[A-Z]? ?\((?:ACI|APP|AVC|BUD|CNS|COD|COS|DCE|DEA|DEC|IMM|INI|INL|INS|NLE|REG|RPS|RSO|RSP|SYN)\))')
 def doc_extract(doc, com_dates, dates=None, debug=True):
+   votes=0
+   unknown=0
    dossiers = {}
    if dates is None: dates = {}
 
@@ -218,10 +220,15 @@ def doc_extract(doc, com_dates, dates=None, debug=True):
 
    i = 0
    for frag in doc['pdfdata']:
-      if isinstance(frag, dict) or isinstance(frag, list): continue
+      if isinstance(frag, dict):
+         votes+=1
+         continue
+      if isinstance(frag, list):
+          unknown+=1
+          continue
       txt_extract(dossiers, dates, frag, f"frag {i}", doc['committee'], com_dates)
       i+=1
-   return dossiers
+   return dossiers, votes, unknown
 
 def extract_dossiers(frag, fragno, committee, com_dates, dates=None):
     ret = {}
@@ -252,6 +259,7 @@ def process(debug):
    total_dates=0
    total_dossiers=0
    perfects=0
+   partials=0
    lost = 0
    unexpecteds = 0
    for fname, doc in docs.items():
@@ -268,7 +276,7 @@ def process(debug):
           print('u', doc["url"])
           print(doc['url'])
 
-      dossiers = doc_extract(doc, com_dates, dates)
+      dossiers, votes, unknown = doc_extract(doc, com_dates, dates)
       for dossier, meta in dossiers.items():
           print(f"{dossier}\tconf: {meta['conf']},\tmatches: {meta['matches']}")
           total_dossiers+=1
@@ -277,6 +285,8 @@ def process(debug):
       missing = expected - set(dossiers.keys())
       if missing == set():
           perfects+=1
+      elif votes == len(dossiers) and unknown==0:
+          partials+=1
       else:
           print("expected not found", ', '.join(sorted(missing)))
           lost+=1
@@ -290,7 +300,7 @@ def process(debug):
           print(f"no dossiers for {fname}")
           print(doc['url'])
       print()
-   print(f"total dates: {total_dates}, total dossiers: {total_dossiers}, perfects: {perfects}, missing: {lost}, unexpecteds {unexpecteds}")
+   print(f"total dates: {total_dates}, total dossiers: {total_dossiers}, perfects: {perfects}, partials: {partials}, missing: {lost}, unexpecteds {unexpecteds}")
 
 if __name__ == "__main__":
     process(False)

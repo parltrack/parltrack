@@ -94,6 +94,7 @@ def scrape(committee, url, **kwargs):
     kwargs['committee'] = committee
     kwargs['url'] = url
     kwargs['url_fname'] = unquote(kwargs["url"]).split('/')[-1]
+    stats = {'votes': 0, "unknown":0 }
     with NamedTemporaryFile() as tmp:
         tmp.write(pdf_doc)
 
@@ -111,11 +112,13 @@ def scrape(committee, url, **kwargs):
                 tables = [x.extract() for x in data]
                 try:
                     pdfdata[i] = parse_table(tables, url)
+                    stats['votes']+=1
                 except Exception as e:
                     log(2, f'Failed to extract table #{i} from {url} ({committee}): {e} - {repr(tables[0])}')
                     pdfdata[i] = tables
+                    stats['unknown']+=1
                     continue
-
+            kwargs['stats']=stats
             try:
                 data = dumps(kwargs)
             except:
