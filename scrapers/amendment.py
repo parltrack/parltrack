@@ -211,7 +211,7 @@ mansplits={u'Rodi Kratsa-Tsagaropoulou Mikael Gustafsson': [u'Rodi Kratsa-Tsagar
            u'Karima Delli Ernest Urtasun': ['Karima Delli', 'Ernest Urtasun'],
            }
 pere = r'(?P<PE>PE(?:TXTNRPE)? ?[0-9]{3,4}\.?[0-9]{3}(?:v[0-9]{2}(?:[-./][0-9]{1,2})?)?)'
-amdoc=r'AM\\[0-9]{4,7}(?:EN|XM|XT)?\.(?:doc|DOC|tmp|docx)'
+amdoc=r'AM\\(?:[0-9]{4,7}|P\d_AMA\(20\d{2}\)\d{4}\([-0-9]*\)_?)(?:EN|XM|XT)?\.(?:doc|DOC|tmp|docx)'
 pagere=r'(?:[0-9]{1,3}/[0-9]{1,3})'
 oddre = re.compile(r'\s*'+pere+'\s+'+pagere+r'\s+'+amdoc)
 evenre = re.compile(r'\s*'+amdoc+r'\s+'+pagere+r'\s+'+pere)
