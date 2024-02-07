@@ -426,7 +426,7 @@ def strip(block):
     while len(block) and not unws(block[-1]):
         del block[-1]
 
-def parse_block(block, url, reference, date, rapporteur, PE, committee=None, parse_dossier=None):
+def parse_block(block, url, reference, date, rapporteur, PE, committee=None, parse_dossier=None, top_of_diff=2):
     am={u'src': url,
         u'peid': PE,
         u'reference': reference,
@@ -452,9 +452,9 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, par
 
     # find and strip justification
     i=len(block)-1
-    while i>2 and not (unws(block[i])=="Justification" and block[i].startswith(' ' * 6)):
+    while i>top_of_diff and not (unws(block[i])=="Justification" and block[i].startswith(' ' * 6)):
         i-=1
-    if i>2:
+    if i>top_of_diff:
         if i<len(block)-1 and (not unws(block[i+1]) or not block[i+1].startswith(' ') ):
             am['justification']='\n'.join(block[i+2:])
             del block[i:]
@@ -470,7 +470,7 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, par
 
     # find split column new/old heading
     i=len(block)-1
-    while (i>2 and
+    while (i>top_of_diff and
            not ((block[i].endswith("     Amendment") or
                  block[i].endswith("     PARTICULARS") or
                  block[i].endswith("     Remedy") or
@@ -486,16 +486,16 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, par
            not (unws(block[i])=='Text proposed by the Commission' or
                 unws(block[i]) in types)):
         i-=1
-    if i>2:
+    if i>top_of_diff:
         #if block[i].endswith("               Proposal for rejection"):
         #    pass # location will be possibly '-'
         seq=False
         if unws(block[i]) in ["Amendment", "Amendment by Parliament"]:
             # sequential format, search for preceeding original text
             j=i
-            while (j>2 and not (unws(block[j]) in types or unws(block[j])=='Text proposed by the Commission')):
+            while (j>top_of_diff and not (unws(block[j]) in types or unws(block[j])=='Text proposed by the Commission')):
                 j-=1
-            if j>2: i=j
+            if j>top_of_diff: i=j
             seq=True; key='old'
         elif unws(block[i])=='Text proposed by the Commission' or block[i].strip() in types:
             seq=True; key='old'

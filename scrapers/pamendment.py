@@ -39,11 +39,11 @@ def unpaginate(text, url):
     lines = [l.rstrip('\n\t ') for l in text.split('\n')]
     margin = 1
     while margin<max(len(l) for l in lines):
-       if set([' '*margin, '\f'+' '*(margin-1)])     != set([l[:margin] for l in lines if unws(l)]):
+       if set([' '*margin])     != set([(l[1:margin+1] if l[0]=='\f' else l[:margin]) for l in lines if unws(l)]):
           margin = margin - 1
           break
        margin+=1
-    lines = [l[margin:] if not l.startswith('\f') else l for l in lines]
+    lines = [l[margin:] if not l.startswith('\f') else '\f' + l[margin+1:] for l in lines]
     ## find end of 1st page
     #eo1p = 0
     PE = None
@@ -55,117 +55,124 @@ def unpaginate(text, url):
     #    log(1, "could not find end of 1st page in %s" % url)
     #    raise ValueError("eo1p not found: %s" % url)
 
-    i = len(lines) - 1
+    i = len(lines)
     while i>=0:
-        if not lines[i].startswith('\x0c'):
-            i -= 1
-            continue
+       if i != len(lines):
+          if not lines[i].startswith('\x0c'):
+             i -= 1
+             continue
 
-        # we found a line starting with pagebreak
-        lines[i]=lines[i][1:]
-        i -= 1
-        fstart = i
+       # we found a line starting with pagebreak
+       if i != len(lines):
+          lines[i]=lines[i][1:]
+       i -= 1
+       fstart = i
 
-        header = isheader(lines[fstart+1])
-        if header:
-           date1 = header.group("date")
-           if date:
-              if date1 != date:
-                 log(1, f"date found, but is not consistent: {date} != {date1}")
+       if i != len(lines) - 1:
+          header = isheader(lines[fstart+1])
+          if header:
+             date1 = header.group("date")
+             if date:
+                if date1 != date:
+                   log(1, f"date found, but is not consistent: {date} != {date1}")
+             else:
+                date = date1
+             aref1 = header.group('Aref')
+             if aref1:
+                aref.append(aref1)
+             del lines[fstart+1]
+
+       # skip empty lines before pagebreak
+       while i>=0 and unws(lines[i])=='':
+           i-=1
+
+       # we expect i>0 and lines[i] == 'EN' (or variations)
+       if i<=0:
+           log(1, "could not find non-empty line above pagebreak in %s" % url)
+           raise ValueError("no EN marker found: %s" % url)
+
+       tmp = unws(lines[i])
+       if tmp not in ["EN", "EN EN", "EN United in diversity EN",
+                      "United in diversity",
+                      "EN Unity in diversity EN",
+                      "EN Unie dans la diversité EN",
+                      "EN In Vielfalt geeint EN",
+                      "ENEN United in diversity EN",
+                      "XM United in diversity XM",
+                      "XT United in diversity EN",
+                      "XM", "XM XM", "XT", "XT XT"]:
+           if tmp in ["FR",'NL','HU']:
+               log(2,'Document has non-english language marker: "%s" %s' % (tmp, url))
+               return [], None
+           if tmp=="Or. en":
+               # no footer in this page
+               continue
+           if tmp in ['AM_Com_NonLegCompr', 'AM_Com_NonLegReport','AM_Com_NonLegOpinion']:
+               # no footer on this page (and probably neither on the previous one which should be the first)
+               continue
+           footer = isfooter(tmp)
+           if footer:
+              if PE is None and footer.group('PE'): # try to figure out PE id
+                  PE = footer.group('PE')
+              log(3, 'no EN marker found, but footer: "%s"' % tmp)
+              i+=1 # neutralize the decrement after this block
            else:
-              date = date1
-           aref1 = header.group('Aref')
-           if aref1:
-              aref.append(aref1)
-           del lines[fstart+1]
+              #log(1, 'could not find EN marker above pagebreak: %d %d "%s"' % (i, eo1p, tmp))
+              log(1, 'could not find EN marker above pagebreak: %d "%s"' % (i, tmp))
+              raise ValueError('no EN marker found "%s" in %s' % (tmp,url))
 
-        # skip empty lines before pagebreak
-        while i>=0 and unws(lines[i])=='':
-            i-=1
+       if tmp == "United in diversity" and unws(lines[i-1]) in {'EN', 'EN EN'}:
+          i-=1
 
-        # we expect i>0 and lines[i] == 'EN' (or variations)
-        if i<=0:
-            log(1, "could not find non-empty line above pagebreak in %s" % url)
-            raise ValueError("no EN marker found: %s" % url)
+       if lines[i].startswith('\x0c'): # we found a ^LEN^L
+           # we found an empty page.
+           while fstart > i:
+               del lines[fstart]
+               fstart -= 1
+           lines[i]="\x0c"
+           continue
 
-        tmp = unws(lines[i])
-        if tmp not in ["EN", "EN EN", "EN United in diversity EN",
-                       "EN Unity in diversity EN",
-                       "EN Unie dans la diversité EN",
-                       "EN In Vielfalt geeint EN",
-                       "ENEN United in diversity EN",
-                       "XM United in diversity XM",
-                       "XT United in diversity EN",
-                       "XM", "XM XM", "XT", "XT XT"]:
-            if tmp in ["FR",'NL','HU']:
-                log(2,'Document has non-english language marker: "%s" %s' % (tmp, url))
-                return [], None
-            if tmp=="Or. en":
-                # no footer in this page
-                continue
-            if tmp in ['AM_Com_NonLegCompr', 'AM_Com_NonLegReport','AM_Com_NonLegOpinion']:
-                # no footer on this page (and probably neither on the previous one which should be the first)
-                continue
-            footer = isfooter(tmp)
-            if footer:
-               if PE is None and footer.group('PE'): # try to figure out PE id
-                   PE = footer.group('PE')
-               log(3, 'no EN marker found, but footer: "%s"' % tmp)
-               i+=1 # neutralize the decrement after this block
-            else:
-               #log(1, 'could not find EN marker above pagebreak: %d %d "%s"' % (i, eo1p, tmp))
-               log(1, 'could not find EN marker above pagebreak: %d %d "%s"' % (i, eo1p, tmp))
-               raise ValueError('no EN marker found "%s" in %s' % (tmp,url))
+       i -= 1
+       # find the next non-empty line above the EN marker
+       while i>0 and unws(lines[i])=='':
+           i-=1
+       if i<=0:
+           log(1, "could not find non-empty line above EN marker: %s" % url)
+           raise ValueError("no next line above EN marker found: %s" % url)
 
-        if lines[i].startswith('\x0c'): # we found a ^LEN^L
-            # we found an empty page.
-            while fstart > i:
-                del lines[fstart]
-                fstart -= 1
-            lines[i]="\x0c"
-            continue
+       footer = isfooter(lines[i])
+       if not footer:
+           tmp = unws(lines[i])
+           if tmp=="Or. en":
+               i+=1 # preserve this line - and cut of the rest
+           elif tmp not in ['AM_Com_NonLegCompr', 'AM_Com_NonLegReport','AM_Com_NonLegOpinion']:
+               log(1,'not a footer: "%s" line: %d in %s' % (repr(lines[i]),i,url))
+               raise ValueError('not a footer: "%s" line: %d in %s' % (lines[i],i,url))
+       elif PE is None and footer.group('PE'):
+          PE = footer.group('PE')
 
-        i -= 1
-        # find the next non-empty line above the EN marker
-        while i>0 and unws(lines[i])=='':
-            i-=1
-        if i<=0:
-            log(1, "could not find non-empty line above EN marker: %s" % url)
-            raise ValueError("no next line above EN marker found: %s" % url)
+       if lines[i].startswith('\x0c'):
+           # we found an empty page with only the footer
+          lines[i]='\x0c'
+          i+=1
+       else: # is a regular page
+          i -= 1
+          #if unws(lines[i])!='':
+          #   for j in range(-10,10):
+          #       log(1, '"%s"' % (unws(lines[i+j])))
+          #   log(1, 'line above footer is not an empty line: "%s"' % (unws(lines[i])))
+          #   raise ValueError("no empty line above footer")
 
-        footer = isfooter(lines[i])
-        if not footer:
-            tmp = unws(lines[i])
-            if tmp=="Or. en":
-                i+=1 # preserve this line - and cut of the rest
-            elif tmp not in ['AM_Com_NonLegCompr', 'AM_Com_NonLegReport','AM_Com_NonLegOpinion']:
-                log(1,'not a footer: "%s" line: %d in %s' % (repr(lines[i]),i,url))
-                raise ValueError('not a footer: "%s" line: %d in %s' % (lines[i],i,url))
-        elif PE is None and footer.group('PE'):
-           PE = footer.group('PE')
+       while i>0 and unws(lines[i])=='':
+           i-=1
+       if i<=0:
+           log(1, "could not find non-empty line above footer: %s" % url)
+           raise ValueError("no content found above footer: %s" % url)
 
-        if lines[i].startswith('\x0c'):
-            # we found an empty page with only the footer
-            lines[i]='\x0c'
-            i+=1
-        else: # is a regular page
-            i -= 1
-            if unws(lines[i])!='':
-                for j in range(-10,10):
-                    log(1, '"%s"' % (unws(lines[i+j])))
-                log(1, 'line above footer is not an empty line: "%s"' % (unws(lines[i])))
-                raise ValueError("no empty line above footer")
-
-        while i>0 and unws(lines[i])=='':
-            i-=1
-        if i<=0:
-            log(1, "could not find non-empty line above footer: %s" % url)
-            raise ValueError("no content found above footer: %s" % url)
-
-        # delete all lines between fstart and i
-        while fstart >= i:
-            del lines[fstart]
-            fstart -= 1
+       # delete all lines between fstart and i
+       while fstart > i:
+           del lines[fstart]
+           fstart -= 1
 
     while unws(lines[0]) == '':
        del lines[0]
@@ -196,7 +203,7 @@ def getraw(url):
       tmp.write(pdf_doc)
       with pdfplumber.open(tmp.name) as pdf:
          for page in pdf.pages:
-            lines = page.extract_text(layout=True, x_density=5, y_tolerance=5, keep_blank_chars=True).split('\n')
+            lines = page.extract_text(layout=True, x_density=5, y_density=13.8, y_tolerance=7, keep_blank_chars=True).split('\n')
             # strip leading empty lines on a page
             while unws(lines[0]) == '':
                del[lines[0]]
@@ -246,7 +253,7 @@ def parse_dossier(lines, date):
 def scrape(url):
    lines, PE, date, aref = getraw(url)
    #print(PE, date, aref)
-   print('\n'.join(lines))
+   #print('\n'.join(lines))
    block=None
    res=[]
    block=None
@@ -262,7 +269,7 @@ def scrape(url):
             block = [line]
             continue
 
-         am=parse_block(block, url, reference, date, meps, PE, parse_dossier=parse_dossier)
+         am=parse_block(block, url, reference, date, meps, PE, parse_dossier=parse_dossier, top_of_diff=1)
          if am is not None:
             #print(jdump(am))
             #process(am, am['id'], db.amendment, 'ep_amendments', am['reference']+' '+am['id'], nodiff=True)
@@ -272,7 +279,7 @@ def scrape(url):
       if block is not None: block.append(line)
 
    if block and filter(None,block):
-      am = parse_block(block, url, reference, date, meps, PE, parse_dossier=parse_dossier)
+      am = parse_block(block, url, reference, date, meps, PE, parse_dossier=parse_dossier, top_of_diff=1)
       if am is not None:
          #print(jdump(am))
          #process(am, am['id'], db.amendment, 'ep_amendments', am['reference']+' '+am['id'], nodiff=True)
@@ -281,4 +288,9 @@ def scrape(url):
    return res
 
 if __name__ == '__main__':
-    print(jdump(scrape	(sys.argv[1])))
+   ams = scrape	(sys.argv[1])
+   print(jdump(ams))
+   print(len(ams))
+   for am in ams:
+      if 'location' not in am:
+         print(f"am {am['seq']} has no location")
