@@ -652,6 +652,13 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, par
                 block[1].startswith("  "))):
             # ignore obvious footnotes
             log(3, "rest in Amendment %s\n%s" % (am['seq'],'\n'.join(block)))
+    # strip trailing empty lines from old/new
+    while len(am.get('old',[])) and not unws(am['old'][-1]):
+        del am['old'][-1]
+    if am.get('old')==[]: del am['old']
+    while len(am.get('new',[])) and not unws(am['new'][-1]):
+        del am['new'][-1]
+    if am.get('new')==[]: del am['new']
     return am
 
 refre=re.compile(r'([0-9]{4}/[0-9]{4}[A-Z]?\((?:ACI|APP|AVC|BUD|CNS|COD|COS|DCE|DEA|DEC|IMM|INI|INL|INS|NLE|REG|RPS|RSO|RSP|SYN)\))')
