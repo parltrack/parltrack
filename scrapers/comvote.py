@@ -274,7 +274,7 @@ def get_best_dossier(dossiers):
     if dossiers:
         ref, conf, dates = list(sorted([(k,v['conf'], v.get('dates', [])) for k,v in dossiers.items()], key=lambda x: x[1]))[0]
         if len(dates) > 1:
-            log(2, f'multiple heuristics dates for {ref} - {dossier}')
+            log(2, f'multiple heuristics dates for {ref} - {dossiers}')
 
         if len(dates):
             return ref, conf, dates[0]
