@@ -98,6 +98,10 @@ def scrape(payload, save=True, **kwargs):
         #if e.response.status_code == 500:
         log(3, "failed to get list of draft agendas for %s, month: %s %s, http error code: %s, %s" %
             (com, year, month, e.response.status_code, url))
+        return
+    except requests.exceptions.JSONDecodeError as e:
+        log(3, f"invalid json from {url}")
+        return
     except:
         if payload['meeting']['meetingReference'] in skip:
             log(3,f"skipping {payload['meeting']['meetingReference']}")
@@ -236,11 +240,13 @@ if __name__ == "__main__":
         #    print('-'*30)
         #    sys.exit(0)
         if sys.argv[1]=="test":
-            test([('AFET',  1, 2017, 'AFET(2017)0130_1'),
-                  ('TRAN', 12, 2023, 'TRAN(2023)1207_1'),
-                  ('IMCO', 12, 2023, 'IMCO(2023)1204_1'),
-                  ('EMPL', 11, 2023, 'CJ21(2023)1107_1'),
-                  ]);
+            test([
+                ('LIBE',  2, 2021, 'LIBE(2021)0204_1'),
+                #('AFET',  1, 2017, 'AFET(2017)0130_1'),
+                #('TRAN', 12, 2023, 'TRAN(2023)1207_1'),
+                #('IMCO', 12, 2023, 'IMCO(2023)1204_1'),
+                #('EMPL', 11, 2023, 'CJ21(2023)1107_1'),
+            ]);
         #elif sys.argv[1]=='url' and len(sys.argv)==4:
         #    print(jdump(scrape(sys.argv[2], sys.argv[3])))
         #    sys.exit(0)
