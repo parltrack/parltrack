@@ -103,7 +103,7 @@ def extract_dates(doc, com_dates, debug=True):
 
       keys = list(dates.keys())
       for date in keys:
-          if date not in com_dates.keys():
+          if date.isoformat()[:10] not in com_dates.keys():
               print(f"{date} is not on a day when there was a meeting for {doc['committee']}")
               del dates[date]
 
