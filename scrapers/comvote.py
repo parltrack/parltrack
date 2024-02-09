@@ -69,6 +69,7 @@ VOTE_TYPE_MAP = {
     'vote on mandate': 'mandate',
     'adoption of draft opinion': 'adoption of draft opinion',
     'final vote by roll call in committee': 'final',
+    'roll-call': 'roll call',
 }
 
 COMMITTEES_WITHOUT_DOSSIER_IDS = (
@@ -111,7 +112,7 @@ def scrape(committee, url, **kwargs):
                     continue
                 tables = [x.extract() for x in data]
                 try:
-                    pdfdata[i] = parse_table(tables, url)
+                    pdfdata[i], unsure = parse_table(tables, url)
                     stats['votes']+=1
                 except Exception as e:
                     log(2, f'Failed to extract table #{i} from {url} ({committee}): {e} - {repr(tables[0])}')
@@ -136,6 +137,8 @@ def scrape(committee, url, **kwargs):
         meta_dossiers = extract_dossiers_from_metadata(kwargs, com_dates, date_candidates)
 
     for i, data in enumerate(pdfdata):
+        unsure_fields = []
+        wrong_fields = []
         if not type(data) == list:
             continue
         voteno += 1
@@ -148,11 +151,14 @@ def scrape(committee, url, **kwargs):
         }
 
         if len(tables) == 1 and committee == 'AGRI':
-            pdfdata[i+1] = '\n'.join(' '.join(x for x in t if x) for t in tables[0]) + pdfdata[i+1]
+            if len(pdfdata) > i+2:
+                pdfdata[i+1] = '\n'.join(' '.join(x for x in t if x) for t in tables[0]) + pdfdata[i+1]
             continue
 
         try:
-            vote['votes'] = parse_table(tables, url)
+            vote['votes'], unsure = parse_table(tables, url)
+            if unsure:
+                unsure_fields.append('votes')
         except Exception as e:
             log(1, f'Failed to parse vote table: {e}')
             continue
@@ -163,34 +169,38 @@ def scrape(committee, url, **kwargs):
             vote_details = get_vote_details(committee, text)
         except Exception as e:
             log(1, f'Failed to parse vote details in {url} - {e}')
+            vote_details = {}
 
         # means that this is part of multiple votes about the same subject
         # we need the additional data from the previous vote
-        if len(vote_details) == 1 and 'type' in vote_details and len(res):
+        if (not vote_details or (len(vote_details) == 1 and 'type' in vote_details)) and len(res):
             if 'reference' in res[-1]:
                 vote_details['reference'] = res[-1]['reference']
-            if 'rapporteur' in res[-1]:
-                vote_details['rapporteur'] = res[-1]['rapporteur']
+#            if 'rapporteur' in res[-1]:
+#                vote_details['rapporteur'] = res[-1]['rapporteur']
             if 'amendments' in res[-1]:
                 vote_details['amendments'] = res[-1]['amendments']
 
         vote.update(**vote_details)
 
-        if 'rapporteur' in vote:
-            try:
-                fix_rapporteur_data(vote)
-            except Exception as e:
-                log(1, f'{e} ({url})')
-        else:
-            log(2, f'Unable to identify rapporteur in {url}')
+#        if 'rapporteur' in vote:
+#            try:
+#                fix_rapporteur_data(vote)
+#            except Exception as e:
+#                log(1, f'{e} ({url})')
+#        else:
+#            wrong_fields.append('rapporteur')
+#            # TODO try to get rapporteur from dossier
+#            log(2, f'Unable to identify rapporteur in {url}')
 
         if not vote.get('reference'):
+            date = None
             if meta_dossiers:
-                vote['reference'], confidence = get_best_dossier(meta_dossiers)
-            else:
-                vote['reference'], confidence = get_best_dossier(extract_dossiers(text, i, committee, com_dates, date_candidates))
-                #print("YOOOO", i, confidence, ' '.join(text.split()))
-                #print(extract_dossiers(text, i, committee, date_candidates))
+                vote['reference'], confidence, date = get_best_dossier(meta_dossiers)
+            elif not isinstance(text, list):
+                vote['reference'], confidence, date = get_best_dossier(extract_dossiers(text, i, committee, com_dates, date_candidates))
+            if date:
+                vote['date'] = date
 
         if 'reference' in vote and vote['reference']:
             if committee not in COMMITTEES_WITHOUT_DOSSIER_IDS:
@@ -199,24 +209,44 @@ def scrape(committee, url, **kwargs):
                     if vote['reference'] in DOSSIER_ID_TYPOS:
                         vote['reference'] = DOSSIER_ID_TYPOS[vote['reference']]
                     else:
-                        raise(Exception('Invalid dossier ID "{0}" in {1}. If it is only a typo add it to DOSSIER_ID_TYPOS.'.format(vote["reference"], url)))
+                        unsure_fields.append('reference')
+                        log(1, 'Invalid dossier ID "{0}" in {1}. If it is only a typo add it to DOSSIER_ID_TYPOS.'.format(vote["reference"], url))
             #agendas = db.get('comagenda_by_committee_dossier_voted', committee + vote['reference'])
             #if not agendas:
             #    log(2, f'Unable to find agendas for {vote["reference"]} in {url}')
             #else:
             #    for item in agendas[-1]['items']:
             #        if item.get('RCV') and item.get('docref') == vote['reference']:
-            #            vote['time'] = item['start']
-            #if not 'time' in vote:
+            #            vote['date'] = item['start']
+            #if not 'date' in vote:
             #    log(2, f'Unable to find date for {vote["reference"]} in {url}')
         else:
+            wrong_fields.append('reference')
             log(2, f'Unable to identify dossier ID for vote #{voteno} in {url}')
 
-        if 'type' not in vote or not vote['type'] or vote['type'].lower() not in VOTE_TYPE_MAP:
+        if 'type' not in vote or not vote['type']:
             if not vote.get('amendments'):
-                log(2, f'Unable to identify vote type "{vote.get("type")}" in {url}')
+                wrong_fields.append('type')
+                log(2, f'Cannot find vote type "{vote.get("type")}" in {url}')
         else:
-            vote['type'] = VOTE_TYPE_MAP[vote['type'].lower()]
+            if vote['type'].lower() not in VOTE_TYPE_MAP:
+                unsure_fields.append('type')
+                log(3, f'Unable to identify vote type "{vote.get("type")}" in {url}')
+            else:
+                vote['type'] = VOTE_TYPE_MAP[vote['type'].lower()]
+
+        if not vote.get('date'):
+            date = get_best_date(date_candidates)
+            if date:
+                vote['date'] = date
+            else:
+                wrong_fields.append('date')
+
+        if unsure_fields:
+            vote['unsure_fields'] = unsure_fields
+
+        if wrong_fields:
+            vote['wrong_fields'] = wrong_fields
 
         process(
             vote,
@@ -229,16 +259,29 @@ def scrape(committee, url, **kwargs):
         res.append(vote)
 
     #from IPython import embed; embed()
-    from pprint import pprint
-    pprint(res)
+    #from pprint import pprint
+    #pprint(res)
     return
+
+
+def get_best_date(dates):
+    if not dates:
+        return None
+    return list(sorted([(k,v['conf']) for k,v in dates.items()], key=lambda x: x[1]))[0][0]
 
 
 def get_best_dossier(dossiers):
     if dossiers:
-        return list(sorted([(k,v['conf']) for k,v in dossiers.items()], key=lambda x: x[1]))[0]
-    else:
-        '', 0
+        ref, conf, dates = list(sorted([(k,v['conf'], v.get('dates', [])) for k,v in dossiers.items()], key=lambda x: x[1]))[0]
+        if len(dates) > 1:
+            log(2, f'multiple heuristics dates for {ref} - {dossier}')
+
+        if len(dates):
+            return ref, conf, dates[0]
+
+        return ref, conf, None
+
+    return '', None, 0
 
 
 def extract_pdf(pdf, committee):
@@ -445,12 +488,15 @@ def get_text_from_pages(pages, start_pageno, end_pageno, start_pos, end_pos, com
 def parse_table(tables, url):
     results = {}
     tables = repair_tables(tables, url)
+    unsure = False
     for table in tables:
         if not all(len(row) == 2 for row in table):
             raise(Exception(f'Invalid table - too many columns - {repr(table)} in {url}'))
-        t, ret = parse_table_section(table, url)
+        t, ret, t_unsure = parse_table_section(table, url)
+        if t_unsure:
+            unsure = True
         results[t] = ret
-    return results
+    return results, unsure
 
 
 #def parse_correction_table(tables, url):
@@ -510,6 +556,7 @@ def parse_table_section(table, url=''):
     members = ''
     ret['total'], voteType = table[0]
     correction = False
+    unsure = False
     if 'correction' in voteType.lower():
         correction = True
         voteType = 'corrections'
@@ -520,7 +567,7 @@ def parse_table_section(table, url=''):
             log(2, 'Failed to convert vote total number to integer ({ret["total"]})')
 
     if not ret['total'] and not correction:
-        return ret
+        return voteType, ret, unsure
 
     prev_group = ''
     for row in table[1:]:
@@ -541,12 +588,13 @@ def parse_table_section(table, url=''):
     mepcount = len(list(x for y in ret['groups'].keys() for x in ret['groups'][y]))
     if not correction and type(ret['total']) == int:
         if ret['total'] != mepcount:
+            unsure = True
             log(2, f"Vote mep count mismatch: total {ret['total']}, count {mepcount} in {url}")
     else:
         ret.update(**ret['groups'])
         del(ret['groups'])
         del(ret['total'])
-    return voteType, ret
+    return voteType, ret, unsure
 
 
 #def parse_table_section(table, corrections=False, url=''):
@@ -615,11 +663,11 @@ def meps_by_name(mep_names, group):
     return [db.mepid_by_name(x, group=group) for x in map(str.strip, mep_names.split(',')) if x]
 
 
-def fix_rapporteur_data(vote):
-    if 'group' in vote['rapporteur']:
-        vote['rapporteur']['group'] = resolve_group_name(vote['rapporteur']['group'])
-    # TODO try to find missing group information (date required)
-    vote['rapporteur']['mep_id'] = db.mepid_by_name(vote['rapporteur']['name'], group=vote['rapporteur'].get('group'))
+#def fix_rapporteur_data(vote):
+#    if 'group' in vote['rapporteur']:
+#        vote['rapporteur']['group'] = resolve_group_name(vote['rapporteur']['group'])
+#    # TODO try to find missing group information (date required)
+#    vote['rapporteur']['mep_id'] = db.mepid_by_name(vote['rapporteur']['name'], group=vote['rapporteur'].get('group'))
 
 
 def resolve_group_name(g):
@@ -675,22 +723,22 @@ def save(data):
     return data
 
 
-def parse_rapporteur_with_group(text, replace_string):
-    rdata = text.replace(replace_string, '')
-    splits = rdata.split('(')
-    if len(splits) == 1:
-        return splits[0].strip(), ''
-
-    rname, rgroup = splits
-    while rgroup and not rgroup[-1].isalpha():
-        rgroup = rgroup[:-1]
-    return rname.strip(), rgroup.strip() if rgroup else ''
+#def parse_rapporteur_with_group(text, replace_string):
+#    rdata = text.replace(replace_string, '')
+#    splits = rdata.split('(')
+#    if len(splits) == 1:
+#        return splits[0].strip(), ''
+#
+#    rname, rgroup = splits
+#    while rgroup and not rgroup[-1].isalpha():
+#        rgroup = rgroup[:-1]
+#    return rname.strip(), rgroup.strip() if rgroup else ''
 
 
 def parse_afet_details(text):
     lines = text.split('\n')
 
-    rname, rgroup = parse_rapporteur_with_group(lines[-1], 'Rapporteur: ')
+    #rname, rgroup = parse_rapporteur_with_group(lines[-1], 'Rapporteur: ')
 
     ref = lines[-2].strip()
 
@@ -705,10 +753,6 @@ def parse_afet_details(text):
     ret = {
         'reference': ref,
         'type': vtype,
-        'rapporteur': {
-            'name': rname,
-            'group': rgroup,
-        },
     }
     return ret
 
@@ -722,7 +766,7 @@ def parse_cult_details(text):
     else:
         vtype = parts[-3].split(':')[0]
 
-    rname, rgroup = parse_rapporteur_with_group(parts[-1], 'Rapporteur: ')
+    #rname, rgroup = parse_rapporteur_with_group(parts[-1], 'Rapporteur: ')
 
     ref = ''
     refs = DOSSIERID_RE.findall(parts[-2].strip())
@@ -732,10 +776,6 @@ def parse_cult_details(text):
     ret = {
         'reference': ref,
         'type': vtype,
-        'rapporteur': {
-            'name': rname,
-            'group': rgroup,
-        },
     }
     return ret
 
@@ -790,14 +830,8 @@ def parse_pech_details(text):
 
     ret = {
         'reference': dossier_id,
-        'rapporteur': {
-            'name': rapporteur_name,
-        },
         'type': vote_type,
     }
-
-    if not ret['rapporteur']['name']:
-        del(ret['rapporteur'])
 
     if amendments:
         ret['amendments'] = True
@@ -807,14 +841,10 @@ def parse_pech_details(text):
 
 def parse_deve_details(text):
     chunks = list(x.replace('\n', ' ') for x in filter(None, text.split('\n\n')))
-    rname, rgroup = parse_rapporteur_with_group(chunks[-2], 'Rapporteur: ')
+    #rname, rgroup = parse_rapporteur_with_group(chunks[-2], 'Rapporteur: ')
     dossier_id = DOSSIERID_RE.findall(chunks[-3])[-1]
     ret = {
         'reference': dossier_id,
-        'rapporteur': {
-            'name': rname,
-            'group': rgroup,
-        },
         'type': chunks[-1],
     }
     return ret
@@ -824,15 +854,10 @@ def parse_inta_details(text):
     chunks = list(x.replace('\n', ' ') for x in filter(None, text.split('\n\n')))
     try:
         title_split = [x.strip() for x in chunks[-3].split('–')]
-        rname, rgroup = parse_rapporteur_with_group(title_split[2], 'rapporteur: ')
     except:
         return {'type': ' '.join(chunks[-1].split()[1:]), 'amendments': True}
     ret = {
         'reference': DOSSIERID_RE.findall(title_split[1])[-1],
-        'rapporteur': {
-            'name': rname,
-            'group': rgroup,
-        },
         'type': chunks[-1].strip(),
     }
     return ret
@@ -842,16 +867,10 @@ def parse_itre_details(text):
     chunks = list(x.replace('\n', ' ') for x in filter(None, text.split('\n\n')))
     title = chunks[-1]
     title_split = [x.strip() for x in title.split('-')]
-    try:
-        rname, rgroup = parse_rapporteur_with_group(title_split[2], 'Rapporteur: ')
-    except:
+    if title_split < 2:
         return {'type': title_split[0]}
     ret = {
         'reference': DOSSIERID_RE.findall(title_split[1])[-1],
-        'rapporteur': {
-            'name': rname,
-            'group': rgroup,
-        },
         'type': title_split[-1],
     }
     return ret
@@ -863,15 +882,11 @@ def parse_imco_details(text):
     try:
         title = chunks[-2]
         title_split = [x.strip() for x in title.split('–')]
-        rname, rgroup = parse_rapporteur_with_group(title_split[-1], '')
+        #rname, rgroup = parse_rapporteur_with_group(title_split[-1], '')
     except:
         return {'type': vtype}
     ret = {
         'reference': title_split[-2],
-        'rapporteur': {
-            'name': rname,
-            'group': rgroup,
-        },
         'type': vtype,
     }
     return ret
@@ -890,10 +905,6 @@ def parse_regi_details(text):
         return {'type': vtype}
     ret = {
         'reference': dossier_id,
-        'rapporteur': {
-            'name': rname,
-            'group': '',
-        },
         'type': vtype,
     }
     return ret
@@ -918,13 +929,9 @@ def parse_droi_details(text):
     dossier_id = chunks[i+1].split('-')[-1]
     rapp_and_type = chunks[i+2].split('-')
     vtype = rapp_and_type[-1].split('...')[0].strip()
-    rname, rgroup = parse_rapporteur_with_group('-'.join(rapp_and_type[:-1]), 'Rapporteur:')
+    #rname, rgroup = parse_rapporteur_with_group('-'.join(rapp_and_type[:-1]), 'Rapporteur:')
     ret = {
         'reference': dossier_id,
-        'rapporteur': {
-            'name': rname,
-            'group': rgroup,
-        },
         'type': vtype,
     }
     return ret
@@ -938,14 +945,10 @@ def parse_afco_details(text):
         lines.pop()
     title = ' '.join(lines[max(idx for idx,l in enumerate(lines) if not l):])
     title_split = [x.strip() for x in title.split(',')]
-    rname, rgroup = parse_rapporteur_with_group(title_split[-1], 'Rapporteur: ')
+    #rname, rgroup = parse_rapporteur_with_group(title_split[-1], 'Rapporteur: ')
     dossier_id = DOSSIERID_RE.findall(title_split[-2])[-1]
     ret = {
         'reference': dossier_id,
-        'rapporteur': {
-            'name': rname,
-            'group': rgroup,
-        },
         'type': vtype,
     }
     return ret
