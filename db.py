@@ -36,6 +36,7 @@ def normalize_name(t):
 
 class Client:
     mepCache={}
+    dossierCache={}
     def commit(self, table):
         cmd = {"cmd": "commit", "params": {"table": table}}
         return self.send_req(cmd)
@@ -139,7 +140,10 @@ class Client:
         return self.get('ep_meps', id)
 
     def dossier(self,id):
-        return self.get('ep_dossiers', id)
+        if id in self.dossierCache:
+            return self.dossierCache[id]
+        self.dossierCache[id] = self.get('ep_dossiers', id)
+        return self.dossierCache[id]
 
     def activities_by_dossier(self,id):
         return self.get('activities_by_dossier', id)
