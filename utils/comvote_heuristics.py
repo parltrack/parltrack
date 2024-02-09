@@ -204,7 +204,7 @@ def txt_extract(dossiers, dates, txt, label, com, com_dates, debug = True):
              print("not matched", com, f"{label:<14}", unws(txt))
          break
       found=True
-      dossiers = update_dossiers(dossiers, (11, m[0], m[1], m[2]['item']['start']), label)
+      dossiers = update_dossiers(dossiers, (11, m[0], m[1], m[2]['item'].get('start', m[2]['meeting']['time']['date'])), label)
       frag=frag.replace(normalize(m[1]), '')
 
 refre=re.compile(r'([0-9]{4}/[0-9]{4}[A-Z]? ?\((?:ACI|APP|AVC|BUD|CNS|COD|COS|DCE|DEA|DEC|IMM|INI|INL|INS|NLE|REG|RPS|RSO|RSP|SYN)\))')
