@@ -73,10 +73,10 @@ def scrape(active=True, dry=False, committee=None, json_dump=False, **kwargs):
         #for href in dom.xpath('//div[@class="erpl_product"]//div[@class="erpl_links-list mb-2"]//ul/li/a/@href'):
         for elem in dom.xpath('//div[@class="erpl_product"]'):
             title = junws(elem.xpath('.//div[@class="erpl_product-header mb-2"]')[0])
-            subtitle = elem.xpath('.//div[@class="erpl_title-h5"]')
-            if subtitle:
-                subtitle = junws(subtitle[0])
             for link in elem.xpath('.//div[@class="erpl_links-list mb-2"]//ul/li/a'):
+                subtitle = link.xpath('.//../../../preceding-sibling::div[@class="erpl_title-h5"]')
+                if subtitle:
+                    subtitle = junws(subtitle[0])
                 link_text = junws(link)
                 href = link.get('href')
 
