@@ -185,6 +185,8 @@ def txt_extract(dossiers, dates, txt, label, com, com_dates, debug = True):
 
    found=False
    while ''.join(txt.split()):
+      # match dossier ids from comagenda with 100% confidence
+      # and if not then regexp with less confidence
       m = refre.search(txt)
       if not m:
           break

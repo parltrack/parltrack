@@ -12,3 +12,6 @@ ipython
 python-dateutil
 flask_caching
 pdfplumber
+nltk
+hunspell
+textdistance
