@@ -555,7 +555,7 @@ def committee_votes_by_date(com):
           if not 'title' in item: continue
           mapping = {'docref': item['docref'],
                      'item': item,
-                     'meeting': {k:v for k,v in meeting.items() if k != 'items' and v} }
+                     'meeting': {k:v for k,v in meeting.items() if k not in ['items', 'changes'] and v} }
 
           date = meeting['time']['date'][:10]
           items = dates.get(date)
@@ -879,7 +879,6 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
                                       {"fn": idx_dossiers_by_doc, "name": "dossiers_by_doc"},
                                       {"fn": idx_dossiers_by_mep, "name": "dossiers_by_mep"},
                                       {"fn": idx_dossiers_by_subject, "name": "dossiers_by_subject"},
-                                      {"fn": idx_dossiers_by_committee, "name": "dossiers_by_committee"},
                                       {"fn": idx_subject_map, "name": "subject_map"},
                                       {"fn": idx_dossiers_by_committee, "name": "dossiers_by_committee"}],
                           'key': lambda x: x['procedure']['reference']},
