@@ -1,4 +1,4 @@
-#!/usr/bin/env pythonhttps://www.europarl.europa.eu/cmsdata/264944/CJ39_RCVs.pdf
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #    This file is part of parltrack
 
