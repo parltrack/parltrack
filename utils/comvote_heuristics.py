@@ -16,7 +16,7 @@ endatere4y = re.compile(r'(?P<match>(?P<year>20[12]\d)[-./](?P<month>\d{2})[-./]
 endatere2y = re.compile(r'(?P<match>(?P<year>[12]\d)[-./](?P<month>\d{2})[-./](?P<day>\d{2}))')
 fulldatere = re.compile(r'(?P<match>'+daymonth+r'\s+(?P<year>20\d{2})'+r')(?:\D|$)', re.I)
 noyearre = re.compile(r'(?P<match>'+daymonth+r')', re.I)
-yearre = re.compile(r'\D(?P<year>20[12]\d)(?:\D|$)')
+yearre = re.compile(r'(?:\D|^)(?P<year>20[12]\d)(?:\D|$)')
 
 monthmap = {'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6, 'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12}
 
@@ -51,22 +51,38 @@ def update_s(dates, match, type):
       dates[match[1]]=date
    return dates
 
+def extract_all_dates(frag, year, label, dates, debug=False):
+    txt = frag
+    while True:
+        date=find_date(frag, year)
+        if not date:
+            break
+        dates = update_s(dates, date, label)
+        if debug:
+            print(f'{label}\t', date, frag)
+        frag = frag.replace(date[2], '')
+    return dates
+
 def extract_dates(doc, com_dates, debug=True):
    dates = {}
    year = None
    date_t=find_date(doc['title'], year)
+   if debug:
+       print(f'title\t', date_t, doc['title'])
    dates = update_s(dates,date_t, 'title')
    if not date_t:
-      y = yearre.search(doc['title'])
+      y = yearre.search(unws(doc['title']))
       if y:
           year = int(y.group('year'))
-   date_lt=find_date(doc["link_text"], year)
-   dates = update_s(dates,date_lt, 'link_text')
-   date_u=find_date(doc["url_fname"], year)
-   dates = update_s(dates,date_u, 'url_fname')
+   if debug:
+      if year:
+         print("year", year)
+      else:
+         print("no year")
+   dates =extract_all_dates(doc['link_text'], year, 'link_text', dates, debug)
+   dates =extract_all_dates(doc["url_fname"], year, "url_fname", dates, debug)
    if "subtitle" in doc:
-      date_s=find_date(doc["subtitle"], year)
-      dates = update_s(dates,date_s, 'subtitle')
+      dates = extract_all_dates(doc["subtitle"], year, "subtitle", dates, debug)
 
    i = 0
    if debug:
@@ -79,6 +95,9 @@ def extract_dates(doc, com_dates, debug=True):
           frag = ' '.join([l for l in frag.split('\n') if date_f[2] in l])
           frags.append(f'frag {i}\t{date_f}\t{frag}')
        i+=1
+   if debug:
+      for frag in frags:
+         print(frag)
 
    # sanity check dates
    dominators = set()
@@ -106,18 +125,6 @@ def extract_dates(doc, com_dates, debug=True):
           if date.isoformat()[:10] not in com_dates.keys():
               print(f"{date} is not on a day when there was a meeting for {doc['committee']}")
               del dates[date]
-
-   if debug:
-      if year:
-         print("year", year)
-      else:
-         print("no year")
-      print('lt\t', date_lt, doc["link_text"])
-      print('url\t', date_u, doc["url_fname"], doc["url"])
-      if "subtitle" in doc:
-         print('st\t', date_s, doc["subtitle"])
-      for frag in frags:
-          print(frag)
 
    return dates
 
@@ -185,6 +192,8 @@ def txt_extract(dossiers, dates, txt, label, com, com_dates, debug = True):
 
    found=False
    while ''.join(txt.split()):
+      # match dossier ids from comagenda with 100% confidence
+      # and if not then regexp with less confidence
       m = refre.search(txt)
       if not m:
           break
@@ -206,6 +215,8 @@ def txt_extract(dossiers, dates, txt, label, com, com_dates, debug = True):
       found=True
       dossiers = update_dossiers(dossiers, (11, m[0], m[1], m[2]['item'].get('start', m[2]['meeting']['time']['date'])), label)
       frag=frag.replace(normalize(m[1]), '')
+    # try to pippi
+    # test with https://www.europarl.europa.eu/cmsdata/215383/Roll-call%20votes%2028%20October%202020.pdf
 
 refre=re.compile(r'([0-9]{4}/[0-9]{4}[A-Z]? ?\((?:ACI|APP|AVC|BUD|CNS|COD|COS|DCE|DEA|DEC|IMM|INI|INL|INS|NLE|REG|RPS|RSO|RSP|SYN)\))')
 def doc_extract(doc, com_dates, dates=None, debug=True):
