@@ -19,14 +19,16 @@
 
 
 import os, re, sys, unicodedata
+from itertools import permutations
 from tempfile import mkstemp
 from sh import pdftotext
 from dateutil.parser import parse
 from utils.utils import fetch_raw, unws, jdump
 from utils.log import log
 from db import db
-from scrapers.amendment import isfooter, parse_block
+from scrapers.amendment import isfooter, parse_block, strip
 from scrapers import amendment
+from utils.mappings import COMMITTEE_MAP
 
 pere = r'(?P<PE>PE(?:TXTNRPE)? ?[0-9]{3,4}\.?[0-9]{3}(?:v[0-9]{2}(?:[-./][0-9]{1,2})?)?)'
 
@@ -37,13 +39,6 @@ def isheader(line):
 def unpaginate(text, url):
     #print(text)
     lines = [l.rstrip('\n\t ') for l in text.split('\n')]
-    margin = 1
-    while margin<max(len(l) for l in lines):
-       if set([' '*margin])     != set([(l[1:margin+1] if l[0]=='\f' else l[:margin]) for l in lines if unws(l)]):
-          margin = margin - 1
-          break
-       margin+=1
-    lines = [l[margin:] if not l.startswith('\f') else '\f' + l[margin+1:] for l in lines]
     ## find end of 1st page
     #eo1p = 0
     PE = None
@@ -162,12 +157,11 @@ def unpaginate(text, url):
           #       log(1, '"%s"' % (unws(lines[i+j])))
           #   log(1, 'line above footer is not an empty line: "%s"' % (unws(lines[i])))
           #   raise ValueError("no empty line above footer")
-
-       while i>0 and unws(lines[i])=='':
-           i-=1
-       if i<=0:
-           log(1, "could not find non-empty line above footer: %s" % url)
-           raise ValueError("no content found above footer: %s" % url)
+          while i>0 and unws(lines[i])=='':
+              i-=1
+          if i<=0:
+              log(1, "could not find non-empty line above footer: %s" % url)
+              raise ValueError("no content found above footer: %s" % url)
 
        # delete all lines between fstart and i
        while fstart > i:
@@ -188,6 +182,16 @@ def unpaginate(text, url):
        if aref:
           aref.append(aref1)
        del lines[0]
+
+    # clear left margin
+    margin = 1
+    while margin<max(len(l) for l in lines):
+       if set([' '*margin])     != set([(l[1:margin+1] if l[0]=='\f' else l[:margin]) for l in lines if unws(l)]):
+          margin = margin - 1
+          break
+       margin+=1
+    lines = [l[margin:] if not l.startswith('\f') else '\f' + l[margin+1:] for l in lines]
+
     return lines, PE, date, aref
 
 from tempfile import NamedTemporaryFile
@@ -196,7 +200,7 @@ def getraw(url):
    try:
       pdf_doc = fetch_raw(url, binary=True)
    except:
-      log(1, f'Failed to download pdf from {url} ({committee})')
+      log(1, f'Failed to download pdf from {url}')
       return
    doc = []
    with NamedTemporaryFile() as tmp:
@@ -221,7 +225,7 @@ amendment.mansplits={}
 amendment.mepmaps={}
 
 refre=re.compile(r'(.*)([0-9]{4}/[0-9]{4}[A-Z]?\((?:ACI|APP|AVC|BUD|CNS|COD|COS|DCE|DEA|DEC|IMM|INI|INL|INS|NLE|REG|RPS|RSO|RSP|SYN)\))')
-amstart=re.compile(r'\s*(:?Emendamenti|Amende?ment)\s*[0-9A-Z]+\s*$')
+amstart=re.compile(r'\s*(:?Emendamenti|Amende?ment)\s*([0-9A-Z]+(:?/rev)?)\s*$')
 
 dossier1stline_re = re.compile(r'(.*)\s*(A[6789]-\d{4}/\d{4})$')
 def parse_dossier(lines, date):
@@ -250,29 +254,112 @@ def parse_dossier(lines, date):
    dossier['dossier']=ref
    return dossier
 
-def scrape(url):
-   lines, PE, date, aref = getraw(url)
+amsre=re.compile(r'^Amendments?\s*([0-9]{1,})(?:\s?-\s?(\d{1,}))?\s*$', re.I)
+dividerre=re.compile(r'^\s*[__]*\s*$')
+def parse_cover(lines, reference, dossier, aref):
+   #print('asdf', '\n'.join(lines))
+   rapporteurs_tmp = []
+   for r in [r
+             for c in dossier['committees'] if c['type'] in {'Responsible Committee', 'Joint Responsible Committee'}
+             for r in c['rapporteur']]:
+      rapporteur=[]
+      rapporteur.append(r['name']+r"\s*\(?"+r['group']+r"\)?")
+      rapporteur.append(r['name']+r"\s*\(?"+r['abbr'] +r"\)?")
+      name = db.mep(r['mepref'])['Name']
+      rapporteur.append(name['sur']+r'\s*'+name['family']+r"\s*\(?"+r['abbr'] +r"\)?")
+      rapporteur.append(name['sur']+r'\s*'+name['family']+r"\s*\(?"+r['group']+r"\)?")
+      rapporteur.append(name['sur']+r'\s*'+name['family'])
+      rapporteur.append(r['name'])
+      rapporteurs_tmp.append(rapporteur)
+   #print('asdf','|'.join([r'(?:'+', '.join(p)+r')' for r in zip(*rapporteurs_tmp) for p in permutations(r)]))
+   rapporteurs = re.compile('|'.join([r'(?:'+', '.join(p)+r')' for r in zip(*rapporteurs_tmp) for p in permutations(r)]),re.I)
+
+   comid = set([d['title']
+                for e in dossier['events']
+                if e['type']=='Legislative proposal published'
+                for d in e['docs']
+                if d['title'].startswith('COM(')])
+   if len(comid)==1:
+      ids = re.compile(r'\(?'+list(comid)[0].replace('(','\\(').replace(')','\\)')
+                       + r'\W{1,}C\d[--]\d{4}/20\d{2}\W{1,}'
+                       + reference.replace('(','\\(').replace(')','\\)')
+                       +r'\)?')
+   else:
+      if len(comid) > 2:
+         log(2,f"{reference} has more than one COM(*) doc in leg prop published event entry")
+      ids = re.compile(r'\(?'
+                       + reference.replace('(','\\(').replace(')','\\)')
+                       +r'\)?')
+   res = {}
+   # delete rapporteur, dossier title, aref, dossier ref from block
+   # extract amendment number/range
+   i=0
+   while i < len(lines):
+      # remove stuff
+      lines[i]=dividerre.sub('', lines[i])
+      lines[i]=ids.sub('',lines[i])
+      lines[i]=lines[i].replace(reference, '')
+      lines[i]=rapporteurs.sub('',lines[i],re.I)
+      lines[i]=lines[i].replace(aref, '')
+      lines[i]=lines[i].replace(dossier['procedure']['title'],'')
+      if unws(lines[i]) in {'Report',
+                            'Proposal for a regulation'}:
+         lines[i]=''
+      # extract and remove stuff
+      if lines[i].startswith('by the Committee'):
+         for k in COMMITTEE_MAP.keys():
+            if lines[i][7:].startswith(k):
+               if len(k)!=4:
+                  res['committee']=COMMITTEE_MAP[k]
+               else:
+                  res['committee']=k
+               lines[i].replace("by the "+k,'')
+               break
+         lines[i]=''
+      m = amsre.match(lines[i])
+      if m:
+         if m.group(2):
+            res['amendments']={'start': int(m.group(1)),
+                               'end': int(m.group(2))}
+         else:
+            res['amendments']=int(m.group(1))
+         lines[i]=''
+
+      i+=1
+   strip(lines)
+   if(lines):
+      log(4, "leftover after cover extraction\n\t|"+'\n\t|'.join(lines))
+   return res
+
+def scrape(url, dossier, aref=None, save = False):
+   if aref is None:
+      aref = url_to_aref(url)
+   reference = dossier['procedure']['reference']
+   lines, PE, date, _ = getraw(url)
    #print(PE, date, aref)
-   #print('\n'.join(lines))
-   block=None
+   #print('\n'.join(lines[:30]))
+   block=[]
+   prolog = True
+   committee = []
    res=[]
-   block=None
-   reference=None
-   committee=[]
    meps = None
+   meta = None
    date = parse(date, dayfirst=True)
+   from utils.mappings import COMMITTEE_MAP
 
    for line in lines:
       if amstart.match(line):
-         # parse block
-         if block is None:
-            block = [line]
+         if prolog:
+            meta = parse_cover(block, reference, dossier, aref)
+            prolog = False
+            block=[line]
             continue
 
          am=parse_block(block, url, reference, date, meps, PE, parse_dossier=parse_dossier, top_of_diff=1)
          if am is not None:
-            #print(jdump(am))
-            #process(am, am['id'], db.amendment, 'ep_amendments', am['reference']+' '+am['id'], nodiff=True)
+            if meta: am.update(meta)
+            if save:
+               process(am, am['id'], db.amendment, 'ep_amendments', am['reference']+' '+am['id'], nodiff=True)
             res.append(am)
          block=[line]
          continue
@@ -281,14 +368,25 @@ def scrape(url):
    if block and filter(None,block):
       am = parse_block(block, url, reference, date, meps, PE, parse_dossier=parse_dossier, top_of_diff=1)
       if am is not None:
-         #print(jdump(am))
-         #process(am, am['id'], db.amendment, 'ep_amendments', am['reference']+' '+am['id'], nodiff=True)
+         if meta: am.update(meta)
+         if save:
+            process(am, am['id'], db.amendment, 'ep_amendments', am['reference']+' '+am['id'], nodiff=True)
          res.append(am)
    log(3,"total amendments %d in %s" % (len(res),url))
    return res
 
+def url_to_aref(url):
+   fname = url.split('/')[-1][:13]
+   return f'A{fname[2]}-{fname[9:13]}/{fname[4:8]}'
+
+def dossier_from_url(url):
+   # url ~ https://www.europarl.europa.eu/doceo/document/A-9-2022-0292-AM-001-001_EN.pdf
+   aref = url_to_aref(url)
+   return aref, db.get("dossiers_by_doc", aref)[0]
+
 if __name__ == '__main__':
-   ams = scrape	(sys.argv[1])
+   aref, dossier = dossier_from_url(sys.argv[1])
+   ams = scrape	(sys.argv[1],dossier, aref)
    print(jdump(ams))
    print(len(ams))
    for am in ams:
