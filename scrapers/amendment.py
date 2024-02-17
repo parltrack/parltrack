@@ -404,7 +404,7 @@ locstarts=['After', 'Annex', 'Article', 'Chapter', 'Citation', 'Guideline',
            #'Proposal', 'Recital', 'Recommendation', 'Rejection', 'Rule',
            'Recital', 'Recommendation', 'Rejection', 'Rule',
            'Section', 'Subheading', 'Subtitle', 'Title', u'Considérant', 'Indent', 'indent'
-           'Paragraphe', '-', u'–', 'last', 'Amendment', 'Artikel', 'Annexes',
+           'Paragraphe', '-', u'–', 'last', 'Amendment', 'Amendments', 'Artikel', 'Annexes',
            'Column', 'Annexe', 'Sub-heading', 'ANNEX', 'Anexo', 'Articles', 'paragraph',
            'Paragraphs', 'Subh.', 'Subheading.', 'Short', 'Single', 'First', 'Articolo',
            'Suggestion', 'Allegato','Introductory', 'Explanatory', 'Statement', 'Notes',
@@ -425,6 +425,19 @@ def strip(block):
         del block[0]
     while len(block) and not unws(block[-1]):
         del block[-1]
+
+def find_sep(block, mid):
+    if mid < 50: mid=70
+    spaces = set.intersection(*[set([i for i in range(mid+40) if i>=len(line) or line[i]==' ']) for line in block])
+    if mid not in spaces:
+        log(1,f"{mid} is not in spaces: {sorted(spaces)}")
+        print("\n".join(block))
+        return None
+    #span = [mid, mid]
+    #while(span[1]+1 in spaces): span[1]=span[1]+1
+    #while(span[0]-1 in spaces): span[0]=span[0]-1
+    #print(mid, span)
+    return mid
 
 def parse_block(block, url, reference, date, rapporteur, PE, committee=None, parse_dossier=None, top_of_diff=2):
     am={u'src': url,
@@ -503,6 +516,7 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, par
         del block[i]
         while i<len(block) and not unws(block[i]): del block[i]        # skip blank lines
         mid=max([len(x) for x in block])//2
+        sep = find_sep(block[i:], mid)
         while i<len(block):
             if seq:
                 if unws(block[i]) in ["Amendment", "Amendment by Parliament", "Text Amended"]:
@@ -514,29 +528,30 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, par
                 del block[i]
                 continue
             # only new, old is empty
-            if block[i].startswith('         '):
+            if not sep and block[i].startswith('         '):
                 try: am['new'].append(unws(block[i]))
                 except KeyError: am['new']=[unws(block[i])]
                 del block[i]
                 continue
             newstart = block[i].rstrip().rfind('  ')
             # only old, new is empty
-            if newstart < 6:
+            if not sep and newstart < 6:
                 try: am['old'].append(unws(block[i]))
                 except KeyError: am['old']=[unws(block[i])]
                 del block[i]
                 continue
             #mid=len(block[i])/2
             #mid=40
-            lsep=block[i].rfind('  ', 0, mid)
-            rsep=block[i].find('  ', mid)
-            sep=None
-            if abs(lsep-mid)<abs(rsep-mid):
-                if abs(lsep-mid)<15:
-                    sep=lsep
-            else:
-                if abs(rsep-mid)<15:
-                    sep=rsep
+            if not sep:
+                lsep=block[i].rfind('  ', 0, mid)
+                rsep=block[i].find('  ', mid)
+                sep=None
+                if abs(lsep-mid)<abs(rsep-mid):
+                    if abs(lsep-mid)<15:
+                        sep=lsep
+                else:
+                    if abs(rsep-mid)<15:
+                        sep=rsep
             if sep:
                 try: am['old'].append(unws(block[i][:sep]))
                 except KeyError: am['old']=[unws(block[i][:sep])]
