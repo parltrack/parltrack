@@ -207,7 +207,7 @@ def getraw(url):
       tmp.write(pdf_doc)
       with pdfplumber.open(tmp.name) as pdf:
          for page in pdf.pages:
-            lines = page.extract_text(layout=True, x_density=5, y_density=13.8, y_tolerance=7, keep_blank_chars=True).split('\n')
+            lines = page.extract_text(layout=True, x_density=3, y_density=13.8, y_tolerance=7, keep_blank_chars=True).split('\n')
             # strip leading empty lines on a page
             while unws(lines[0]) == '':
                del[lines[0]]
@@ -338,6 +338,7 @@ def scrape(url, dossier, aref=None, save = False):
    lines, PE, date, _ = getraw(url)
    #print(PE, date, aref)
    #print('\n'.join(lines[:30]))
+   #print('\n'.join(lines))
    block=[]
    prolog = True
    committee = []
