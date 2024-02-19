@@ -222,7 +222,7 @@ def scrape(committee, url, **kwargs):
             #    log(2, f'Unable to find date for {vote["reference"]} in {url}')
         else:
             wrong_fields.append('reference')
-            log(2, f'Unable to identify dossier ID for vote #{voteno} in {url}')
+            log(2, f'Unable to identify dossier ID for vote #{voteno} in {url} - {text}')
 
         if 'type' not in vote or not vote['type']:
             if not vote.get('amendments'):
