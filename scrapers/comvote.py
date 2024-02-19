@@ -32,7 +32,7 @@ import re
 from subprocess import run
 from tempfile import NamedTemporaryFile
 from urllib.parse import unquote
-
+from collections import defaultdict
 
 import pdfplumber
 
@@ -137,10 +137,10 @@ def scrape(committee, url, **kwargs):
         meta_dossiers = extract_dossiers_from_metadata(kwargs, com_dates, date_candidates)
 
     for i, data in enumerate(pdfdata):
-        unsure_fields = []
-        wrong_fields = []
         if not type(data) == list:
             continue
+        unsure_fields = []
+        wrong_fields = []
         voteno += 1
         tables = [x.extract() for x in data]
 
@@ -173,13 +173,14 @@ def scrape(committee, url, **kwargs):
 
         # means that this is part of multiple votes about the same subject
         # we need the additional data from the previous vote
-        if (not vote_details or (len(vote_details) == 1 and 'type' in vote_details)) and len(res):
-            if 'reference' in res[-1]:
-                vote_details['reference'] = res[-1]['reference']
+        if len(res):
+            if 'amendments' in res[-1] and 'type' in vote_details and len(vote_details) == 1:
+                vote_details['amendments'] = res[-1]['amendments']
+            if 'reference' not in vote_details or not db.dossier(vote_details['reference']):
+                if 'reference' in res[-1]:
+                    vote_details['reference'] = res[-1]['reference']
 #            if 'rapporteur' in res[-1]:
 #                vote_details['rapporteur'] = res[-1]['rapporteur']
-            if 'amendments' in res[-1]:
-                vote_details['amendments'] = res[-1]['amendments']
 
         vote.update(**vote_details)
 
@@ -423,11 +424,34 @@ def extract_pdf(pdf, committee):
 #    return 0
 
 
+#def get_vote_details(committee, text):
+#    if committee in COMM_DETAIL_PARSERS:
+#        return COMM_DETAIL_PARSERS[committee](text)
+#    else:
+#        return {}
+
+
 def get_vote_details(committee, text):
-    if committee in COMM_DETAIL_PARSERS:
-        return COMM_DETAIL_PARSERS[committee](text)
-    else:
+    candidates = []
+    for p in COMM_DETAIL_PARSERS.values():
+        try:
+            candidates.append(p(text))
+        except:
+            continue
+
+    if not candidates:
         return {}
+
+    res = defaultdict(lambda: defaultdict(int))
+    for c in candidates:
+        for k, v in c.items():
+            res[k][v] += 1
+
+    ret = {
+        k: sorted([(sk, sv) for sk, sv in v.items()], key=lambda x: x[1])[-1][0]
+        for k, v in res.items()
+    }
+    return ret
 
 
 def get_text_from_page(page, start_pos=None, end_pos=None):
