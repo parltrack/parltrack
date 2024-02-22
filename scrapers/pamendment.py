@@ -124,13 +124,15 @@ def unpaginate(text, url):
                del lines[fstart]
                fstart -= 1
            #lines[i]="\x0c"
-           continue
 
        footer = isfooter(lines[i])
        if footer:
           if PE is None:
              m = pere.search(unws(lines[i]))
              if m: PE = m.group(0)
+          if lines[i].startswith('\x0c'):
+             lines[i]="\x0c"
+             continue
           i-=1
 
        while i>0 and unws(lines[i])=='':
