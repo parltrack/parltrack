@@ -162,6 +162,7 @@ def html_ams(amendment_titles, url):
       if [x for x in old if x]: am['old']=old
       if [x for x in new if x]: am['new']=new
 
+      # TODO/FIXME conflates (comments) and justifications
       line = line.getnext()
       justification = []
       while line is not None and (end is None or line!=end):
@@ -217,7 +218,7 @@ def scrape(url, dossier):
    if len(amendment_titles)>0 and len(tables)>0:
       ams = html_ams(amendment_titles, url)
    elif len(amendment_titles)==0 and len(tables)==0:
-      res['text'] = html_full(root)
+      res = html_full(root)
    else:
       log(1, f"inconistent am titles and tables in {url}")
       return
@@ -229,7 +230,6 @@ def scrape(url, dossier):
 
    # merge pdf and html ams
    for h, p in zip_longest(ams, pdf_ams):
-     am = {}
      if (h is not None and p is not None):
         try:
            tmp = int(h['seq'])
@@ -244,6 +244,20 @@ def scrape(url, dossier):
         else:
            log(2, f"seq is not an int {h['seq']}")
 
+     if p is not None:
+        am = p
+        am['src_type']='pdf'
+     elif h is not None:
+        am = h
+        am['src_type']='html'
+        am['reference']=dossier['procedure']['reference']
+     else:
+        log(1,f'both pdf and html am are None, aborting processing'
+              f"{max(len(ams),len(pdf_ams))-len(res['amendments'])} unprocessed amendments in {url}")
+        return res
+     am['adoc_src']=url
+
+     if (h is not None and p is not None):
         # sanity-check if html==pdf am
         for t in ('old', 'new'):
           a = ''.join(h.get(t,[]))
@@ -255,26 +269,10 @@ def scrape(url, dossier):
              print('html\n',jdump(h))
              print('pdf\n',jdump(p))
 
-     if p is not None:
-        am.update(p)
-        am['pdf'] = {'src': p['src']}
-        for t in ('location', 'old', 'new', 'justification'):
-           if t in p:
-              am['pdf'][t]=p[t]
-              del am[t]
-        if h is not None:
-           am['html']=h
-           del am['html']['seq']
-        am['src']=url
-     else:
-        am.update(h)
-        am['reference']=dossier['procedure']['reference']
-        am['html']={}
-        for t in ('old', 'new', 'justification'):
-           if t in h:
-              am['html'][t]=h[t]
-              del am[t]
-     am['src']=url
+     if 'inconsistent' in am:
+       am['html']=h
+       del am['html']['seq']
+
      res['amendments'].append(am)
 
    # todo link up amendments with text...
