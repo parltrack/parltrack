@@ -325,6 +325,7 @@ def scrape(url, dossier, aref=None, save = False):
    #print(tmp)
    if 'new or amended text is highlighted in bold' in tmp or '▌' in tmp:
       log(1, f"inline diff format for {reference} / {aref} in {url}")
+      # todo return one item
       return res
    block=[]
    prolog = True
