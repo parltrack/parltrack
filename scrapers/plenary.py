@@ -5,19 +5,15 @@ from utils.log import log
 from utils.utils import fetch, junws, unws, jdump, getpdf
 from utils.process import process
 from config import CURRENT_TERM
+from itertools import zip_longest
 
 import pamendment
 from amendment import locstarts, types
+from pamendment import dossier_from_url
 
 from lxml.etree import tostring
 
 base='https://www.europarl.europa.eu'
-
-def crawl():
-   dossiers = db.dossiers_by_activity()
-   #print(len(dossiers))
-   for dossier in dossiers:
-       scrape(dossier)
 
 def html_full(root):
    res={'amendments': [], 'text': []}
@@ -29,7 +25,7 @@ def html_full(root):
    deletes = root.xpath("//div[@class='red:section_MainContent']//*[contains(text(),'▌')]")
    if not deletes: return res
    # todo handle inline amendments
-   print("handle inline diffs")
+   print("todo handle inline diffs")
    return res
 
 def skip_empty_lines(node):
@@ -40,11 +36,42 @@ def skip_empty_lines(node):
          return node
       node=node.getnext()
 
-def html_ams(amendment_titles):
-   res={'amendments': [], 'text': []}
-   for amendment_title in amendment_titles:
-      number = ''.join(amendment_title.xpath('./following-sibling::span/text()'))
-      am={'seqno': number}
+
+def parse_sequential(line, end):
+   line=line.getnext()
+   old = []
+
+   while line is not None and junws(line)!="Amendment" and (end is not None or line!=end):
+      old.append(junws(line))
+      line=line.getnext()
+
+   new = []
+   while line is not None and junws(line)!="Justification" and (end is not None or line!=end):
+      new.append(junws(line))
+      line=line.getnext()
+
+   if line is None or (end is not None and line==end):
+      return old, new, []
+
+   justification = []
+   while line is not None and (end is None or line!=end):
+      justification.append(junws(line))
+      line=line.getnext()
+
+   return old, new, justification
+
+blist = { ('https://www.europarl.europa.eu/doceo/document/A-9-2023-0048_EN.html', '145'),
+          #('', ''),
+         }
+def html_ams(amendment_titles, url):
+   res=[]
+   for n, amendment_title in enumerate(amendment_titles):
+      number = unws(''.join(amendment_title.xpath('./following-sibling::span/text()')))
+      if (url, number) in blist:
+         log(2, f"skipping am {number} in {url} due to it being blacklisted")
+         res.append({'seq': number})
+         continue
+      am={'seq': number}
       line = amendment_title.getparent()
       line = skip_empty_lines(line)
 
@@ -58,16 +85,32 @@ def html_ams(amendment_titles):
       if tmp.split()[0] not in locstarts:
          log(2,f"invalid amendment {number} location: {tostring(line)}")
          continue
-      am['location']=tmp
+      am['location']=[tmp]
       line = skip_empty_lines(line)
+
+      end = None
+      if n+1 < len(amendment_titles):
+         end = amendment_titles[n+1].getparent()
 
       # EP personal does a lot of stupid stuff
       # we complain about it and then ignore the shit out of it...
+      bail = False
       while line.tag != 'div':
          if junws(line) != '':
-            log(2,f"amendment {number} table expected, instead: {junws(line)}")
-            log(2,f"location was {repr(am['location'])}")
+            if junws(line) == "Text proposed by the Commission":
+               old, new, justification = parse_sequential(line, end)
+               if old: am['old']=old
+               if new: am['new']=new
+               if justification: am['justification']=justification
+               res.append(am)
+               bail = True
+               break
+            #log(4,f"amendment {number} table expected, instead: {junws(line)}")
+            #log(4,f"adding to location, location was {repr(am['location'])}")
+            am['location'].append(junws(line))
          line = line.getnext()
+      if bail == True:
+         continue
 
       if line.get('class') != "table-responsive":
          log(2,f"amendment {number} table expected, instead: {tostring(line)}")
@@ -75,83 +118,207 @@ def html_ams(amendment_titles):
 
       #parse table
       rows = line.xpath('./table/tr')
-      tmp = junws(rows[0]) 
+      if len(rows)<3:
+         log(2, f"amendment {number} table has less than 3 rows {url}")
+         res.append(am)
+         continue
+
+      tmp = junws(rows[0])
       if tmp != '':
          log(2, f"first row of amendment table has unexpected content: {repr(tmp)}")
          #continue
-      col1, col2 = rows[1].xpath('./td')
+      tmp = rows[1].xpath('./td')
+      if len(tmp) != 2:
+         log(2,f"found row with other than two columns {len(tmp)}, in am {number} {url}")
+         res.append(am)
+         continue
+      col1, col2 = tmp
+
       tmp = junws(col1)
-      if tmp != 'Text proposed by the Commission':
-         log(2, f'heading of first column has unexpected content: {repr(tmp)}')
+      if tmp not in  {'Text proposed by the Commission', 'Present text'}:
+         log(2, f'am {number} heading of first column has unexpected content: {repr(tmp)}')
       tmp = junws(col2)
       if tmp != 'Amendment':
-         log(2, f'heading of second column has unexpected content: {repr(tmp)}')
+         log(2, f'am {number} heading of second column has unexpected content: {repr(tmp)}')
 
       old = []
       new = []
 
+      bail = False
       for row in rows[2:]:
-         col1, col2 = row.xpath('./td')
+         tmp = row.xpath('./td')
+         if len(tmp) != 2:
+            log(2,f"found row with other than two columns {len(tmp)}, in am {number} {url}")
+            res.append(am)
+            bail = True
+            break
+         col1, col2 = tmp
          old.append(junws(col1))
          new.append(junws(col2))
+
+      if bail:
+         continue
 
       if [x for x in old if x]: am['old']=old
       if [x for x in new if x]: am['new']=new
 
-      res['amendments'].append(am)
+      line = line.getnext()
+      justification = []
+      while line is not None and (end is None or line!=end):
+         justification.append(junws(line))
+         line=line.getnext()
+      justification = '\n'.join([x for x in justification if x])
+      if justification:
+         am['justification']=justification
+
+      res.append(am)
 
    return res
 
-def scrape(dossier):
-   url = None
-   for ev in dossier.get('events',[]):
-      if ev.get('type') not in {'Committee report tabled for plenary',
-                                'Committee report tabled for plenary, 1st reading'}: continue
-      if len(ev.get('docs',[])) > 1:
-         log(1,f"too many tabled reports in plenary {len(ev.get('docs',[]))} {dossier['procedure']['reference']}")
-         raise ValueError(f"{dossier['procedure']['reference']} has multiple reports tabled")
-      url = ev['docs'][0]['url']
-      break
+import unicodedata
+import diff_match_patch as dmp_module
+dmp = dmp_module.diff_match_patch()
+# todo move normalize to utils
+delchars = ''.join(c for c in map(chr, range(128)) if not c.isalnum())
+del_map = str.maketrans('', '', delchars)
+def normalize(txt):
+    return unicodedata.normalize('NFKD', txt).encode('ascii','ignore').decode('utf8').translate(del_map).lower()
+def difftxt(t1, t2):
+    res = []
+    d = dmp.diff_main(t1,t2)
+    dmp.diff_cleanupSemantic(d)
+    for op, data in d or []:
+        if op == dmp.DIFF_INSERT:
+            if data == ' ':
+               res.append(' ')
+               continue
+            res.append(f"\033[48;5;40m{data}\033[0m")
+        elif op == dmp.DIFF_DELETE:
+            if data == ' ':
+               res.append(' ')
+               continue
+            res.append(f"\033[48;5;197m{data}\033[0m")
+        elif op == dmp.DIFF_EQUAL:
+            res.append(f"{data}")
+    return ''.join(res)
+
+def scrape(url, dossier):
+   #url, dossier, _ = ref_to_url(ref)
+   #dossier = dossier_from_url(url)
    if url is None: return
-   print(url)
+   log(3, f"scraping plenary: {url}")
    root = fetch(url)
 
    amendment_titles = root.xpath('//div[@class="red:section_MainContent"]//p[@class="text-center"]/span[text()="Amendment"]')
    tables = root.xpath('//div[@class="red:section_MainContent"]//div[@class="table-responsive"]/table/tr/td/p/span[text()="Text proposed by the Commission"]')
 
+   ams = []
    res={'amendments': [], 'text': []}
    if len(amendment_titles)>0 and len(tables)>0:
-      res = html_ams(amendment_titles)
+      ams = html_ams(amendment_titles, url)
    elif len(amendment_titles)==0 and len(tables)==0:
-      res = html_full(root)
+      res['text'] = html_full(root)
    else:
       log(1, f"inconistent am titles and tables in {url}")
       return
 
+   pdf_ams=[]
    for pdf_url in root.xpath('//div[@id="amdData"]//a[@aria-label="pdf"]/@href'):
-     print(base+pdf_url)
-     # todo pass also dossier id
-     res['amendments'].append(pamendment.scrape(base+pdf_url, dossier))
+     log(3,f"scraping plenary am pdf: {base+pdf_url}")
+     pdf_ams.extend(pamendment.scrape(base+pdf_url, dossier))
 
+   # merge pdf and html ams
+   for h, p in zip_longest(ams, pdf_ams):
+     am = {}
+     if (h is not None and p is not None):
+        try:
+           tmp = int(h['seq'])
+        except ValueError:
+           tmp = None
+        if tmp:
+           if tmp != p['seq']:
+              log(1, f"seq mismatch {h['seq']} != {p['seq']}, aborting "
+                     f"{max(len(ams),len(pdf_ams))-len(res['amendments'])} unprocessed amendments in {url}")
+              return res
+           h['seq']=tmp
+        else:
+           log(2, f"seq is not an int {h['seq']}")
+
+        # sanity-check if html==pdf am
+        for t in ('old', 'new'):
+          a = ''.join(h.get(t,[]))
+          b = ''.join(p.get(t,[]))
+          if normalize(a) != normalize(b):
+             if 'inconsistent' not in am: am['inconsistent']=[]
+             am['inconsistent'].append((t, difftxt(a,b)))
+             print(t, h['seq'], '\n', difftxt(a,b))
+             print('html\n',jdump(h))
+             print('pdf\n',jdump(p))
+
+     if p is not None:
+        am.update(p)
+        am['pdf'] = {'src': p['src']}
+        for t in ('location', 'old', 'new', 'justification'):
+           if t in p:
+              am['pdf'][t]=p[t]
+              del am[t]
+        if h is not None:
+           am['html']=h
+           del am['html']['seq']
+        am['src']=url
+     else:
+        am.update(h)
+        am['reference']=dossier['procedure']['reference']
+        am['html']={}
+        for t in ('old', 'new', 'justification'):
+           if t in h:
+              am['html'][t]=h[t]
+              del am[t]
+     am['src']=url
+     res['amendments'].append(am)
 
    # todo link up amendments with text...
 
-   #from IPython import embed; embed()
-   print(jdump(res))
+   return res
 
-   return(res)
+def ref_to_url(ref):
+   dossier = db.dossier(ref)
+   url = None
+   date = None
+   for ev in dossier.get('events',[]):
+      if ev.get('type') not in {'Committee report tabled for plenary',
+                                'Committee report tabled for plenary, 1st reading'}: continue
+      if len(ev.get('docs',[])) > 1:
+         log(1,f"too many tabled reports in plenary {len(ev.get('docs',[]))} {ref}")
+         raise ValueError(f"{dossier['procedure']['reference']} has multiple reports tabled")
+      if 'docs' not in ev:
+          log(2, f"{ref} has no doc in {ev}")
+          continue
+      url = ev['docs'][0].get('url')
+      if url is None:
+          log(2,f"no url in {ref} {ev}")
+          continue
+      date = ev['date']
+      break
+   return url, dossier, date
 
 if __name__ == '__main__':
+   import sys
+   if len(sys.argv)==2:
+      print(jdump(scrape(sys.argv[1], pamendment.dossier_from_url(sys.argv[1])[1])))
    # whole doc - inline amendments
-   #scrape(db.dossier('2022/0272(COD)'))
+   #scrape(*ref_to_url('2022/0272(COD)')[:2])
    # pure amendments
-   scrape(db.dossier('2021/0106(COD)'))
+   #scrape(*ref_to_url('2021/0106(COD)')[:2])
+   #scrape(*ref_to_url('2022/0118(COD)')[:2])
+   #scrape(*ref_to_url('2022/0094(COD)')[:2])
+   #scrape(*ref_to_url('2022/0118(COD)')[:2])
 
    # pamendment test-cases
-   #scrape(db.dossier('2022/2048(INI)'))
-   #scrape(db.dossier('2021/0201(COD)'))
-   #scrape(db.dossier('2022/0272(COD)'))
-   #scrape(db.dossier('2021/0106(COD)'))
-   #scrape(db.dossier('2022/0118(COD)'))
-   #scrape(db.dossier('2020/0036(COD)'))
+   #scrape(*ref_to_url('2022/2048(INI)')[:2])
+   #scrape(*ref_to_url('2021/0201(COD)')[:2])
+   #scrape(*ref_to_url('2022/0272(COD)')[:2])
+   #scrape(*ref_to_url('2021/0106(COD)')[:2])
+   #scrape(*ref_to_url('2022/0118(COD)')[:2])
+   #scrape(*ref_to_url('2020/0036(COD)')[:2])
 
