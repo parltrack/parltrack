@@ -100,6 +100,7 @@ mepmaps={ 'Elisa Ferrreira': 'Elisa Ferreira',
           u'Maria Ad Grace Carvel': u'Maria Da Graça CARVALHO',
           u'László Tıkés': u'László Tőkés',
           'Birgit Sippel on': 'Birgit Sippel',
+          u'Grace O’Sullivan': "Grace O'SULLIVAN",
           u'Hans Van Baalen': u'Johannes Cornelis van BAALEN',
           u'Krišjānis KariĦš': u'Krišjānis KARIŅŠ',
           u'Arturs Krišjānis': u'Krišjānis KARIŅŠ',
@@ -210,9 +211,10 @@ mansplits={u'Rodi Kratsa-Tsagaropoulou Mikael Gustafsson': [u'Rodi Kratsa-Tsagar
            u'Constance Le Grip Lívia Járóka': [u'Constance Le Grip', u'Lívia Járóka'],
            u'Karima Delli Ernest Urtasun': ['Karima Delli', 'Ernest Urtasun'],
            }
+fookters=('<NuPE>PE754.361</NuPE>/',)
 pere = r'(?P<PE>PE(?:TXTNRPE)? ?[0-9]{3,4}\.?[0-9]{3}(?:v[0-9]{2}(?:[-./][0-9]{1,2})?)?)'
 amdoc=r'AM\\(?:[0-9]{4,7}|P\d_AMA\(20\d{2}\)\d{4}\([-0-9]*\)_?)(?:_REV)?_?(?:EN|XM|XT)?\.(?:doc|DOC|tmp|docx)'
-pagere=r'(?:[0-9]{1,3}/[0-9]{1,3})'
+pagere=r'(?:[0-9]{1,3})(?:\s*/\s*[0-9]{1,3})'
 oddre = re.compile(r'\s*'+pere+'\s+'+pagere+r'\s+'+amdoc)
 evenre = re.compile(r'\s*'+amdoc+r'\s+'+pagere+r'\s+'+pere)
 p0re = re.compile(r'\s*'+amdoc+r'\s+'+pere)
@@ -225,6 +227,9 @@ onlypage = re.compile(r'\s*'+pagere+r"$")
 pere=re.compile(r'\s*'+pere)
 amdoc=re.compile(r'\s*'+amdoc)
 def isfooter(line):
+    for footer in fookters:
+        if footer in line:
+            return True
     return (oddre.match(line) or
             evenre.match(line) or
             p0re.match(line) or
@@ -426,6 +431,11 @@ def strip(block):
     while len(block) and not unws(block[-1]):
         del block[-1]
 
+#def not_2column(line, pagewidth):
+#    if line[0]!=' ': return False
+#    if '  ' in line.lstrip(): return False
+#    return abs((len(line) - len(line.lstrip()) // 2) - pagewidth // 2) < 4
+
 def find_sep(block, mid):
     if mid < 50: mid=70
     spaces = set.intersection(*[set([i for i in range(mid+40) if i>=len(line) or line[i]==' ']) for line in block])
@@ -439,6 +449,7 @@ def find_sep(block, mid):
     #print(mid, span)
     return mid
 
+#def parse_block(block, url, reference, date, rapporteur, PE, pagewidth, committee=None, parse_dossier=None, top_of_diff=2):
 def parse_block(block, url, reference, date, rapporteur, PE, committee=None, parse_dossier=None, top_of_diff=2):
     am={u'src': url,
         u'peid': PE,
@@ -468,12 +479,15 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, par
     while i>top_of_diff and not (unws(block[i])=="Justification" and block[i].startswith(' ' * 6)):
         i-=1
     if i>top_of_diff:
-        if i<len(block)-1 and (not unws(block[i+1]) or not block[i+1].startswith(' ') ):
-            am['justification']='\n'.join(block[i+2:])
-            del block[i:]
-            strip(block)
-        else:
-            log(2, 'wrong justification in %s: "%s"' % (am['seq'], '\\n'.join(block[i:])))
+        if i<len(block)-1:
+            tmp = block[i+1:]
+            strip(tmp)
+            if len(tmp)>0:
+                am['justification']='\n'.join(tmp)
+            else:
+                log(2,f"empty justification in am:", am['seq'], url, repr('\n'.join(block[i:])))
+        del block[i:]
+        strip(block)
 
     # get original language
     if 4<len(unws(block[-1]))<=6 and unws(block[-1]).startswith('Or.'):
@@ -618,7 +632,7 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, par
                     else:
                         log(3, "fix %s" % text)
         else:
-            log(3, "no authors in Amendment %s %s" % (am['seq'], url))
+            log(4, "no authors in Amendment %s %s" % (am['seq'], url))
     else:
         log(2, "no boundaries in Amendment %s %s\n%s" % (am['seq'], url,
                                                       '\n'.join(block)))
@@ -686,6 +700,8 @@ def scrape(url, meps=None, **kwargs):
     date=None
     committee=[]
     text, PE=getraw(url)
+    #pagewidth = max(len(line) for line in text)
+    #log(3,f"page width is {pagewidth}")
     motion = False
     for line in text:
         #log(4,'line is: "%s"' % line)
@@ -749,6 +765,7 @@ def scrape(url, meps=None, **kwargs):
 
         if amstart.match(line):
             # parse block
+            #am=parse_block(block, url, reference, date, meps, PE, pagewidth, committee)
             am=parse_block(block, url, reference, date, meps, PE, committee)
             if am is not None:
                 process(am, am['id'], db.amendment, 'ep_amendments', am['reference']+' '+am['id'], nodiff=True)
@@ -757,6 +774,7 @@ def scrape(url, meps=None, **kwargs):
             continue
         block.append(line)
     if block and filter(None,block):
+        #am = parse_block(block, url, reference, date, meps, PE, pagewidth, committee)
         am = parse_block(block, url, reference, date, meps, PE, committee)
         if am is not None:
             process(am, am['id'], db.amendment, 'ep_amendments', am['reference']+' '+am['id'], nodiff=True)
