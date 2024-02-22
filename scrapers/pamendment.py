@@ -27,10 +27,9 @@ from utils.utils import fetch_raw, unws, jdump
 from utils.log import log
 from db import db
 from scrapers.amendment import isfooter, parse_block, strip
-from scrapers import amendment
 from utils.mappings import COMMITTEE_MAP
 
-pere = r'(?P<PE>PE(?:TXTNRPE)? ?[0-9]{3,4}\.?[0-9]{3}(?:v[0-9]{2}(?:[-./][0-9]{1,2})?)?)'
+pere = re.compile(r'(?P<PE>PE(?:TXTNRPE)? ?[0-9]{3,4}\.?[0-9]{3}(?:v[0-9]{2}(?:[-./][0-9]{1,2})?)?)')
 
 headerre=re.compile(r'\s*(?P<date>\d{1,2}\.\d{1,2}\.\d{4})\s*(?P<Aref>A[789]-\d{4}/ ?\d{1,4})')
 def isheader(line):
@@ -105,29 +104,13 @@ def unpaginate(text, url):
            if tmp in ['AM_Com_NonLegCompr', 'AM_Com_NonLegReport','AM_Com_NonLegOpinion']:
                # no footer on this page (and probably neither on the previous one which should be the first)
                continue
-           footer = isfooter(tmp)
-           if footer:
-              if PE is None and footer.group('PE'): # try to figure out PE id
-                  PE = footer.group('PE')
-              log(3, 'no EN marker found, but footer: "%s"' % tmp)
-              i+=1 # neutralize the decrement after this block
-           else:
-              #log(1, 'could not find EN marker above pagebreak: %d %d "%s"' % (i, eo1p, tmp))
-              log(1, 'could not find EN marker above pagebreak: %d "%s"' % (i, tmp))
-              raise ValueError('no EN marker found "%s" in %s' % (tmp,url))
-
-       if tmp == "United in diversity" and unws(lines[i-1]) in {'EN', 'EN EN'}:
+           log(2, 'could not find EN marker above pagebreak: %d "%s"' % (i, tmp))
+           #raise ValueError('no EN marker found "%s" in %s' % (tmp,url))
+       else:
           i-=1
+          if tmp == "United in diversity" and unws(lines[i]) in {'EN', 'EN EN'}:
+             i-=1
 
-       if lines[i].startswith('\x0c'): # we found a ^LEN^L
-           # we found an empty page.
-           while fstart > i:
-               del lines[fstart]
-               fstart -= 1
-           lines[i]="\x0c"
-           continue
-
-       i -= 1
        # find the next non-empty line above the EN marker
        while i>0 and unws(lines[i])=='':
            i-=1
@@ -135,33 +118,26 @@ def unpaginate(text, url):
            log(1, "could not find non-empty line above EN marker: %s" % url)
            raise ValueError("no next line above EN marker found: %s" % url)
 
-       footer = isfooter(lines[i])
-       if not footer:
-           tmp = unws(lines[i])
-           if tmp=="Or. en":
-               i+=1 # preserve this line - and cut of the rest
-           elif tmp not in ['AM_Com_NonLegCompr', 'AM_Com_NonLegReport','AM_Com_NonLegOpinion']:
-               log(1,'not a footer: "%s" line: %d in %s' % (repr(lines[i]),i,url))
-               raise ValueError('not a footer: "%s" line: %d in %s' % (lines[i],i,url))
-       elif PE is None and footer.group('PE'):
-          PE = footer.group('PE')
+       if i<len(lines) and lines[i].startswith('\x0c'): # we found a ^LEN^L
+           # we found an empty page.
+           while fstart > i:
+               del lines[fstart]
+               fstart -= 1
+           #lines[i]="\x0c"
+           continue
 
-       if lines[i].startswith('\x0c'):
-           # we found an empty page with only the footer
-          lines[i]='\x0c'
-          i+=1
-       else: # is a regular page
-          i -= 1
-          #if unws(lines[i])!='':
-          #   for j in range(-10,10):
-          #       log(1, '"%s"' % (unws(lines[i+j])))
-          #   log(1, 'line above footer is not an empty line: "%s"' % (unws(lines[i])))
-          #   raise ValueError("no empty line above footer")
-          while i>0 and unws(lines[i])=='':
-              i-=1
-          if i<=0:
-              log(1, "could not find non-empty line above footer: %s" % url)
-              raise ValueError("no content found above footer: %s" % url)
+       footer = isfooter(lines[i])
+       if footer:
+          if PE is None:
+             m = pere.search(unws(lines[i]))
+             if m: PE = m.group(0)
+          i-=1
+
+       while i>0 and unws(lines[i])=='':
+           i-=1
+       if i<=0:
+           log(1, "could not find non-empty line above footer: %s" % url)
+           raise ValueError("no content found above footer: %s" % url)
 
        # delete all lines between fstart and i
        while fstart > i:
@@ -219,13 +195,8 @@ def getraw(url):
             doc.append('\n'.join(lines))
    return unpaginate('\n\f'.join(doc), url)
 
-# patch up amendments
-#amendment.unpaginate = unpaginate
-amendment.mansplits={}
-amendment.mepmaps={}
-
 refre=re.compile(r'(.*)([0-9]{4}/[0-9]{4}[A-Z]?\((?:ACI|APP|AVC|BUD|CNS|COD|COS|DCE|DEA|DEC|IMM|INI|INL|INS|NLE|REG|RPS|RSO|RSP|SYN)\))')
-amstart=re.compile(r'\s*(:?Emendamenti|Amende?ment)\s*([0-9A-Z]+(:?/rev)?)\s*$')
+amstart=re.compile(r'\s*(:?Emendamenti|Amende?ment)\s*([0-9A-Z]+(:?/rev1?)?)\s*$')
 
 dossier1stline_re = re.compile(r'(.*)\s*(A[6789]-\d{4}/\d{4})$')
 def parse_dossier(lines, date):
@@ -237,6 +208,9 @@ def parse_dossier(lines, date):
       'type' : unws(m1.group(1)),
       'aref' : m1.group(2)
       }
+   if len(lines)<2:
+      log(2,f"parse_dossier only got 1 line in block to parse: {repr(lines)}")
+      return dossier
    mepid=db.getMep(unws(lines[1]),date)
    if mepid:
       try: dossier['meps'].append(mepid)
@@ -244,7 +218,7 @@ def parse_dossier(lines, date):
 
    mr = refre.search(unws(' '.join(lines[2:])))
    if not mr:
-      log(1, "could not find dossier reference in rest of dossier block")
+      log(3, "could not find dossier reference in rest of dossier block")
       return dossier
    ref=mr.group(2)
    d = db.dossier(ref)
@@ -331,18 +305,28 @@ def parse_cover(lines, reference, dossier, aref):
       log(4, "leftover after cover extraction\n\t|"+'\n\t|'.join(lines))
    return res
 
+blisted = {'https://www.europarl.europa.eu/doceo/document/A-9-2023-0033-AM-001-001_EN.pdf'}
 def scrape(url, dossier, aref=None, save = False):
+   res=[]
+   if url in blisted:
+      log(3,f"skipping blacklisted {url}")
+      return res
    if aref is None:
       aref = url_to_aref(url)
    reference = dossier['procedure']['reference']
    lines, PE, date, _ = getraw(url)
    #print(PE, date, aref)
    #print('\n'.join(lines[:30]))
-   #print('\n'.join(lines))
+   tmp = '\n'.join(lines)
+   #pagewidth = max(len(line) for line in lines)
+   #log(3,f"page width is {pagewidth}")
+   #print(tmp)
+   if 'new or amended text is highlighted in bold' in tmp or '▌' in tmp:
+      log(1, f"inline diff format for {reference} / {aref} in {url}")
+      return res
    block=[]
    prolog = True
    committee = []
-   res=[]
    meps = None
    meta = None
    date = parse(date, dayfirst=True)
@@ -356,6 +340,7 @@ def scrape(url, dossier, aref=None, save = False):
             block=[line]
             continue
 
+         #am=parse_block(block, url, reference, date, meps, PE, pagewidth, parse_dossier=parse_dossier, top_of_diff=1)
          am=parse_block(block, url, reference, date, meps, PE, parse_dossier=parse_dossier, top_of_diff=1)
          if am is not None:
             if meta: am.update(meta)
@@ -367,6 +352,7 @@ def scrape(url, dossier, aref=None, save = False):
       if block is not None: block.append(line)
 
    if block and filter(None,block):
+      #am = parse_block(block, url, reference, date, meps, PE, pagewidth, parse_dossier=parse_dossier, top_of_diff=1)
       am = parse_block(block, url, reference, date, meps, PE, parse_dossier=parse_dossier, top_of_diff=1)
       if am is not None:
          if meta: am.update(meta)
@@ -382,6 +368,7 @@ def url_to_aref(url):
 
 def dossier_from_url(url):
    # url ~ https://www.europarl.europa.eu/doceo/document/A-9-2022-0292-AM-001-001_EN.pdf
+   #  or ~ https://www.europarl.europa.eu/doceo/document/A-9-2023-0233_EN.html
    aref = url_to_aref(url)
    return aref, db.get("dossiers_by_doc", aref)[0]
 
