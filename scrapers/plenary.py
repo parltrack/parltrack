@@ -135,7 +135,7 @@ def html_ams(amendment_titles, url):
       col1, col2 = tmp
 
       tmp = junws(col1)
-      if tmp not in  {'Text proposed by the Commission', 'Present text'}:
+      if tmp not in {'Text proposed by the Commission', 'Present text'}:
          log(2, f'am {number} heading of first column has unexpected content: {repr(tmp)}')
       tmp = junws(col2)
       if tmp != 'Amendment':
