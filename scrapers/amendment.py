@@ -431,26 +431,99 @@ def strip(block):
     while len(block) and not unws(block[-1]):
         del block[-1]
 
-#def not_2column(line, pagewidth):
-#    if line[0]!=' ': return False
-#    if '  ' in line.lstrip(): return False
-#    return abs((len(line) - len(line.lstrip()) // 2) - pagewidth // 2) < 4
+def not_2column(line, pagewidth, margin):
+    if '  ' in line.lstrip(): return False
+    beginning = ((len(line)+margin) - len(line.lstrip()))
+    return beginning < pagewidth // 2 < len(line) + margin
 
 def find_sep(block, mid):
-    if mid < 50: mid=70
     spaces = set.intersection(*[set([i for i in range(mid+40) if i>=len(line) or line[i]==' ']) for line in block])
     if mid not in spaces:
-        log(1,f"{mid} is not in spaces: {sorted(spaces)}")
-        print("\n".join(block))
-        return None
-    #span = [mid, mid]
-    #while(span[1]+1 in spaces): span[1]=span[1]+1
-    #while(span[0]-1 in spaces): span[0]=span[0]-1
-    #print(mid, span)
-    return mid
+        for e in range(8):
+            if mid+e in spaces:
+                mid = mid+e
+                break
+            if mid-e in spaces:
+                mid = mid-e
+                break
+        if mid not in spaces:
+            log(1,f"{mid} is not in spaces: {sorted(spaces)}")
+            print("\n".join(block))
+            return None
 
-#def parse_block(block, url, reference, date, rapporteur, PE, pagewidth, committee=None, parse_dossier=None, top_of_diff=2):
-def parse_block(block, url, reference, date, rapporteur, PE, committee=None, parse_dossier=None, top_of_diff=2):
+    span = [mid, mid]
+    while(span[1]+1 in spaces): span[1]=span[1]+1
+    while(span[0]-1 in spaces): span[0]=span[0]-1
+    #print(mid, span)
+    return span
+
+def extract_cmt(block, pagewidth, margin):
+    # todo if handle also sequential diffs with comments, page 3 has a test case:
+    # https://www.europarl.europa.eu/doceo/document/A-9-2023-0048-AM-157-158_EN.pdf
+    #print('\n'.join(block))
+    #print('asdf')
+    i = len(block)-1
+    orig_lang = None
+    c_start = None
+    c_end = None
+    diff_end = len(block)-1
+    comment = None
+    span = None
+
+    while (i>0
+           and not unws(block[i]) in {'Text proposed by the Commission Amendment',
+                                      'Present text Amendment',
+                                      'Draft legislative resolution Amendment'}
+           and not " "*(len(block[i])//5)+"Amendment" in block[i]):
+
+        tmp = block[i].lstrip()
+        if tmp.startswith('Or.') and len(tmp)<=6 and len(block[i])>(pagewidth - pagewidth//4):
+            log(4, f"found original language: {tmp[3:].strip()}")
+            orig_lang=tmp[3:].strip()
+            del block[i]
+            if c_end is not None: c_end-=1
+            if c_start is not None: c_start-=1
+            diff_end = i-1
+            i-=1
+            continue
+
+        if tmp.endswith(')') and not_2column(block[i], pagewidth, margin):
+           if c_end is None:
+              log(4,f"found end of comment block")
+              c_end = i
+           else:
+              log(2, f"found another comment end: {repr(block[i])}")
+        if (c_end is not None
+            and tmp.startswith('(')
+            and not_2column(block[i], pagewidth, margin)):
+            #and (unws(block[i-1])==''
+            #     or (block[i-1].lstrip().startswith('Or.')
+            #         and len(block[i-1].lstrip())<=6
+            #         and len(block[i-1])>(pagewidth - pagewidth//4)))):
+           log(4,f"found start of comment block")
+           c_start = i
+        i-=1
+
+    if i<0:
+        return orig_lang, comment, span
+    log(4, f"found top of 2 column amendment")
+
+    if (c_end is not None
+        and c_start is not None):
+
+        # check if diff block is really 2 column
+        span = find_sep(block[i:c_start], (pagewidth) // 2 - margin)
+        if not span or span[1]-span[0] < 10:
+            log(2, f"find_sep failed: {span}")
+            return orig_lang, comment, span
+
+        comment = [unws(l) for l in block[c_start:c_end+1]]
+        log(4, f"found comment block")
+        del block[c_start:c_end+1]
+
+    return orig_lang, comment, span
+
+def parse_block(block, url, reference, date, rapporteur, PE, pagewidth=None, committee=None, parse_dossier=None, top_of_diff=2, margin=None):
     am={u'src': url,
         u'peid': PE,
         u'reference': reference,
@@ -489,8 +562,29 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, par
         del block[i:]
         strip(block)
 
+    sep = None
+    # page 66 fucks pagewidth up.
+    # https://www.europarl.europa.eu/doceo/document/A-9-2023-0048-AM-001-151_EN.pdf
+    if pagewidth is not None and pagewidth == 248:
+        margin = 24
+        pagewidth = 171
+
+    # https://www.europarl.europa.eu/doceo/document/A-9-2023-0033-AM-002-005_EN.pdf
+    if pagewidth is not None and margin is not None:
+        orig_lang, comment, span =extract_cmt(block, pagewidth, margin)
+        if orig_lang is not None:
+            am['orig_lang']=orig_lang
+        if span is not None:
+            sep = span[0]
+        if comment is not None:
+            am['comment']=comment
+            strip(block)
+
     # get original language
-    if 4<len(unws(block[-1]))<=6 and unws(block[-1]).startswith('Or.'):
+    if ('orig_lang' not in am # we can skip this is extract_cmt already took care of it
+        and 4<len(unws(block[-1]))<=6
+        and unws(block[-1]).startswith('Or.')):
+
         am['orig_lang']=unws(block[-1])[4:]
         del block[-1]
         strip(block)
@@ -529,8 +623,14 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, par
         # throw headers
         del block[i]
         while i<len(block) and not unws(block[i]): del block[i]        # skip blank lines
-        mid=max([len(x) for x in block])//2
-        sep = find_sep(block[i:], mid)
+        if pagewidth is not None and margin is not None:
+            mid = pagewidth // 2 - margin
+        else:
+            mid=max([len(x) for x in block])//2
+        if sep is None:
+            sep = find_sep(block[i:], mid)
+            if sep is not None:
+                sep = sep[0]
         while i<len(block):
             if seq:
                 if unws(block[i]) in ["Amendment", "Amendment by Parliament", "Text Amended"]:

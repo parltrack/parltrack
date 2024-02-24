@@ -104,7 +104,7 @@ def unpaginate(text, url):
            if tmp in ['AM_Com_NonLegCompr', 'AM_Com_NonLegReport','AM_Com_NonLegOpinion']:
                # no footer on this page (and probably neither on the previous one which should be the first)
                continue
-           log(2, 'could not find EN marker above pagebreak: %d "%s"' % (i, tmp))
+           log(2, 'could not find EN marker above pagebreak: %d/%d "%s"' % (i, len(lines), tmp))
            #raise ValueError('no EN marker found "%s" in %s' % (tmp,url))
        else:
           i-=1
@@ -170,7 +170,7 @@ def unpaginate(text, url):
        margin+=1
     lines = [l[margin:] if not l.startswith('\f') else '\f' + l[margin+1:] for l in lines]
 
-    return lines, PE, date, aref
+    return lines, PE, date, aref, margin
 
 from tempfile import NamedTemporaryFile
 import pdfplumber
@@ -185,7 +185,7 @@ def getraw(url):
       tmp.write(pdf_doc)
       with pdfplumber.open(tmp.name) as pdf:
          for page in pdf.pages:
-            lines = page.extract_text(layout=True, x_density=3, y_density=13.8, y_tolerance=7, keep_blank_chars=True).split('\n')
+            lines = page.extract_text(layout=True, x_density=3, y_density=13.8, y_tolerance=6.9, keep_blank_chars=True).split('\n')
             # strip leading empty lines on a page
             while unws(lines[0]) == '':
                del[lines[0]]
@@ -316,13 +316,13 @@ def scrape(url, dossier, aref=None, save = False):
    if aref is None:
       aref = url_to_aref(url)
    reference = dossier['procedure']['reference']
-   lines, PE, date, _ = getraw(url)
+   lines, PE, date, _, margin = getraw(url)
    #print(PE, date, aref)
    #print('\n'.join(lines[:30]))
    tmp = '\n'.join(lines)
-   #pagewidth = max(len(line) for line in lines)
-   #log(3,f"page width is {pagewidth}")
    #print(tmp)
+   pagewidth = max(len(line) for line in lines) + margin
+   #log(3,f"page width is {pagewidth}")
    if 'new or amended text is highlighted in bold' in tmp or '▌' in tmp:
       log(1, f"inline diff format for {reference} / {aref} in {url}")
       # todo return one item
@@ -333,7 +333,6 @@ def scrape(url, dossier, aref=None, save = False):
    meps = None
    meta = None
    date = parse(date, dayfirst=True)
-   from utils.mappings import COMMITTEE_MAP
 
    for line in lines:
       if amstart.match(line):
@@ -343,8 +342,7 @@ def scrape(url, dossier, aref=None, save = False):
             block=[line]
             continue
 
-         #am=parse_block(block, url, reference, date, meps, PE, pagewidth, parse_dossier=parse_dossier, top_of_diff=1)
-         am=parse_block(block, url, reference, date, meps, PE, parse_dossier=parse_dossier, top_of_diff=1)
+         am=parse_block(block, url, reference, date, meps, PE, pagewidth=pagewidth, parse_dossier=parse_dossier, top_of_diff=1, margin=margin)
          if am is not None:
             if meta: am.update(meta)
             if save:
@@ -355,8 +353,7 @@ def scrape(url, dossier, aref=None, save = False):
       if block is not None: block.append(line)
 
    if block and filter(None,block):
-      #am = parse_block(block, url, reference, date, meps, PE, pagewidth, parse_dossier=parse_dossier, top_of_diff=1)
-      am = parse_block(block, url, reference, date, meps, PE, parse_dossier=parse_dossier, top_of_diff=1)
+      am=parse_block(block, url, reference, date, meps, PE, pagewidth=pagewidth, parse_dossier=parse_dossier, top_of_diff=1, margin=margin)
       if am is not None:
          if meta: am.update(meta)
          if save:
