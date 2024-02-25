@@ -211,7 +211,7 @@ def scrape(url, dossier):
    root = fetch(url)
 
    amendment_titles = root.xpath('//div[@class="red:section_MainContent"]//p[@class="text-center"]/span[text()="Amendment"]')
-   tables = root.xpath('//div[@class="red:section_MainContent"]//div[@class="table-responsive"]/table/tr/td/p/span[text()="Text proposed by the Commission"]')
+   tables = root.xpath('//div[@class="red:section_MainContent"]//div[@class="table-responsive"]/table/tr/td/p/span[text()="Text proposed by the Commission" or text()="Present text"]')
 
    ams = []
    res={'amendments': [], 'text': []}
