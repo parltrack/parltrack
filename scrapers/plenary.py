@@ -5,15 +5,21 @@ from utils.log import log
 from utils.utils import fetch, junws, unws, jdump, getpdf
 from utils.process import process
 from config import CURRENT_TERM
-from itertools import zip_longest
 
 import pamendment
 from amendment import locstarts, types
-from pamendment import dossier_from_url
 
+import re
+from itertools import zip_longest
 from lxml.etree import tostring
 
 base='https://www.europarl.europa.eu'
+
+AM_RE = re.compile('Am (\d+(?:[sS=, ]{1,2}\d+)*)')
+#AM_RE = re.compile('Am ([sS=, ])*')
+DATE_RE = re.compile(' \d{2}/\d{2}/\d{4}.+')
+SEP_RE = re.compile('[sS=, ]+')
+
 
 def html_full(root):
    res={'amendments': [], 'text': []}
@@ -218,10 +224,12 @@ def difftxt(t1, t2):
 
 def scrape(url, dossier):
    #url, dossier, _ = ref_to_url(ref)
-   #dossier = dossier_from_url(url)
+   #dossier = pamendment.dossier_from_url(url)
    if url is None: return
    log(3, f"scraping plenary: {url}")
    root = fetch(url)
+   aref = pamendment.url_to_aref(url)
+   votes = db.get('votes_by_dossier', dossier['procedure']['reference'])
 
    amendment_titles = root.xpath('//div[@class="red:section_MainContent"]//p[@class="text-center"]/span[text()="Amendment"]')
    tables = root.xpath('//div[@class="red:section_MainContent"]//div[@class="table-responsive"]/table/tr/td/p/span[text()="Text proposed by the Commission" or text()="Present text"]')
@@ -286,6 +294,7 @@ def scrape(url, dossier):
        am['html']=h
        del am['html']['seq']
 
+     am['vote_ids'] = am_ref_to_vote_id(votes, aref, am['seq'])
      res['amendments'].append(am)
 
    # todo link up amendments with text...
@@ -312,6 +321,24 @@ def ref_to_url(ref):
       date = ev['date']
       break
    return url, dossier, date
+
+
+def am_ref_to_vote_id(votes, aref, seq):
+    if isinstance(seq, int):
+        seq = str(seq)
+    ret = []
+    for vote in votes:
+        if aref not in vote['title']:
+            continue
+        title = DATE_RE.sub('', vote['title'])
+        am_res = AM_RE.search(title)
+        if not am_res:
+            continue
+        ams = SEP_RE.split(am_res.group(1))
+        if seq in ams:
+            ret.append(vote['voteid'])
+    return ret
+
 
 if __name__ == '__main__':
    import sys
