@@ -40,23 +40,29 @@ def skip_empty_lines(node):
 def parse_sequential(line, end):
    line=line.getnext()
    old = []
+   new = []
+   justification = []
 
-   while line is not None and junws(line)!="Amendment" and (end is not None or line!=end):
+   while line is not None and junws(line)!="Amendment" and line!=end:
       old.append(junws(line))
       line=line.getnext()
 
-   new = []
-   while line is not None and junws(line)!="Justification" and (end is not None or line!=end):
-      new.append(junws(line))
+   if junws(line)=="Amendment":
       line=line.getnext()
 
-   if line is None or (end is not None and line==end):
-      return old, new, []
+      while line is not None and junws(line)!="Justification" and line!=end:
+         new.append(junws(line))
+         line=line.getnext()
 
-   justification = []
-   while line is not None and (end is None or line!=end):
-      justification.append(junws(line))
+   if junws(line)=="Justification":
       line=line.getnext()
+
+      if line is None or (end is not None and line==end):
+         return old, new, []
+
+      while line is not None and (end is None or line!=end):
+         justification.append(junws(line))
+         line=line.getnext()
 
    return old, new, justification
 
@@ -76,6 +82,12 @@ def html_ams(amendment_titles, url):
       line = skip_empty_lines(line)
 
       tmp = junws(line)
+      # compromise section, see am 5 in https://www.europarl.europa.eu/doceo/document/A-9-2023-0364_EN.html
+      if tmp.startswith("Compromise "):
+         am['compromise'] = tmp[11:]
+         line = skip_empty_lines(line)
+         tmp = junws(line)
+
       if tmp not in types:
          log(2,f"amendment {number} not of expected draft/proposal type: {tostring(line)}")
          continue
@@ -124,10 +136,11 @@ def html_ams(amendment_titles, url):
          continue
 
       tmp = junws(rows[0])
-      if tmp != '':
-         log(2, f"first row of amendment table has unexpected content: {repr(tmp)}")
-         #continue
-      tmp = rows[1].xpath('./td')
+      if tmp == '':
+         del rows[0]
+      #else:
+      #   log(3, f"first row of amendment table has unexpected content: {repr(tmp)}")
+      tmp = rows[0].xpath('./td')
       if len(tmp) != 2:
          log(2,f"found row with other than two columns {len(tmp)}, in am {number} {url}")
          res.append(am)
@@ -138,14 +151,14 @@ def html_ams(amendment_titles, url):
       if tmp not in {'Text proposed by the Commission', 'Present text'}:
          log(2, f'am {number} heading of first column has unexpected content: {repr(tmp)}')
       tmp = junws(col2)
-      if tmp != 'Amendment':
+      if tmp not in {'Amendment', 'Unchanged text included in the compromise'}:
          log(2, f'am {number} heading of second column has unexpected content: {repr(tmp)}')
 
       old = []
       new = []
 
       bail = False
-      for row in rows[2:]:
+      for row in rows[1:]:
          tmp = row.xpath('./td')
          if len(tmp) != 2:
             log(2,f"found row with other than two columns {len(tmp)}, in am {number} {url}")

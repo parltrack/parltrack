@@ -417,7 +417,7 @@ locstarts=['After', 'Annex', 'Article', 'Chapter', 'Citation', 'Guideline',
            'Column', 'Annexe', 'Sub-heading', 'ANNEX', 'Anexo', 'Articles', 'paragraph',
            'Paragraphs', 'Subh.', 'Subheading.', 'Short', 'Single', 'First', 'Articolo',
            'Suggestion', 'Allegato','Introductory', 'Explanatory', 'Statement', 'Notes',
-           'Visa', 'article', 'Thematic', 'recital', 'Legislative', '.Article',
+           'Visa', 'article', 'Thematic', 'recital', 'Legislative', '.Article', 'Art.'
            'citation', 'Recitals']
 
 def istype(text):
@@ -534,8 +534,8 @@ def parse_block(block, url, reference, date, rapporteur, PE, pagewidth=None, com
         u'date': date}
     if committee is not None:
         am['committee']=committee
+    strip(block)
 
-    #logger.info(block)
     # get title
     try:
         am[u'seq']=int(unws(block[0]).split()[1])
@@ -567,9 +567,13 @@ def parse_block(block, url, reference, date, rapporteur, PE, pagewidth=None, com
         strip(block)
 
     sep = None
-    # page 66 fucks pagewidth up.
+    # https://www.europarl.europa.eu/doceo/document/A-9-2023-0238-AM-001-156_EN.pdf
+    # has landscape tables cropped by portrait page, but not cropped by pdf to text conversion
     # https://www.europarl.europa.eu/doceo/document/A-9-2023-0048-AM-001-151_EN.pdf
-    if pagewidth is not None and pagewidth == 248:
+    # page 66 fucks pagewidth up.
+    # https://www.europarl.europa.eu/doceo/document/A-9-2023-0298-AM-001-165_EN.pdf
+    # has a weird table that needs a different y_density, but that fucks up other parts of the page...
+    if pagewidth is not None and pagewidth in {248, 245, 374}:
         margin = 24
         pagewidth = 171
 

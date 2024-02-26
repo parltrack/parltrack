@@ -26,7 +26,7 @@ from dateutil.parser import parse
 from utils.utils import fetch_raw, unws, jdump
 from utils.log import log
 from db import db
-from scrapers.amendment import isfooter, parse_block, strip
+from scrapers.amendment import isfooter, parse_block, strip, splitNames
 from utils.mappings import COMMITTEE_MAP
 
 pere = re.compile(r'(?P<PE>PE(?:TXTNRPE)? ?[0-9]{3,4}\.?[0-9]{3}(?:v[0-9]{2}(?:[-./][0-9]{1,2})?)?)')
@@ -211,12 +211,16 @@ def parse_dossier(lines, date):
       'aref' : m1.group(2)
       }
    if len(lines)<2:
-      log(2,f"parse_dossier only got 1 line in block to parse: {repr(lines)}")
+      log(3,f"parse_dossier only got 1 line in block to parse: {repr(lines[0])}")
       return dossier
-   mepid=db.getMep(unws(lines[1]),date)
-   if mepid:
-      try: dossier['meps'].append(mepid)
-      except KeyError: dossier['meps']=[mepid]
+
+   for text in filter(None,splitNames(lines[1])):
+       mepid=db.getMep(text,date)
+       if mepid:
+           try: dossier['meps'].append(mepid)
+           except KeyError: dossier['meps']=[mepid]
+       else:
+           log(3, "fix %s" % text)
 
    mr = refre.search(unws(' '.join(lines[2:])))
    if not mr:
@@ -294,11 +298,11 @@ def parse_cover(lines, reference, dossier, aref):
          lines[i]=''
       m = amsre.match(lines[i])
       if m:
-         if m.group(2):
-            res['amendments']={'start': int(m.group(1)),
-                               'end': int(m.group(2))}
-         else:
-            res['amendments']=int(m.group(1))
+         #if m.group(2):
+         #   res['amendments']={'start': int(m.group(1)),
+         #                      'end': int(m.group(2))}
+         #else:
+         #   res['amendments']=int(m.group(1))
          lines[i]=''
 
       i+=1
