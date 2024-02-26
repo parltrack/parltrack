@@ -338,7 +338,7 @@ def am_ref_to_vote_id(votes, aref, seq):
     if isinstance(seq, int):
         seq = str(seq)
     ret = []
-    for vote in votes:
+    for vote in votes or []:
         if aref not in vote['title']:
             continue
         title = DATE_RE.sub('', vote['title'])
