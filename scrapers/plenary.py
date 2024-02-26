@@ -13,6 +13,15 @@ import re
 from itertools import zip_longest
 from lxml.etree import tostring
 
+CONFIG = {
+    'threads': 8,
+    'timeout': 60,
+    'retries': 5,
+    'error_handler': None,
+    'abort_on_error': True,
+    'table': 'ep_plenary_amendments',
+}
+
 base='https://www.europarl.europa.eu'
 
 AM_RE = re.compile('Am (\d+(?:[sS=, ]{1,2}\d+)*)')
@@ -340,6 +349,11 @@ def am_ref_to_vote_id(votes, aref, seq):
         if seq in ams:
             ret.append(vote['voteid'])
     return ret
+
+
+from utils.process import publish_logs
+def onfinished(daisy=True):
+    publish_logs(get_all_jobs)
 
 
 if __name__ == '__main__':

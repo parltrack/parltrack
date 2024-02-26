@@ -10,6 +10,14 @@ from scrapers import plenary
 
 set_level(3)
 
+CONFIG = {
+    'threads': 8,
+    'timeout': 60,
+    'retries': 1,
+    'error_handler': None,
+}
+
+
 def scrape(years):
    res = []
    for ref in db.keys('ep_dossiers'):
