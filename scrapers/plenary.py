@@ -294,7 +294,9 @@ def scrape(url, dossier):
        am['html']=h
        del am['html']['seq']
 
-     am['vote_ids'] = am_ref_to_vote_id(votes, aref, am['seq'])
+     vids = am_ref_to_vote_id(votes, aref, am['seq'])
+     if vids:
+        am['vote_ids'] = vids
      res['amendments'].append(am)
 
    # todo link up amendments with text...
