@@ -20,4 +20,4 @@ NOTIF_DB_URI = 'sqlite:///notifications.sqlite3'
 # Webapp
 WEBSERVER_PORT = 6776
 
-CACHE_DIR='/data/cache'
+CACHE_DIR='/tmp/ptcache'
