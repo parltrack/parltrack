@@ -17,10 +17,11 @@
 
 # (C) 2012,2019, 20 by Stefan Marsiske, <parltrack@ctrlc.hu>
 
-from utils.utils import fetch, junws
+from utils.utils import fetch, junws, jdump
 from utils.log import log
 from utils.mappings import COMMITTEE_MAP
 from config import CURRENT_TERM
+import amendment
 import requests
 
 CONFIG = {
@@ -30,7 +31,7 @@ CONFIG = {
     'error_handler': None,
 }
 
-itemsPerPage=30
+itemsPerPage=10
 
 skipurls=['http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-%2f%2fEP%2f%2fNONSGML%2bCOMPARL%2bPE-483.680%2b02%2bDOC%2bPDF%2bV0%2f%2fEN',
           'http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-%2f%2fEP%2f%2fNONSGML%2bCOMPARL%2bPE-454.387%2b01%2bDOC%2bPDF%2bV0%2f%2fEN',
@@ -45,11 +46,11 @@ skipurls=['http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-%2f%2fEP%2f%2fN
           'http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-%2f%2fEP%2f%2fNONSGML%2bCOMPARL%2bPE-469.721%2b02%2bDOC%2bPDF%2bV0%2f%2fEN',
           'http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-%2f%2fEP%2f%2fNONSGML%2bCOMPARL%2bPE-469.723%2b03%2bDOC%2bPDF%2bV0%2f%2fEN']
 
-def crawl(term, update=False, test=[], **kwargs):
+def crawl(term, update=False, coms=[], test=None, **kwargs):
     seen = set()
     url="https://www.europarl.europa.eu/committees/en/documents/search?committeeMnemoCode=%s&textualSearchMode=TITLE&textualSearch=&documentTypeCode=AMCO&reporterPersId=&procedureYear=&procedureNum=&procedureCodeType=&peNumber=&aNumber=&aNumberYear=&documentDateFrom=&documentDateTo=&meetingDateFrom=&meetingDateTo=&performSearch=true&term=%s&page=%s&pageSize={}".format(itemsPerPage)
     jobs = []
-    for com in (k for k in test or COMMITTEE_MAP.keys() if len(k)==4):
+    for com in (k for k in coms or COMMITTEE_MAP.keys() if len(k)==4):
         i=0
         log(3,'crawling %s, term: %s' % (com, term))
         try:
@@ -78,12 +79,14 @@ def crawl(term, update=False, test=[], **kwargs):
                     payload = dict(kwargs)
                     payload['url'] = u
                     payload['meps'] = r
-                    if test:
+                    if coms or test=='crawler':
                         print(payload)
+                    elif test=='scraper':
+                        print(jdump(amendment.scrape(u,r, nostore=True)))
                     else:
                         add_job('amendment', payload=payload)
                 except:
-                    print(u, r)
+                    log(1, f'exception during {u} {r}')
 
             if not tmp or prev==tmp or len(tmp) < itemsPerPage:
                 break
@@ -102,13 +105,18 @@ def crawl(term, update=False, test=[], **kwargs):
 def scrape(all=False, **kwargs):
     if all:
         for term in range(6,CURRENT_TERM+1):
-            crawl(term, update=False, **kwargs)
+            crawl(term, update=True, **kwargs)
     else:
         crawl(CURRENT_TERM, update=True, **kwargs)
 
 if __name__ == "__main__":
     import sys
     if len(sys.argv) == 2:
-        crawl(9, update=False, test=[sys.argv[1]])
+        if sys.argv[1] in COMMITTEE_MAP.keys():
+            crawl(CURRENT_TERM, update=False, coms=[sys.argv[1]])
+        elif sys.argv[1] == 'scraper':
+            crawl(CURRENT_TERM, update=False, test='scraper')
+        else:
+            crawl(CURRENT_TERM, update=False, test='crawler')
     else:
         scrape(all=True)
