@@ -451,8 +451,8 @@ def find_sep(block, mid):
                 mid = mid-e
                 break
         if mid not in spaces:
-            log(1,f"{mid} is not in spaces: {sorted(spaces)}")
-            print("\n".join(block))
+            #log(1,f"{mid} is not in spaces: {sorted(spaces)}")
+            #print("\n".join(block))
             return None
 
     span = [mid, mid]
@@ -807,8 +807,10 @@ def scrape(url, meps=None, **kwargs):
     reference=None
     date=None
     committee=[]
-    text, PE=getraw(url)
-    #pagewidth = max(len(line) for line in text)
+    #text, PE=getraw(url)
+    import pamendment
+    text, PE, date, _, margin = pamendment.getraw(url)
+    pagewidth = max(len(line) for line in text)
     #log(3,f"page width is {pagewidth}")
     motion = False
     for line in text:
@@ -873,8 +875,8 @@ def scrape(url, meps=None, **kwargs):
 
         if amstart.match(line):
             # parse block
-            #am=parse_block(block, url, reference, date, meps, PE, pagewidth, committee)
-            am=parse_block(block, url, reference, date, meps, PE, committee)
+            am=parse_block(block, url, reference, date, meps, PE, committee=committee, pagewidth=pagewidth, margin=margin)
+            #am=parse_block(block, url, reference, date, meps, PE, committee)
             if am is not None:
                 process(am, am['id'], db.amendment, 'ep_amendments', am['reference']+' '+am['id'], nodiff=True, **kwargs)
                 res.append(am)
@@ -883,7 +885,8 @@ def scrape(url, meps=None, **kwargs):
         block.append(line)
     if block and filter(None,block):
         #am = parse_block(block, url, reference, date, meps, PE, pagewidth, committee)
-        am = parse_block(block, url, reference, date, meps, PE, committee)
+        #am = parse_block(block, url, reference, date, meps, PE, committee)
+        am=parse_block(block, url, reference, date, meps, PE, committee=committee, pagewidth=pagewidth, margin=margin)
         if am is not None:
             process(am, am['id'], db.amendment, 'ep_amendments', am['reference']+' '+am['id'], nodiff=True, **kwargs)
             res.append(am)
