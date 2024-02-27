@@ -527,7 +527,7 @@ def extract_cmt(block, pagewidth, margin):
 
     return orig_lang, comment, span
 
-def parse_block(block, url, reference, date, rapporteur, PE, pagewidth=None, committee=None, parse_dossier=None, top_of_diff=2, margin=None):
+def parse_block(block, url, reference, date, rapporteur, PE, committee=None, pagewidth=None, parse_dossier=None, top_of_diff=2, margin=None):
     am={u'src': url,
         u'peid': PE,
         u'reference': reference,
@@ -876,7 +876,7 @@ def scrape(url, meps=None, **kwargs):
             #am=parse_block(block, url, reference, date, meps, PE, pagewidth, committee)
             am=parse_block(block, url, reference, date, meps, PE, committee)
             if am is not None:
-                process(am, am['id'], db.amendment, 'ep_amendments', am['reference']+' '+am['id'], nodiff=True)
+                process(am, am['id'], db.amendment, 'ep_amendments', am['reference']+' '+am['id'], nodiff=True, **kwargs)
                 res.append(am)
             block=[line]
             continue
@@ -885,7 +885,7 @@ def scrape(url, meps=None, **kwargs):
         #am = parse_block(block, url, reference, date, meps, PE, pagewidth, committee)
         am = parse_block(block, url, reference, date, meps, PE, committee)
         if am is not None:
-            process(am, am['id'], db.amendment, 'ep_amendments', am['reference']+' '+am['id'], nodiff=True)
+            process(am, am['id'], db.amendment, 'ep_amendments', am['reference']+' '+am['id'], nodiff=True, **kwargs)
             res.append(am)
     log(3,"total amendments %d in %s" % (len(res),url))
     return res
