@@ -397,6 +397,7 @@ types=[u'Motion for a resolution',
        u'Draft Interinstitutional Agreement',
        u'Draft directive',
        u'Draft opinion',
+       u'Draft motion for a resolution',
        u'Staff Regulations of Officials of the European Union',
        u'Treaty on European Union',
        u'Treaty on the Functioning of the European Union',
@@ -478,6 +479,7 @@ def extract_cmt(block, pagewidth, margin):
 
     while (i>0
            and not unws(block[i]) in {'Text proposed by the Commission Amendment',
+                                      'Draft motion for a resolution Amendment',
                                       'Present text Amendment',
                                       'Draft legislative resolution Amendment'}
            and not " "*(len(block[i])//5)+"Amendment" in block[i]):
