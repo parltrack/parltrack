@@ -441,7 +441,9 @@ def not_2column(line, pagewidth, margin):
     return beginning < pagewidth // 2 < len(line) + margin
 
 def find_sep(block, mid):
-    spaces = set.intersection(*[set([i for i in range(mid+40) if i>=len(line) or line[i]==' ']) for line in block])
+    tmp = [set([i for i in range(mid+40) if i>=len(line) or line[i]==' ']) for line in block]
+    if tmp == []: return None
+    spaces = set.intersection(*tmp)
     if mid not in spaces:
         for e in range(8):
             if mid+e in spaces:
