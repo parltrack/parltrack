@@ -575,7 +575,7 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, pag
     # page 66 fucks pagewidth up.
     # https://www.europarl.europa.eu/doceo/document/A-9-2023-0298-AM-001-165_EN.pdf
     # has a weird table that needs a different y_density, but that fucks up other parts of the page...
-    if pagewidth is not None and pagewidth in {248, 245, 374}:
+    if pagewidth is not None and pagewidth in {248, 245, 374, 315}:
         margin = 24
         pagewidth = 171
 
