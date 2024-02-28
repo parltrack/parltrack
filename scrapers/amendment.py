@@ -813,6 +813,8 @@ def scrape(url, meps=None, **kwargs):
     import pamendment
     text, PE, date, _, margin = pamendment.getraw(url)
     pagewidth = max(len(line) for line in text)
+    if pagewidth>200:
+        log(1,f"pagewidth is > 200")
     #log(3,f"page width is {pagewidth}")
     motion = False
     for line in text:
