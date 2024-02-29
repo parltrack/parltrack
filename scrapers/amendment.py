@@ -27,6 +27,7 @@ from sh import pdftotext
 from db import db
 from dateutil.parser import parse
 from config import CURRENT_TERM as TERM
+import pamendment
 
 CONFIG = {
     'threads': 8,
@@ -36,23 +37,6 @@ CONFIG = {
     'table': 'ep_amendments',
     'abort_on_error': True,
 }
-
-def getraw(pdf):
-    (fd, fname)=mkstemp()
-    fd=os.fdopen(fd, 'wb')
-    fd.write(fetch_raw(pdf, binary=True))
-    fd.close()
-    text=pdftotext(#'-nopgbrk',
-                   '-layout',
-                   #'-x', x,
-                   #'-y', y,
-                   #'-H', h,
-                   #'-W', w,
-                   fname,
-                   '-')
-    os.unlink(fname)
-    # remove pagebreaks and footers
-    return unpaginate(text,pdf)
 
 mepmaps={ 'Elisa Ferrreira': 'Elisa Ferreira',
           'Alexander Lambsdorff': 'Alexander Graf LAMBSDORFF',
@@ -242,122 +226,6 @@ def isfooter(line):
             onlypage.match(line) or
             amdoc.match(line))
 
-def unpaginate(text, url):
-    lines = text.split('\n')
-    # find end of 1st page
-    eo1p = 0
-    PE = None
-    while not lines[eo1p].startswith('\x0c') and eo1p<len(lines):
-        eo1p+=1
-    if eo1p == len(lines):
-        log(1, "could not find end of 1st page in %s" % url)
-        raise ValueError("eo1p not found: %s" % url)
-
-    i = len(lines) - 1
-    while i>=0:
-        if not lines[i].startswith('\x0c'):
-            i -= 1
-            continue
-
-        # we found a line starting with pagebreak
-        lines[i]=lines[i][1:]
-        i -= 1
-        fstart = i
-
-        # skip empty lines before pagebreak
-        while i>=0 and unws(lines[i])=='':
-            i-=1
-
-        # we expect i>0 and lines[i] == 'EN' (or variations)
-        if i<=0:
-            log(1, "could not find non-empty line above pagebreak in %s" % url)
-            raise ValueError("no EN marker found: %s" % url)
-
-        tmp = unws(lines[i])
-        if tmp not in ["EN", "EN EN", "EN United in diversity EN",
-                       "EN Unity in diversity EN",
-                       "EN Unie dans la diversité EN",
-                       "EN In Vielfalt geeint EN",
-                       "ENEN United in diversity EN",
-                       "XM United in diversity XM",
-                       "XT United in diversity EN",
-                       "XM", "XM XM", "XT", "XT XT"]:
-            if tmp in ["FR",'NL','HU']:
-                log(2,'Document has non-english language marker: "%s" %s' % (tmp, url))
-                return [], None
-            if tmp=="Or. en":
-                # no footer in this page
-                continue
-            if tmp in ['AM_Com_NonLegCompr', 'AM_Com_NonLegReport','AM_Com_NonLegOpinion']:
-                # no footer on this page (and probably neither on the previous one which should be the first)
-                continue
-            # an exceptional document
-            if (url=='http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+COMPARL+PE-532.324+01+DOC+PDF+V0//EN&language=EN' and
-                tmp in ["Paragraph 8", "Pervenche Berès, Frédéric Daerden"]):
-                continue
-            if (url in  ['http://www.europarl.europa.eu/doceo/document/CJ25-AM-593898_EN.pdf',
-                         'http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+COMPARL+PE-593.898+01+DOC+PDF+V0//EN&language=EN'] and
-                tmp=="(2016/2204(INI))"):
-                continue
-            if (url=='http://www.europarl.europa.eu/sides/getDoc.do?pubRef=-//EP//NONSGML+COMPARL+PE-594.137+01+DOC+PDF+V0//EN&language=EN' and
-                tmp=='(2016/2018(INI))'):
-                continue
-            if isfooter(tmp):
-                if PE is None: # try to figure out PE id
-                    m = pere.match(tmp)
-                    if m: PE = m.group(0)
-                log(3, 'no EN marker found, but footer: "%s"' % tmp)
-                i+=1 # neutralize the decrement after this block
-            else:
-                log(1, 'could not find EN marker above pagebreak: %d %d "%s"' % (i, eo1p, tmp))
-                raise ValueError('no EN marker found "%s" in %s' % (tmp,url))
-
-        if lines[i].startswith('\x0c'): # we found a ^LEN^L
-            # we found an empty page.
-            while fstart > i:
-                del lines[fstart]
-                fstart -= 1
-            lines[i]="\x0c"
-            continue
-
-        i -= 1
-
-        # find the next non-empty line above the EN marker
-        while i>0 and unws(lines[i])=='':
-            i-=1
-        if i<=0:
-            log(1, "could not find non-empty line above EN marker: %s" % url)
-            raise ValueError("no next line above EN marker found: %s" % url)
-
-        if (not isfooter(lines[i])):
-            tmp = unws(lines[i])
-            if tmp=="Or. en":
-                i+=1 # preserve this line - and cut of the rest
-            elif tmp not in ['AM_Com_NonLegCompr', 'AM_Com_NonLegReport','AM_Com_NonLegOpinion']:
-                log(1,'not a footer: "%s" line: %d in %s' % (repr(lines[i]),i,url))
-                raise ValueError('not a footer: "%s" line: %d in %s' % (lines[i],i,url))
-        elif PE is None: # try to figure out PE id
-            m = pere.match(unws(lines[i]))
-            if m: PE = m.group(0)
-
-        if lines[i].startswith('\x0c'):
-            # we found an empty page with only the footer
-            lines[i]='\x0c'
-            i+=1
-        #else: # is a regular page
-        #    i -= 1
-        #    if unws(lines[i])!='':
-        #        for j in range(-10,10):
-        #            log(1, '"%s"' % (unws(lines[i+j])))
-        #        log(1, 'line above footer is not an empty line: "%s"' % (unws(lines[i])))
-        #        raise ValueError("no empty line above footer")
-
-        # delete all lines between fstart and i
-        while fstart >= i:
-            del lines[fstart]
-            fstart -= 1
-    return lines, PE
-
 def splitNames(text):
     text = text.split(' on behalf ',1)[0]
     res=[]
@@ -486,7 +354,7 @@ def extract_cmt(block, pagewidth, margin):
 
         tmp = block[i].lstrip()
         if tmp.startswith('Or.') and len(tmp)<=6 and len(block[i])>(pagewidth - pagewidth//4):
-            log(4, f"found original language: {tmp[3:].strip()}")
+            #log(4, f"found original language: {tmp[3:].strip()}")
             orig_lang=tmp[3:].strip()
             del block[i]
             if c_end is not None: c_end-=1
@@ -497,7 +365,7 @@ def extract_cmt(block, pagewidth, margin):
 
         if tmp.endswith(')') and not_2column(block[i], pagewidth, margin):
            if c_end is None:
-              log(4,f"found end of comment block")
+              #log(4,f"found end of comment block")
               c_end = i
            else:
               log(2, f"found another comment end: {repr(block[i])}")
@@ -508,13 +376,13 @@ def extract_cmt(block, pagewidth, margin):
             #     or (block[i-1].lstrip().startswith('Or.')
             #         and len(block[i-1].lstrip())<=6
             #         and len(block[i-1])>(pagewidth - pagewidth//4)))):
-           log(4,f"found start of comment block")
+           #log(4,f"found start of comment block")
            c_start = i
         i-=1
 
     if i<0:
         return orig_lang, comment, span
-    log(4, f"found top of 2 column amendment")
+    #log(4, f"found top of 2 column amendment")
 
     if (c_end is not None
         and c_start is not None):
@@ -571,28 +439,16 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, pag
         strip(block)
 
     sep = None
-    # https://www.europarl.europa.eu/doceo/document/A-9-2023-0238-AM-001-156_EN.pdf
-    # has landscape tables cropped by portrait page, but not cropped by pdf to text conversion
-    # https://www.europarl.europa.eu/doceo/document/A-9-2023-0048-AM-001-151_EN.pdf
-    # page 66 fucks pagewidth up.
-    # https://www.europarl.europa.eu/doceo/document/A-9-2023-0298-AM-001-165_EN.pdf
-    # has a weird table that needs a different y_density, but that fucks up other parts of the page...
-    # some others, see also commits
-    if pagewidth is not None and pagewidth >= 245:
-        log(3, f"since pagewidth is {pagewidth} >= 245 we are clobbering it to 171 and margin to 24")
-        margin = 24
-        pagewidth = 171
 
     # https://www.europarl.europa.eu/doceo/document/A-9-2023-0033-AM-002-005_EN.pdf
-    if pagewidth is not None and margin is not None:
-        orig_lang, comment, span =extract_cmt(block, pagewidth, margin)
-        if orig_lang is not None:
-            am['orig_lang']=orig_lang
-        if span is not None:
-            sep = span[0]
-        if comment is not None:
-            am['comment']=comment
-            strip(block)
+    orig_lang, comment, span =extract_cmt(block, pagewidth, margin)
+    if orig_lang is not None:
+        am['orig_lang']=orig_lang
+    if span is not None:
+        sep = span[0]
+    if comment is not None:
+        am['comment']=comment
+        strip(block)
 
     # get original language
     if ('orig_lang' not in am # we can skip this is extract_cmt already took care of it
@@ -637,10 +493,7 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, pag
         # throw headers
         del block[i]
         while i<len(block) and not unws(block[i]): del block[i]        # skip blank lines
-        if pagewidth is not None and margin is not None:
-            mid = pagewidth // 2 - margin
-        else:
-            mid=max([len(x) for x in block])//2
+        mid = pagewidth // 2 - margin
         if sep is None:
             sep = find_sep(block[i:], mid)
             if sep is not None:
@@ -807,6 +660,7 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, pag
 refre=re.compile(r'([0-9]{4}/[0-9]{4}[A-Z]?\((?:ACI|APP|AVC|BUD|CNS|COD|COS|DCE|DEA|DEC|IMM|INI|INL|INS|NLE|REG|RPS|RSO|RSP|SYN)\))')
 amstart=re.compile(r' *(Emendamenti|Amende?ment)\s*[0-9A-Z]+( a|/PP)?$')
 def scrape(url, meps=None, **kwargs):
+    log(3, f"scraping committee amendments {url}")
     prolog=True
     res=[]
     block=None
@@ -814,10 +668,21 @@ def scrape(url, meps=None, **kwargs):
     date=None
     committee=[]
     #text, PE=getraw(url)
-    import pamendment
     text, PE, date, pagewidth, margin = pamendment.getraw(url)
     if pagewidth>200:
         log(1,f"pagewidth is > 200")
+    # https://www.europarl.europa.eu/doceo/document/A-9-2023-0238-AM-001-156_EN.pdf
+    # has landscape tables cropped by portrait page, but not cropped by pdf to text conversion
+    # https://www.europarl.europa.eu/doceo/document/A-9-2023-0048-AM-001-151_EN.pdf
+    # page 66 fucks pagewidth up.
+    # https://www.europarl.europa.eu/doceo/document/A-9-2023-0298-AM-001-165_EN.pdf
+    # has a weird table that needs a different y_density, but that fucks up other parts of the page...
+    # some others, see also commits
+    if pagewidth >= 245:
+        log(3, f"since pagewidth is {pagewidth} >= 245 we are clobbering it to 171 and margin to 24")
+        margin = 24
+        pagewidth = 171
+
     #log(3,f"page width is {pagewidth}")
     motion = False
     for line in text:
