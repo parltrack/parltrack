@@ -38,11 +38,11 @@ def isheader(line):
 def unpaginate(text, url):
     #print(text)
     lines = [l.rstrip('\n\t ') for l in text.split('\n')]
+    pagewidth = max(len(line) for line in lines)
     ## find end of 1st page
     #eo1p = 0
     PE = None
     date = None
-    aref = []
     #while not lines[eo1p].startswith('\x0c') and eo1p<len(lines):
     #    eo1p+=1
     #if eo1p == len(lines):
@@ -71,9 +71,6 @@ def unpaginate(text, url):
                    log(1, f"date found, but is not consistent: {date} != {date1}")
              else:
                 date = date1
-             aref1 = header.group('Aref')
-             if aref1:
-                aref.append(aref1)
              del lines[fstart+1]
 
        # skip empty lines before pagebreak
@@ -156,9 +153,6 @@ def unpaginate(text, url):
              log(1, f"date found, but is not consistent: {date} != {date1}")
        else:
           date = date1
-       aref1 = header.group('Aref')
-       if aref:
-          aref.append(aref1)
        del lines[0]
 
     # clear left margin
@@ -170,7 +164,7 @@ def unpaginate(text, url):
        margin+=1
     lines = [l[margin:] if not l.startswith('\f') else '\f' + l[margin+1:] for l in lines]
 
-    return lines, PE, date, aref, margin
+    return lines, PE, date, pagewidth, margin
 
 from tempfile import NamedTemporaryFile
 import pdfplumber
@@ -320,12 +314,13 @@ def scrape(url, dossier, aref=None, save = False):
    if aref is None:
       aref = url_to_aref(url)
    reference = dossier['procedure']['reference']
-   lines, PE, date, _, margin = getraw(url)
+   lines, PE, date, pagewidth, margin = getraw(url)
+   if pagewidth>200:
+      log(1,f"pagewidth is > 200")
    #print(PE, date, aref)
    #print('\n'.join(lines[:30]))
    tmp = '\n'.join(lines)
    #print(tmp)
-   pagewidth = max(len(line) for line in lines) + margin
    #log(3,f"page width is {pagewidth}")
    if 'new or amended text is highlighted in bold' in tmp or '▌' in tmp:
       log(1, f"inline diff format for {reference} / {aref} in {url}")

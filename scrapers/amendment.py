@@ -815,8 +815,7 @@ def scrape(url, meps=None, **kwargs):
     committee=[]
     #text, PE=getraw(url)
     import pamendment
-    text, PE, date, _, margin = pamendment.getraw(url)
-    pagewidth = max(len(line) for line in text)
+    text, PE, date, pagewidth, margin = pamendment.getraw(url)
     if pagewidth>200:
         log(1,f"pagewidth is > 200")
     #log(3,f"page width is {pagewidth}")
