@@ -167,6 +167,9 @@ class Client:
         cmd = {"cmd": "active_groups", "params": {}}
         return self.send_req(cmd)
 
+    def plenary_amendment(self,id):
+        return self.get('ep_plenary_amendments', id)
+
     def getMep(self, name, date=None,group=None, abbr=None):
         if date and (name, (date.year,date.month)) in self.mepCache:
             # we only cache if there is also a date, and then we cache only year/month
@@ -869,6 +872,8 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
 
           'ep_votes': {'indexes': [{"fn": idx_votes_by_dossier, "name": "votes_by_dossier"}],
                        'key': lambda x: x['voteid']},
+          'ep_plenary_amendments': {'indexes': [],
+                       'key': lambda x: x['id']},
 }
 
 db = Client()

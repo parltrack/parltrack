@@ -231,7 +231,7 @@ def difftxt(t1, t2):
             res.append(f"{data}")
     return ''.join(res)
 
-def scrape(url, dossier):
+def scrape(url, dossier, save=True, test=False):
    #url, dossier, _ = ref_to_url(ref)
    #dossier = pamendment.dossier_from_url(url)
    if url is None: return
@@ -295,9 +295,10 @@ def scrape(url, dossier):
           if normalize(a) != normalize(b):
              if 'inconsistent' not in am: am['inconsistent']=[]
              am['inconsistent'].append((t, difftxt(a,b)))
-             print(t, h['seq'], '\n', difftxt(a,b))
-             print('html\n',jdump(h))
-             print('pdf\n',jdump(p))
+             if test:
+                print(t, h['seq'], '\n', difftxt(a,b))
+                print('html\n',jdump(h))
+                print('pdf\n',jdump(p))
 
      if 'inconsistent' in am:
        am['html']=h
@@ -307,6 +308,18 @@ def scrape(url, dossier):
      if vids:
         am['vote_ids'] = vids
      res['amendments'].append(am)
+   if save:
+       for a in res['amendments']:
+          aid = f"{aref}-{str(a['seq'])}"
+          a['id'] = aid
+          process(
+              a,
+              aid,
+              db.plenary_amendment,
+              'ep_plenary_amendments',
+              aid,
+              nodiff=True,
+          )
 
    # todo link up amendments with text...
 
@@ -359,7 +372,7 @@ def onfinished(daisy=True):
 if __name__ == '__main__':
    import sys
    if len(sys.argv)==2:
-      print(jdump(scrape(sys.argv[1], pamendment.dossier_from_url(sys.argv[1])[1])))
+      print(jdump(scrape(sys.argv[1], pamendment.dossier_from_url(sys.argv[1])[1], save=False, test=True)))
    # whole doc - inline amendments
    #scrape(*ref_to_url('2022/0272(COD)')[:2])
    # pure amendments
