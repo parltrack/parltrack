@@ -18,7 +18,7 @@ CONFIG = {
 }
 
 
-def scrape(years, test=False, save=True):
+def scrape(years, test=False, save=True, **kwargs):
    res = []
    for ref in db.keys('ep_dossiers'):
        url, dossier, date  = plenary.ref_to_url(ref)

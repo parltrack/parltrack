@@ -275,7 +275,7 @@ def parse_votes(root, aref, resp_committee, url, save=True, test=False):
                 add_job('comvote', payload=payload)
 
 
-def scrape(url, dossier, save=True, test=False):
+def scrape(url, dossier, save=True, test=False, **kwargs):
    #url, dossier, _ = ref_to_url(ref)
    #dossier = pamendment.dossier_from_url(url)
    if url is None: return
