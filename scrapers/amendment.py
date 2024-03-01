@@ -660,7 +660,7 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, pag
 
 refre=re.compile(r'([0-9]{4}/[0-9]{4}[A-Z]?\((?:ACI|APP|AVC|BUD|CNS|COD|COS|DCE|DEA|DEC|IMM|INI|INL|INS|NLE|REG|RPS|RSO|RSP|SYN)\))')
 amstart=re.compile(r' *(Emendamenti|Amende?ment)\s*[0-9A-Z]+( a|/PP)?$')
-def scrape(url, meps=None, **kwargs):
+def scrape(url, meps=None, nostore=False, **kwargs):
     log(3, f"scraping committee amendments {url}")
     prolog=True
     res=[]
@@ -749,19 +749,16 @@ def scrape(url, meps=None, **kwargs):
         if amstart.match(line):
             # parse block
             am=parse_block(block, url, reference, date, meps, PE, committee=committee, pagewidth=pagewidth, margin=margin)
-            #am=parse_block(block, url, reference, date, meps, PE, committee)
             if am is not None:
-                process(am, am['id'], db.amendment, 'ep_amendments', am['reference']+' '+am['id'], nodiff=True, **kwargs)
+                process(am, am['id'], db.amendment, 'ep_amendments', am['reference']+' '+am['id'], nodiff=True, nostore=nostore)
                 res.append(am)
             block=[line]
             continue
         block.append(line)
     if block and filter(None,block):
-        #am = parse_block(block, url, reference, date, meps, PE, pagewidth, committee)
-        #am = parse_block(block, url, reference, date, meps, PE, committee)
         am=parse_block(block, url, reference, date, meps, PE, committee=committee, pagewidth=pagewidth, margin=margin)
         if am is not None:
-            process(am, am['id'], db.amendment, 'ep_amendments', am['reference']+' '+am['id'], nodiff=True, **kwargs)
+            process(am, am['id'], db.amendment, 'ep_amendments', am['reference']+' '+am['id'], nodiff=True, nostore=nostore)
             res.append(am)
     log(3,"total amendments %d in %s" % (len(res),url))
     return res
