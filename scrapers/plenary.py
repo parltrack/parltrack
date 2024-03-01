@@ -29,6 +29,11 @@ AM_RE = re.compile('Am (\d+(?:[sS=, ]{1,2}\d+)*)')
 DATE_RE = re.compile(' \d{2}/\d{2}/\d{4}.+')
 SEP_RE = re.compile('[sS=, ]+')
 
+CVOTE_TITLES = {
+    'opinion': "FINAL VOTE BY ROLL CALL IN COMMITTEE ASKED FOR OPINION",
+    'responsible': "FINAL VOTE BY ROLL CALL IN COMMITTEE RESPONSIBLE",
+}
+
 
 def html_full(root):
    res={'amendments': [], 'text': []}
@@ -231,6 +236,45 @@ def difftxt(t1, t2):
             res.append(f"{data}")
     return ''.join(res)
 
+
+def parse_votes(root, aref, resp_committee, url, save=True, test=False):
+    for vtype, vtitle in CVOTE_TITLES.items():
+        anchor_xp = f'//div[@class="red:section_MainContent_Second"]//span[text()="{vtitle}"]//ancestor::div[@class="red:section_MainContent_Second"]'
+        nodes = root.xpath(anchor_xp)
+        for a in nodes:
+            if vtype == 'opinion':
+                try:
+                    metadata = a.xpath('./preceding-sibling::div[@class="red:section_MainContent_Second"]//table')[-1]
+                except:
+                    log(1,f"failed to parse opinion vote for {url}")
+                    continue
+                try:
+                    committee = metadata.xpath('.//td//*[contains(text(), "Opinion by")]//ancestor::tr/td[last()]//text()')[0]
+                except:
+                    try:
+                        metadata = a.xpath(f'.//span[text()="{vtitle}"]/ancestor::p/preceding-sibling::div[@class="table-responsive"]//table')[-1]
+                    except:
+                        log(1,f"failed to parse opinion vote for {url}")
+                        continue
+                    committee = metadata.xpath('.//td//*[contains(text(), "Opinion by")]//ancestor::tr/td[last()]//text()')[0]
+            else:
+                committee = resp_committee
+            vtables = a.xpath(f'.//span[text()="{vtitle}"]/../following-sibling::div[@class="table-responsive"]//table')
+            payload = {
+                'committee': committee,
+                'vote_tables': vtables,
+                'aref': aref,
+                'save': save,
+                'test': test,
+                'vote_type': vtype,
+            }
+            if test:
+                from scrapers.comvote import scrape as cscrape
+                cscrape(**payload)
+            else:
+                add_job('comvote', payload=payload)
+
+
 def scrape(url, dossier, save=True, test=False):
    #url, dossier, _ = ref_to_url(ref)
    #dossier = pamendment.dossier_from_url(url)
@@ -238,6 +282,11 @@ def scrape(url, dossier, save=True, test=False):
    log(3, f"scraping plenary: {url}")
    root = fetch(url)
    aref = pamendment.url_to_aref(url)
+   resp_committee = [x['committee'] for x in dossier['committees'] if x['type'] == 'Responsible Committee'][0]
+   try:
+      parse_votes(root, aref, resp_committee, url, save=save, test=test)
+   except Exception as e:
+      log(1, f"failed to parse votes for {url} - {e}")
    votes = db.get('votes_by_dossier', dossier['procedure']['reference'])
 
    amendment_titles = root.xpath('//div[@class="red:section_MainContent"]//p[@class="text-center"]/span[text()="Amendment"]')
