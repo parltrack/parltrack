@@ -282,8 +282,8 @@ def scrape(url, dossier, save=True, test=False):
    log(3, f"scraping plenary: {url}")
    root = fetch(url)
    aref = pamendment.url_to_aref(url)
-   resp_committee = [x['committee'] for x in dossier['committees'] if x['type'] == 'Responsible Committee'][0]
    try:
+      resp_committee = [x['committee'] for x in dossier['committees'] if x['type'] == 'Responsible Committee'][0]
       parse_votes(root, aref, resp_committee, url, save=save, test=test)
    except Exception as e:
       log(1, f"failed to parse votes for {url} - {e}")
