@@ -48,25 +48,14 @@ def topayload(com, year, month, **kwargs):
     res = []
     for meeting in meetings:
        payload = dict(kwargs)
-       payload['url'] = "https://emeeting.europarl.europa.eu/emeeting/ecomback/ws/EMeetingRESTService/oj?" \
-                        "language=en&reference=%s&securedContext=false" % meeting["meetingReference"]
+       #payload['url'] = "https://emeeting.europarl.europa.eu/emeeting/ecomback/ws/EMeetingRESTService/oj?" \
+       #                 "language=en&reference=%s&securedContext=false" % meeting["meetingReference"]
        payload['committee']= com
        payload['meeting']=meeting
        res.append(payload)
     return res
 
-def scrape(months, **kwargs):
-    jobs = []
-    for com in (k for k in COMMITTEE_MAP.keys() if len(k)==4):
-        for year, month in months:
-            for payload in topayload(com,year,month):
-                if __name__ == "__main__":
-                    #print(jdump(payload))
-                    comagenda.scrape(payload)
-                    continue
-                add_job('comagenda', payload=payload)
-
-def crawl(all=False, **kwargs):
+def scrape(all=False, **kwargs):
     curyear = datetime.datetime.now().year
     endyear = curyear
     curmonth = datetime.datetime.now().month
@@ -80,8 +69,17 @@ def crawl(all=False, **kwargs):
         months.extend([(curyear, m) for m in range(1,curmonth+1)])
     else:
         months = [(curyear, curmonth)]
+
     months.append((endyear, end))
-    scrape(months)
+
+    for com in (k for k in COMMITTEE_MAP.keys() if len(k)==4):
+        for year, month in months:
+            for payload in topayload(com,year,month):
+                if __name__ == "__main__":
+                    #print(jdump(payload))
+                    comagenda.scrape(payload)
+                    continue
+                add_job('comagenda', payload=payload)
 
 if __name__ == "__main__":
     import sys

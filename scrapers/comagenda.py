@@ -85,7 +85,7 @@ def clean(obj, key=None):
 
     {k:v if not isinstance(v, dict) else {K:V for K,V in v.items() if V} for k,v  in elem.items() if v}
 
-def scrape(payload, save=True, **kwargs):
+def scrape(save=True, **payload):
     url=f"https://emeeting.europarl.europa.eu/emeeting/ecomback/ws/EMeetingRESTService/oj?language=en&reference={payload['meeting']['meetingReference']}&securedContext=false"
     if url in seen: return
     seen.add(url)
