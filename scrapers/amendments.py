@@ -21,7 +21,6 @@ from utils.utils import fetch, junws, jdump
 from utils.log import log
 from utils.mappings import COMMITTEE_MAP
 from config import CURRENT_TERM
-import amendment
 import requests
 
 CONFIG = {
@@ -110,6 +109,7 @@ def scrape(all=False, **kwargs):
         crawl(CURRENT_TERM, update=True, **kwargs)
 
 if __name__ == "__main__":
+    import amendment
     import sys
     if len(sys.argv) == 2:
         if sys.argv[1] in COMMITTEE_MAP.keys():

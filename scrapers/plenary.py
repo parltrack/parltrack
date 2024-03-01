@@ -6,8 +6,8 @@ from utils.utils import fetch, junws, unws, jdump, getpdf
 from utils.process import process
 from config import CURRENT_TERM
 
-import pamendment
-from amendment import locstarts, types
+from scrapers import pamendment
+from scrapers.amendment import locstarts, types
 
 import re
 from itertools import zip_longest

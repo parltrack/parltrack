@@ -22,8 +22,6 @@ from utils.log import log
 from utils.mappings import COMMITTEE_MAP
 from config import CURRENT_TERM
 import datetime, json, requests
-# todo remove
-import comagenda
 
 CONFIG = {
     'threads': 8,
@@ -62,9 +60,11 @@ def scrape(months, **kwargs):
     for com in (k for k in COMMITTEE_MAP.keys() if len(k)==4):
         for year, month in months:
             for payload in topayload(com,year,month):
-                comagenda.scrape(payload)
-                #print(jdump(payload))
-                #add_job('comagenda', payload=payload)
+                if __name__ == "__main__":
+                    #print(jdump(payload))
+                    comagenda.scrape(payload)
+                    continue
+                add_job('comagenda', payload=payload)
 
 def crawl(all=False, **kwargs):
     curyear = datetime.datetime.now().year
@@ -85,6 +85,7 @@ def crawl(all=False, **kwargs):
 
 if __name__ == "__main__":
     import sys
+    import comagenda
     if len(sys.argv) == 2:
         crawl(all=True)
     else:

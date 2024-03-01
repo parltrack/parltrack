@@ -27,7 +27,7 @@ from sh import pdftotext
 from db import db
 from dateutil.parser import parse
 from config import CURRENT_TERM as TERM
-import pamendment
+from scrapers import pamendment
 
 CONFIG = {
     'threads': 8,
