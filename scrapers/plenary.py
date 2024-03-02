@@ -277,7 +277,7 @@ def parse_votes(root, aref, resp_committee, url, save=True, test=False):
 
 def scrape(url, dossier, save=True, test=False, **kwargs):
    #url, dossier, _ = ref_to_url(ref)
-   #dossier = pamendment.dossier_from_url(url)
+   dossier = db.dossier(dossier)
    if url is None: return
    log(3, f"scraping plenary: {url}")
    root = fetch(url)
@@ -393,7 +393,7 @@ def ref_to_url(ref):
           continue
       date = ev['date']
       break
-   return url, dossier, date
+   return url, {k:v for k,v in dossier.items() if k in {'procedure','committees', 'events'}}, date
 
 
 def am_ref_to_vote_id(votes, aref, seq):
@@ -421,7 +421,7 @@ def onfinished(daisy=True):
 if __name__ == '__main__':
    import sys
    if len(sys.argv)==2:
-      print(jdump(scrape(sys.argv[1], pamendment.dossier_from_url(sys.argv[1])[1], save=False, test=True)))
+      print(jdump(scrape(sys.argv[1], pamendment.dossier_from_url(sys.argv[1])[1]['procedure']['reference'], save=False, test=True)))
    # whole doc - inline amendments
    #scrape(*ref_to_url('2022/0272(COD)')[:2])
    # pure amendments

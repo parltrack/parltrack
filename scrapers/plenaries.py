@@ -27,12 +27,12 @@ def scrape(years, test=False, save=True, **kwargs):
        log(3,f"adding job {url}")
        if test:
           try:
-              res.append(plenary.scrape(url, dossier, test=test, save=save))
+              res.append(plenary.scrape(url, dossier['procedure']['reference'], test=test, save=save))
           except:
               print(jdump(res))
               raise
        else:
-          add_job('plenary', payload={'url': url, 'dossier': dossier, 'test': test, 'save': save})
+          add_job('plenary', payload={'url': url, 'dossier': dossier['procedure']['reference'], 'test': test, 'save': save})
    if test:
       print(jdump(res))
 
