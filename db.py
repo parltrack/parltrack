@@ -92,6 +92,10 @@ class Client:
         cmd = {"cmd": "get", "params": {"source": "ep_comagendas", "key": id}}
         return self.send_req(cmd)
 
+    def com_vote(self, id):
+        cmd = {"cmd": "get", "params": {"source": "ep_com_votes", "key": id}}
+        return self.send_req(cmd)
+
     def activities(self,mep_id,type=None,d_id=None):
         cmd = {"cmd": "activities", "params": {"mep_id": mep_id, "type": type, "d_id": d_id}}
         return self.send_req(cmd)
