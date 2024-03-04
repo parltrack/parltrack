@@ -30,7 +30,7 @@ CONFIG = {
     'timeout': 60,
     'retries': 5,
     'error_handler': None,
-    'table': 'ep_comvotes',
+    'table': 'ep_com_votes',
     'abort_on_error': True,
 }
 
