@@ -1,40 +1,58 @@
 #!/usr/bin/env python3
 
+from config import DEBUG, DB_DEBUG
+
+from threading import RLock
 from datetime import datetime
 import inspect
 import sys
 
-loglevel=4 # info
+if DEBUG:
+    loglevel = 4 # debug
+else:
+    loglevel = 3 # info
 logfile = sys.stdout
+lock = RLock()
 
 LEVELS = ('quiet', 'error', 'warning', 'info', 'debug')
 
+module_mapping = {
+    'db.py': 'db',
+    'module_service.py': 'mgr',
+    'webapp.py': 'webapp',
+}
+
 def log(level, msg):
     if not logfile: return
-    scraper = '??? '
+    module = '??? '
+    lock.acquire()
     for frame in inspect.stack():
-        fp=frame.filename.split('/')
+        try:
+            fp=frame.filename.split('/')
+        except:
+            continue
+        if len(fp)>1 and fp[-2]=='modules':
+            module = fp[-1].split('.')[0]
+            break
+        if fp[-1] in module_mapping:
+            module = module_mapping[fp[-1]]
+            break
         if len(fp)>1 and fp[-2]=='scrapers':
-            scraper = fp[-1].split('.')[0]
+            module = f'scraper:{fp[-1]}'
             break
-        if fp[-1]=='db.py':
-            scraper='db'
-            break
-        if fp[-1]=='scraper_service.py':
-            scraper='mgr'
-            break
-        if fp[-1]=='webapp.py':
-            scraper='webapp'
-            break
-    else:
-        if level <= loglevel:
-            logfile.write("{ts} log error unknown module: {stack}\n".format(ts=datetime.isoformat(datetime.now()), stack=inspect.stack()))
-        scraper = '???'
+    #else:
+    #    if level <= 4:
+    #        logfile.write("{ts} log error unknown module: {stack}\n".format(ts=datetime.isoformat(datetime.now()), stack=inspect.stack()[1].filename))
+
+    if module == 'db' and LEVELS[level] == 'debug' and not DB_DEBUG:
+        lock.release()
+        return
 
     if level <= loglevel:
         #stack = ' '.join(f"{frame.filename}:{frame.lineno}" for frame in inspect.stack()[1:])
-        #logfile.write("{ts} {scraper} {level} {stack} {size} {msg}\n".format(ts=datetime.isoformat(datetime.now()), level=LEVELS[level], scraper=scraper, msg=msg, stack=stack, size=len(msg)))
-        logfile.write("{ts} {scraper} {level} {msg}\n".format(ts=datetime.isoformat(datetime.now()), level=LEVELS[level], scraper=scraper, msg=msg))
+        #logfile.write("{ts} {module} {level} {stack} {size} {msg}\n".format(ts=datetime.isoformat(datetime.now()), level=LEVELS[level], module=module, msg=msg, stack=stack, size=len(msg)))
+        logfile.write("{ts} {module} {level} {msg}\n".format(ts=datetime.isoformat(datetime.now()), level=LEVELS[level], module=module, msg=msg))
+    lock.release()
 
 def set_level(l):
     global loglevel
