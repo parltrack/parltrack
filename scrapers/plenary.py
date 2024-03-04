@@ -45,7 +45,7 @@ def html_full(root):
    deletes = root.xpath("//div[@class='red:section_MainContent']//*[contains(text(),'▌')]")
    if not deletes: return res
    # todo handle inline amendments
-   print("todo handle inline diffs")
+   #print("todo handle inline diffs")
    return res
 
 def skip_empty_lines(node):
