@@ -151,6 +151,9 @@ class Client:
     def vote(self,id):
         return self.get('ep_votes', id)
 
+    def com_vote(self,id):
+        return self.get('ep_com_votes', id)
+
     def amendment(self,id):
         return self.get('ep_amendments', id)
 
@@ -622,6 +625,26 @@ def idx_ams_by_dossier():
         res[dossier].append(am)
     return res
 
+def idx_plenary_ams_by_mep():
+    res = {}
+    for am in DBS['ep_plenary_amendments'].values():
+        meps = set(am.get('meps', []))
+        for mep in meps:
+            if not mep in res: res[mep] = []
+            res[mep].append(am)
+    return res
+
+def idx_plenary_ams_by_dossier():
+    res = {}
+    for am in DBS['ep_plenary_amendments'].values():
+        dossier = am.get('reference', '')
+        if not dossier:
+            #log(1,"amendment has no reference {}".format(am))
+            continue
+        if not dossier in res: res[dossier] = []
+        res[dossier].append(am)
+    return res
+
 def idx_dossiers_by_subject():
     res = {}
     for d in DBS['ep_dossiers'].values():
@@ -840,6 +863,10 @@ def idx_comagenda_by_committee_dossier_voted():
 TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_by_dossier"},
                                         {"fn": idx_ams_by_mep, "name": "ams_by_mep"}],
                             'key': lambda x: x.get('id')},
+
+          'ep_plenary_amendments': {'indexes': [{"fn": idx_plenary_ams_by_dossier, "name": "plenary_ams_by_dossier"},
+                                                {"fn": idx_plenary_ams_by_mep, "name": "plenary_ams_by_mep"}],
+                                    'key': lambda x: x.get('id')},
 
           'ep_comagendas': {"indexes": [{"fn": idx_comagenda_by_committee, "name": "comagenda_by_committee"},
                                         {"fn": idx_comagenda_by_committee_dossier, "name": "comagenda_by_committee_dossier"},
