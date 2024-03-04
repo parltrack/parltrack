@@ -22,11 +22,7 @@ from utils.log import log
 from utils.utils import jdump, junws
 from utils.process import process
 
-from os import remove
-from os.path import isfile
 import re
-from subprocess import run
-from tempfile import NamedTemporaryFile
 
 CONFIG = {
     'threads': 8,
@@ -68,7 +64,11 @@ def parse_table(t):
     }
     v = ''
     for i, row in enumerate(t.xpath('.//tr')):
-        c1, c2 = list(map(junws, row.xpath('.//td')))
+        tmp = list(map(junws, row.xpath('.//td')))
+        if len(tmp) != 2:
+            log(2, f"comvote parse_table got other than 2 columns: {len(tmp)}, content: {junws(row)}")
+            continue
+        c1, c2 = tmp
         if i == 0:
             v = c2
             res['total'] = int(c1)
