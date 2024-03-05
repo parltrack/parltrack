@@ -20,7 +20,7 @@
 from datetime import datetime
 from utils.mappings import COMMITTEE_MAP
 from utils.log import log, set_level
-from utils.process import process, publish_logs
+from utils.process import process, publish_logs, publish
 import json, re, sys
 from db import db
 from config import ROOT_URL
@@ -89,7 +89,7 @@ def clean(obj, key=None):
 
 def scrape(save=True, **payload):
     if 'publish' in payload:
-        if not locals().get('_lock'):
+        if not globals().get('_lock'):
             return
         i = 0
         while True:
