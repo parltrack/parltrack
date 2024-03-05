@@ -31,6 +31,7 @@ CONFIG = {
     'error_handler': None,
     'table': 'ep_com_votes',
     'abort_on_error': True,
+    'publish': False,
 }
 
 

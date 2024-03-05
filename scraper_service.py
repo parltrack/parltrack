@@ -110,10 +110,11 @@ def consume(pool, scraper):
             log(1, "---------------END OF EXCEPTIONS---------------")
 
         if job_count == 0 and scraper._queue.empty() and pool.empty():
-            if scraper.CONFIG.get('table') is not None:
-                db.reindex(scraper.CONFIG['table'])
-                db.commit(scraper.CONFIG['table'])
-                Popen(['/bin/sh','./bin/publish-dump.sh', "%s.json" % scraper.CONFIG['table']])
+            if 'publish' not in scraper.CONFIG or scraper.CONFIG['publish']:
+                if scraper.CONFIG.get('table'):
+                    publish(scraper.CONFIG['table'])
+                for t in scraper.CONFIG.get('tables', []):
+                    publish(t)
 
             if hasattr(scraper, 'onfinished'):
                 try:
@@ -124,6 +125,12 @@ def consume(pool, scraper):
                     sys.stdout.flush()
                 else:
                     log(3, "{0} job's on_finished callback finished (params: {1})".format(scraper._name, onfinished_args))
+
+
+def publish(table):
+    db.reindex(table)
+    db.commit(table)
+    Popen(['/bin/sh','./bin/publish-dump.sh', "%s.json" % table])
 
 
 scrapers = {}

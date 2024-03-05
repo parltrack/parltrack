@@ -19,7 +19,7 @@ CONFIG = {
     'retries': 5,
     'error_handler': None,
     'abort_on_error': True,
-    'table': 'ep_plenary_amendments',
+    'tables': ['ep_plenary_amendments', 'ep_com_votes'],
 }
 
 base='https://www.europarl.europa.eu'
