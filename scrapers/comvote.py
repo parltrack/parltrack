@@ -43,7 +43,11 @@ def scrape(committee, vote_tables, vote_type, aref, test=False, save=True):
         'aref': aref,
         'id': f'{aref}-{committee}-{vote_type}',
     }
-    vote['votes'] = dict(map(parse_table, vote_tables))
+    try:
+        vote['votes'] = dict(map(parse_table, vote_tables))
+    except Exception as e:
+        log(1, f'Failed to parse comvote table for {committee} - {aref} ({vote_type}): {e}')
+        return
 
     if test:
         print(jdump(vote))
