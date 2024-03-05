@@ -20,7 +20,7 @@
 from datetime import datetime
 from utils.mappings import COMMITTEE_MAP
 from utils.log import log, set_level
-from utils.process import process
+from utils.process import process, publish_logs
 import json, re, sys
 from db import db
 from config import ROOT_URL
@@ -106,8 +106,12 @@ def scrape(save=True, **payload):
                 break
             else:
                 sleep(1)
+        global seen
+        seen = set()
         publish('ep_comagendas')
+        publish_logs(get_all_jobs)
         return
+
     url=f"https://emeeting.europarl.europa.eu/emeeting/ecomback/ws/EMeetingRESTService/oj?language=en&reference={payload['meeting']['meetingReference']}&securedContext=false"
     if url in seen: return
     seen.add(url)
@@ -234,10 +238,6 @@ def onchanged(doc, diff):
                      "%sdossier/%s" % (ROOT_URL, doc['epdoc']),
                     )))
     )
-
-from utils.process import publish_logs
-def onfinished(daisy=True):
-    publish_logs(get_all_jobs)
 
 def test(meetids):
     from comagendas import topayload
