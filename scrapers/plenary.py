@@ -127,7 +127,7 @@ def html_ams(amendment_titles, url):
       # EP personal does a lot of stupid stuff
       # we complain about it and then ignore the shit out of it...
       bail = False
-      while line.tag != 'div':
+      while line.tag != 'div' and (not end or line!=end):
          if junws(line) != '':
             if junws(line) == "Text proposed by the Commission":
                old, new, justification = parse_sequential(line, end)
