@@ -110,6 +110,7 @@ def scrape(all=False, **kwargs):
         crawl(CURRENT_TERM, update=True, **kwargs)
 
 if __name__ == "__main__":
+    import amendment
     import sys
     if len(sys.argv) == 2:
         if sys.argv[1] in COMMITTEE_MAP.keys():

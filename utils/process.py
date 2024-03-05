@@ -91,3 +91,9 @@ def publish_logs(get_all_jobs):
     if not any(jobs['queues'].values()) and not any(jobs['job_counts'].values()):
         set_logfile(sys.stdout)
         Popen(['/bin/sh','./bin/publish-log.sh'])
+
+
+def publish(table):
+    db.reindex(table)
+    db.commit(table)
+    Popen(['/bin/sh','./bin/publish-dump.sh', "%s.json" % table])

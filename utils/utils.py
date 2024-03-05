@@ -31,6 +31,8 @@ from config import ROOT_URL, USER_AGENT, CACHE_DIR
 from utils.log import log
 from utils.objchanges import hashabledict
 
+DOSSIERID_RE=re.compile(r'([0-9]{4}/[0-9]{4}[A-Z]?\((?:ACI|APP|AVC|BUD|CNS|COD|COS|DCE|DEA|DEC|IMM|INI|INL|INS|NLE|REG|RPS|RSO|RSP|SYN)\))')
+
 if sys.version[0] == '3':
     unicode = str
 

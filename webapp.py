@@ -889,7 +889,7 @@ def activate():
 def render_schema(schema):
     if schema not in ['ep_amendments','ep_comagendas','ep_com_votes',
                       'ep_dossiers','ep_dossiers_v1','ep_mep_activities',
-                      'ep_meps','ep_meps_v1','ep_votes']:
+                      'ep_plenary_amendments', 'ep_meps','ep_meps_v1','ep_votes']:
         return render('errors/404.html'), 404
     with open('templates/schemas/%s.html'%schema,'r') as fd:
         body = fd.read()

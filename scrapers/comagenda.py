@@ -20,12 +20,13 @@
 from datetime import datetime
 from utils.mappings import COMMITTEE_MAP
 from utils.log import log, set_level
-from utils.process import process
+from utils.process import process, publish_logs, publish
 import json, re, sys
 from db import db
 from config import ROOT_URL
 import notification_model as notif
 import requests
+from time import sleep
 from utils.utils import fetch_raw, jdump, unws, textdiff
 from utils.notif_mail import send_html_mail
 
@@ -36,6 +37,7 @@ CONFIG = {
     'error_handler': None,
     'table': 'ep_comagendas',
     'abort_on_error': True,
+    'publish': False,
 }
 set_level(3)
 
@@ -85,7 +87,31 @@ def clean(obj, key=None):
 
     {k:v if not isinstance(v, dict) else {K:V for K,V in v.items() if V} for k,v  in elem.items() if v}
 
-def scrape(payload, save=True, **kwargs):
+def scrape(save=True, **payload):
+    if 'publish' in payload:
+        if not globals().get('_lock'):
+            return
+        i = 0
+        while True:
+            i += 1
+            if i > 300:
+                log(1, "Too many jobs in comagenda after waiting 300s, skip publishing")
+                return
+            stop = False
+            _lock.acquire()
+            if _job_count < 2:
+                stop = True
+            _lock.release()
+            if stop:
+                break
+            else:
+                sleep(1)
+        global seen
+        seen = set()
+        publish('ep_comagendas')
+        publish_logs(get_all_jobs)
+        return
+
     url=f"https://emeeting.europarl.europa.eu/emeeting/ecomback/ws/EMeetingRESTService/oj?language=en&reference={payload['meeting']['meetingReference']}&securedContext=false"
     if url in seen: return
     seen.add(url)
@@ -212,10 +238,6 @@ def onchanged(doc, diff):
                      "%sdossier/%s" % (ROOT_URL, doc['epdoc']),
                     )))
     )
-
-from utils.process import publish_logs
-def onfinished(daisy=True):
-    publish_logs(get_all_jobs)
 
 def test(meetids):
     from comagendas import topayload

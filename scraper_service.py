@@ -5,6 +5,7 @@ import sys
 import traceback
 
 from db import Client
+from utils.process import publish
 from importlib.machinery import SourceFileLoader
 from json import loads, dumps
 from queue import Queue
@@ -110,10 +111,11 @@ def consume(pool, scraper):
             log(1, "---------------END OF EXCEPTIONS---------------")
 
         if job_count == 0 and scraper._queue.empty() and pool.empty():
-            if scraper.CONFIG.get('table') is not None:
-                db.reindex(scraper.CONFIG['table'])
-                db.commit(scraper.CONFIG['table'])
-                Popen(['/bin/sh','./bin/publish-dump.sh', "%s.json" % scraper.CONFIG['table']])
+            if 'publish' not in scraper.CONFIG or scraper.CONFIG['publish']:
+                if scraper.CONFIG.get('table'):
+                    publish(scraper.CONFIG['table'])
+                for t in scraper.CONFIG.get('tables', []):
+                    publish(t)
 
             if hasattr(scraper, 'onfinished'):
                 try:

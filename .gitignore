@@ -1,3 +1,4 @@
+config.py
 alembic.ini
 .*.swp
 __pycache__

@@ -36,6 +36,7 @@ def normalize_name(t):
 
 class Client:
     mepCache={}
+    dossierCache={}
     def commit(self, table):
         cmd = {"cmd": "commit", "params": {"table": table}}
         return self.send_req(cmd)
@@ -139,13 +140,19 @@ class Client:
         return self.get('ep_meps', id)
 
     def dossier(self,id):
-        return self.get('ep_dossiers', id)
+        if id in self.dossierCache:
+            return self.dossierCache[id]
+        self.dossierCache[id] = self.get('ep_dossiers', id)
+        return self.dossierCache[id]
 
     def activities_by_dossier(self,id):
         return self.get('activities_by_dossier', id)
 
     def vote(self,id):
         return self.get('ep_votes', id)
+
+    def com_vote(self,id):
+        return self.get('ep_com_votes', id)
 
     def amendment(self,id):
         return self.get('ep_amendments', id)
@@ -162,6 +169,9 @@ class Client:
     def active_groups(self):
         cmd = {"cmd": "active_groups", "params": {}}
         return self.send_req(cmd)
+
+    def plenary_amendment(self,id):
+        return self.get('ep_plenary_amendments', id)
 
     def getMep(self, name, date=None,group=None, abbr=None):
         if date and (name, (date.year,date.month)) in self.mepCache:
@@ -541,7 +551,6 @@ def coauthors(mepid):
                  matchInterval(mep['Constituencies'], am['date']).get('country','???'))] += 1
     return sorted(coauthors.items(),key=lambda x: x[1], reverse=True)
 
-
 ######  indexes ######
 
 
@@ -608,6 +617,26 @@ def idx_ams_by_mep():
 def idx_ams_by_dossier():
     res = {}
     for am in DBS['ep_amendments'].values():
+        dossier = am.get('reference', '')
+        if not dossier:
+            #log(1,"amendment has no reference {}".format(am))
+            continue
+        if not dossier in res: res[dossier] = []
+        res[dossier].append(am)
+    return res
+
+def idx_plenary_ams_by_mep():
+    res = {}
+    for am in DBS['ep_plenary_amendments'].values():
+        meps = set(am.get('meps', []))
+        for mep in meps:
+            if not mep in res: res[mep] = []
+            res[mep].append(am)
+    return res
+
+def idx_plenary_ams_by_dossier():
+    res = {}
+    for am in DBS['ep_plenary_amendments'].values():
         dossier = am.get('reference', '')
         if not dossier:
             #log(1,"amendment has no reference {}".format(am))
@@ -835,6 +864,10 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
                                         {"fn": idx_ams_by_mep, "name": "ams_by_mep"}],
                             'key': lambda x: x.get('id')},
 
+          'ep_plenary_amendments': {'indexes': [{"fn": idx_plenary_ams_by_dossier, "name": "plenary_ams_by_dossier"},
+                                                {"fn": idx_plenary_ams_by_mep, "name": "plenary_ams_by_mep"}],
+                                    'key': lambda x: x.get('id')},
+
           'ep_comagendas': {"indexes": [{"fn": idx_comagenda_by_committee, "name": "comagenda_by_committee"},
                                         {"fn": idx_comagenda_by_committee_dossier, "name": "comagenda_by_committee_dossier"},
                                         {"fn": idx_comagenda_by_committee_dossier_voted, "name": "comagenda_by_committee_dossier_voted"},
@@ -850,7 +883,6 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
                                       {"fn": idx_dossiers_by_doc, "name": "dossiers_by_doc"},
                                       {"fn": idx_dossiers_by_mep, "name": "dossiers_by_mep"},
                                       {"fn": idx_dossiers_by_subject, "name": "dossiers_by_subject"},
-                                      {"fn": idx_dossiers_by_committee, "name": "dossiers_by_committee"},
                                       {"fn": idx_subject_map, "name": "subject_map"},
                                       {"fn": idx_dossiers_by_committee, "name": "dossiers_by_committee"}],
                           'key': lambda x: x['procedure']['reference']},
@@ -867,6 +899,8 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
 
           'ep_votes': {'indexes': [{"fn": idx_votes_by_dossier, "name": "votes_by_dossier"}],
                        'key': lambda x: x['voteid']},
+          'ep_plenary_amendments': {'indexes': [],
+                       'key': lambda x: x['id']},
 }
 
 db = Client()
