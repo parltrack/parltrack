@@ -40,7 +40,7 @@ def log(level, msg):
             module = module_mapping[fp[-1]]
             break
         if len(fp)>1 and fp[-2]=='scrapers':
-            module = f'scraper:{fp[-1]}'
+            module = f'{fp[-1][:-3]}'
             break
     #else:
     #    if level <= 4:
