@@ -18,7 +18,7 @@ LEVELS = ('quiet', 'error', 'warning', 'info', 'debug')
 
 module_mapping = {
     'db.py': 'db',
-    'module_service.py': 'mgr',
+    'scraper_service.py': 'mgr',
     'webapp.py': 'webapp',
 }
 
