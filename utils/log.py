@@ -24,6 +24,8 @@ module_mapping = {
 
 def log(level, msg):
     if not logfile: return
+    if level > loglevel:
+        return
     module = '??? '
     lock.acquire()
     for frame in inspect.stack():
@@ -48,10 +50,9 @@ def log(level, msg):
         lock.release()
         return
 
-    if level <= loglevel:
-        #stack = ' '.join(f"{frame.filename}:{frame.lineno}" for frame in inspect.stack()[1:])
-        #logfile.write("{ts} {module} {level} {stack} {size} {msg}\n".format(ts=datetime.isoformat(datetime.now()), level=LEVELS[level], module=module, msg=msg, stack=stack, size=len(msg)))
-        logfile.write("{ts} {module} {level} {msg}\n".format(ts=datetime.isoformat(datetime.now()), level=LEVELS[level], module=module, msg=msg))
+    #stack = ' '.join(f"{frame.filename}:{frame.lineno}" for frame in inspect.stack()[1:])
+    #logfile.write("{ts} {module} {level} {stack} {size} {msg}\n".format(ts=datetime.isoformat(datetime.now()), level=LEVELS[level], module=module, msg=msg, stack=stack, size=len(msg)))
+    logfile.write("{ts} {module} {level} {msg}\n".format(ts=datetime.isoformat(datetime.now()), level=LEVELS[level], module=module, msg=msg))
     lock.release()
 
 def set_level(l):
