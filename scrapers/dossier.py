@@ -975,6 +975,7 @@ def onfinished(daisy=False):
         add_job("pvotes",{"year":None, "onfinished": {"daisy": True}})
         add_job("amendments",{"all":False, "onfinished": {"daisy": True}})
         add_job("comagendas",{"onfinished": {"daisy": True}})
+        add_job("plenaries", {"onfinished": {"daisy": True}}}
 
 def onchanged(doc, diff):
     id = doc['procedure']['reference']
