@@ -80,7 +80,7 @@ def scrape(all=False, **kwargs):
                     comagenda.scrape(payload)
                     continue
                 add_job('comagenda', payload=payload)
-    add_job('comagenda', payload={'publish': True, 'save': False})
+    add_job('comagenda', payload={'publish': True})
 
 if __name__ == "__main__":
     import sys
