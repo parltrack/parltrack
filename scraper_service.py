@@ -5,6 +5,7 @@ import sys
 import traceback
 
 from db import Client
+from utils.process import publish
 from importlib.machinery import SourceFileLoader
 from json import loads, dumps
 from queue import Queue
@@ -125,12 +126,6 @@ def consume(pool, scraper):
                     sys.stdout.flush()
                 else:
                     log(3, "{0} job's on_finished callback finished (params: {1})".format(scraper._name, onfinished_args))
-
-
-def publish(table):
-    db.reindex(table)
-    db.commit(table)
-    Popen(['/bin/sh','./bin/publish-dump.sh', "%s.json" % table])
 
 
 scrapers = {}

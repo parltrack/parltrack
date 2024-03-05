@@ -36,6 +36,7 @@ CONFIG = {
     'error_handler': None,
     'table': 'ep_comagendas',
     'abort_on_error': True,
+    'publish': False,
 }
 set_level(3)
 
@@ -86,6 +87,9 @@ def clean(obj, key=None):
     {k:v if not isinstance(v, dict) else {K:V for K,V in v.items() if V} for k,v  in elem.items() if v}
 
 def scrape(save=True, **payload):
+    if 'publish' in payload:
+        publish('ep_comagendas')
+        return
     url=f"https://emeeting.europarl.europa.eu/emeeting/ecomback/ws/EMeetingRESTService/oj?language=en&reference={payload['meeting']['meetingReference']}&securedContext=false"
     if url in seen: return
     seen.add(url)
