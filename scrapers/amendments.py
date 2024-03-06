@@ -21,7 +21,7 @@ from utils.utils import fetch, junws, jdump
 from utils.log import log
 from utils.mappings import COMMITTEE_MAP
 from config import CURRENT_TERM
-import amendment
+from scrapers import amendment
 import requests
 
 CONFIG = {
