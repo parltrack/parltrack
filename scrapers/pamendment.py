@@ -177,6 +177,8 @@ def getraw(url):
    doc = []
    with NamedTemporaryFile() as tmp:
       tmp.write(pdf_doc)
+      tmp.flush()
+      os.fsync(tmp.fileno())
       with pdfplumber.open(tmp.name) as pdf:
          for page in pdf.pages:
             lines = page.extract_text(layout=True, x_density=3, y_density=13.8, y_tolerance=6.9, keep_blank_chars=True).split('\n')
@@ -314,7 +316,11 @@ def scrape(url, dossier, aref=None, save = False):
    if aref is None:
       aref = url_to_aref(url)
    reference = dossier['procedure']['reference']
-   lines, PE, date, pagewidth, margin = getraw(url)
+   try:
+       lines, PE, date, pagewidth, margin = getraw(url)
+   except:
+       log(1, f'failed to fetch and convert {url}')
+       raise
    if pagewidth>200:
       log(1,f"pagewidth is > 200")
    #print(PE, date, aref)
