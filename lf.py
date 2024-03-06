@@ -101,7 +101,11 @@ insummary = False
 exceptions=0
 
 buffer = []
-for line in sys.stdin:
+for line in sys.stdin.buffer:
+    try: line = line.decode("utf8")
+    except UnicodeDecodeError:
+        print("invalid line", line)
+        continue
     tmp = parse(line)
     if tmp==line:
         if dlevel>=plev: # only do stuff if we would print this out anyway
