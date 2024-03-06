@@ -417,6 +417,8 @@ def commit(table):
     for rec in items[1:]:
         fd.write(b'\n,'+jdump(rec))
     fd.write(b'\n]')
+    fd.flush()
+    os.fsync(fd.fileno())
     fd.close()
     tname = "{}/{}.json".format(DBDIR, table)
     os.rename(name, tname)
