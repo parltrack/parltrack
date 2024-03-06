@@ -176,7 +176,7 @@ from utils.process import publish_logs
 def onfinished(daisy=True):
     publish_logs(get_all_jobs)
     if daisy:
-        add_job_("plenaries", {
+        add_job("plenaries", {
             "years": [datetime.now().year],
             "onfinished": {"daisy": True},
         })
