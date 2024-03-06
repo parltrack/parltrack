@@ -137,7 +137,7 @@ def about():
 
 @app.route('/dumps')
 def dumps():
-    TABLE_NAMES=['ep_amendments', 'ep_comagendas',  'ep_dossiers',  'ep_mep_activities',  'ep_meps',  'ep_votes']
+    TABLE_NAMES=['ep_amendments', 'ep_comagendas',  'ep_dossiers',  'ep_mep_activities',  'ep_meps',  'ep_votes', 'ep_plenary_amendments', 'ep_com_votes']
     arch = {}
     for file in sorted(os.listdir('/var/www/parltrack/dumps/arch'), reverse=True):
         table,rest = file.split('-',1)

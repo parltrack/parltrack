@@ -101,28 +101,6 @@
              </tr>
 
              <tr>
-                <td>Amendments</td>
-                {%if stats.ep_amendments%}
-                   <td>This dump contains most of the committee amendments</td>
-                   <td><a href="/dumps/ep_amendments.json.lz">ep_amendments.json.lz</a></td>
-                   <td>{{stats.ep_amendments.size}}</td>
-                   <td>{{stats.ep_amendments.updated}}</td>
-                {%else%}
-                   <td>The ep_amendments dump seems to be missing.</td><td></td><td></td><td></td>
-                {%endif%}
-                <td><a href="/schemas/ep_amendments">schema</a></td>
-                <td>
-                {%if arch.ep_amendments%}
-                   <ul>
-                      {%for file,date in arch.ep_amendments%}
-                         <li><a href="/dumps/arch/{{file}}">{{date}}</a></li>
-                      {%endfor%}
-                   </ul>
-                {%endif%}
-                </td>
-             </tr>
-
-             <tr>
                 <td>MEP Activities</td>
                 {%if stats.ep_mep_activities%}
                    <td>This dump contains most of the activities of MEPs (such as plenary speeches, questions, interpellations, etc)</td>
@@ -145,6 +123,28 @@
              </tr>
 
              <tr>
+                <td>MEP Plenary Amendments</td>
+                {%if stats.ep_votes%}
+                   <td>This dump contains most of the plenary amendments</td>
+                   <td><a href="/dumps/ep_plenary_amendments.json.lz">ep_plenary_amendments.json.lz</a></td>
+                   <td>{{stats.ep_plenary_amendments.size}}</td>
+                   <td>{{stats.ep_plenary_amendments.updated}}</td>
+                {%else%}
+                   <td>The ep_plenary_amendments dump seems to be missing.</td><td></td><td></td><td></td>
+                {%endif%}
+                <td><a href="/schemas/ep_plenary_amendments">schema</a></td>
+                <td>
+                {%if arch.ep_plenary_amendments%}
+                   <ul>
+                      {%for file,date in arch.ep_plenary_amendments%}
+                         <li><a href="/dumps/arch/{{file}}">{{date}}</a></li>
+                      {%endfor%}
+                   </ul>
+                {%endif%}
+                </td>
+             </tr>
+
+             <tr>
                 <td>MEP Plenary Votes</td>
                 {%if stats.ep_votes%}
                    <td>This dump contains most of the plenary roll-call votes</td>
@@ -159,6 +159,50 @@
                 {%if arch.ep_votes%}
                    <ul>
                       {%for file,date in arch.ep_votes%}
+                         <li><a href="/dumps/arch/{{file}}">{{date}}</a></li>
+                      {%endfor%}
+                   </ul>
+                {%endif%}
+                </td>
+             </tr>
+
+             <tr>
+                <td>Committee Amendments</td>
+                {%if stats.ep_amendments%}
+                   <td>This dump contains most of the committee amendments</td>
+                   <td><a href="/dumps/ep_amendments.json.lz">ep_amendments.json.lz</a></td>
+                   <td>{{stats.ep_amendments.size}}</td>
+                   <td>{{stats.ep_amendments.updated}}</td>
+                {%else%}
+                   <td>The ep_amendments dump seems to be missing.</td><td></td><td></td><td></td>
+                {%endif%}
+                <td><a href="/schemas/ep_amendments">schema</a></td>
+                <td>
+                {%if arch.ep_amendments%}
+                   <ul>
+                      {%for file,date in arch.ep_amendments%}
+                         <li><a href="/dumps/arch/{{file}}">{{date}}</a></li>
+                      {%endfor%}
+                   </ul>
+                {%endif%}
+                </td>
+             </tr>
+
+             <tr>
+                <td>MEP Committee Votes</td>
+                {%if stats.ep_votes%}
+                   <td>This dump contains most of the committee roll-call votes</td>
+                   <td><a href="/dumps/ep_com_votes.json.lz">ep_com_votes.json.lz</a></td>
+                   <td>{{stats.ep_com_votes.size}}</td>
+                   <td>{{stats.ep_com_votes.updated}}</td>
+                {%else%}
+                   <td>The ep_com_votes dump seems to be missing.</td><td></td><td></td><td></td>
+                {%endif%}
+                <td><a href="/schemas/ep_com_votes">schema</a></td>
+                <td>
+                {%if arch.ep_com_votes%}
+                   <ul>
+                      {%for file,date in arch.ep_com_votes%}
                          <li><a href="/dumps/arch/{{file}}">{{date}}</a></li>
                       {%endfor%}
                    </ul>
