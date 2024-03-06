@@ -173,6 +173,8 @@ def getraw(pdf):
     #log(2, "store pdf into: %s" % fname)
     fd=os.fdopen(fd, 'wb')
     fd.write(fetch_raw(pdf, binary=True))
+    fd.flush()
+    os.fsync(fd.fileno())
     fd.close()
     text=pdftotext('-nopgbrk',
     #text=strace('-fo', fname+".log", 'pdftotext',
