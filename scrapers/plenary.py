@@ -376,6 +376,9 @@ def scrape(url, dossier, save=True, test=False, **kwargs):
 
 def ref_to_url(ref):
    dossier = db.dossier(ref)
+   if dossier is None:
+       log(1, f"no dossier found for ={ref}=")
+       return
    url = None
    date = None
    for ev in dossier.get('events',[]):

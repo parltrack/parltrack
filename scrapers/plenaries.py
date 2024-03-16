@@ -23,7 +23,10 @@ def scrape(years=None, test=False, save=True, **kwargs):
       years = [str(datetime.now().year)]
    res = []
    for ref in db.keys('ep_dossiers'):
-       url, dossier, date  = plenary.ref_to_url(ref)
+       tmp = plenary.ref_to_url(ref)
+       if tmp is None:
+           continue
+       url, dossier, date  = tmp
        if url is None: continue
        if date[:4] not in years: continue
        log(3,f"adding job {url}")
