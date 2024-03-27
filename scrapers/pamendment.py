@@ -225,8 +225,11 @@ def parse_dossier(lines, date):
    ref=mr.group(2)
    d = db.dossier(ref)
    if not d:
-       log(2, f"could not find dossier for ref '{ref}'")
-       return dossier
+       if ref.endswith('INL)'):
+           d = db.dossier(ref[:-2]+"I)")
+           if not d:
+               log(2, f"could not find dossier for ref '{ref}'")
+               return dossier
    dossier['dossier']=ref
    return dossier
 
