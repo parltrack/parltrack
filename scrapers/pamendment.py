@@ -31,7 +31,7 @@ from utils.mappings import COMMITTEE_MAP
 
 pere = re.compile(r'(?P<PE>PE(?:TXTNRPE)? ?[0-9]{3,4}\.?[0-9]{3}(?:v[0-9]{2}(?:[-./][0-9]{1,2})?)?)')
 
-headerre=re.compile(r'\s*(?P<date>\d{1,2}\.\d{1,2}\.\d{4})\s*(?P<Aref>A[789]-\d{4}/ ?\d{1,4})')
+headerre=re.compile(r'\s*(?P<date>\d{1,2}\.\d{1,2}\.\d{4})\s*(?P<Aref>[AB][789]-\d{4}/ ?\d{1,4})')
 def isheader(line):
    return headerre.match(line)
 
@@ -196,11 +196,11 @@ def getraw(url):
 refre=re.compile(r'(.*)([0-9]{4}/[0-9]{4}[A-Z]?\((?:ACI|APP|AVC|BUD|CNS|COD|COS|DCE|DEA|DEC|IMM|INI|INL|INS|NLE|REG|RPS|RSO|RSP|SYN)\))')
 amstart=re.compile(r'\s*(:?Emendamenti|Amende?ment)\s*([0-9A-Z]+(:?/rev1?)?)\s*$')
 
-dossier1stline_re = re.compile(r'(.*)\s*(A[6789]-\d{4}/\d{4})$')
+dossier1stline_re = re.compile(r'(.*)\s*([AB][6789]-\d{4}/\d{4})$')
 def parse_dossier(lines, date):
    m1 = dossier1stline_re.match(lines[0])
    if not m1:
-      log(1, f"dossier block line 0 has no 'A[6789]-' postfix. {repr(lines[0])}")
+      log(1, f"dossier block line 0 has no '[AB][6789]-' postfix. {repr(lines[0])}")
       return
    dossier = {
       'type' : unws(m1.group(1)),
@@ -372,7 +372,7 @@ def scrape(url, dossier, aref=None, save = False):
 
 def url_to_aref(url):
    fname = url.split('/')[-1][:13]
-   return f'A{fname[2]}-{fname[9:13]}/{fname[4:8]}'
+   return f'{fname[0]}{fname[2]}-{fname[9:13]}/{fname[4:8]}'
 
 def dossier_from_url(url):
    # url ~ https://www.europarl.europa.eu/doceo/document/A-9-2022-0292-AM-001-001_EN.pdf
