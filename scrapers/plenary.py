@@ -395,8 +395,22 @@ def ref_to_url(ref):
           log(2,f"no url in {ref} {ev}")
           continue
       date = ev['date']
-      break
-   return url, {k:v for k,v in dossier.items() if k in {'procedure','committees', 'events'}}, date
+      return url, {k:v for k,v in dossier.items() if k in {'procedure','committees', 'events'}}, date
+
+   for doc in dossier.get('docs',[]):
+      if doc.get('type') not in {'Motion for a resolution',}: continue
+      if len(doc.get('docs',[])) > 1:
+         log(1,f"too motions for resolutions in plenary {len(doc.get('docs',[]))} {ref}")
+         raise ValueError(f"{dossier['procedure']['reference']} has multiple M4R tabled")
+      if 'docs' not in doc:
+          log(2, f"{ref} has no doc in {doc}")
+          continue
+      url = doc['docs'][0].get('url')
+      if url is None:
+          log(2,f"no url in {ref} {doc}")
+          continue
+      date = doc['date']
+      return url, {k:v for k,v in dossier.items() if k in {'procedure','committees', 'events'}}, date
 
 
 def am_ref_to_vote_id(votes, aref, seq):
