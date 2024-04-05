@@ -44,6 +44,7 @@ def crawl(year, term, **kwargs):
             for x in r['fragments']:
                 if x.get('value') != 'RCV': continue
                 for v in x['versions']:
+                    if v['language'] != "EN": continue
                     for f in v.get('fileInfos',[]):
                         if f['typeDoc']!='text/xml': continue
                         if f['url'] in seen: continue
