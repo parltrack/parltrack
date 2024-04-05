@@ -558,6 +558,9 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, pag
             #am['content']=block[i:]
             #return am
 
+    # preserve current offset from end for the case we don't find a location...
+    loc_end = (len(block) - 1) - min(i, len(block) - 1)
+    
     i=0
     # find end of authors
     while (i<len(block) and
@@ -638,6 +641,32 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, pag
         am['location'][-1]=(am['location'][-1][0],"%s %s" % (am['location'][-1][1],block[0]))
         del block[0]
         strip(block)
+
+    if 'location' not in am: # we didn't find a location yet.
+        # lets try from the end:
+        i = (len(block) -1) - loc_end
+        # first skip empty lines
+        while not unws(block[i]): i-=1
+        # now find either top of block or empty line
+        while i>0 and unws(block[i]): i-=1
+        # now repeat what we did before to find a location
+        i+=1
+        loc_start = i
+        while (i<len(block) and unws(block[i])):
+            if unws(block[i]).split()[0] in locstarts:
+                try: am['location'].append((unws(' '.join(block[loc_start:i])),unws(block[i])))
+                except KeyError: am['location']=[(unws(' '.join(block[loc_start:i])),unws(block[i]))]
+                del block[loc_start:i+1]
+                i=0
+            else:
+                i+=1
+        if len(block)>0 and ((len(block)==1 or
+                              not unws(block[1])) and
+                             unws(block[0])!='1' and
+                             'location' in am):
+            am['location'][-1]=(am['location'][-1][0],"%s %s" % (am['location'][-1][1],block[0]))
+            del block[0]
+            strip(block)
 
     if block:
         if not ((len(block)==3 and
