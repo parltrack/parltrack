@@ -24,7 +24,7 @@ from sqlalchemy.sql.expression import cast
 
 from config import NOTIF_DB_URI, DB_DEBUG
 
-engine = create_engine(NOTIF_DB_URI, echo=DB_DEBUG)
+engine = create_engine(NOTIF_DB_URI, echo=DB_DEBUG, pool_size=10, max_overflow=20)
 session = scoped_session(sessionmaker(autocommit=False,
                                       autoflush=False,
                                       bind=engine))
