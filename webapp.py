@@ -71,7 +71,7 @@ app.config.from_object('config')
 mail = Mail()
 mail.init_app(app)
 cache = Cache()
-cache.init_app(app, config={'CACHE_TYPE': 'filesystem', "CACHE_DIR": config.CACHE_DIR})
+cache.init_app(app, config={'CACHE_TYPE': 'filesystem', "CACHE_DIR": config.CACHE_DIR+"/webapp"})
 
 
 def get_changes(obj, path):
