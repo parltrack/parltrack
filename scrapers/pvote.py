@@ -202,6 +202,7 @@ def scrape(url, **kwargs):
                         mepid = mep.get("PersId")
                         if mepid:
                             mepid = int(mepid)
+                            if mepid == 6840: mepid = 197443
                         else:
                             mepid = db.getMep(name, v['ts'], abbr=g)
                         if mepid:
