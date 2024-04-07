@@ -233,7 +233,7 @@ from cachecontrol import CacheControl
 from cachecontrol.caches.file_cache import FileCache
 
 HEADERS =  { 'User-agent': USER_AGENT }
-sess = CacheControl(requests.Session(), cache=FileCache(CACHE_DIR, forever=True))
+sess = CacheControl(requests.Session(), cache=FileCache(CACHE_DIR+"/scraper", forever=True))
 
 def fetch_raw(url, retries=5, ignore=[], params=None, asjson=None, binary=False, res=False):
     try:
