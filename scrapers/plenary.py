@@ -292,8 +292,10 @@ def scrape(url, dossier, save=True, test=False, **kwargs):
    root = fetch(url)
    aref = pamendment.url_to_aref(url)
    try:
-      resp_committee = [x['committee'] for x in dossier['committees'] if x['type'] == 'Responsible Committee'][0]
-      parse_votes(root, aref, resp_committee, url, save=save, test=test)
+      tmp = [x['committee'] for x in dossier.get('committees',[]) if x['type'] == 'Responsible Committee']
+      if len(tmp) > 0:
+          resp_committee = tmp[0]
+          parse_votes(root, aref, resp_committee, url, save=save, test=test)
    except Exception as e:
       log(1, f"failed to parse votes for {url} - {e}")
    votes = db.get('votes_by_dossier', dossier['procedure']['reference'])
