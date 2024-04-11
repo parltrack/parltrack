@@ -114,11 +114,17 @@ def html_ams(amendment_titles, url):
       line=line.getnext()
 
       tmp = junws(line)
+      if tmp == '': # https://www.europarl.europa.eu/doceo/document/A-9-2022-0247_EN.html
+         line = skip_empty_lines(line)
+         tmp = junws(line)
       if tmp.split()[0] not in locstarts:
-         log(2,f"invalid amendment {number} location: {tostring(line)}")
+         log(2,f"invalid amendment {number} location: {tmp} html: {tostring(line)}")
          continue
       am['location']=[tmp]
       line = skip_empty_lines(line)
+
+      if line is None:
+         continue
 
       end = None
       if n+1 < len(amendment_titles):
@@ -142,6 +148,9 @@ def html_ams(amendment_titles, url):
             am['location'].append(junws(line))
          line = line.getnext()
       if bail == True:
+         continue
+
+      if line is None:
          continue
 
       if line.get('class') != "table-responsive":
@@ -396,22 +405,6 @@ def ref_to_url(ref):
           continue
       date = ev['date']
       return url, {k:v for k,v in dossier.items() if k in {'procedure','committees', 'events'}}, date
-
-   for doc in dossier.get('docs',[]):
-      if doc.get('type') not in {'Motion for a resolution',}: continue
-      if len(doc.get('docs',[])) > 1:
-         log(1,f"too motions for resolutions in plenary {len(doc.get('docs',[]))} {ref}")
-         raise ValueError(f"{dossier['procedure']['reference']} has multiple M4R tabled")
-      if 'docs' not in doc:
-          log(2, f"{ref} has no doc in {doc}")
-          continue
-      url = doc['docs'][0].get('url')
-      if url is None:
-          log(2,f"no url in {ref} {doc}")
-          continue
-      date = doc['date']
-      return url, {k:v for k,v in dossier.items() if k in {'procedure','committees', 'events'}}, date
-
 
 def am_ref_to_vote_id(votes, aref, seq):
     if isinstance(seq, int):

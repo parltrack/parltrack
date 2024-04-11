@@ -403,8 +403,9 @@ def extract_cmt(block, pagewidth, margin):
 def parse_block(block, url, reference, date, rapporteur, PE, committee=None, pagewidth=None, parse_dossier=None, top_of_diff=2, margin=None):
     am={u'src': url,
         u'peid': PE,
-        u'reference': reference,
-        u'date': date}
+        u'reference': reference}
+    if date is not None:
+        am[u'date']=date
     if committee is not None:
         am['committee']=committee
     strip(block)

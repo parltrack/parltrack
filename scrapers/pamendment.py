@@ -239,8 +239,9 @@ def parse_cover(lines, reference, dossier, aref):
    #print('asdf', '\n'.join(lines))
    rapporteurs_tmp = []
    for r in [r
-             for c in dossier['committees'] if c['type'] in {'Responsible Committee', 'Joint Responsible Committee'}
-             for r in c['rapporteur']]:
+             for c in dossier.get('committees',[]) if c['type'] in {'Responsible Committee', 'Joint Responsible Committee'}
+             for r in c.get('rapporteur',[])]:
+
       rapporteur=[]
       rapporteur.append(r['name']+r"\s*\(?"+r['group']+r"\)?")
       rapporteur.append(r['name']+r"\s*\(?"+r['abbr'] +r"\)?")
@@ -326,6 +327,8 @@ def scrape(url, dossier, aref=None, save = False):
        raise
    if pagewidth>200:
       log(1,f"pagewidth is > 200")
+   if PE is None:
+      PE = aref
    #print(PE, date, aref)
    #print('\n'.join(lines[:30]))
    tmp = '\n'.join(lines)
@@ -340,7 +343,9 @@ def scrape(url, dossier, aref=None, save = False):
    committee = []
    meps = None
    meta = None
-   date = parse(date, dayfirst=True)
+   if date is not None:
+      if date == '78.3.2023': date = '8.3.2023'
+      date = parse(date, dayfirst=True)
 
    for line in lines:
       if amstart.match(line):
