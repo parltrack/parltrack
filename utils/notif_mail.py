@@ -22,10 +22,11 @@ def send_html_mail(recipients, subject, obj, change, date, url, text):
         url=url
     )
 
-    msg = Message(subject,
-            sender = "parltrack@parltrack.org",
-            bcc = list(recipients))
-    msg.html = outputText
-    msg.body = text
-    with app.app_context():
-        mail.send(msg)
+    for recipient in recipients:
+        msg = Message(subject,
+                sender = "parltrack@parltrack.org",
+                recipients=[recipient])
+        msg.html = outputText
+        msg.body = text
+        with app.app_context():
+            mail.send(msg)
