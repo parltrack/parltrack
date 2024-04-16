@@ -305,10 +305,11 @@ def strip(block):
     while len(block) and not unws(block[-1]):
         del block[-1]
 
-def not_2column(line, pagewidth, margin):
+def not_2column(line, pagewidth, margin, epsilon=6):
     if '  ' in line.lstrip(): return False
     beginning = ((len(line)+margin) - len(line.lstrip()))
-    return beginning < pagewidth // 2 < len(line) + margin
+    #print(beginning + epsilon, pagewidth // 2, (len(line) + margin) + epsilon)
+    return (beginning - epsilon) < pagewidth // 2 < ((len(line) + margin) + epsilon)
 
 def find_sep(block, mid):
     tmp = [set([i for i in range(mid+40) if i>=len(line) or line[i]==' ']) for line in block]
@@ -336,8 +337,8 @@ def find_sep(block, mid):
 def extract_cmt(block, pagewidth, margin):
     # todo if handle also sequential diffs with comments, page 3 has a test case:
     # https://www.europarl.europa.eu/doceo/document/A-9-2023-0048-AM-157-158_EN.pdf
-    #print('\n'.join(block))
     #print('asdf')
+    #print('\n'.join(block))
     i = len(block)-1
     orig_lang = None
     c_start = None
@@ -352,10 +353,9 @@ def extract_cmt(block, pagewidth, margin):
                                       'Present text Amendment',
                                       'Draft legislative resolution Amendment'}
            and not " "*(len(block[i])//5)+"Amendment" in block[i]):
-
         tmp = block[i].lstrip()
         if tmp.startswith('Or.') and len(tmp)<=6 and len(block[i])>(pagewidth - pagewidth//4):
-            #log(4, f"found original language: {tmp[3:].strip()}")
+            #log(3, f"found original language: {tmp[3:].strip()}")
             orig_lang=tmp[3:].strip()
             del block[i]
             if c_end is not None: c_end-=1
@@ -366,24 +366,28 @@ def extract_cmt(block, pagewidth, margin):
 
         if tmp.endswith(')') and not_2column(block[i], pagewidth, margin):
            if c_end is None:
-              #log(4,f"found end of comment block")
+              #log(3,f"found end of comment block")
               c_end = i
-           else:
-              log(2, f"found another comment end: {repr(block[i])}")
+           #elif '(' not in unws(block[i])[1:]:
+           #   log(3, f"found another comment end: {repr(block[i])}")
         if (c_end is not None
+            and c_start is None
             and tmp.startswith('(')
             and not_2column(block[i], pagewidth, margin)):
             #and (unws(block[i-1])==''
             #     or (block[i-1].lstrip().startswith('Or.')
             #         and len(block[i-1].lstrip())<=6
             #         and len(block[i-1])>(pagewidth - pagewidth//4)))):
-           #log(4,f"found start of comment block")
+           #log(3,f"found start of comment block {repr(tmp)}")
            c_start = i
+
+        if c_end is None and tmp != '':
+            return orig_lang, comment, span
         i-=1
 
     if i<0:
         return orig_lang, comment, span
-    #log(4, f"found top of 2 column amendment")
+    #log(3, f"found top of 2 column amendment")
 
     if (c_end is not None
         and c_start is not None):
@@ -395,7 +399,7 @@ def extract_cmt(block, pagewidth, margin):
             return orig_lang, comment, span
 
         comment = [unws(l) for l in block[c_start:c_end+1]]
-        log(4, f"found comment block")
+        #log(3, f"found comment block {comment}")
         del block[c_start:c_end+1]
 
     return orig_lang, comment, span
@@ -454,6 +458,7 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, pag
 
     # get original language
     if ('orig_lang' not in am # we can skip this is extract_cmt already took care of it
+        #and len(block)>0
         and 4<len(unws(block[-1]))<=6
         and unws(block[-1]).startswith('Or.')):
 

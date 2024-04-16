@@ -25,7 +25,7 @@ def motions(ref):
    res = []
    for doc in dossier.get('docs',[]):
       if doc.get('type') not in {'Motion for a resolution',
-                                 #'Joint motion for resolution'
+                                 'Joint motion for resolution'
                                  }: continue
       if 'docs' not in doc:
           log(3, f"{ref} has no doc in {doc}")

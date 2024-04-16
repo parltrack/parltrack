@@ -28,21 +28,53 @@ from utils.log import log
 from db import db
 from scrapers.amendment import isfooter, parse_block, strip, splitNames
 from utils.mappings import COMMITTEE_MAP
+from tempfile import NamedTemporaryFile
+import pdfplumber
 
 pere = re.compile(r'(?P<PE>PE(?:TXTNRPE)? ?[0-9]{3,4}\.?[0-9]{3}(?:v[0-9]{2}(?:[-./][0-9]{1,2})?)?)')
 
-headerre=re.compile(r'\s*(?P<date>\d{1,2}\.\d{1,2}\.\d{4})\s*(?P<Aref>[AB][789]-\d{4}/ ?\d{1,4})')
+headerre=re.compile(r'\s*(?P<date>\d{1,2}\.\d{1,2}\.\d{4})\s*(?P<Aref>(?:[AB]|RC-B)[789]-\d{4}/ ?\d{1,4})')
 def isheader(line):
    return headerre.match(line)
 
-def unpaginate(text, url):
-    #print(text)
-    lines = [l.rstrip('\n\t ') for l in text.split('\n')]
-    pagewidth = max(len(line) for line in lines)
-    ## find end of 1st page
-    #eo1p = 0
+def unpaginate(doc, url):
     PE = None
     date = None
+
+    headers, footers = find_static_frame(doc)
+    for line in headers:
+        header = isheader(line)
+        if header:
+            date = header.group("date")
+            break
+    for line in footers:
+       footer = isfooter(line)
+       if footer:
+           m = pere.search(unws(line))
+           if m: PE = m.group(0)
+           break
+    if len(headers)>0:
+       if doc[0][:len(headers)] == headers:
+          del doc[0][:len(headers)]
+       for p in doc[1:]:
+          del p[:len(headers)]
+          strip(p)
+    if len(footers)>0:
+       if doc[-1][-(len(footers)):] == footers:
+           del doc[-1][-(len(footers)):]
+       for p in doc[:-1]:
+           del p[-(len(footers)):]
+           strip(p)
+
+    text ='\n\f'.join(['\n'.join(p) for p in doc])
+
+    #print(text)
+
+    pagewidth = max(len(line) for line in text.split('\n'))
+    lines = [l.rstrip('\n\t ') for l in text.split('\n')]
+
+    ## find end of 1st page
+    #eo1p = 0
     #while not lines[eo1p].startswith('\x0c') and eo1p<len(lines):
     #    eo1p+=1
     #if eo1p == len(lines):
@@ -79,8 +111,9 @@ def unpaginate(text, url):
 
        # we expect i>0 and lines[i] == 'EN' (or variations)
        if i<=0:
-           log(1, "could not find non-empty line above pagebreak in %s" % url)
-           raise ValueError("no EN marker found: %s" % url)
+           log(4, "could not find non-empty line above pagebreak in %s" % url)
+           #raise ValueError("no EN marker found: %s" % url)
+           continue
 
        tmp = unws(lines[i])
        if tmp not in ["EN", "EN EN", "EN United in diversity EN",
@@ -101,8 +134,8 @@ def unpaginate(text, url):
            if tmp in ['AM_Com_NonLegCompr', 'AM_Com_NonLegReport','AM_Com_NonLegOpinion']:
                # no footer on this page (and probably neither on the previous one which should be the first)
                continue
-           log(2, 'could not find EN marker above pagebreak: %d/%d "%s"' % (i, len(lines), tmp))
-           #raise ValueError('no EN marker found "%s" in %s' % (tmp,url))
+           log(4, 'could not find EN marker above pagebreak: %d/%d "%s"' % (i, len(lines), tmp))
+           #raise alueError('no EN marker found "%s" in %s' % (tmp,url))
        else:
           i-=1
           if tmp == "United in diversity" and unws(lines[i]) in {'EN', 'EN EN'}:
@@ -113,7 +146,8 @@ def unpaginate(text, url):
            i-=1
        if i<=0:
            log(1, "could not find non-empty line above EN marker: %s" % url)
-           raise ValueError("no next line above EN marker found: %s" % url)
+           #raise ValueError("no next line above EN marker found: %s" % url)
+           continue
 
        if i<len(lines) and lines[i].startswith('\x0c'): # we found a ^LEN^L
            # we found an empty page.
@@ -142,18 +176,18 @@ def unpaginate(text, url):
        while fstart > i:
            del lines[fstart]
            fstart -= 1
-
-    while unws(lines[0]) == '':
+    while len(lines)>0 and unws(lines[0]) == '':
        del lines[0]
-    header = isheader(lines[0])
-    if header:
-       date1 = header.group("date")
-       if date:
-          if date1 != date:
-             log(1, f"date found, but is not consistent: {date} != {date1}")
-       else:
-          date = date1
-       del lines[0]
+    if len(lines)>0:
+       header = isheader(lines[0])
+       if header:
+          date1 = header.group("date")
+          if date:
+             if date1 != date:
+                log(1, f"date found, but is not consistent: {date} != {date1}")
+          else:
+             date = date1
+          del lines[0]
 
     # clear left margin
     margin = 1
@@ -166,8 +200,30 @@ def unpaginate(text, url):
 
     return lines, PE, date, pagewidth, margin
 
-from tempfile import NamedTemporaryFile
-import pdfplumber
+def find_header(doc, lines):
+    for p in doc[2:-1]:
+        if doc[1][:lines+1] != p[:lines+1]:
+            return doc[1][:lines]
+    if lines+1 >= len(doc[1]):
+        return doc[1][:lines]
+    return find_header(doc, lines+1)
+
+def find_footer(doc, lines):
+    tmp = unws(doc[1][lines-1])
+    if len(tmp) == len("Or. en") and tmp[:4] == "Or. ":
+        return doc[1][lines:]
+    for p in doc[1:-1]:
+        if doc[0][lines-1:] != p[lines-1:]:
+            if lines == 0: return []
+            return doc[0][lines:]
+    if -(lines-1) >= len(doc[0]):
+        return doc[0][lines:]
+    return find_footer(doc, lines-1)
+
+def find_static_frame(doc):
+    if len(doc)<4: return [], []
+    return find_header(doc, 0), find_footer(doc, 0)
+
 def getraw(url):
    try:
       pdf_doc = fetch_raw(url, binary=True)
@@ -190,17 +246,17 @@ def getraw(url):
             while unws(lines[i])=='':
                del lines[i]
                i-=1
-            doc.append('\n'.join(lines))
-   return unpaginate('\n\f'.join(doc), url)
+            doc.append(lines)
+   return unpaginate(doc, url)
 
 refre=re.compile(r'(.*)([0-9]{4}/[0-9]{4}[A-Z]?\((?:ACI|APP|AVC|BUD|CNS|COD|COS|DCE|DEA|DEC|IMM|INI|INL|INS|NLE|REG|RPS|RSO|RSP|SYN)\))')
 amstart=re.compile(r'\s*(:?Emendamenti|Amende?ment)\s*([0-9A-Z]+(:?/rev1?)?)\s*$')
 
-dossier1stline_re = re.compile(r'(.*)\s*([AB][6789]-\d{4}/\d{4})$')
+dossier1stline_re = re.compile(r'(.*)\s*((?:[AB]|RC-B)[6789]-\d{4}/\d{4})$')
 def parse_dossier(lines, date):
    m1 = dossier1stline_re.match(lines[0])
    if not m1:
-      log(1, f"dossier block line 0 has no '[AB][6789]-' postfix. {repr(lines[0])}")
+      log(1, f"dossier block line 0 has no '(RC-)?[AB][6789]-' postfix. {repr(lines[0])}")
       return
    dossier = {
       'type' : unws(m1.group(1)),
@@ -311,6 +367,77 @@ def parse_cover(lines, reference, dossier, aref):
       log(4, "leftover after cover extraction\n\t|"+'\n\t|'.join(lines))
    return res
 
+fuxups = {
+   "https://www.europarl.europa.eu/doceo/document/A-8-2019-0115-AM-001-154_EN.pdf": [
+      ('  Amendment             50Proposal for a regulation',
+       ['  Amendment             50',
+        '',
+        '  Proposal for a regulation']),
+      ('  Amendment             37Proposal for a regulation',
+       ['  Amendment             37',
+        '',
+        '  Proposal for a regulation'])
+   ],
+   "https://www.europarl.europa.eu/doceo/document/A-9-2021-0016-AM-001-305_EN.pdf": [
+      ('        https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02009R1224-',
+       ['       (https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02009R1224-']),
+
+      ('        https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02009R1224-',
+       ['       (https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02009R1224-']),
+      ('                                                 20190814&qid=1582016726712',
+       ['                                                20190814&qid=1582016726712)']),
+      # same as prev, happens twice
+      ('        https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02009R1224-',
+       ['       (https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02009R1224-']),
+      ('                                                 20190814&qid=1582016726712',
+       ['                                                20190814&qid=1582016726712)']),
+   ],
+   "https://www.europarl.europa.eu/doceo/document/A-8-2019-0190-AM-001-488_EN.pdf": [
+      # these are all the same, but not centered but left-justified
+      # and the last line is very short as can be seen.
+      ('Commission’s proposal.)',
+       ['                                                    Commission’s proposal.)'
+       ]),
+
+      ('the Commission’s proposal.)',
+       ['                                               the Commission’s proposal.)'
+       ]),
+
+      ('Commission’s proposal.)',
+       ['                                                  Commission’s proposal.)'
+       ]),
+
+      ('Commission’s proposal.)',
+       ['                                                  Commission’s proposal.)'
+       ]),
+
+      ('Commission’s proposal.)',
+       ['                                                  Commission’s proposal.)'
+       ]),
+
+      ('Commission’s proposal.)',
+       ['                                                  Commission’s proposal.)'
+       ]),
+
+      ('in the column ‘Comment’.)',
+       ['                                                  in the column ‘Comment’.)'
+       ]),
+      ],
+
+   "https://www.europarl.europa.eu/doceo/document/A-9-2020-0101-AM-001-122_EN.pdf": [
+      ('         https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32013R1306',
+       ['       (https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32013R1306)'])],
+   }
+def fixup(url, lines):
+  for old, new in fuxups.get(url, []):
+     idx = lines.index(old)
+     #print(f"fixing up in location {idx}")
+     #print('\t|', '\n\t|'.join(lines[idx-40:idx+1]))
+     del lines[idx]
+     for p in reversed(new):
+        lines.insert(idx, p)
+  return lines
+
 blisted = {'https://www.europarl.europa.eu/doceo/document/A-9-2023-0033-AM-001-001_EN.pdf'}
 def scrape(url, dossier, aref=None, save = False):
    res=[]
@@ -326,11 +453,16 @@ def scrape(url, dossier, aref=None, save = False):
        log(1, f'failed to fetch and convert {url}')
        raise
    if pagewidth>200:
-      log(1,f"pagewidth is > 200")
+      log(1,f"pagewidth is {pagewidth} > 200")
+   if pagewidth >= 245:
+      log(3, f"since pagewidth is {pagewidth} >= 245 we are clobbering it to 199 and margin to 24")
+      margin = 24
+      pagewidth = 199
    if PE is None:
       PE = aref
    #print(PE, date, aref)
    #print('\n'.join(lines[:30]))
+   lines = fixup(url, lines)
    tmp = '\n'.join(lines)
    #print(tmp)
    #log(3,f"page width is {pagewidth}")
@@ -376,7 +508,10 @@ def scrape(url, dossier, aref=None, save = False):
    return res
 
 def url_to_aref(url):
-   fname = url.split('/')[-1][:13]
+   fname = url.split('/')[-1]
+   if fname.startswith('RC-'):
+       #fname = fname[:14]
+       return f'RC-B{fname[3]}-{fname[10:14]}/{fname[5:9]}'
    return f'{fname[0]}{fname[2]}-{fname[9:13]}/{fname[4:8]}'
 
 def dossier_from_url(url):

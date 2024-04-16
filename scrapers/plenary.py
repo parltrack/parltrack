@@ -87,6 +87,8 @@ def parse_sequential(line, end):
    return old, new, justification
 
 blist = { ('https://www.europarl.europa.eu/doceo/document/A-9-2023-0048_EN.html', '145'),
+          ('https://www.europarl.europa.eu/doceo/document/A-8-2019-0115_EN.html', '37Proposal for a regulation'),
+          ('https://www.europarl.europa.eu/doceo/document/A-8-2019-0115_EN.html', '50Proposal for a regulation'),
           #('', ''),
          }
 def html_ams(amendment_titles, url):
