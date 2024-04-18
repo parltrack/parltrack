@@ -32,7 +32,6 @@ def motions(ref):
           continue
       for d in doc['docs']:
           if not docre.match(d['title']):
-              print(f"skipping {d}")
               continue
           url = d.get('url')
           if url is None:
