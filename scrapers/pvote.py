@@ -23,6 +23,7 @@ from utils.log import log
 from utils.mappings import VOTE_DOX, VOTE_DOX_RE
 from utils.process import process
 
+from collections import defaultdict
 from datetime import datetime
 from lxml.etree import fromstring, tostring
 import requests
@@ -46,6 +47,49 @@ ignoredox = ['B6-0023/2004', 'B6-0043/2007', 'B6-0155/2004', 'B6-0161/2006', 'B6
              'RC6-0271/2008', 'RC6-0277/2008', 'RC6-0278/2008', 'RC6-0281/2008', 'RC6-0326/2008', 'RC6-0343/2008', 'RC6-0350/2008',
              'RC6-0377/2008', 'RC6-0387/2008', 'RC6-0402/2008', 'RC6-0420/2005', 'RC6-0420/2008', 'RC6-0425/2008', 'RC6-0426/2008',
              'RC6-0428/2008', 'RC6-0518/2007', 'RC6-0521/2008', 'RC6-0523/2008', 'RC6-0527/2008', 'RC6-0549/2008', 'RC6-0554/2008',]
+
+VOT_DATE_RE = re.compile(r'\((\d{4})\)(\d{2})-(\d{2})\(RCV\)_EN\.xml')
+VOT_URL_TPL = 'https://www.europarl.europa.eu/doceo/document/PV-9-{0}-{1}-{2}-VOT_EN.xml'
+
+
+def get_vot_url(url):
+    return VOT_URL_TPL.format(*VOT_DATE_RE.search(url).groups())
+
+
+def get_split_votes(url):
+    nodes = fromstring(fetch_raw(get_vot_url(url), binary=True))
+    split_votes = {}
+
+    for vn in nodes.xpath('//vote'):
+        aref = ''
+        vote_refs = defaultdict(list)
+        for v in vn.xpath('.//voting'):
+            l = junws(v.xpath('.//label')[0])
+            if l:
+                aref = l.split()[0]
+            am = junws(v.xpath('.//amendmentNumber')[0])
+            p = junws(v.xpath('.//amendmentSubject')[0])
+            if '§' not in p and not am:
+                continue
+            loc = f'amendment {am}'
+            if am == '§':
+                loc = p
+            vote_refs[loc].append(v.get('votingId'))
+        if not vote_refs:
+            continue
+        for r in vn.xpath('.//remarkSplitVote//item'):
+            rt = junws(r.xpath('.//title')[0])
+            if rt.startswith('Amendment '):
+                rt = 'a' + rt[1:]
+            if rt not in vote_refs:
+                log(3, f"Cannot find vote reference {rt} @ {url}")
+                continue
+            split = list({'section': str(v1), 'text': str(v2)} for v1, v2 in zip(r.xpath('.//partSection//text()'), r.xpath('.//partValue//text()')))
+            for i, v in enumerate(vote_refs[rt][1:]):
+                split_votes[int(v)] = split[i]
+                split_votes[int(v)]['location'] = rt
+    return split_votes
+
 def votemeta(line, date):
     log(3, 'vote title is "%s"' % line)
     res={'rapporteur': []}
@@ -99,6 +143,11 @@ def scrape(url, **kwargs):
     log(3, "processing plenary votes xml from %s" % url)
     # root is:
     #PV.RollCallVoteResults EP.Number="PE 533.923" EP.Reference="P7_PV(2014)04-17" Sitting.Date="2014-04-17" Sitting.Identifier="1598443"
+    split_votes = {}
+    try:
+        split_votes = get_split_votes(url)
+    except Exception as e:
+        log(1, f"Failed to process split vote VOT xml: {e}")
     votes=[]
     for vote in root.xpath('//RollCallVote.Result'):
         # hrmpf, some EP seriously used the braindead Y-d-m format sometimes in vote timestamps :/
@@ -128,6 +177,8 @@ def scrape(url, **kwargs):
            u"title": title,
            'votes':{}}
         v.update(votemeta(v['title'], v['ts']))
+        if voteid in split_votes:
+            v['split'] = split_votes[voteid]
         if 'epref' not in v:
             ref = vote.xpath("RollCallVote.Description.Text/a/text()")
             if ref:
