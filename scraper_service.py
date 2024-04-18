@@ -135,10 +135,13 @@ def get_all_jobs():
     queue_lens = {}
     job_counts = {}
     for k,v in scrapers.items():
-        queue_lens[k] = v._queue.qsize()
+        if v._queue.qsize() > 0:
+            queue_lens[k] = v._queue.qsize()
         v._lock.acquire()
-        job_counts[k] = v._job_count
+        tmp = v._job_count
         v._lock.release()
+        if tmp > 0:
+            job_counts[k] = tmp
     return {'queues': queue_lens, 'job_counts': job_counts}
 
 
