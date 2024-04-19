@@ -6,6 +6,7 @@ from db import db
 from utils.log import log
 from utils.utils import fetch, unws, jdump, getpdf
 from utils.process import process
+from lxml.etree import tostring
 
 CONFIG = {
     'threads': 8,
@@ -16,7 +17,7 @@ CONFIG = {
     'abort_on_error': True,
 }
 
-pere = re.compile(r'PE[0-9]{3,4}\.[0-9]{3}v0[1-9](?:v0[0-9](?:-[0-9]{1,2})?)?')
+pere = re.compile(r'PE[0-9]{3,4}\.[0-9]{3}(?:v0[1-9])?(?:v0[0-9](?:-[0-9]{1,2})?)?')
 
 def scrape(id, terms, mepname, save=True, **kwargs):
     activity_types=(('plenary-speeches', 'CRE'),
@@ -47,8 +48,8 @@ def scrape(id, terms, mepname, save=True, **kwargs):
                 raise ValueError
                 #continue
             #print(url, file=sys.stderr)
-            while(len(root.xpath('//div[@class="erpl_document "]'))>0):
-                for node in root.xpath('//div[@class="erpl_document "]'):
+            while(len(root.xpath('//div[@class="erpl_document"]'))>0):
+                for node in root.xpath('//div[@class="erpl_document"]'):
                     if type == 'written-explanations':
                         item = {
                             'title': unws(''.join(node.xpath('./div/h3/span[@class="t-item"]//text()'))),
@@ -84,7 +85,6 @@ def scrape(id, terms, mepname, save=True, **kwargs):
                                 item["No of sigs date"] = datetime.strptime(date, u"%d-%m-%Y")
                             item[label]=value
                     else:
-                        #from lxml.etree import tostring
                         #print('\n'.join(tostring(e).decode() for e in node.xpath('./div/div[1]')))
                         # all other activities share the following scraper
                         ref = unws(''.join(node.xpath('./div[1]/div[1]/span[2]/text()')))
