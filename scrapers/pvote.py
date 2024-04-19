@@ -200,7 +200,7 @@ def scrape(url, **kwargs):
                         m = {}
                         name = junws(mep)
                         mepid = mep.get("PersId")
-                        if mepid:
+                        if mepid and mepid != "UNKNOWN":
                             mepid = int(mepid)
                             if mepid == 6840: mepid = 197443
                         else:
