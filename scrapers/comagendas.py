@@ -74,7 +74,7 @@ def scrape(all=False, **kwargs):
 
     for com in (k for k in COMMITTEE_MAP.keys() if len(k)==4):
         for year, month in months:
-            for payload in topayload(com,year,month):
+            for payload in topayload(com,year,month) or []:
                 if __name__ == "__main__":
                     #print(jdump(payload))
                     comagenda.scrape(payload)
