@@ -180,7 +180,7 @@ def scrape(id, terms, mepname, save=True, **kwargs):
                     if TYPE not in activities:
                         activities[TYPE]=[]
                     activities[TYPE].append(item)
-                if len(root.xpath('//div[@class="erpl_document "]')) < cnt:
+                if len(root.xpath('//div[@class="erpl_document"]')) < cnt:
                     break
                 page += 1
                 url = "http://www.europarl.europa.eu/meps/en/%s/loadmore-activities/%s/%s/?page=%s&count=%s" % (id, type, term, page, cnt)
@@ -190,7 +190,7 @@ def scrape(id, terms, mepname, save=True, **kwargs):
                     log(1,"failed to fetch {}".format(url))
                     #raise ValueError
                     break
-                #print(url, file=sys.stderr)
+                print(url)#, file=sys.stderr)
         if TYPE in activities:
             activities[TYPE]=sorted(activities[TYPE],key=lambda x: x['date'])
     activities['mep_id']=id
@@ -239,7 +239,9 @@ if __name__ == '__main__':
     #print(jdump(scrape(131749, [7,8,9], "some MEP")))
     #print(jdump(scrape(205452, [9], 'Chris MACMANUS')))
     #print(jdump(scrape(204400, [9], 'Adrián VÁZQUEZ LÁZARA', save=False)))
-    print(jdump(scrape(197767, [9], 'Eugen JURZYCA', save=False)))
+    #print(jdump(scrape(197767, [9], 'Eugen JURZYCA', save=False)))
+    print(jdump(scrape(197731, [9], 'Clare DALY', save=False)))
+
 
     #import sys
     #print(jdump(scrape(int(sys.argv[1]), [9], "some MEP")))
