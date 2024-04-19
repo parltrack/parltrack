@@ -190,7 +190,7 @@ def scrape(id, terms, mepname, save=True, **kwargs):
                     log(1,"failed to fetch {}".format(url))
                     #raise ValueError
                     break
-                print(url)#, file=sys.stderr)
+                #print(url, file=sys.stderr)
         if TYPE in activities:
             activities[TYPE]=sorted(activities[TYPE],key=lambda x: x['date'])
     activities['mep_id']=id
