@@ -735,6 +735,16 @@ def idx_votes_by_dossier():
             res[dossier].append(vote)
     return res
 
+def idx_votes_by_doc():
+    res = {}
+    for vote in DBS['ep_votes'].values():
+        doc = vote.get('doc')
+        if doc is None:
+            continue
+        if not doc in res: res[doc] = []
+        res[doc].append(vote)
+    return res
+
 def idx_dossiers_by_doc():
     # "activities.docs.title"
     res = {}
@@ -899,7 +909,9 @@ TABLES = {'ep_amendments': {'indexes': [{"fn": idx_ams_by_dossier, "name": "ams_
           'ep_mep_activities': {'indexes': [{"fn": idx_activities_by_dossier, "name": "activities_by_dossier"},],
                                 'key': lambda x: x['mep_id']},
 
-          'ep_votes': {'indexes': [{"fn": idx_votes_by_dossier, "name": "votes_by_dossier"}],
+          'ep_votes': {'indexes': [{"fn": idx_votes_by_dossier, "name": "votes_by_dossier"},
+                                   {"fn": idx_votes_by_doc, "name": "votes_by_doc"}
+                                   ],
                        'key': lambda x: x['voteid']},
           'ep_plenary_amendments': {'indexes': [],
                        'key': lambda x: x['id']},
