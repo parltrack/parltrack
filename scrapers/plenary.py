@@ -34,13 +34,162 @@ CVOTE_TITLES = {
     'responsible': "FINAL VOTE BY ROLL CALL IN COMMITTEE RESPONSIBLE",
 }
 
+recitalre=re.compile(r'([A-Z]+)\. ')
+parare=re.compile(r'(\d+(?:\.\d+)?)\.? ')
+pointre=re.compile(r'(?:\(([a-z]+)\)|([a-z]+)\.) ')
+numre=re.compile(r'(\d+)')
+def b26(num):
+   res = -1
+   for c in num:
+      res = ((res+1) * 26) + (ord(c.upper()) - ord('A'))
+   return res
 
-def html_full(root):
-   res={'amendments': [], 'text': []}
-   for node in root.xpath('//div[@class="red:section_MainContent"]//h2[@id="_section1"]/following-sibling::*'):
-      if node.get('id') == "_section2": break
-      #print(junws(node))
-      res['text'].append(junws(node))
+romans = { '': 0, 'i': 1, 'ii': 2, 'iii': 3, 'iv': 4, 'v': 5, 'vi': 6, 'vii': 7, 'viii': 8, 'ix': 9, 'x': 10, 'xi': 11, 'xii': 12, 'xiii':13, 'xiv': 14, 'xv': 15, 'xvi': 16 }
+def rn(num):
+   return romans[num]
+
+def next_state(state, cursor, level, line, indent):
+   if line == '':
+      return state, cursor, level
+
+   if state == 'title':
+      if line.startswith('– ') or line.startswith('- '):
+         return 'considerations', cursor, level
+      return state, cursor, level
+
+   if state=='considerations':
+      if line.startswith('– '):
+         return state, cursor, level
+      if line.startswith('A. '):
+         return 'recitals', ['A'], level
+      m = parare.match(line)
+      if m:
+         log(2, f"unusual state progression from consideration to paragraphs: {state}[{cursor}] via {repr(line[:10])}...")
+         if m.group(1)=='1':
+            return 'paragraphs', [1], level
+         raise ValueError(f"invalid state progression from {state}[{cursor}] via {repr(line[:10])}...")
+      log(1, f"invalid state progression from {state}[{cursor}] via {repr(line[:10])}...")
+      return state, cursor, level
+
+   if state in {'recitals', 'paragraphs'}:
+      #print("qwer", indent, level)
+      if level > indent:
+         cursor = cursor[:-1]
+      elif level < indent:
+         cursor.append('')
+      level = indent
+
+      m = pointre.match(line)
+      if m:
+         hit = m.group(1) or m.group(2)
+         if len(cursor)==2 and b26(cursor[-1])<b26(hit):
+            cursor[-1]=hit
+            return state, cursor, level
+         elif len(cursor)==3 and rn(cursor[-1])<rn(hit):
+            cursor[-1]=hit
+            return state, cursor, level
+         #print("asdf", hit, cursor)
+         raise ValueError(f"invalid state progression from {state}[{cursor}] via {repr(line[:10])}...")
+
+   if state=='recitals':
+      m = parare.match(line)
+      if m:
+         if m.group(1)=='1':
+            return 'paragraphs', [1], level
+         raise ValueError(f"invalid state progression from {state}[{cursor}] via {repr(line[:10])}...")
+      m = recitalre.match(line)
+      if m:
+         if b26(cursor[0])<b26(m.group(1)):
+            return state, [m.group(1)], level
+         raise ValueError(f"invalid state progression from {state}[{cursor}] via {repr(line[:10])}...")
+
+   if state=='paragraphs':
+      m = parare.match(line)
+      if m:
+         if float(cursor[0])<float(m.group(1)):
+             return state, [float(m.group(1))], level
+         raise ValueError(f"invalid state progression from {state}[{cursor}] via {repr(line[:10])}...")
+
+   # no state change
+   return state, cursor, level
+
+full_paths = {
+   "A9-0113/2024": '//div[@class="red:section_MainContent_Second"]//h2[@id="_section3"]/following-sibling::*',
+   "A9-0074/2024": '//div[@class="red:section_MainContent_Second"]//h2[@id="_section2"]/following-sibling::*',
+   "A9-0067/2024": '//div[@class="red:section_MainContent_Second"]//h2[@id="_section2"]/following-sibling::*',
+   #"A9-0404/2023" : '//div[@class="red:section_MainContent"]//h2[@id="_section1"]/following-sibling::*',
+   #"A9-0416/2023" : '//div[@class="red:section_MainContent_Second"]//h2[@id="_section3"]/following-sibling::*',
+   #"A9-0357/2023" : '//div[@class="red:section_MainContent_Second"]//h2[@id="_section1"]/following-sibling::*',
+   #"A9-0341/2023" : '//div[@class="red:section_MainContent"]//h2[@id="_section2"]/following-sibling::*',
+   #"A9-0413/2023" : '//div[@class="red:section_MainContent_Second"]//h2[@id="_section2"]/following-sibling::*',
+   #"A9-0322/2023" : '//div[@class="red:section_MainContent_Second"]//h2[@id="_section1"]/following-sibling::*',
+   #"A9-0406/2023" : '//div[@class="red:section_MainContent_Second"]//h2[@id="_section2"]/following-sibling::*',
+   }
+hf_blist = { 'B9-0500/2023', 'B9-0169/2024' }
+numre = re.compile(r'(-?\d+)')
+floatre = re.compile(r'(-?\d+(?:\.\d+)?)')
+def html_full(root, votes, p_ref):
+   res={'amendments': [], 'voted': {}}
+   if p_ref in hf_blist:
+      res['meta']='blacklisted'
+      return res
+   voted = {}
+   for v in votes:
+      loc = v['title'].split(' – ')[-1]
+      loc = loc.split('/')[:1][0]
+      if loc.startswith("§ "):
+         path = loc[2:].split(', point ')
+         m = floatre.match(path[0])
+         if m:
+            path[0] = float(m.group(1))
+         else:
+            log(1, f"non-numeric path in vote: {path[0]}")
+         if len(path)>1 and floatre.match(path[1]):
+            path = [float(path[1])] + path[2:]
+         voted[tuple(path)]=v['voteid']
+      elif loc.lower().startswith("recital "):
+         voted[(loc[8:],)]=v['voteid']
+   if not voted: return res
+
+   path = full_paths.get(p_ref, '//h2/span[@class="text-uppercase" and (text()="MOTION FOR A EUROPEAN PARLIAMENT RESOLUTION" or text()="DRAFT EUROPEAN PARLIAMENT RECOMMENDATION" or text()="PROPOSAL FOR A EUROPEAN PARLIAMENT RECOMMENDATION" or text()="MOTION FOR A EUROPEAN PARLIAMENT NON-LEGISLATIVE RESOLUTION")]/../following-sibling::*')
+   nodes = root.xpath(path)
+   if nodes == []:
+      log(3,f"going full yolo on {p_ref}")
+      # hold my beer, we are going full yolo!
+      nodes = root.xpath(f'//p/span[text()="{p_ref.replace("-","‑")}"]/../following-sibling::p')
+      #print(p_ref, nodes)
+
+   state = 'title'
+   cursor = [None,]
+   indent = 0
+   #print(voted)
+   for node in nodes:
+      #if node.get('id') == "_section2": break
+      if node.tag == 'h2': break
+      if node.tag != 'p': continue
+      tmp = junws(node)
+      #print(tmp)
+      style = dict((item.split(":",1) for item in node.get('style','').split("; ") if ":" in item))
+      new_indent = 0
+      m = numre.match(style.get('margin-left',''))
+      if m:
+         new_indent=int(m.group(1))
+      m = numre.match(style.get('text-indent',''))
+      if m:
+         new_indent+=int(m.group(1))
+      #print(indent, new_indent, style.get('margin-left'), style.get('text-indent'), end=' ')
+      state, cursor, indent = next_state(state, cursor, indent, tmp, new_indent)
+      #print(state, cursor, indent)
+      if tuple(cursor) in voted:
+         res['voted'][voted[tuple(cursor)]]=[tmp, '.'.join(str(e) for e in cursor)]
+         del voted[tuple(cursor)]
+      #for prefix in voted:
+      #   if tmp.startswith(f"{prefix}. "):
+      #      res['voted'][prefix]=tmp
+      #res['text'].append(junws(node))
+
+   if len(voted):
+      log(1, f"not all segments found that were voted on {voted}")
 
    deletes = root.xpath("//div[@class='red:section_MainContent']//*[contains(text(),'▌')]")
    if not deletes: return res
@@ -310,7 +459,7 @@ def scrape(url, dossier, save=True, test=False, **kwargs):
    if len(amendment_titles)>0 and len(tables)>0:
       ams = html_ams(amendment_titles, url)
    elif len(amendment_titles)==0 and len(tables)==0:
-      res = html_full(root)
+      res = html_full(root, db.get('votes_by_doc', aref) or [], aref)
    else:
       log(1, f"inconistent am titles and tables in {url}")
       return
@@ -382,8 +531,6 @@ def scrape(url, dossier, save=True, test=False, **kwargs):
               aid,
               nodiff=True,
           )
-
-   # todo link up amendments with text...
 
    return res
 
