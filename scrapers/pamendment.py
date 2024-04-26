@@ -31,9 +31,11 @@ from utils.mappings import COMMITTEE_MAP
 from tempfile import NamedTemporaryFile
 import pdfplumber
 
-pere = re.compile(r'(?P<PE>PE(?:TXTNRPE)? ?[0-9]{3,4}\.?[0-9]{3}(?:v[0-9]{2}(?:[-./][0-9]{1,2})?)?)')
+pere = re.compile(r'(?P<PE>PE(?:TXTNRPE)? ?[0-9]{3,4}\.?[0-9]{3}(?:v[0-9]{2}(?:[-./][0-9]{1,2})?)?)(?: })?')
 
-headerre=re.compile(r'\s*(?P<date>\d{1,2}\.\d{1,2}\.\d{4})\s*(?P<Aref>(?:[AB]|RC-B)[789]-\d{4}/ ?\d{1,4})')
+headerre=re.compile(r'\s*(?P<date>\d{1,2}\.\d{1,2}\.\d{4})\s*(?P<Aref>(?:[AB]|RC-B)[789]-\d{4}/ ?\d{1,4})(?: })?')
+jointre = re.compile(r'B[789]-\d{4}/ ?\d{1,4} }')
+
 def isheader(line):
    return headerre.match(line)
 
@@ -104,6 +106,10 @@ def unpaginate(doc, url):
              else:
                 date = date1
              del lines[fstart+1]
+             m = jointre.match(unws(lines[fstart+1]))
+             while m and m.group(0).endswith(" }"):
+                del lines[fstart+1]
+                m = jointre.match(unws(lines[fstart+1]))
 
        # skip empty lines before pagebreak
        while i>=0 and unws(lines[i])=='':
@@ -164,7 +170,12 @@ def unpaginate(doc, url):
           if lines[i].startswith('\x0c'):
              lines[i]="\x0c"
              continue
-          i-=1
+          if footer and hasattr(footer, 'group') and footer.group(0).endswith(" }"):
+            i-=1
+            while pere.search(unws(lines[i])) and unws(lines[i]).endswith(" }"):
+               i-=1
+          else:
+             i-=1
 
        while i>0 and unws(lines[i])=='':
            i-=1
