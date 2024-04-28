@@ -129,7 +129,7 @@ hf_blist = { 'B9-0500/2023', 'B9-0169/2024' }
 numre = re.compile(r'(-?\d+)')
 floatre = re.compile(r'(-?\d+(?:\.\d+)?)')
 def html_full(root, votes, p_ref):
-   res={'amendments': [], 'voted': {}}
+   res={'amendments': [], 'voted': []}
    if p_ref in hf_blist:
       res['meta']='blacklisted'
       return res
@@ -146,9 +146,9 @@ def html_full(root, votes, p_ref):
             log(1, f"non-numeric path in vote: {path[0]}")
          if len(path)>1 and floatre.match(path[1]):
             path = [float(path[1])] + path[2:]
-         voted[tuple(path)]=v['voteid']
+         voted[tuple(path)]=v
       elif loc.lower().startswith("recital "):
-         voted[(loc[8:],)]=v['voteid']
+         voted[(loc[8:],)]=v
    if not voted: return res
 
    path = full_paths.get(p_ref, '//h2/span[@class="text-uppercase" and (text()="MOTION FOR A EUROPEAN PARLIAMENT RESOLUTION" or text()="DRAFT EUROPEAN PARLIAMENT RECOMMENDATION" or text()="PROPOSAL FOR A EUROPEAN PARLIAMENT RECOMMENDATION" or text()="MOTION FOR A EUROPEAN PARLIAMENT NON-LEGISLATIVE RESOLUTION")]/../following-sibling::*')
@@ -181,7 +181,10 @@ def html_full(root, votes, p_ref):
       state, cursor, indent = next_state(state, cursor, indent, tmp, new_indent)
       #print(state, cursor, indent)
       if tuple(cursor) in voted:
-         res['voted'][voted[tuple(cursor)]]=[tmp, '.'.join(str(e) for e in cursor)]
+         v = voted[tuple(cursor)]
+         v['context']={'path': '.'.join(str(e) for e in cursor),
+                       'text': tmp}
+         res['voted'].append(v)
          del voted[tuple(cursor)]
       #for prefix in voted:
       #   if tmp.startswith(f"{prefix}. "):
@@ -204,7 +207,6 @@ def skip_empty_lines(node):
       if tmp != '':
          return node
       node=node.getnext()
-
 
 def parse_sequential(line, end):
    line=line.getnext()
@@ -355,7 +357,6 @@ def html_ams(amendment_titles, url):
       if [x for x in old if x]: am['old']=old
       if [x for x in new if x]: am['new']=new
 
-      # TODO/FIXME conflates (comments) and justifications
       line = line.getnext()
       justification = []
       while line is not None and (end is None or line!=end):
@@ -531,6 +532,8 @@ def scrape(url, dossier, save=True, test=False, **kwargs):
               aid,
               nodiff=True,
           )
+       for v in res['voted']:
+          process(v, v['voteid'], db.vote, 'ep_votes', v['title'])
 
    return res
 
