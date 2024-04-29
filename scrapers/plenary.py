@@ -532,7 +532,7 @@ def scrape(url, dossier, save=True, test=False, **kwargs):
               aid,
               nodiff=True,
           )
-       for v in res['voted']:
+       for v in res.get('voted',[]):
           process(v, v['voteid'], db.vote, 'ep_votes', v['title'])
 
    return res
