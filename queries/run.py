@@ -46,7 +46,7 @@ def execute(args):
     print(f'Executing query "{args.query.__name__}" - writing output to "{args.output}"')
     ctx = Context(args.output, args.json_dir)
     start = time()
-    args.query.run()
+    args.query.run(ctx)
     print(f'Successful query execution. Runtime: {(time()-start):.2f}s')
     ctx.close()
 
