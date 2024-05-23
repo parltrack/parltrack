@@ -20,6 +20,7 @@ CONFIG = {
 docre=re.compile(r'(?:[AB]|RC-B)[3456789]-\d{4}/ ?\d{1,4}')
 def motions(ref):
    dossier = db.dossier(ref)
+   if dossier is None: return []
    url = None
    date = None
    res = []

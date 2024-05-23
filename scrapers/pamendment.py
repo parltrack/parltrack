@@ -322,9 +322,9 @@ def parse_cover(lines, reference, dossier, aref):
    rapporteurs = re.compile('|'.join([r'(?:'+', '.join(p)+r')' for r in zip(*rapporteurs_tmp) for p in permutations(r)]),re.I)
 
    comid = set([d['title']
-                for e in dossier['events']
+                for e in dossier.get('events',[])
                 if e['type']=='Legislative proposal published'
-                for d in e['docs']
+                for d in e.get('docs',[])
                 if d['title'].startswith('COM(')])
    if len(comid)==1:
       ids = re.compile(r'\(?'+list(comid)[0].replace('(','\\(').replace(')','\\)')
