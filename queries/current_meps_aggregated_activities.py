@@ -15,7 +15,7 @@ def run(ctx):
                     continue
                 res[m][ak] += 1
 
-    ctx.write_line('NAME, COUNTRY, GROUP, PARTY, ' + ', '.join(keys))
+    ctx.write_line('NAME,COUNTRY,GROUP,PARTY,' + ','.join(keys))
 
     for mep in ctx.iterate_json('ep_meps'):
         if mep['UserID'] not in res:
@@ -27,5 +27,5 @@ def run(ctx):
         party = ctx.latest(mep['Constituencies'])['party']
         country = ctx.latest(mep['Constituencies'])['country']
 
-        ctx.write_line(', '.join([x.replace(',', ' ') for x in [name, country, group, party, *[str(activity[k]) for k in keys]]]))
+        ctx.write_line(','.join([x.replace(',', ' ') for x in [name, country, group, party, *[str(activity[k]) for k in keys]]]))
 
