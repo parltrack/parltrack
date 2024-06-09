@@ -72,6 +72,6 @@ if __name__ == '__main__':
     if len(sys.argv)==1:
         scrape([str(datetime.now().year)])
     elif sys.argv[1] == 'all':
-        scrape([str(d) for d in range(2019,datetime.now().year+1)], save=False, test=True)
+        scrape([str(d) for d in range(2019,datetime.now().year+1)], save=True, test=True)
     else:
         scrape({sys.argv[1]}, save=False, test=True)

@@ -46,7 +46,7 @@ def b26(num):
 
 romans = { '': 0, 'i': 1, 'ii': 2, 'iii': 3, 'iv': 4, 'v': 5, 'vi': 6, 'vii': 7, 'viii': 8, 'ix': 9, 'x': 10, 'xi': 11, 'xii': 12, 'xiii':13, 'xiv': 14, 'xv': 15, 'xvi': 16 }
 def rn(num):
-   return romans[num]
+   return romans.get(num, -1)
 
 def next_state(state, cursor, level, line, indent):
    if line == '':
@@ -73,7 +73,7 @@ def next_state(state, cursor, level, line, indent):
 
    if state in {'recitals', 'paragraphs'}:
       #print("qwer", indent, level)
-      if level > indent:
+      if level > indent and len(cursor) > 1:
          cursor = cursor[:-1]
       elif level < indent:
          cursor.append('')
@@ -85,11 +85,12 @@ def next_state(state, cursor, level, line, indent):
          if len(cursor)==2 and b26(cursor[-1])<b26(hit):
             cursor[-1]=hit
             return state, cursor, level
-         elif len(cursor)==3 and rn(cursor[-1])<rn(hit):
+         elif len(cursor)>1 and rn(cursor[-1])<rn(hit):
             cursor[-1]=hit
             return state, cursor, level
          #print("asdf", hit, cursor)
          raise ValueError(f"invalid state progression from {state}[{cursor}] via {repr(line[:10])}...")
+         #return state, cursor, level
 
    if state=='recitals':
       m = parare.match(line)
@@ -97,11 +98,13 @@ def next_state(state, cursor, level, line, indent):
          if m.group(1)=='1':
             return 'paragraphs', [1], level
          raise ValueError(f"invalid state progression from {state}[{cursor}] via {repr(line[:10])}...")
+         #return state, cursor, level
       m = recitalre.match(line)
       if m:
          if b26(cursor[0])<b26(m.group(1)):
             return state, [m.group(1)], level
          raise ValueError(f"invalid state progression from {state}[{cursor}] via {repr(line[:10])}...")
+         #return state, cursor, level
 
    if state=='paragraphs':
       m = parare.match(line)
@@ -109,6 +112,7 @@ def next_state(state, cursor, level, line, indent):
          if float(cursor[0])<float(m.group(1)):
              return state, [float(m.group(1))], level
          raise ValueError(f"invalid state progression from {state}[{cursor}] via {repr(line[:10])}...")
+         #return state, cursor, level
 
    # no state change
    return state, cursor, level
@@ -125,7 +129,9 @@ full_paths = {
    #"A9-0322/2023" : '//div[@class="red:section_MainContent_Second"]//h2[@id="_section1"]/following-sibling::*',
    #"A9-0406/2023" : '//div[@class="red:section_MainContent_Second"]//h2[@id="_section2"]/following-sibling::*',
    }
-hf_blist = { 'B9-0500/2023', 'B9-0169/2024' }
+hf_blist = { 'B9-0500/2023', 'B9-0169/2024', 'A8-0170/2019', 'A9-0270/2020', 'A9-0118/2020', 'A9-0226/2020', 'A9-0112/2020', 'B9-0036/2020', 'A9-0102/2020', 'A9-0176/2020', 'B9-0098/2020', 'A9-0255/2021',
+             'A9-0161/2020', 'A9-0193/2020', 'A9-0008/2021', 'A9-0233/2020', 'A9-0117/2021', 'A9-0149/2021', 'A9-0036/2021', 'B9-0220/2021', 'A9-0245/2021', 'A9-0145/2021', 'B9-0068/2022', 'B9-0160/2022',
+             'A9-0153/2023', 'A9-0281/2023', 'A9-0213/2023', }
 numre = re.compile(r'(-?\d+)')
 floatre = re.compile(r'(-?\d+(?:\.\d+)?)')
 def html_full(root, votes, p_ref):
@@ -135,7 +141,7 @@ def html_full(root, votes, p_ref):
       return res
    voted = {}
    for v in votes:
-      loc = v['title'].split(' – ')[-1]
+      loc = v['title'].replace('–','-').split(' - ')[-1]
       loc = loc.split('/')[:1][0]
       if loc.startswith("§ "):
          path = loc[2:].split(', point ')
