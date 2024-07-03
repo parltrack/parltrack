@@ -24,9 +24,9 @@ CONFIG = {
 
 base='https://www.europarl.europa.eu'
 
-AM_RE = re.compile('Am (\d+(?:[sS=, ]{1,2}\d+)*)')
+AM_RE = re.compile(r'Am (\d+(?:[sS=, ]{1,2}\d+)*)')
 #AM_RE = re.compile('Am ([sS=, ])*')
-DATE_RE = re.compile(' \d{2}/\d{2}/\d{4}.+')
+DATE_RE = re.compile(r' \d{2}/\d{2}/\d{4}.+')
 SEP_RE = re.compile('[sS=, ]+')
 
 CVOTE_TITLES = {

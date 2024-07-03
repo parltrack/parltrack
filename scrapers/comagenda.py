@@ -45,7 +45,7 @@ seen=set()
 skip={'INTA(2023)0918_2P', 'BUDG(2023)0426_1P', 'AGRI(2022)0110_1', 'PECH(2021)0114_1'}
 
 # '***I 2023/0266(COD) COM(2023)0441 - C9-0305/2023'
-instdocre=re.compile(u'(?:(\**)(I*))?\s*([0-9A-Z/()]{12,16})?\s*([0-9A-Z/()]{12,16})?\s*(?:\[[0-9]*\])?\s*(?:[-–]\s([-0-9A-Z/()]{12,16}))?$')
+instdocre=re.compile(r'(?:(\**)(I*))?\s*([0-9A-Z/()]{12,16})?\s*([0-9A-Z/()]{12,16})?\s*(?:\[[0-9]*\])?\s*(?:[-–]\s([-0-9A-Z/()]{12,16}))?$')
 refre=re.compile(r'([0-9]{4}/[0-9]{4}[A-Z]?\((?:ACI|APP|AVC|BUD|CNS|COD|COS|DCE|DEA|DEC|IMM|INI|INL|INS|NLE|REG|RPS|RSO|RSP|SYN)\))')
 def getdocs(line):
     issue={}
