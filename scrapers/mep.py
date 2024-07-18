@@ -466,6 +466,7 @@ known_sidebar = { "Home": [],
                     "Future meetings",
                     ],
                 "History of parliamentary service": [
+                    "10th parliamentary term",
                     "9th parliamentary term",
                     "8th parliamentary term",
                     "7th parliamentary term",
