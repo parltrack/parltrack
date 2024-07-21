@@ -261,7 +261,7 @@ def parse_history(id, root, mep):
             log(2, 'history menu item does not end as expected with "parliamentary term": %s http://www.europarl.europa.eu/meps/en/%s/name/declarations' % (term, id))
             raise ValueError
             #continue
-        term = int(term[0])
+        term = int(term[:-(3+len("parliamentary term"))])
         if (id,term) in {(124870,9),(129141,9)}: continue # jeppe kofod, and frans timmermanns never really got started.
         root = fetch("http://www.europarl.europa.eu/meps/en/%s/name/history/%s" % (id, term))
         body = root.xpath('//div[@id="status"]')[0]
@@ -466,6 +466,7 @@ known_sidebar = { "Home": [],
                     "Future meetings",
                     ],
                 "History of parliamentary service": [
+                    "10th parliamentary term",
                     "9th parliamentary term",
                     "8th parliamentary term",
                     "7th parliamentary term",
