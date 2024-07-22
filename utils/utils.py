@@ -364,7 +364,8 @@ terms = {
     6: {'start': '2004-07-20', 'end': '2009-07-13'},
     7: {'start': '2009-07-14', 'end': '2014-06-30'},
     8: {'start': '2014-07-01', 'end': '2019-07-01'},
-    9: {'start': '2019-07-02', 'end': ''},
+    9: {'start': '2019-07-02', 'end': '2024-07-15'},
+    10: {'start': '2024-07-16', 'end': ''},
 }
 
 
@@ -376,11 +377,11 @@ def end_of_term(term):
 from math import log2
 _suffixes = ['bytes', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
 def file_size(size):
-    # determine binary order in steps of size 10 
+    # determine binary order in steps of size 10
     # (coerce to int, // still returns a float)
     order = int(log2(size) / 10) if size else 0
     # format file size
-    # (.4g results in rounded numbers for exact matches and max 3 decimals, 
+    # (.4g results in rounded numbers for exact matches and max 3 decimals,
     # should never resort to exponent values)
     return '{:.1f} {}'.format(size / (1 << (order * 10)), _suffixes[order])
 
