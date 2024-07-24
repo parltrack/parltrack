@@ -891,7 +891,7 @@ def render_schema(schema):
                       'ep_dossiers','ep_dossiers_v1','ep_mep_activities',
                       'ep_plenary_amendments', 'ep_meps','ep_meps_v1','ep_votes']:
         return render('errors/404.html'), 404
-    with open('templates/schemas/%s.html'%schema,'r') as fd:
+    with open('templates/schemas/%s.html'%schema,'r', encoding='utf-8') as fd:
         body = fd.read()
     return render('schema.html', body=body)
 
