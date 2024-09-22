@@ -146,6 +146,8 @@ COMMITTEE_MAP={u'AFET': u"Foreign Affairs",
                u'ECHE': u"Temporary Committee on ECHELON Interception System",
                u'ANIT': u'Committee of Inquiry on the Protection of Animals during Transport',
                u"INGE": u"Special Committee on Foreign Interference in all Democratic Processes in the European Union, including Disinformation",
+               u"FISC": u"Subcommittee on Tax Matters",
+               u"SANT": u"Subcommittee on Public Health",
                u'Foreign Affairs': u'AFET',
                u"Regional Policy, Transport and Tourism": u'RETT',
                u"Committee on Regional Policy, Transport and Tourism": u'RETT',
@@ -379,6 +381,8 @@ COMMITTEE_MAP={u'AFET': u"Foreign Affairs",
                u"Committee on the Environment, Public Health and Consumer Protection": u"ENVI",
                u"Committee on the Environment, Public Health and Consumer Policy": u"",
                u"Special Committee on the Union_s authorisation procedure for pesticides": u"",
+               u"Subcommittee on Tax Matters": u"FISC",
+               u"Subcommittee on Public Health": u"SANT",
 }
 
 ORGMAPS=[('Committee o', 'Committees'),
@@ -538,6 +542,8 @@ GROUP_MAP={ u"Confederal Group of the European United Left - Nordic Green Left":
             u'Group of European Progressive Democrats': u'DEP',
             u'Europe of Nations and Freedom Group': u'ENF',
             u'Europe of Nations and Freedom': u"ENF",
+            u'Patriots for Europe' : u'PfE',
+            u'Europe for Sovereign Nations' : u'ESN',
             }
 GROUPIDS=[]
 for item in GROUP_MAP.values():
