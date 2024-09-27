@@ -738,6 +738,7 @@ DELEGATIONS={
     "Delegation for relations with Iraq, including the EU-Iraq Parliamentary Cooperation Committee": "D-IQ",
     "Delegation for relations with the countries of Central America, including the EU-Central America Parliamentary Association Committee": "DCAM",
     "Delegation for relations with the Maghreb countries and the Arab Maghreb Union, including the EU-Morocco, EU-Tunisia andEU-Algeria Joint Parliamentary Committees": "DMAG",
+    "Delegation for relations with the Maghreb countries and the Arab Maghreb Union, including the EU-Morocco, EU-Tunisia and EU-Algeria Joint Parliamentary Committees": "DMAG",
     "Delegation to the Africa-EU Parliamentary Assembly": "DAFR",
     "Delegation to the Caribbean-EU Parliamentary Assembly": "DCAB",
     "Delegation to the EU-Armenia Parliamentary Partnership Committee, the EU-Azerbaijan Parliamentary Cooperation Committee and the EU-Georgia Parliamentary Association Committee": "DSCA",
