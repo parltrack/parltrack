@@ -732,7 +732,20 @@ DELEGATIONS={
     "Delegation to the EU-Ukraine Parliamentary Cooperation Committee": u"",
     "Delegation to the EU-Kazakhstan, EU-Kyrgyzstan and EU-Uzbekistan Parliamentary Cooperation Committees, and for relations with Tajikistan, Turkmenistan and Mongolia": u"",
     "Delegation for relations with Albania, Bosnia and Herzegovina, Serbia, Montenegro and Kosovo": u"",
-
+    "Delegation for Northern cooperation and for relations with Switzerland and Norway and to the EU-Iceland Joint Parliamentary Committee and the European Economic Area (EEA) Joint Parliamentary Committee": "DEEA",
+    "Delegation for relations with Bosnia and Herzegovina and Kosovo, including the EU-Bosnia and Herzegovina Stabilisation and Association Parliamentary Committee and the EU-Kosovo Stabilisation and Association Parliamentary Committee": "DSEE",
+    "Delegation for relations with Central Asia": "DCAS",
+    "Delegation for relations with Iraq, including the EU-Iraq Parliamentary Cooperation Committee": "D-IQ",
+    "Delegation for relations with the countries of Central America, including the EU-Central America Parliamentary Association Committee": "DCAM",
+    "Delegation for relations with the Maghreb countries and the Arab Maghreb Union, including the EU-Morocco, EU-Tunisia andEU-Algeria Joint Parliamentary Committees": "DMAG",
+    "Delegation to the Africa-EU Parliamentary Assembly": "DAFR",
+    "Delegation to the Caribbean-EU Parliamentary Assembly": "DCAB",
+    "Delegation to the EU-Armenia Parliamentary Partnership Committee, the EU-Azerbaijan Parliamentary Cooperation Committee and the EU-Georgia Parliamentary Association Committee": "DSCA",
+    "Delegation to the EU-North Macedonia Joint Parliamentary Committee": "D-MK",
+    "Delegation to the EU-Türkiye Joint Parliamentary Committee": "D-TR",
+    "Delegation to the EU-UK Parliamentary Partnership Assembly": "D-UK",
+    "Delegation to the OACPS-EU Joint Parliamentary Assembly": "OACPS",
+    "Delegation to the Pacific-EU Parliamentary Assembly": "DPAC",
 }
 
 MEPS_ALIASES={
