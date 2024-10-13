@@ -140,7 +140,7 @@ if __name__ == '__main__':
         for i in  session.query(Item).filter(Item.activation_key!='').filter(Item.added<datetime.now()-timedelta(weeks=1)).all():
             session.delete(i)
             session.commit()
-        for i in  session.query(Group).filter(Group.activation_key!='').filter(Group.created<datettme.now()-timedelta(weeks=1)).all():
+        for i in  session.query(Group).filter(Group.activation_key!='').filter(Group.created<datetime.now()-timedelta(weeks=1)).all():
             if i.subscribers or i.items:
                 continue
             session.delete(i)
