@@ -747,6 +747,7 @@ DELEGATIONS={
     "Delegation to the EU-UK Parliamentary Partnership Assembly": "D-UK",
     "Delegation to the OACPS-EU Joint Parliamentary Assembly": "OACPS",
     "Delegation to the Pacific-EU Parliamentary Assembly": "DPAC",
+    "Delegation for relations with the countries of Central America, including the EU-Central America Association Parliamentary Committee": "DCAM",
 }
 
 MEPS_ALIASES={
