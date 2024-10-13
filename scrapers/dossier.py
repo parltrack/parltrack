@@ -21,7 +21,7 @@ import notification_model as notif
 import unicodedata, requests
 
 from config import ROOT_URL
-from datetime import datetime
+from datetime import datetime, UTC
 from db import db
 from itertools import zip_longest
 from lxml.etree import tostring, _ElementUnicodeResult
@@ -62,7 +62,7 @@ def scrape(url, save=True, **kwargs):
 
     dossier = {
         'meta': {'source': url,
-                 'updated': datetime.utcnow() },
+                 'updated': datetime.now(UTC) },
         'procedure': {
             'reference': ref,
             'title': junws(tmp[1])
