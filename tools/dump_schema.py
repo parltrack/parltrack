@@ -155,19 +155,19 @@ def write_schema(table,DBS):
             fd.write(dump_schema(DBS[table].values(), ['changes'], title=table))
             fd.write(_html_footer())
 
-def test_dump():
+def test_dump(tables=None):
     """ don't try this at home. it's an example, of how you can get a glimpse on some nosql collection"""
     from db import db, TABLES
     from utils.log import set_level
 
     set_level(0)
-    print(_html_header())
-    for table in TABLES.keys():
+    for table in tables or TABLES.keys():
+        print(_html_header(table))
         #print(table, db.count(table, None), file = sys.stderr)
         vals=db.get(table, None).values()
         if len(vals) == 0: continue
-        dump_schema(vals, ['changes'], title=table)
-    print(_html_footer())
+        print(dump_schema(vals, ['changes'], title=table))
+        print(_html_footer())
 
 if __name__ == "__main__":
-    test_dump()
+    test_dump(['ep_plenary_amendments'])
