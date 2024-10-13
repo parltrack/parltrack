@@ -4,7 +4,7 @@ from db import db
 from utils.log import log, set_logfile
 from utils.utils import jdump
 from utils.objchanges import diff, patch
-from datetime import datetime
+from datetime import datetime, UTC
 import json, sys
 
 def process(obj, id, getter, table, name, nopreserve=None, nodiff=False, nostore=False, onchanged=None):
@@ -13,7 +13,7 @@ def process(obj, id, getter, table, name, nopreserve=None, nodiff=False, nostore
     obj = {k:v for k,v in obj.items() if v or v==False}
 
     if nodiff:
-        now=datetime.utcnow().replace(microsecond=0)
+        now=datetime.now(UTC).replace(microsecond=0)
         if not 'meta' in obj: obj['meta']={}
         log(3,'adding %s (%s)' % (name, id))
         obj['meta']['created']=now
@@ -60,7 +60,7 @@ def process(obj, id, getter, table, name, nopreserve=None, nodiff=False, nostore
                 log(1,"id:{} diff between current record and patched previous one is not empty\n{!r}".format(id, zero))
                 raise ValueError("diff between new and patched old is not empty")
 
-        now=datetime.utcnow().replace(microsecond=0)
+        now=datetime.now(UTC).replace(microsecond=0)
         if not 'meta' in obj: obj['meta']={}
         if not prev or nodiff:
             log(3,'adding %s (%s)' % (name, id))
