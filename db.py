@@ -43,6 +43,9 @@ class Client:
 
     def put(self, table, value):
         cmd = {"cmd": "put", "params": {"table": table, "value": value}}
+        # todo possibly also needed for mepCache
+        if table == 'ep_dossiers' and value['procedure']['reference'] in self.dossierCache:
+            self.dossierCache[value['procedure']['reference']] = value
         return self.send_req(cmd)
 
     def get(self, source, key):
