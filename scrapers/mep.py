@@ -61,11 +61,18 @@ def scrape(id, **kwargs):
         'Facebook'  : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="Facebook"]/@href')],
         'Instagram' : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="Instagram"]/@href')],
         'Youtube'   : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="Youtube"]/@href')],
+        'LinkedIn'  : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="LinkedIn"]/@href')],
         'Telegram'  : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="Telegram"]/@href')],
+        'Blog'      : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="Blog"]/@href')],
         'Mail'      : [deobfus_mail(x) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="E-mail"]/@href')],
         'Addresses' : parse_addr(root),
         'active'    : False,
     }
+
+    links = root.xpath('//div[@id="presentationmep"]//a/@data-original-title')
+    unknown_links = list(sorted(set(links) - set(['Website', 'E-mail', 'Facebook', 'Facebook', 'Youtube', 'Blog', 'X', 'Instagram', 'Telegram', 'LinkedIn'])))
+    if len(unknown_links) > 0:
+        log(2, f"all links types: {unknown_links}")
 
     mep = addchangednames(mep)
 
