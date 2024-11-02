@@ -964,6 +964,7 @@ VOTE_DOX_RE = {
 stage2percent = {
     'Legislative proposal published': 0,
     'Initial legislative proposal published': 0,
+    "Initial period for examining delegated act 4 month(s)": 0,
     'Modified legislative proposal published': 0,
     'Legislative proposal': 0,
     'Commission preliminary draft budget published': 0,
@@ -977,6 +978,8 @@ stage2percent = {
     'Committee referral announced in Parliament, 1st reading/single reading': 5,
     'Committee referral announced in Parliament, 2nd reading': 5,
     'Referral to joint committee announced in Parliament': 5,
+
+    "Urgent procedure requested by a committee": 8,
 
     'Amended legislative proposal for reconsultation published': 10,
     'Referral to associated committees announced in Parliament': 10,
