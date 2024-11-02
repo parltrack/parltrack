@@ -188,6 +188,8 @@ def scrape_ep_key_players(root):
                 type="Committee Recast Technique Opinion"
             elif tmp == ['Former committee for opinion on the recast technique', 'Rapporteur for opinion', 'Appointed']:
                 type="Fromer Committee Recast Technique Opinion"
+            elif tmp == ['Committee for budgetary assessment', 'Rapporteur for budgetary assessment', 'Appointed']:
+                type="Committee for budgetary assessment"
             else:
                 log(1, "unknown committee header in EP key players %s" % repr(tmp))
                 raise ValueError("bad html in EP key players, committee header")
