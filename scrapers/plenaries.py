@@ -54,7 +54,11 @@ def scrape(years=None, test=False, save=True, **kwargs):
        for tmp in l:
            url, dossier, date  = tmp
            if url is None: continue
-           if date[:4] not in years: continue
+           if isinstance(date,str):
+                if date[:4] not in years: continue
+           elif isinstance(date,datetime.datetime):
+               if date.year not in years: continue
+           else: continue
            log(3,f"adding job {url}")
            if test:
               try:
