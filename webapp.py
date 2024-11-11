@@ -147,7 +147,7 @@ def dumps():
     stats = {}
     for table in TABLE_NAMES:
         try:
-            s = os.stat("/var/www/parltrack/dumps/%s.json.lz" % table)
+            s = os.stat("/var/www/parltrack/dumps/%s.json.zst" % table)
         except:
             continue
         stats[table]={
@@ -157,7 +157,7 @@ def dumps():
         arch[table]=arch[table][:3]
     first=True
     for file in sorted(os.listdir('/var/www/parltrack/logs'), reverse=True):
-        if not file.endswith(".log.lz"): continue
+        if not file.endswith(".log.zst"): continue
         s = os.stat("/var/www/parltrack/logs/%s" % file)
         if first:
             stats['scraper_logs']={

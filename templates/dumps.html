@@ -6,7 +6,7 @@
     <div class="row">
        <div class="sixteen wide left aligned column">
           <h1>Dumps</h1>
-          <p>Parltrack publishes complete dumps of its database on a daily basis. These dumps are in JSON format, and they are compressed with the <a href="https://www.nongnu.org/lzip/lzip.html">lzip</a>[1] tool.</p>
+          <p>Parltrack publishes complete dumps of its database on a daily basis. These dumps are in JSON format, and they are compressed with the <del><a href="https://www.nongnu.org/lzip/lzip.html">lzip</a>[1] tool</del>zstd tool (since with 2024-11-11).</p>
           <p>Due to most of the dumps being between 400 and 800 megabytes (at the time of writing in mid 2019) they might not be suitable to load all at once since when loaded into RAM they might use significantly more memory. To facilitate a record-by-record stream processing of these dumps, they are formatted in the following way, each line is one record, each prefixed either with:
           <ul>
              <li>'[' for the first record,</li>
@@ -26,7 +26,7 @@
                 <td>Scraper Log</td>
                 {%if stats.scraper_logs%}
                    <td>This contains all the logs from the last scraping.</td> 
-                   <td><a href="/logs/{{stats.scraper_logs.updated}}.log.lz">{{stats.scraper_logs.updated}}.log.lz</a> (<a href="/log/{{stats.scraper_logs.updated}}">summary</a>)</td>
+                   <td><a href="/logs/{{stats.scraper_logs.updated}}.log.zst">{{stats.scraper_logs.updated}}.log.zst</a> (<a href="/log/{{stats.scraper_logs.updated}}">summary</a>)</td>
                    <td>{{stats.scraper_logs.size}}</td>
                    <td>{{stats.scraper_logs.updated}}</td>
                 {%else%}
@@ -49,7 +49,7 @@
                 <td>MEPs</td>
                 {%if stats.ep_meps%}
                    <td>This dump contains all the basic information about the MEPs</td> 
-                   <td><a href="/dumps/ep_meps.json.lz">ep_meps.json.lz</a></td>
+                   <td><a href="/dumps/ep_meps.json.zst">ep_meps.json.zst</a></td>
                    <td>{{stats.ep_meps.size}}</td>
                    <td>{{stats.ep_meps.updated}}</td>
                 {%else%}
@@ -77,7 +77,7 @@
                 <td>Dossiers</td>
                 {%if stats.ep_dossiers%}
                    <td>This dump contains all the basic information about the dossiers in the EP</td>
-                   <td><a href="/dumps/ep_dossiers.json.lz">ep_dossiers.json.lz</a></td>
+                   <td><a href="/dumps/ep_dossiers.json.zst">ep_dossiers.json.zst</a></td>
                    <td>{{stats.ep_dossiers.size}}</td>
                    <td>{{stats.ep_dossiers.updated}}</td>
                 {%else%}
@@ -104,7 +104,7 @@
                 <td>MEP Activities</td>
                 {%if stats.ep_mep_activities%}
                    <td>This dump contains most of the activities of MEPs (such as plenary speeches, questions, interpellations, etc)</td>
-                   <td><a href="/dumps/ep_mep_activities.json.lz">ep_mep_activities.json.lz</a></td>
+                   <td><a href="/dumps/ep_mep_activities.json.zst">ep_mep_activities.json.zst</a></td>
                    <td>{{stats.ep_mep_activities.size}}</td>
                    <td>{{stats.ep_mep_activities.updated}}</td>
                 {%else%}
@@ -126,7 +126,7 @@
                 <td>MEP Plenary Amendments</td>
                 {%if stats.ep_votes%}
                    <td>This dump contains most of the plenary amendments</td>
-                   <td><a href="/dumps/ep_plenary_amendments.json.lz">ep_plenary_amendments.json.lz</a></td>
+                   <td><a href="/dumps/ep_plenary_amendments.json.zst">ep_plenary_amendments.json.zst</a></td>
                    <td>{{stats.ep_plenary_amendments.size}}</td>
                    <td>{{stats.ep_plenary_amendments.updated}}</td>
                 {%else%}
@@ -148,7 +148,7 @@
                 <td>MEP Plenary Votes</td>
                 {%if stats.ep_votes%}
                    <td>This dump contains most of the plenary roll-call votes</td>
-                   <td><a href="/dumps/ep_votes.json.lz">ep_votes.json.lz</a></td>
+                   <td><a href="/dumps/ep_votes.json.zst">ep_votes.json.zst</a></td>
                    <td>{{stats.ep_votes.size}}</td>
                    <td>{{stats.ep_votes.updated}}</td>
                 {%else%}
@@ -170,7 +170,7 @@
                 <td>Committee Amendments</td>
                 {%if stats.ep_amendments%}
                    <td>This dump contains most of the committee amendments</td>
-                   <td><a href="/dumps/ep_amendments.json.lz">ep_amendments.json.lz</a></td>
+                   <td><a href="/dumps/ep_amendments.json.zst">ep_amendments.json.zst</a></td>
                    <td>{{stats.ep_amendments.size}}</td>
                    <td>{{stats.ep_amendments.updated}}</td>
                 {%else%}
@@ -192,7 +192,7 @@
                 <td>MEP Committee Votes</td>
                 {%if stats.ep_votes%}
                    <td>This dump contains most of the committee roll-call votes</td>
-                   <td><a href="/dumps/ep_com_votes.json.lz">ep_com_votes.json.lz</a></td>
+                   <td><a href="/dumps/ep_com_votes.json.zst">ep_com_votes.json.zst</a></td>
                    <td>{{stats.ep_com_votes.size}}</td>
                    <td>{{stats.ep_com_votes.updated}}</td>
                 {%else%}
@@ -214,7 +214,7 @@
                 <td>Committee Agendas</td>
                 {%if stats.ep_comagendas%}
                    <td>This dump contains most of the committee agendas</td>
-                   <td><a href="/dumps/ep_comagendas.json.lz">ep_comagendas.json.lz</a></td>
+                   <td><a href="/dumps/ep_comagendas.json.zst">ep_comagendas.json.zst</a></td>
                    <td>{{stats.ep_comagendas.size}}</td>
                    <td>{{stats.ep_comagendas.updated}}</td>
                 {%else%}
