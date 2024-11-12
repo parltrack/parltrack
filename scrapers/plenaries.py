@@ -56,7 +56,7 @@ def scrape(years=None, test=False, save=True, **kwargs):
            if url is None: continue
            if isinstance(date,str):
                 if date[:4] not in years: continue
-           elif isinstance(date,datetime.datetime):
+           elif isinstance(date,datetime):
                if date.year not in years: continue
            else: continue
            log(3,f"adding job {url}")
