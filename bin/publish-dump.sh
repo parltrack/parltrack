@@ -1,6 +1,6 @@
 #!/bin/sh
 
-zstd -19 <db/$1 >/var/www/parltrack/dumps/$1.zst-new
+zstd -f -19 <db/$1 >/var/www/parltrack/dumps/$1.zst-new
 sync /var/www/parltrack/dumps/$1.zst-new
 [ -f /var/www/parltrack/dumps/$1.zst ] && {
    date=$(date -r /var/www/parltrack/dumps/$1.zst -Idate)
