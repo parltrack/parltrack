@@ -114,7 +114,8 @@ def scrape(id, **kwargs):
                 if assistants: mep['assistants'][title]=assistants
             elif title in ['Accredited assistants (grouping)', 'Local assistants (grouping)',
                            'Service providers', 'Trainees', 'Paying agents (grouping)', 'Paying agents',
-                           'Assistants to the Vice-Presidency/to the Quaestorate']:
+                           'Assistants to the Vice-Presidency/to the Quaestorate', "Assistants to the Quaestorate",
+                           "Assistants to the Vice-Presidency"]:
                 if not 'assistants' in mep: mep['assistants']={}
                 title = title.lower()
                 if assistants: mep['assistants'][title]=assistants
