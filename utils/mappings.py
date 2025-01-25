@@ -153,7 +153,7 @@ COMMITTEE_MAP={u'AFET': u"Foreign Affairs",
                'EUDS': 'Special committee on the European Democracy Shield',
                'Special committee on the European Democracy Shield': 'EUDS',
                'European Democracy Shield': 'EUDS',
-               'HOUS': 'Special committee on the Housing Crisis in the European Union'
+               'HOUS': 'Special committee on the Housing Crisis in the European Union',
                'Special committee on the Housing Crisis in the European Union': 'HOUS',
                'Housing Crisis in the European Union': 'HOUS',
                u'Foreign Affairs': u'AFET',
