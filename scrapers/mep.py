@@ -93,7 +93,10 @@ def scrape(id, **kwargs):
 
     if body.xpath('.//h1[text()="Curriculum vitae "]'):
         if not body.xpath('.//h3[@id="no_cv_available"]'):
-            mep['CV']= {'updated': datetime.strptime(unws(body.xpath('.//p[@class="small"]/strong[contains(text(),"Updated: ")]/text()')[0]), u"Updated: %d/%m/%Y")}
+            updated=unws(body.xpath('.//p[@class="small"]/strong[contains(text(),"Updated: ")]/text()')[0])[len('Updated: '):].replace('CEST ', '').replace('CET ', '')
+            try: updated = datetime.strptime(updated, u"%d/%m/%Y")
+            except: updated = datetime.strptime(updated, u"%a %b %d %H:%M:%S %Y")
+            mep['CV']= {'updated': updated}
             mep['CV'].update({unws(''.join(title.xpath(".//text()"))): [unws(''.join(item.xpath(".//text()"))).replace("-...", "- ...")
                                                                         for item in title.xpath("following-sibling::ul/li")]
                             for title in body.xpath('.//h4')

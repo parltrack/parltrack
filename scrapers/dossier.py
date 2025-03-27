@@ -18,7 +18,7 @@
 # (C) 2009-2011,2018-2019 by Stefan Marsiske, <parltrack@ctrlc.hu>
 
 import notification_model as notif
-import unicodedata, requests
+import unicodedata, requests, re
 
 from config import ROOT_URL
 from datetime import datetime, UTC
@@ -56,8 +56,10 @@ def scrape(url, save=True, **kwargs):
         log(1,"this url returns a soft 404: %s" % url)
         return
 
-    tmp = root.xpath('//div[@id="procedure-file-header"]//div[@class="ep_title"]')
-    if len(tmp)!=2: raise ValueError("dossier proc header has not two components")
+    #tmp = root.xpath('//div[@id="procedure-file-header"]//div[@class="ep_title"]')
+    #if len(tmp)!=2: raise ValueError(f"dossier proc header has not two components")
+    tmp = root.xpath('//h2[@class="erpl_title-h1 mb-3"]')
+    if len(tmp)!=1: raise ValueError(f"dossier proc header has not one component")
     ref = junws(tmp[0])
 
     dossier = {
@@ -65,14 +67,15 @@ def scrape(url, save=True, **kwargs):
                  'updated': datetime.now(UTC) },
         'procedure': {
             'reference': ref,
-            'title': junws(tmp[1])
+            #'title': junws(tmp[1])
+            'title': junws(root.xpath('//h2[@class="erpl_title-h2 mb-3"]')[0])
         },
         'committees': scrape_ep_key_players(root),
         'council': scrape_council_players(root),
         'commission': scrape_commission_players(root),
-        'otherinst': scrape_other_players(root),
+        #'otherinst': scrape_other_players(root), # bears no useful info
         'forecasts': scrape_forecasts(root),
-        'links': scrape_extlinks(root),
+        #'links': scrape_extlinks(root), # todo find example on which to test this
     }
     dossier['procedure'].update(scrape_basic(root, ref))
     dossier['procedure'].update(scrape_technical(root))
@@ -108,10 +111,9 @@ def scrape(url, save=True, **kwargs):
 
 def scrape_basic(root, ref):
     res={}
-    for para in root.xpath('//div[@id="basic-information-data"]//p/strong'):
+    for para in root.xpath('//h2[@class="erpl_title-h2 mb-2"][text()="Basic information"]/../../..//p[@class="font-weight-bold mb-1"]'):
         if not para.xpath('./text()'): continue
         title = junws(para)
-        #log(4,"title: %s" % title)
         if title in [ref, 'Status']: continue
         if title == 'Subject': title = 'subject'
         if title == 'Geographical area': title = 'geographical_area'
@@ -120,16 +122,12 @@ def scrape_basic(root, ref):
         # this is a fucking mess, there's two columns, in the left one
         # stuff is between <strong> separated by <br /> in the right
         # one <p><strong></p><p>...</p> until the next <p><strong></p>
-        tmp = para.xpath("../following-sibling::p[preceding-sibling::p/strong[1]]")
-        if len(tmp)>1:
-            log(2, "basic section of %s has more p in 2nd column: %s" % (ref,tmp))
-        elif not tmp:
-            tmp = para.xpath('./following-sibling::node()[not(self::br) and not(self::strong) and preceding-sibling::strong[1][text()="%s"]]' % para.xpath('./text()')[0])
-            if not tmp and not para.xpath('./following-sibling::strong[1]'):
-                tmp = para.xpath('./following-sibling::node()[not(self::br)]')
+        #tmp = para.xpath('./following-sibling::p[preceding-sibling::p[@class="font-weight-bold mb-1"][1]]')
+        tmp = para.xpath('./following-sibling::p[1]')
         if not tmp:
             log(1,'no content found for section "%s" of %s' % (title, ref))
-        for node in tmp:
+            continue
+        for node in tmp[0].xpath("./node()"):
             if isinstance(node, _ElementUnicodeResult):
                 line = unws(node)
                 if line:
@@ -159,164 +157,174 @@ def scrape_ep_key_players(root):
     #div[@id="keyplayers_sectionPE-content"]
     players = []
     type = None
-    for row in root.xpath('//div[@id="keyplayers_sectionPE-content"]//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-row ") and not(contains(concat(" ",normalize-space(@class)," ")," mobileOnly "))]'):
-        cells = row.xpath('.//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-cell ")]')
+    for table in root.xpath('//div[@id="erpl_accordion-committee"]//table'):
+        #cells = row.xpath('.//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-cell ")]')
+        cells = table.xpath('./thead/tr/th')
         if len(cells) != 3:
             if [junws(x) for x in cells] == ['Pending final decision on the referral']:
                continue
             log(1,'EP key players table has not 3 columns: %s' % repr([junws(x) for x in cells]))
             raise ValueError("bad dossier html")
-        if 'ep-table-heading-row' in row.get('class'):
-            tmp = [junws(x) for x in cells]
-            if tmp == ['Committee responsible', 'Rapporteur', 'Appointed']:
-                type="Responsible Committee"
-            elif tmp == ['Joint Committee Responsible', 'Rapporteur', 'Appointed']:
-                type="Joint Responsible Committee"
-            elif tmp == ['Committee for opinion', 'Rapporteur for opinion', 'Appointed']:
-                type="Committee Opinion"
-            elif tmp == ['Committee for opinion on the legal basis', 'Rapporteur for opinion', 'Appointed']:
-                type="Committee Legal Basis Opinion"
-            elif tmp ==['Former committee responsible', 'Former rapporteur','Appointed']:
-                type="Former Responsible Committee"
-            elif tmp ==['Former Joint Committee Responsible', 'Former rapporteur', 'Appointed']:
-                type='Former Joint Committee Responsible'
-            elif tmp == ['Former committee for opinion', 'Former rapporteur for opinion', 'Appointed']:
-                type="Former Committee Opinion"
-            elif tmp == ['Former committee for opinion on the legal basis', 'Rapporteur for opinion', 'Appointed']:
-                type="Former Committee Legal Basis Opinion"
-            elif tmp == ['Committee for opinion on the recast technique', 'Rapporteur for opinion', 'Appointed']:
-                type="Committee Recast Technique Opinion"
-            elif tmp == ['Former committee for opinion on the recast technique', 'Rapporteur for opinion', 'Appointed']:
-                type="Fromer Committee Recast Technique Opinion"
-            elif tmp == ['Committee for budgetary assessment', 'Rapporteur for budgetary assessment', 'Appointed']:
-                type="Committee for budgetary assessment"
-            else:
-                log(1, "unknown committee header in EP key players %s" % repr(tmp))
-                raise ValueError("bad html in EP key players, committee header")
-            continue
+        #if 'ep-table-heading-row' in row.get('class'):
+        tmp = [junws(x) for x in cells]
+        if tmp == ['Committee responsible', 'Rapporteur', 'Appointed']:
+            type="Responsible Committee"
+        elif tmp in (['Joint Committee Responsible', 'Rapporteur', 'Appointed'], ['Joint committee responsible', 'Rapporteur', 'Appointed']):
+            type="Joint Responsible Committee"
+        elif tmp == ['Committee for opinion', 'Rapporteur for opinion', 'Appointed']:
+            type="Committee Opinion"
+        elif tmp == ['Committee for opinion on the legal basis', 'Rapporteur for opinion', 'Appointed']:
+            type="Committee Legal Basis Opinion"
+        elif tmp ==['Former committee responsible', 'Former rapporteur','Appointed']:
+            type="Former Responsible Committee"
+        elif tmp ==['Former Joint Committee Responsible', 'Former rapporteur', 'Appointed']:
+            type='Former Joint Committee Responsible'
+        elif tmp == ['Former committee for opinion', 'Former rapporteur for opinion', 'Appointed']:
+            type="Former Committee Opinion"
+        elif tmp == ['Former committee for opinion on the legal basis', 'Rapporteur for opinion', 'Appointed']:
+            type="Former Committee Legal Basis Opinion"
+        elif tmp == ['Committee for opinion on the recast technique', 'Rapporteur for opinion', 'Appointed']:
+            type="Committee Recast Technique Opinion"
+        elif tmp == ['Former committee for opinion on the recast technique', 'Rapporteur for opinion', 'Appointed']:
+            type="Fromer Committee Recast Technique Opinion"
+        elif tmp == ['Committee for budgetary assessment', 'Rapporteur for budgetary assessment', 'Appointed']:
+            type="Committee for budgetary assessment"
+        else:
+            log(1, "unknown committee header in EP key players %s" % repr(tmp))
+            raise ValueError("bad html in EP key players, committee header")
 
         if not type:
             log(1,"error no table header for EP key players found")
             raise ValueError("bad html in key players EP section, table header")
 
-        player = {"type": type,
-                  'body':'EP'}
-
-        players.append(player)
-
-        # first cell contains committee
-        tmp = cells[0].xpath('.//a/@title')
-        associated = False
-        if len(tmp) == 0 and type not in ("Joint Responsible Committee", 'Former Joint Committee Responsible'):
-            tmp = junws(cells[0])
-            abbr, name = tmp.split(" ",1)
-            if abbr == 'CJ29' and name.startswith('Joint committee procedure'): 
-                player['type']="Joint Responsible Committee"
-                _, coms = name.split('-')
-                name = []
-                abbr = []
-                for c in coms.split(" and "):
-                    c=unws(c)
-                    if c not in COMMITTEE_MAP:
-                        log(1, 'unknown committee in EP Joint Committee listing key players: "%s"' % c)
-                        raise ValueError("bad html in key players EP section, joint committee name")
-                    name.append(COMMITTEE_MAP[c])
-                    abbr.append(c)
-            else:
-                name = unicodedata.normalize('NFKD', name).encode('ascii','ignore').decode('utf8')
-                if name.endswith(" (Associated committee)"):
+        for row in table.xpath('./tbody/tr'):
+            player = {"type": type,
+                      'body':'EP'}
+            cells = row.xpath('./th|./td')
+            # first cell contains committee
+            tmp = cells[0].xpath('.//a/@title')
+            associated = False
+            if len(tmp) == 0 and type not in ("Joint Responsible Committee", 'Former Joint Committee Responsible'):
+                tmp = junws(cells[0])
+                if ' ' in tmp:
+                    com_abbr, com_name = tmp.split(" ",1)
+                    if com_abbr == 'CJ29' and com_name.startswith('Joint committee procedure'): 
+                        player['type']="Joint Responsible Committee"
+                        _, coms = com_name.split('-')
+                        com_name = []
+                        com_abbr = []
+                        for c in coms.split(" and "):
+                            c=unws(c)
+                            if c not in COMMITTEE_MAP:
+                                log(1, 'unknown committee in EP Joint Committee listing key players: "%s"' % c)
+                                raise ValueError("bad html in key players EP section, joint committee name")
+                            com_name.append(COMMITTEE_MAP[c])
+                            com_abbr.append(c)
+                    else:
+                        com_name = unicodedata.normalize('NFKD', com_name).encode('ascii','ignore').decode('utf8')
+                        if com_name.endswith(" (Associated committee)"):
+                            associated=True
+                            com_name=com_name[:-23]
+                        if not (com_abbr in COMMITTEE_MAP and com_name in COMMITTEE_MAP):
+                            log(1, 'unknown linkless committee in EP key players: "%s" -> u"%s": u"%s"' % (tmp, com_name, com_abbr))
+                            raise ValueError("bad html in key players EP section, linkless committee name")
+                    player['associated']=associated
+                else: # continuation of previous row
+                    player = players[-1]
+            elif len(tmp) == 1:
+                tmp=unws(tmp[0])
+                tmp = unicodedata.normalize('NFKD', tmp).encode('ascii','ignore').decode('utf8')
+                if tmp.endswith(" (Associated committee)"):
                     associated=True
-                    name=name[:-23]
-                if not (abbr in COMMITTEE_MAP and name in COMMITTEE_MAP):
-                    log(1, 'unknown linkless committee in EP key players: "%s" -> u"%s": u"%s"' % (tmp, name, abbr))
-                    raise ValueError("bad html in key players EP section, linkless committee name")
-            player['associated']=associated
-        elif len(tmp) == 1:
-            tmp=unws(tmp[0])
-            tmp = unicodedata.normalize('NFKD', tmp).encode('ascii','ignore').decode('utf8')
-            if tmp.endswith(" (Associated committee)"):
-                associated=True
-                tmp=tmp[:-23]
-            if tmp not in COMMITTEE_MAP:
-                log(1, 'unknown committee in EP key players: "%s"' % tmp)
-                raise ValueError("bad html in key players EP section, committee name")
-            name = tmp
-            tmp = junws(cells[0])
-            abbr = tmp[:4]
-        elif type in ("Joint Responsible Committee", 'Former Joint Committee Responsible'):
-            name = []
-            for abbr in cells[0].xpath(".//span/abbr/@title"):
-                abbr=unws(abbr)
-                if abbr not in COMMITTEE_MAP:
-                    log(1, 'unknown committee in EP Joint Committee listing key players: "%s"' % abbr)
-                    raise ValueError("bad html in key players EP section, joint committee name")
-                name.append(COMMITTEE_MAP[abbr])
-            abbr=[unws(a) for a in cells[0].xpath(".//span/abbr/@title")]
-        else:
-            log(1, 'committee has not one <a> tag: "%s"' % tmp)
-            raise ValueError("bad html in key players EP section, committee href")
-
-        player['committee_full']=name
-        player['committee']=abbr
-        player['associated']=associated
-
-        # last cell contains date
-        tmp = junws(cells[2])
-        if tmp:
-            dates = [datetime.strptime(x, u"%d/%m/%Y") for x in tmp.split()]
-        elif "The committee decided not to give an opinion" not in junws(cells[1]):
-            dates = []
-            #log(1, "no date found for keyplayer appointment")
-            #raise ValueError("bad html in key players EP section, appointment date")
-        else:
-            player['opinion'] = False
-            continue
-
-        # middle cell is rappporteur
-        for i,x in enumerate(cells[1].xpath('./div/div[not(@class="shadow-rapporteur")]/a[not(@title="Shadow rapporteur")]')):
-            if not 'rapporteur' in player: player['rapporteur']=[]
-            (abbr, group) = toGroup(x.xpath('./preceding-sibling::span/span[@class="tiptip"]/@title')[-1])
-            name = junws(x)
-            if name.startswith('Chair on behalf of committee '):
-                name=name[29:]
-            if len(dates) > i:
-                date = dates[i]
+                    tmp=tmp[:-23]
+                if tmp not in COMMITTEE_MAP:
+                    log(1, 'unknown committee in EP key players: "%s"' % tmp)
+                    raise ValueError("bad html in key players EP section, committee name")
+                com_name = tmp
+                tmp = junws(cells[0])
+                com_abbr = tmp[:4]
+            elif type in ("Joint Responsible Committee", 'Former Joint Committee Responsible'):
+                com_name = []
+                for com_abbr in cells[0].xpath(".//span/abbr/@title"):
+                    com_abbr=unws(com_abbr)
+                    if com_abbr not in COMMITTEE_MAP:
+                        log(1, 'unknown committee in EP Joint Committee listing key players: "%s"' % com_abbr)
+                        raise ValueError("bad html in key players EP section, joint committee name")
+                    com_name.append(COMMITTEE_MAP[com_abbr])
+                com_abbr=[unws(a) for a in cells[0].xpath(".//span/abbr/@title")]
             else:
-                if len(dates):
-                    date = dates[0]
+                log(1, 'committee has not one <a> tag: "%s"' % tmp)
+                raise ValueError("bad html in key players EP section, committee href")
+
+            player['committee_full']=com_name
+            player['committee']=com_abbr
+            player['associated']=associated
+            if len(players) == 0 or player != players[-1]: players.append(player)
+
+            # last cell contains date
+            tmp = junws(cells[2])
+            if tmp:
+                dates = [datetime.strptime(x, u"%d/%m/%Y") for x in tmp.split()]
+            elif "The committee decided not to give an opinion" not in junws(cells[1]):
+                dates = []
+                #log(1, "no date found for keyplayer appointment")
+                #raise ValueError("bad html in key players EP section, appointment date")
+            else:
+                player['opinion'] = False
+
+            # middle cell is rappporteur
+            for i,x in enumerate(cells[1].xpath('./a[@class="rapporteur mb-25"]')):
+                if not 'rapporteur' in player: player['rapporteur']=[]
+                name = junws(x)
+                m = re.match(r"(.*) \((.*)\)$", name)
+                if not m:
+                    raise ValueError(f"no group found for {name}")
                 else:
-                    date = ''
-            mepid = db.mepid_by_name(name, date, group)
-            if not mepid:
-                log(1,'no mepid found for "%s"' % name)
-            player['rapporteur'].append({'name': name,
-                                         'mepref': mepid,
-                                         'date': date,
-                                         'group': group,
-                                         'abbr': abbr})
-        # check if cell[1] has also shadow rapporteurs listed
-        tmp = cells[1].xpath('.//div[@class="shadow-rapporteur"]')
-        if len(tmp)>1:
-            log(1,"more than 1 shadow-rapporteur class divs found")
-            raise ValueError("bad html in key players EP section, shadow raps")
-        if len(tmp)==0:
-            continue
-        shadow_root = tmp[0]
-        # handle shadow rapporteurs
-        shadows = []
-        date = dates[0] if len(dates) else None
-        for link in shadow_root.xpath('./a'):
-            (abbr, group) = toGroup(link.xpath('./preceding-sibling::span/span[@class="tiptip"]/@title')[-1])
-            name = junws(link)
-            if name.startswith('Chair on behalf of committee '): name=name[29:]
-            mepid = db.mepid_by_name(name, date, group) # FIXME: we use appointed[0] in hope that all meps fit that date.
-            if not mepid:
-                log(1,'no mepid found for "%s"' % name)
-            shadows.append({'name': name,
-                            'mepref': mepid,
-                            'group': group,
-                            'abbr': abbr})
-        player['shadows']=shadows
+                    (group, abbr) = toGroup(m.group(2))
+                    name = m.group(1)
+                if name.startswith('Chair on behalf of committee '):
+                    name=name[29:]
+                if len(dates) > i:
+                    date = dates[i]
+                else:
+                    if len(dates):
+                        date = dates[0]
+                    else:
+                        date = ''
+                mepid = db.mepid_by_name(name, date, group)
+                if not mepid:
+                    log(1,'no mepid found for "%s"' % name)
+                player['rapporteur'].append({'name': name,
+                                             'mepref': mepid,
+                                             'date': date,
+                                             'group': group,
+                                             'abbr': abbr})
+
+            # check if cell[1] has also shadow rapporteurs listed
+            tmp = cells[1].xpath('.//div[@id="collapseShadowRapporteur"]')
+            if len(tmp)==0:
+                continue
+            shadow_root = tmp[0]
+            # handle shadow rapporteurs
+            shadows = []
+            date = dates[0] if len(dates) else None
+            for link in shadow_root.xpath('./div/a[@class="rapporteur mb-25"]'):
+                name = junws(link)
+                m = re.match(r"(.*) \((.*)\)$", name)
+                if not m:
+                    raise ValueError(f"no group found for {name}")
+                else:
+                    (group, abbr) = toGroup(m.group(2))
+                    name = m.group(1)
+                if name.startswith('Chair on behalf of committee '): name=name[29:]
+                mepid = db.mepid_by_name(name, date, group) # FIXME: we use appointed[0] in hope that all meps fit that date.
+                if not mepid:
+                    log(1,'no mepid found for "%s"' % name)
+                shadows.append({'name': name,
+                                'mepref': mepid,
+                                'group': group,
+                                'abbr': abbr})
+            player['shadows']=shadows
 
     return players
 
@@ -324,8 +332,9 @@ def scrape_ep_key_players(root):
 def scrape_council_players(root):
     players = []
     first = True
-    for row in root.xpath('//div[@id="keyplayers_sectionC-content"]//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-row ")]'):
-        cells = row.xpath('.//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-cell ")]')
+    
+    for row in root.xpath('//h2[text()="Key players"]/../../..//li[@class="erpl_accordion-item"]/button/span[text()="Council of the European Union"]/../..//table/*[self::thead or self::tbody]/tr'):
+        cells = row.xpath('./*[self::th or self::td]')
         if len(cells) != 3:
             log(1,"Council key players table has not 3 columns")
             raise ValueError("bad dossier html, Council Key Players")
@@ -337,7 +346,7 @@ def scrape_council_players(root):
         players.append(player)
 
         # first cell contains council configuration
-        tmp = cells[0].xpath('.//a/@title')
+        tmp = cells[0].xpath('.//a/span/text()')
         if len(tmp)!=1:
             tmp = junws(cells[0])
             if tmp == '':
@@ -348,15 +357,15 @@ def scrape_council_players(root):
         player['council']=tmp
 
         # middle cell is meeting
-        tmp = cells[1].xpath('./div/a')
+        tmp = cells[1].xpath('.//a')
         if len(tmp)!=1:
-            tmp = cells[1].xpath('./div/span[@class="ep_name"]')
+            #tmp = cells[1].xpath('./div/span[@class="ep_name"]')
             if len(tmp)!=1:
                 log(1, "council meeting has not one <a> tag")
                 raise ValueError("bad html in key players Council section, council config href")
-        tmp=tmp[0]
-        player['meeting_id']=junws(tmp)
-        player['url']=str(tmp.get('href'))
+        link = tmp[0]
+        player['meeting_id']=unws(link.xpath('./span/text()')[0])
+        player['url']=str(link.get('href'))
 
         # last cell contains date
         tmp = junws(cells[2])
@@ -368,8 +377,8 @@ def scrape_council_players(root):
 def scrape_commission_players(root):
     players = []
     first = True
-    for row in root.xpath('//div[@id="keyplayers_sectionEC-content"]//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-row ")]'):
-        cells = row.xpath('.//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-cell ")]')
+    for row in root.xpath('//h2[text()="Key players"]/../../..//li[@class="erpl_accordion-item"]/button/span[text()="European Commission"]/../..//table/*[self::thead or self::tbody]/tr'):
+        cells = row.xpath('./*[self::th or self::td]')
         if len(cells) != 2:
             log(1,"Commission key players table has not 2 columns")
             raise ValueError("bad dossier html, Commission Key Players")
@@ -381,18 +390,18 @@ def scrape_commission_players(root):
         players.append(player)
 
         # first cell contains Commission
-        tmp = cells[0].xpath('.//a/@title')
+        tmp = cells[0].xpath('.//a')
         if len(tmp)!=1:
             tmp = junws(cells[0])
             if tmp == '':
                 log(1, "no commission specified")
                 raise ValueError("bad html in key players Commission section, commission missing")
         else:
-            tmp = unws(tmp[0])
+            tmp = unws(tmp[0].xpath('./span/text()')[0])
         player['dg']=tmp
 
         # middle cell is commissioner
-        tmp = cells[1].xpath('./div')
+        tmp = cells[1].xpath('./span')
         if len(tmp)!=1:
             log(1, "commissioner has not one member")
             raise ValueError("bad html in key players Commission section, commissioner name")
@@ -401,30 +410,30 @@ def scrape_commission_players(root):
 
     return players
 
-def scrape_other_players(root):
-    res = []
-    for other in root.xpath('//li[@id="keyplayers_section4"]'):
-        titles = other.xpath('.//div[@id="keyplayers_section4-title"]')
-        if len(titles)!=1:
-            log(1, "key player other section has not 1 title")
-            raise ValueError("bad dossier html, other key player title")
-        title = junws(titles[0])
-        for content in other.xpath('.//div[@id="keyplayers_section4-content"]'):
-            if len(content)!=1:
-                log(1,'not 1 section found: %d' % len(content))
-                raise ValueError("bad dossier html, other key player content")
-            tmp=junws(content[0])
-            if tmp!=title:
-                log(1,'other key player is not expected string: "%s" -> "%s"' % (title,tmp))
-                raise ValueError("bad html dossier, other key players section")
-            res.append({"name": title})
-    return res
+#def scrape_other_players(root):
+#    res = []
+#    for other in root.xpath('//li[@id="keyplayers_section4"]'):
+#        titles = other.xpath('.//div[@id="keyplayers_section4-title"]')
+#        if len(titles)!=1:
+#            log(1, "key player other section has not 1 title")
+#            raise ValueError("bad dossier html, other key player title")
+#        title = junws(titles[0])
+#        for content in other.xpath('.//div[@id="keyplayers_section4-content"]'):
+#            if len(content)!=1:
+#                log(1,'not 1 section found: %d' % len(content))
+#                raise ValueError("bad dossier html, other key player content")
+#            tmp=junws(content[0])
+#            if tmp!=title:
+#                log(1,'other key player is not expected string: "%s" -> "%s"' % (title,tmp))
+#                raise ValueError("bad html dossier, other key players section")
+#            res.append({"name": title})
+#    return res
 
 def scrape_events(root):
     events = []
     docs = []
-    for row in root.xpath('//div[@id="key_events-data"]//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-row ")]'):
-        cells = row.xpath('.//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-cell ")]')
+    for row in root.xpath('//h2[@class="erpl_title-h2 mb-2"][text()="Key events"]/../../../div[@class="table-responsive"]/table/tbody/tr'):
+        cells = row.xpath('.//td|.//th')
         if len(cells) != 4:
             log(1,"Events table has not 4 columns")
             raise ValueError("bad dossier html, events")
@@ -465,22 +474,21 @@ def scrape_events(root):
             if not 'docs' in event: event['docs']=[]
             event['docs'].append({"title": unws(alt)})
         # summary
-        node = cells[3].xpath(".//button")
-        if len(node)==0:
+
+        button = cells[3].xpath("./a[button]")
+        if len(button)==0:
             if 'docs' in event:
                 docs.append({'date': event['date'], 'docs': event['docs']})
             continue
-        if len(node)>1:
+        if len(button)!=1:
             log(1,"more than 1 summary button found")
             raise ValueError("bad dossier html, more than 1 summary button")
-        tmp = node[0].get('onclick')
-        prefix = "location.href='"
-        if not tmp.startswith(prefix):
-            log(1,"summary button doesn't start with expected prefix")
-            raise ValueError("bad dossier html, summary button doesn't start with expected prefix")
-        tmp=tmp[len(prefix):-1]
+
+        url = button[0].get('href')
+        if not url.startswith('http'):
+            url = urljoin(BASE_URL,url)
         # fetch summary
-        event['summary']=fetchSummary(tmp)
+        event['summary']=fetchSummary(url)
         if 'docs' in event:
             docs.append({'date': event['date'], 'docs': event['docs'], 'summary': event['summary']})
 
@@ -489,115 +497,126 @@ def scrape_events(root):
 def scrape_technical(root):
     keymap = {'Procedure reference': 'reference',
               'Procedure type': 'type',
-              'Procedure subtype': 'subtype',
+              'Nature of procedure': 'subtype',
               'Legislative instrument': 'instrument',
               'Legal basis': 'legal_basis',
               'Mandatory consultation of other institutions': 'other_consulted_institutions',
               'Stage reached in procedure': 'stage_reached',
               'Committee dossier': 'dossier_of_the_committee'}
     res = {}
-    key = ''
-    for row in root.xpath('//div[@id="technical_information-data"]//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-row ")]'):
-        cells = row.xpath('.//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-cell ")]')
-        if len(cells) != 2:
-            log(1,"Technical info table has not 2 columns")
+    key = '' 
+    for row in root.xpath('//h2[@class="erpl_title-h2 mb-2"][text()="Technical information"]/../../../div[@class="table-responsive"]/table/tbody/tr'):
+        th = row.xpath('.//th')
+        if len(th) != 1:
+            log(1,"Technical info table has not 1 th columns")
+            raise ValueError("bad dossier html, tech info")
+        td = row.xpath('.//td')
+        if len(td) != 1:
+            log(1,"Technical info table has not 1 td columns")
             raise ValueError("bad dossier html, tech info")
         # 1st cell contains name
-        tmp = junws(cells[0])
+        tmp = junws(th[0])
         if tmp:
             key = keymap.get(tmp,tmp)
-            res[key] = junws(cells[1])
         else:
             if key=='':
                 log(1,"empty technical field, and no previous key")
                 raise ValueError("bad dossier html, tech info")
             if not isinstance(res[key], list): res[key]=[res[key]]
-            res[key].append(junws(cells[1]))
-    # split lists
-    for field in ['legal_basis','dossier_of_the_committee']:
-        if field in res:
-            res[field]=sorted((unws(x) for x in res[field].split(';')))
+        for node in td[0].xpath('.//node()'):
+            if isinstance(node, _ElementUnicodeResult):
+                line = unws(node)
+                if line:
+                    if key in res:
+                        if isinstance(res[key], list):
+                            res[key].append(line)
+                        else:
+                            res[key]=[res[key], line]
+                    else:
+                        res[key]=line
     return res
 
 def scrape_docs(root, edocs):
     docs = []
-    sections = root.xpath('//li[@id="keyplayers_section2"]')
-    if len(sections)==0: return []
-    if junws(sections[-1].xpath('.//div[@id="keyplayers_section2-title"]')[0])!="All":
-        log(1, 'last documents section is not "all"')
-        raise ValueError("bad dossier html, documents")
-    for row in sections[-1].xpath('.//div[@id="keyplayers_section2-content"]/div/div[contains(concat(" ",normalize-space(@class)," ")," ep-table-row ")]'):
-        cells = row.xpath('.//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-cell ")]')
-        if len(cells) != 6:
-            log(1,"Docs table has not 6 columns")
-            raise ValueError("bad dossier html, docs")
 
-        doc = {}
-        # date is cell 4
-        tmp = junws(cells[3])
-        if tmp:
-            doc['date']=datetime.strptime(tmp, u"%d/%m/%Y")
+    for section in root.xpath('//div[@id="erplAccordionDocGateway"]/ul/li'):
+        tmp = section.xpath('./button/span[@class="t-x"]/text()')
+        if len(tmp)!=1:
+            log(1, f"document section button has not exactly one span: {tmp}")
+            continue
+        institution = unws(tmp[0])
 
-        # url is cell 3
-        for link in cells[2].xpath('.//a'):
-            if not 'docs' in doc: doc['docs']=[]
-            url=str(link.get('href'))
-            title = junws(link)
-            if title == '':
-                title = link.get('title')
-            if title == '':
-                log(1, 'no title for link in doc' % tostring(links[1]))
-                raise ValueError("bad dossier html, event unnamed link")
-            doc['docs'].append({'url': url, 'title': title})
-        for alt in cells[2].xpath('.//span/text()[not(ancestor::a) and string-length(normalize-space()) > 0]'):
-            if not 'docs' in doc: doc['docs']=[]
-            doc['docs'].append({"title": unws(alt)})
-
-        tdoc = {}
-        ######
-        # title is cell 1
-        tdoc['type']=junws(cells[0])
-
-        # 5. institution
-        tmp = junws(cells[4])
-        if tmp:
-            tdoc['body']=tmp
-
-        # 2. code
-        tmp = junws(cells[1])
-        if tmp:
-            if tdoc.get('body')=='NP':
-                tdoc['body']=tmp
-            elif tmp in COMMITTEE_MAP:
-                doc['committee'] = tmp
+        for row in section.xpath('.//div[@class="table-responsive"]/table/tbody/tr'):
+            cells = row.xpath('.//td|.//th')
+            if institution in ('National parliaments', 'European Parliament', 'Other institutions and bodies'):
+                offset = 1
+                if len(cells) != 5:
+                    log(1,f"Docs table has not required amount of columns columns for inst '{institution}': {len(cells)}")
+                    raise ValueError("bad dossier html, docs")
             else:
-                log(2, 'unexpected value in doc/code cell "%s"' % tmp)
-                raise ValueError("bad html in doc code")
+                offset = 0
+                if len(cells) != 4:
+                    log(1,f"Docs table has not required amount of columns columns for inst '{institution}': {len(cells)}")
+                    raise ValueError("bad dossier html, docs")
 
-        # summary is field 6
-        node = cells[5].xpath(".//button")
-        if len(node)==0:
+            doc = {}
+            # date is cell 3+offset
+            tmp = junws(cells[2+offset])
+            if tmp:
+                doc['date']=datetime.strptime(tmp, u"%d/%m/%Y")
+
+            # url is cell 2+offset
+            for link in cells[1+offset].xpath('.//a'):
+                if not 'docs' in doc: doc['docs']=[]
+                url=str(link.get('href'))
+                title = junws(link)
+                if title == '':
+                    title = link.get('title')
+                if title == '':
+                    log(1, 'no title for link in doc' % tostring(links[1]))
+                    raise ValueError("bad dossier html, event unnamed link")
+                doc['docs'].append({'url': url, 'title': title})
+            for alt in cells[1+offset].xpath('.//span/text()[not(ancestor::a) and string-length(normalize-space()) > 0]'):
+                if not 'docs' in doc: doc['docs']=[]
+                doc['docs'].append({"title": unws(alt)})
+
+            tdoc = {}
+            ######
+            # title is cell 1
+            tdoc['type']=junws(cells[0])
+            tdoc['body']=institution
+
+            # 2. code
+            if institution in ('National parliaments', 'European Parliament', 'Other institutions and bodies'):
+                tmp = junws(cells[1])
+                if tmp:
+                    if tdoc.get('body') in ('National parliaments', 'Other institutions and bodies'):
+                        tdoc['body']=tmp
+                    elif tmp in COMMITTEE_MAP:
+                        doc['committee'] = tmp
+                    else:
+                        log(2, 'unexpected value in doc/code cell "%s"' % tmp)
+                        raise ValueError("bad html in doc code")
+
+            # summary is field 4+offset
+            node = cells[3+offset].xpath("./a[button]")
+            if len(node)==0:
+                doc.update(tdoc)
+                docs.append(doc)
+                continue
+            if len(node)>1:
+                log(1,"more than 1 summary button found")
+                raise ValueError("bad dossier html, more than 1 summary button")
+            url = node[0].get('href')
+            if not url.startswith('http'):
+                url = urljoin(BASE_URL,url)
+            # fetch summary
+            doc['summary']=fetchSummary(url)
+            if doc in edocs:
+                log(4,'skipping doc, already seen in events: "%s"' % ','.join(x['title'] for x in doc['docs']))
+                continue
             doc.update(tdoc)
             docs.append(doc)
-            continue
-        if len(node)>1:
-            log(1,"more than 1 summary button found")
-            raise ValueError("bad dossier html, more than 1 summary button")
-        tmp = node[0].get('onclick')
-        prefix = "location.href='"
-        if not tmp.startswith(prefix):
-            log(1,"summary button doesn't start with expected prefix")
-            raise ValueError("bad dossier html, summary button doesn't start with expected prefix")
-        tmp=tmp[len(prefix):-1]
-        # fetch summary
-        doc['summary']=fetchSummary(tmp)
-        if doc in edocs:
-            log(4,'skipping doc, already seen in events: "%s"' % ','.join(x['title'] for x in doc['docs']))
-            continue
-
-        doc.update(tdoc)
-
-        docs.append(doc)
     return docs
 
 
@@ -629,32 +648,29 @@ def scrape_extlinks(root):
 
 def scrape_finalact(root):
     res = {}
-    for row in root.xpath('//div[@id="final_act-data"]//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-row ")]//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-cell ")]'):
-        button = row.xpath(".//button")
-        if len(button)==0:
-            # try links
-            for link in row.xpath(".//a"):
-                if not 'docs' in res: res['docs']=[]
-                res['docs'].append({'title': junws(link),
-                                    'url': str(link.get('href'))})
-        elif len(button)==1:
-            tmp = button[0].get('onclick')
-            prefix = "location.href='"
-            if not tmp.startswith(prefix):
-                log(1,"summary button doesn't start with expected prefix")
-                raise ValueError("bad dossier html, final act")
-            tmp=tmp[len(prefix):-1]
+    for row in root.xpath('//h2[@class="erpl_title-h2 mb-2"][text()="Final act"]/../../following-sibling::div/ul/li'):
+        # try links
+        for link in row.xpath(".//a[not(button)]"):
+            if not 'docs' in res: res['docs']=[]
+            url = str(link.get('href'))
+            if not url.startswith('http'):
+                url = urljoin(BASE_URL,url)
+            res['docs'].append({'title': junws(link),
+                                'url': url})
+        button = row.xpath("./a[button]")
+        if len(button)==1:
+            tmp = button[0].get('href')
             # fetch summary
             res['summary']=fetchSummary(tmp)
-        else:
+        elif len(button)!=0:
             log(1,"more than 1 summary button found")
             raise ValueError("bad dossier html, final act")
     return res
 
 def scrape_forecasts(root):
     res = []
-    for row in root.xpath('//div[@id="forecast-data"]//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-row ")]'):
-        cells = row.xpath('.//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-cell ")]')
+    for row in root.xpath('//h2[@class="erpl_title-h2 mb-2"][text()="Forecasts"]/../../../div[@class="table-responsive"]/table/tbody/tr'):
+        cells = row.xpath('.//td|.//th')
         if len(cells) != 2:
             log(1,"Forecasts info table has not 2 columns")
             raise ValueError("bad dossier html, forecasts")
@@ -685,6 +701,8 @@ def toGroup(txt):
         return ("ALDE", 'Alliance of Liberals and Democrats for Europe')
     if txt == "Renew Europe group": # goddamn unique slowfakes - if they get an abbrev i hope it won't be ALDE
         return ("Renew", "Renew Europe group")
+    if txt in MAP_GROUP:
+        return MAP_GROUP[txt], txt
     try:
         _, group = txt.split(' - ', 1)
     except:
@@ -730,11 +748,11 @@ def fetchSummary(path):
             except:
                 log(1,"failed to fetch summary url: %s" % url)
                 raise ValueError("bad html in summary")
-    tmp = tmp.xpath('//div[contains(concat(" ",normalize-space(@class)," ")," ep-m_product ")]')
-    if len(tmp)!=2:
-        log(1, "summary nodes len != 2")
+    tmp = tmp.xpath('//div[contains(concat(" ",normalize-space(@class)," ")," erpl_product-content ")]')
+    if len(tmp)!=1:
+        log(1, "summary nodes len != 1")
         raise ValueError("bad html in summary: %s" % url)
-    return [junws(x) for x in tmp[1].xpath('.//div/div/*')]
+    return [junws(x) for x in tmp[0].xpath('.//div/*')]
 
 fuckedSummaries={
     "https://oeil.secure.europarl.europa.eu/oeil/popups/summary.do?id=910263&t=e&l=en": [("<m<", "&lt;m&lt;")],
@@ -791,6 +809,13 @@ stage2inst={ 'Debate in Council': u'CSL',
              'Council draft budget published': u'CSL',
              'Amended budget adopted by Council': u'CSL',
              "Initial period for examining delegated act 0.8 month(s)": "CSL",
+             "Initial period for examining delegated act 2.0 month(s)": "CSL",
+             "Initial period for examining delegated act 1.0 month(s)": "CSL",
+             "Initial period for examining delegated act extended at Council's request by 1.0 month(s)": "CSL",
+             "Initial period for examining delegated act 2.0 month(s)": "CSL",
+             "Initial period for examining delegated act 3.0 month(s)": "CSL",
+             "Initial period for examining delegated act extended at Parliament's request by 2.0 month(s)": "EP",
+             "Initial period for examining delegated act extended at Parliament's request by 3.0 month(s)": "EP",
              "Initial period for examining delegated act extended at Council's request by 3 month(s)": 'CSL',
              "Initial period for examining delegated act extended at Council's request by 1 month(s)": "CSL",
              "Council amended draft budget published": 'CSL',
@@ -842,6 +867,7 @@ stage2inst={ 'Debate in Council': u'CSL',
              'Debate in plenary scheduled': u'EP',
              'Referral to associated committees announced in Parliament': u'EP',
              'Indicative plenary sitting date, 1st reading/single reading': u'EP',
+             "Matter referred back to the committee responsible for interinstitutional negotiations": "EP",
              "Approval in committee of the text agreed at 1st reading interinstitutional negotiations": 'EP',
              "Approval in committee of the text agreed at early 2nd reading interinstitutional negotiations": 'EP',
              "Committee report tabled for plenary, reconsultation": 'EP',
@@ -1023,12 +1049,14 @@ def makemsg(doc,diff):
 
 
 if __name__ == '__main__':
+    from utils.log import set_level
+    set_level(4)
     #d = db.dossier('2018/0044(COD)')
     #onchanged(d, sorted(d['changes'].items(), reverse=True)[0][1])
 
     from utils.utils import jdump
     import sys
-    print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=%s&l=en" % sys.argv[1], save=True)))
+    print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=%s&l=en" % sys.argv[1], save=False)))
 
     #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2012/2039(INI)&l=en")))
     #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=1992/0449B(COD)&l=en")))
@@ -1047,7 +1075,7 @@ if __name__ == '__main__':
     #for i in ['556397', '575084', '589377', '556208', '593187', '556397', '16542', '584049', '593435', '588286', '590715', '584049', '590612', '591258', '584049', '556397', '556364', '556398', '589181']:
     #    scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?id=%s" % i)
 
-    #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil//popups/ficheprocedure.do?reference=2019/2582(RSP)&amp;l=en")))
+    #print(jdump(scrape("https://oeil.secure.europarl.europa.eu/oeil//popups/ficheprocedure.do?reference=2019/2582(RSP)&l=en")))
 
     #print(jdump(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2018/0066(COD)&l=en")))
     #print(jdump(scrape("http://www.europarl.europa.eu/oeil/popups/ficheprocedure.do?reference=2016/0280(COD)&l=en")))
