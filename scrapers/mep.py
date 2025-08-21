@@ -474,6 +474,7 @@ known_sidebar = { "Home": [],
                 "Curriculum vitae": [],
                 "Declarations": [],
                 "Assistants": [],
+                "Penalties": [],  # todo at least scrape the urls pointing at them
                 "Meetings": [
                     "Past meetings",
                     "Future meetings",

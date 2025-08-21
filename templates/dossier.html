@@ -5,7 +5,6 @@
   <div class="ui center aligned stackable grid container">
     <div class="row">
      <div class="ui horizontal list">
-      <div class="item"><a href="{{url}}?format=json" rel="nofollow">download json</a></div>
       <!--<div class="item"><a class="hidden" id="wikinotes" href="{{dossier.procedure.reference|reftopath}}">Notes</a></div>-->
       <div class="item" id="track_dossier"><a href="#">Subscribe</a>
           <div class="nondisplayed" id="notif_subscr">
@@ -31,7 +30,7 @@
              <div class="header">
                 This is a historical view ({{now_date|asdate}})
              </div>
-				 <p>Changes: {% for d, c in change_dates %}<a href="?date={{d}}" class="tooltipz">{{d|asdate}}<span class='bottom'>{{c}}<i></i></span></a>{% if not loop.last %}, {%endif%}{%endfor%}</p>
+				 <p>Changes: {% for d, c in change_dates %}<a rel="nofollow" href="?date={{d}}" class="tooltipz">{{d|asdate}}<span class='bottom'>{{c}}<i></i></span></a>{% if not loop.last %}, {%endif%}{%endfor%}</p>
 				 <p><a href="?">View current state</a> | <a href="#/history">View Changes for this date</a></p>
              {% if tt_fail %}
              <div class="ui negative message"><div class="header">Sorry, but we failed to recreate history before {{ tt_fail }}</div></div>

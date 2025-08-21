@@ -166,32 +166,36 @@ def scrape_ep_key_players(root):
             log(1,'EP key players table has not 3 columns: %s' % repr([junws(x) for x in cells]))
             raise ValueError("bad dossier html")
         #if 'ep-table-heading-row' in row.get('class'):
-        tmp = [junws(x) for x in cells]
-        if tmp == ['Committee responsible', 'Rapporteur', 'Appointed']:
+        tmp = [junws(x).lower() for x in cells]
+        if tmp == ['committee responsible', 'rapporteur', 'appointed']:
             type="Responsible Committee"
-        elif tmp in (['Joint Committee Responsible', 'Rapporteur', 'Appointed'], ['Joint committee responsible', 'Rapporteur', 'Appointed']):
+        elif tmp==['joint committee responsible', 'rapporteur', 'appointed']:
             type="Joint Responsible Committee"
-        elif tmp == ['Committee for opinion', 'Rapporteur for opinion', 'Appointed']:
+        elif tmp == ['committee for opinion', 'rapporteur for opinion', 'appointed']:
             type="Committee Opinion"
-        elif tmp == ['Committee for opinion on the legal basis', 'Rapporteur for opinion', 'Appointed']:
+        elif tmp == ['committee for opinion on the legal basis', 'rapporteur for opinion', 'appointed']:
             type="Committee Legal Basis Opinion"
-        elif tmp ==['Former committee responsible', 'Former rapporteur','Appointed']:
+        elif tmp ==['former committee responsible', 'former rapporteur','appointed']:
             type="Former Responsible Committee"
-        elif tmp ==['Former Joint Committee Responsible', 'Former rapporteur', 'Appointed']:
+        elif tmp==['former joint committee responsible', 'former rapporteur', 'appointed']:
             type='Former Joint Committee Responsible'
-        elif tmp == ['Former committee for opinion', 'Former rapporteur for opinion', 'Appointed']:
+        elif tmp == ['former committee for opinion', 'former rapporteur for opinion', 'appointed']:
             type="Former Committee Opinion"
-        elif tmp == ['Former committee for opinion on the legal basis', 'Rapporteur for opinion', 'Appointed']:
+        elif tmp == ['former committee for opinion on the legal basis', 'rapporteur for opinion', 'appointed']:
             type="Former Committee Legal Basis Opinion"
-        elif tmp == ['Committee for opinion on the recast technique', 'Rapporteur for opinion', 'Appointed']:
+        elif tmp == ['former committee for opinion on the legal basis', 'former rapporteur for opinion', 'appointed']:
+            type="Former Committee Legal Basis Opinion"
+        elif tmp == ['committee for opinion on the recast technique', 'rapporteur for opinion', 'appointed']:
             type="Committee Recast Technique Opinion"
-        elif tmp == ['Former committee for opinion on the recast technique', 'Rapporteur for opinion', 'Appointed']:
+        elif tmp == ['former committee for opinion on the recast technique', 'rapporteur for opinion', 'appointed']:
             type="Fromer Committee Recast Technique Opinion"
-        elif tmp == ['Committee for budgetary assessment', 'Rapporteur for budgetary assessment', 'Appointed']:
+        elif tmp == ['former committee for opinion on the recast technique', 'former rapporteur for opinion', 'appointed']:
+            type="Fromer Committee Recast Technique Opinion"
+        elif tmp == ['committee for budgetary assessment', 'rapporteur for budgetary assessment', 'appointed']:
             type="Committee for budgetary assessment"
         else:
             log(1, "unknown committee header in EP key players %s" % repr(tmp))
-            raise ValueError("bad html in EP key players, committee header")
+            raise ValueError("bad html in EP key players, committee header %s" % repr(tmp))
 
         if not type:
             log(1,"error no table header for EP key players found")
@@ -201,6 +205,9 @@ def scrape_ep_key_players(root):
             player = {"type": type,
                       'body':'EP'}
             cells = row.xpath('./th|./td')
+            if len(cells) != 3:
+                if [junws(x) for x in cells] == ['Pending final decision on the referral']:
+                   continue
             # first cell contains committee
             tmp = cells[0].xpath('.//a/@title')
             associated = False
@@ -856,6 +863,8 @@ stage2inst={ 'Debate in Council': u'CSL',
              'Commission response to text adopted in plenary': u'EC',
              'Proposal withdrawn by Commission': u'EC',
 
+             "Urgent procedure requested by a political group": "EP",
+             "Urgent procedure requested by a committee": "EP",
              "Preparatory document": "EP",
              'Indicative plenary sitting date, 1st reading/single reading': 'EP',
              'Results of vote in Parliament': u'EP',
@@ -877,6 +886,7 @@ stage2inst={ 'Debate in Council': u'CSL',
              "Rejection by committee to open interinstitutional negotiations with report adopted in committee": 'EP',
              "Approval in committee of the text agreed at 2nd reading interinstitutional negotiations": 'EP',
              "Initial period for examining delegated act extended at Parliament's request by 4 month(s)": "EP",
+             "Initial period for examining delegated act 4 month(s)": "EP",
              "Committee decision to open interinstitutional negotiations prior to the adoption of the report": 'EP',
              "Committee decision to open interinstitutional negotiations at 2nd reading": 'EP',
              "Committee decision to enter into interinstitutional negotiations announced in plenary (Rule 72)": 'EP',

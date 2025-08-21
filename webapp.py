@@ -85,11 +85,12 @@ def get_changes(obj, path):
 
 def render(template, **kwargs):
     if request.args.get('format') == 'json':
-        if 'exclude_from_json' in kwargs:
-            for v in set(kwargs['exclude_from_json']):
-                del(kwargs[v])
-            del(kwargs['exclude_from_json'])
-        return jsonify(kwargs)
+        #if 'exclude_from_json' in kwargs:
+        #    for v in set(kwargs['exclude_from_json']):
+        #        del(kwargs[v])
+        #    del(kwargs['exclude_from_json'])
+        #return jsonify(kwargs)
+        return jsonify({"STOP": "scraping!"})
     if request.args.get('q'):
         kwargs['q'] = request.args['q']
     if request.args.get('party'):

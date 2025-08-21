@@ -803,6 +803,7 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, pag
     if i<len(block):
         if i>0:
             names=' '.join(block[:i])
+            names=names.replace(' Draft budgetary assessment', '')
             am['authors']=unws(names)
             #logger.info("names \n%s" % names)
 
@@ -813,7 +814,7 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, pag
                     try: am['meps'].append(mepid)
                     except KeyError: am['meps']=[mepid]
                 else:
-                    log(3, "fix %s" % text)
+                    log(3, "fix %s in %s" % (text, url))
             del block[:i]
             strip(block)
         elif rapporteur:
@@ -825,7 +826,7 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, pag
                         try: am['meps'].append(mepid)
                         except KeyError: am['meps']=[mepid]
                     else:
-                        log(3, "fix %s" % text)
+                        log(3, "fix %s in %s" % (text, url))
             else:
                 for text in filter(None,splitNames(rapporteur)):
                     mepid=db.getMep(text,date)
@@ -833,7 +834,7 @@ def parse_block(block, url, reference, date, rapporteur, PE, committee=None, pag
                         try: am['meps'].append(mepid)
                         except KeyError: am['meps']=[mepid]
                     else:
-                        log(3, "fix %s" % text)
+                        log(3, "fix %s in %s" % (text,url))
         else:
             log(4, "no authors in Amendment %s %s" % (am['seq'], url))
     else:
