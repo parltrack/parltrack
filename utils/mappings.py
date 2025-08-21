@@ -357,6 +357,7 @@ COMMITTEE_MAP={u'AFET': u"Foreign Affairs",
                u"Committee on Agriculture, Fisheries and Food": u"",
                u'Committee of Inquiry on the Protection of Animals during Transport'                            : u"ANIT",
                u'Use of Pegasus and equivalent surveillance spyware'                                            : u"PEGA",
+               "Environment, Climate and Food Safety"                                                           : "ENVI",
                u"Committee on the Verification of Credentials": u"",
                u"Committee on Youth, Culture, Education, the Media and Sport": u"",
                u"Temporary committee of inquiry into the Community Transit System": u"",
@@ -990,6 +991,7 @@ stage2percent = {
     'Referral to joint committee announced in Parliament': 5,
 
     "Urgent procedure requested by a committee": 8,
+    "Urgent procedure requested by a political group": 8,
 
     'Amended legislative proposal for reconsultation published': 10,
     'Referral to associated committees announced in Parliament': 10,
@@ -1042,6 +1044,7 @@ stage2percent = {
     'Decision by Parliament, 3rd reading': 65,
 
     "Matter referred back to the committee responsible": 70,
+    "Matter referred back to the committee responsible for reconsideration": 70,
     'Report referred back to committee': 70,
     'Awaiting committee decision': 70,
     'Awaiting the opening of interinstitutional negotiations': 70,
