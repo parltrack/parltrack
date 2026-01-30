@@ -115,16 +115,14 @@ def scrape(id, **kwargs):
                 if not 'assistants' in mep: mep['assistants']={}
                 title = title.lower().split()[0]
                 if assistants: mep['assistants'][title]=assistants
-            elif title in ['Accredited assistants (grouping)', 'Local assistants (grouping)',
+            elif title not in ['Accredited assistants (grouping)', 'Local assistants (grouping)',
                            'Service providers', 'Trainees', 'Paying agents (grouping)', 'Paying agents',
                            'Assistants to the Vice-Presidency/to the Quaestorate', "Assistants to the Quaestorate",
-                           "Assistants to the Vice-Presidency"]:
-                if not 'assistants' in mep: mep['assistants']={}
-                title = title.lower()
-                if assistants: mep['assistants'][title]=assistants
-            else:
+                           "Assistants to the Vice-Presidency", "Specialised service providers"]:
                 log(2,'unknown title for assistants "{}" {}'.format(title, url))
-                raise ValueError
+            if not 'assistants' in mep: mep['assistants']={}
+            title = title.lower()
+            if assistants: mep['assistants'][title]=assistants
 
     # declarations
     root = fetch("http://www.europarl.europa.eu/meps/en/%s/name/declarations" % id)

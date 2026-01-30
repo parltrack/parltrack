@@ -58,7 +58,7 @@ def scrape(url, save=True, **kwargs):
 
     #tmp = root.xpath('//div[@id="procedure-file-header"]//div[@class="ep_title"]')
     #if len(tmp)!=2: raise ValueError(f"dossier proc header has not two components")
-    tmp = root.xpath('//h2[@class="erpl_title-h1 mb-3"]')
+    tmp = root.xpath('//h2[@class="es_title-h1 mb-3"]')
     if len(tmp)!=1: raise ValueError(f"dossier proc header has not one component")
     ref = junws(tmp[0])
 
@@ -68,7 +68,7 @@ def scrape(url, save=True, **kwargs):
         'procedure': {
             'reference': ref,
             #'title': junws(tmp[1])
-            'title': junws(root.xpath('//h2[@class="erpl_title-h2 mb-3"]')[0])
+            'title': junws(root.xpath('//h2[@class="es_title-h2 mb-3"]')[0])
         },
         'committees': scrape_ep_key_players(root),
         'council': scrape_council_players(root),
@@ -111,7 +111,7 @@ def scrape(url, save=True, **kwargs):
 
 def scrape_basic(root, ref):
     res={}
-    for para in root.xpath('//h2[@class="erpl_title-h2 mb-2"][text()="Basic information"]/../../..//p[@class="font-weight-bold mb-1"]'):
+    for para in root.xpath('//h2[@class="es_title-h2 mb-2"][text()="Basic information"]/../../..//p[@class="font-weight-bold mb-1"]'):
         if not para.xpath('./text()'): continue
         title = junws(para)
         if title in [ref, 'Status']: continue
@@ -157,7 +157,7 @@ def scrape_ep_key_players(root):
     #div[@id="keyplayers_sectionPE-content"]
     players = []
     type = None
-    for table in root.xpath('//div[@id="erpl_accordion-committee"]//table'):
+    for table in root.xpath('//div[@id="es_accordion-committee"]//table'):
         #cells = row.xpath('.//div[contains(concat(" ",normalize-space(@class)," ")," ep-table-cell ")]')
         cells = table.xpath('./thead/tr/th')
         if len(cells) != 3:
@@ -340,7 +340,7 @@ def scrape_council_players(root):
     players = []
     first = True
     
-    for row in root.xpath('//h2[text()="Key players"]/../../..//li[@class="erpl_accordion-item"]/button/span[text()="Council of the European Union"]/../..//table/*[self::thead or self::tbody]/tr'):
+    for row in root.xpath('//h2[text()="Key players"]/../../..//li[@class="es_accordion-item"]/button/span[text()="Council of the European Union"]/../..//table/*[self::thead or self::tbody]/tr'):
         cells = row.xpath('./*[self::th or self::td]')
         if len(cells) != 3:
             log(1,"Council key players table has not 3 columns")
@@ -384,7 +384,7 @@ def scrape_council_players(root):
 def scrape_commission_players(root):
     players = []
     first = True
-    for row in root.xpath('//h2[text()="Key players"]/../../..//li[@class="erpl_accordion-item"]/button/span[text()="European Commission"]/../..//table/*[self::thead or self::tbody]/tr'):
+    for row in root.xpath('//h2[text()="Key players"]/../../..//li[@class="es_accordion-item"]/button/span[text()="European Commission"]/../..//table/*[self::thead or self::tbody]/tr'):
         cells = row.xpath('./*[self::th or self::td]')
         if len(cells) != 2:
             log(1,"Commission key players table has not 2 columns")
@@ -410,10 +410,9 @@ def scrape_commission_players(root):
         # middle cell is commissioner
         tmp = cells[1].xpath('./span')
         if len(tmp)!=1:
-            log(1, "commissioner has not one member")
-            raise ValueError("bad html in key players Commission section, commissioner name")
-        tmp=tmp[0]
-        player['commissioner']=junws(tmp)
+            log(1, "bad html in key players Commission section, commissioner name, commissioner has not one member")
+        else:
+            player['commissioner']=junws(tmp[0])
 
     return players
 
@@ -439,7 +438,7 @@ def scrape_commission_players(root):
 def scrape_events(root):
     events = []
     docs = []
-    for row in root.xpath('//h2[@class="erpl_title-h2 mb-2"][text()="Key events"]/../../../div[@class="table-responsive"]/table/tbody/tr'):
+    for row in root.xpath('//h2[@class="es_title-h2 mb-2"][text()="Key events"]/../../../div[@class="table-responsive"]/table/tbody/tr'):
         cells = row.xpath('.//td|.//th')
         if len(cells) != 4:
             log(1,"Events table has not 4 columns")
@@ -512,7 +511,7 @@ def scrape_technical(root):
               'Committee dossier': 'dossier_of_the_committee'}
     res = {}
     key = '' 
-    for row in root.xpath('//h2[@class="erpl_title-h2 mb-2"][text()="Technical information"]/../../../div[@class="table-responsive"]/table/tbody/tr'):
+    for row in root.xpath('//h2[@class="es_title-h2 mb-2"][text()="Technical information"]/../../../div[@class="table-responsive"]/table/tbody/tr'):
         th = row.xpath('.//th')
         if len(th) != 1:
             log(1,"Technical info table has not 1 th columns")
@@ -655,7 +654,7 @@ def scrape_extlinks(root):
 
 def scrape_finalact(root):
     res = {}
-    for row in root.xpath('//h2[@class="erpl_title-h2 mb-2"][text()="Final act"]/../../following-sibling::div/ul/li'):
+    for row in root.xpath('//h2[@class="es_title-h2 mb-2"][text()="Final act"]/../../following-sibling::div/ul/li'):
         # try links
         for link in row.xpath(".//a[not(button)]"):
             if not 'docs' in res: res['docs']=[]
@@ -676,7 +675,7 @@ def scrape_finalact(root):
 
 def scrape_forecasts(root):
     res = []
-    for row in root.xpath('//h2[@class="erpl_title-h2 mb-2"][text()="Forecasts"]/../../../div[@class="table-responsive"]/table/tbody/tr'):
+    for row in root.xpath('//h2[@class="es_title-h2 mb-2"][text()="Forecasts"]/../../../div[@class="table-responsive"]/table/tbody/tr'):
         cells = row.xpath('.//td|.//th')
         if len(cells) != 2:
             log(1,"Forecasts info table has not 2 columns")
