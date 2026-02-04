@@ -55,16 +55,16 @@ def scrape(id, **kwargs):
         'Name'      : mangleName(unws(' '.join(root.xpath('//span[@class="sln-member-name"]/text()'))), id),
         'Photo'     : "https://www.europarl.europa.eu/mepphoto/%s.jpg" % id,
         'meta'      : {'url': url},
-        'Twitter'   : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="Twitter"]/@href')],
-        'X'         : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="X"]/@href')],
-        'Homepage'  : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="Website"]/@href')],
-        'Facebook'  : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="Facebook"]/@href')],
-        'Instagram' : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="Instagram"]/@href')],
-        'Youtube'   : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="Youtube"]/@href')],
-        'LinkedIn'  : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="LinkedIn"]/@href')],
-        'Telegram'  : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="Telegram"]/@href')],
-        'Blog'      : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="Blog"]/@href')],
-        'Mail'      : [deobfus_mail(x) for x in root.xpath('//div[@id="presentationmep"]//a[@data-original-title="E-mail"]/@href')],
+        'Twitter'   : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@title="Twitter"]/@href')],
+        'X'         : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@title="X"]/@href')],
+        'Homepage'  : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@title="Website"]/@href')],
+        'Facebook'  : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@title="Facebook"]/@href')],
+        'Instagram' : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@title="Instagram"]/@href')],
+        'Youtube'   : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@title="Youtube"]/@href')],
+        'LinkedIn'  : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@title="LinkedIn"]/@href')],
+        'Telegram'  : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@title="Telegram"]/@href')],
+        'Blog'      : [unws(x.replace("http:// ","")) for x in root.xpath('//div[@id="presentationmep"]//a[@title="Blog"]/@href')],
+        'Mail'      : [deobfus_mail(x) for x in root.xpath('//div[@id="presentationmep"]//a[@title="E-mail"]/@href')],
         'Addresses' : parse_addr(root),
         'active'    : False,
     }
@@ -174,7 +174,7 @@ def parse_addr(root):
     # addresses
     addrs = {}
     for li in root.xpath('//section[@id="contacts"]//div[@class="card-body"]'):
-        key = unws(''.join(li.xpath('./div[1]//text()')))
+        key = unws(''.join(li.xpath('./div/div[1]//text()')))
         if key == 'Bruxelles': key = 'Brussels'
         addrs[key]={}
         if key in ['Brussels', 'Strasbourg']:
@@ -185,7 +185,7 @@ def parse_addr(root):
             if fax:
                 addrs[key]['Fax']=fax[0][4:].replace("+33(0)388","+333 88").replace("+32(0)228","+322 28")
         #tmp=[unws(x) for x in li.xpath('.//li[1]//text()') if len(unws(x))]
-        tmp=[unws(x) for x in li.xpath('.//div[@class="erpl_contact-card-list"]/span//text()') if len(unws(x))]
+        tmp=[unws(x) for x in li.xpath('.//div[@class="es_contact-card-list"]/span//text()') if len(unws(x))]
         if key=='Strasbourg':
             addrs[key][u'Address']=dict(zip([u'Organization',u'Building', u'Office', u'Street',u'Zip1', u'Zip2'],tmp))
             addrs[key][u'Address']['City']=addrs[key]['Address']['Zip2'].split()[1]
@@ -267,9 +267,9 @@ def isabbr(token):
     return True
 
 def parse_history(id, root, mep):
-    for term in root.xpath('//div[@id="sectionsNavPositionInitial"]//div[@class="erpl_side-navigation"]/div/ul/li//span[text()="History of parliamentary service"]/../following-sibling::div//ul/li//a/span[@class="t-x"]/text()'):
+    for term in root.xpath('//div[@id="sectionsNavPositionInitial"]//div[@class="es_side-navigation"]/div/ul/li//span[text()="History of parliamentary service"]/../following-sibling::div//ul/li//a/span[@class="t-x"]/text()'):
         if not term.endswith("parliamentary term"):
-            log(2, 'history menu item does not end as expected with "parliamentary term": %s http://www.europarl.europa.eu/meps/en/%s/name/declarations' % (term, id))
+            log(2, 'history menu item does not end as expected with "parliamentary term": %s http://www.europarl.europa.eu/meps/en/%s/name/history' % (term, id))
             raise ValueError
             #continue
         term = int(term[:-(3+len("parliamentary term"))])
@@ -415,14 +415,16 @@ def onchanged(mep, diff):
     #log(4, "type of today : %s" % (type(today)))
     for c in mep.get('Committees', []):
         #log(4, "type of c.end: %s" % (type(c['end'])))
-        if c['end'] > today:
+        end = c['end'] if isinstance(c['end'], datetime) else datetime.fromisoformat(c['end'])
+        if end > today:
             if not 'abbr' in c: continue
             committee = c['abbr']
             mep_items.extend(notif.session.query(notif.Item).filter(notif.Item.type=='meps_by_committee').filter(notif.Item.name==committee).all())
 
     for g in mep.get('Groups', []):
         #log(4, "type of g.end: %s" % (type(g['end'])))
-        if g['end'] > today:
+        end = g['end'] if isinstance(g['end'], datetime) else datetime.fromisoformat(g['end'])
+        if end > today:
             if not 'groupid' in g: continue
             group = g['groupid']
             mep_items.extend(notif.session.query(notif.Item).filter(notif.Item.type=='meps_by_group').filter(notif.Item.name==group).all())
@@ -492,7 +494,7 @@ known_sidebar = { "Home": [],
                 }
 
 def sidebar_check(root,url):
-    sidebar = root.xpath('//div[@id="sectionsNavPositionInitial"]//div[@class="erpl_side-navigation"]/div/ul')
+    sidebar = root.xpath('//div[@id="sectionsNavPositionInitial"]//div[@class="es_side-navigation"]/div/ul')
     if len(sidebar)!=1: 
         log(1,"sidebar has not 1 element: %s" % url)
         raise ValueError
