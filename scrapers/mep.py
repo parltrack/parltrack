@@ -44,7 +44,7 @@ CONFIG = {
 
 def scrape(id, **kwargs):
     # we ignore the /meps/en/<id>/<name>/home path, since we can get all info also from other pages
-    url = "http://www.europarl.europa.eu/meps/en/%s/name/cv" % id
+    url = "https://www.europarl.europa.eu/meps/en/%s/name/cv" % id
     xml = fetch_raw(url) # we have to patch up the returned html...
     xml = xml.replace("</br>","<br/>") # ...it contains some bad tags..
     root = fromstring(xml) # ...which make the lxml soup parser drop some branches in the DOM
