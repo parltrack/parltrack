@@ -40,7 +40,7 @@ def scrape(id, terms, mepname, save=True, **kwargs):
         for term in terms:
             page = 0
             cnt = 10
-            url = "http://www.europarl.europa.eu/meps/en/%s/loadmore-activities/%s/%s/?page=%s&count=%s" % (id, type, term, page, cnt)
+            url = "https://www.europarl.europa.eu/meps/en/%s/loadmore-activities/%s/%s/?page=%s&count=%s" % (id, type, term, page, cnt)
             try:
                 root = fetch(url)
             except:
@@ -48,8 +48,8 @@ def scrape(id, terms, mepname, save=True, **kwargs):
                 raise ValueError
                 #continue
             #print(url, file=sys.stderr)
-            while(len(root.xpath('//div[@class="erpl_document"]'))>0):
-                for node in root.xpath('//div[@class="erpl_document"]'):
+            while(len(root.xpath('//div[@class="es_document"]'))>0):
+                for node in root.xpath('//div[@class="es_document"]'):
                     if type == 'written-explanations':
                         item = {
                             'title': unws(''.join(node.xpath('./div/h3/span[@class="t-item"]//text()'))),
@@ -113,7 +113,7 @@ def scrape(id, terms, mepname, save=True, **kwargs):
 
                         item['title']=unws(''.join(node.xpath('./div/h3//span[@class="t-item"]//text()')))
 
-                        abbr = node.xpath('./div[1]/div[1]/span/span[contains(concat(" ",normalize-space(@class)," ")," erpl_badge-committee ")]/text()')
+                        abbr = node.xpath('./div[1]/div[1]/span/span[contains(concat(" ",normalize-space(@class)," ")," es_badge-committee ")]/text()')
                         if len(abbr):
                             item['committee']=[a for a in [unws(c) for c in abbr] if a]
 
@@ -180,7 +180,7 @@ def scrape(id, terms, mepname, save=True, **kwargs):
                     if TYPE not in activities:
                         activities[TYPE]=[]
                     activities[TYPE].append(item)
-                if len(root.xpath('//div[@class="erpl_document"]')) < cnt:
+                if len(root.xpath('//div[@class="es_document"]')) < cnt:
                     break
                 page += 1
                 url = "http://www.europarl.europa.eu/meps/en/%s/loadmore-activities/%s/%s/?page=%s&count=%s" % (id, type, term, page, cnt)
@@ -240,7 +240,8 @@ if __name__ == '__main__':
     #print(jdump(scrape(205452, [9], 'Chris MACMANUS')))
     #print(jdump(scrape(204400, [9], 'Adrián VÁZQUEZ LÁZARA', save=False)))
     #print(jdump(scrape(197767, [9], 'Eugen JURZYCA', save=False)))
-    print(jdump(scrape(197731, [9], 'Clare DALY', save=False)))
+    #print(jdump(scrape(197731, [9], 'Clare DALY', save=False)))
+    print(jdump(scrape(96826, [10], 'TAMAS DEUTSCH', save=False)))
 
 
     #import sys
